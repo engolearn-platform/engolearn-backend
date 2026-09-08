@@ -4,3 +4,11 @@ server:
 spring:
   application:
     name: engolearn
+  config:
+    import: optional:file:.env[.properties
+  mongodb:
+    port: ${MONGO_PORT:27017}
+    database: ${MONGO_DB:app_db}
+    username: ${MONGO_USER:root}
+    password: ${MONGO_PASS:secret}
+    authentication-database: admin

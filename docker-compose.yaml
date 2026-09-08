@@ -1,0 +1,53 @@
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:8.0.29-noble
+    container_name: mongodb_srv
+    restart: unless-stopped
+    ports:
+      - "${MONGO_PORT:-27017}:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER:-root}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASS:-secret}
+      MONGO_INITDB_DATABASE: ${MONGO_DB:-app_db}
+    volumes:
+      - mongodb_data:/data/db
+      - mongodb_config:/data/configdb
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    networks:
+      - engolearn-network
+
+  mongo-express:
+    image: mongo-express:1.0.2-18-alpine3.19
+    container_name: mongo_express_ui
+    restart: unless-stopped
+    ports:
+      - "${ME_PORT:-8081}:8081"
+    environment:
+      ME_CONFIG_MONGODB_ADMINUSERNAME: ${MONGO_USER}
+      ME_CONFIG_MONGODB_ADMINPASSWORD: ${MONGO_PASS}
+      ME_CONFIG_MONGODB_URL: mongodb://${MONGO_USER}:${MONGO_PASS}@mongodb:27017/?authSource=admin
+      ME_CONFIG_BASICAUTH_USERNAME: ${ME_BASIC_USER:-admin}
+      ME_CONFIG_BASICAUTH_PASSWORD: ${ME_BASIC_PASS:-admin123}
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    networks:
+      - engolearn-network
+
+volumes:
+  mongodb_data:
+    name: mongodb_data
+  mongodb_config:
+    name: mongodb_config
+
+networks:
+  engolearn-network:
+    name: engolearn-network
+    driver: bridge
