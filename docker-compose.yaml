@@ -10,10 +10,16 @@ services:
     environment:
       MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER:-root}
       MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASS:-secret}
-      MONGO_INITDB_DATABASE: ${MONGO_DB:-app_db}
+
+      APP_DB: ${APP_DB}
+      APP_USER: ${APP_USER}
+      APP_PASSWORD: ${APP_PASSWORD}
     volumes:
       - mongodb_data:/data/db
       - mongodb_config:/data/configdb
+
+        # mount init database script to initialize the database with default user and password
+      - ./init-mongo.sh:/docker-entrypoint-initdb.d/init-mongo.sh:ro
     healthcheck:
       test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
       interval: 10s
