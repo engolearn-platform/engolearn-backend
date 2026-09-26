@@ -36,7 +36,4 @@ public class UserTopicProgress extends BaseDocument {
 
     @Field("last_accessed_at")
     private Instant lastAccessedAt;
-
-    @Field("topic_version")
-    private String topicVersion;
 }
