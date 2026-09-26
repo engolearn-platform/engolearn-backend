@@ -1,4 +1,4 @@
-package fit.iuh.engolearn.models.topics;
+package fit.iuh.engolearn.models.topics.vo;
 
 import fit.iuh.engolearn.models.shared.EmbeddedDocument;
 import lombok.*;

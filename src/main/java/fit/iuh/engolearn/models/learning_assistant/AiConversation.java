@@ -5,6 +5,7 @@ import fit.iuh.engolearn.models.learning_assistant.enums.ConversationStatus;
 import fit.iuh.engolearn.models.shared.BaseDocument;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
+import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.mongodb.core.mapping.Field;
 
@@ -36,4 +37,8 @@ public class AiConversation extends BaseDocument {
 
     @Field("status")
     private ConversationStatus status;
+
+    @Indexed(expireAfter = "0")
+    @Field("expires_at")
+    private Instant expiresAt;
 }

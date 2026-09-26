@@ -1,7 +1,6 @@
-package fit.iuh.engolearn.models.topics;
+package fit.iuh.engolearn.models.topics.vo;
 
 import fit.iuh.engolearn.models.shared.EmbeddedDocument;
-import fit.iuh.engolearn.models.shared.enums.QuizType;
 import lombok.*;
 import org.springframework.data.mongodb.core.mapping.Field;
 
@@ -13,18 +12,24 @@ import java.util.Map;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class QuizItemVo implements EmbeddedDocument {
-    @Field("quiz_id")
-    private String quizId;
+public class QuizQuestionVo implements EmbeddedDocument {
+    @Field("prompt")
+    private String prompt;
 
-    @Field("quiz_type")
-    private QuizType quizType;
+    @Field("audio_url")
+    private String audioUrl;
 
-    @Field("order_index")
-    private Integer orderIndex;
+    @Field("options")
+    private List<QuizOptionVo> options;
 
-    @Field("question_text")
-    private String questionText;
+    @Field("correct")
+    private String correct;
+
+    @Field("explanation_ok")
+    private String explanationOk;
+
+    @Field("explanation_ng")
+    private String explanationNg;
 
     @Field("sentence")
     private QuizSentenceVo sentence;
@@ -38,6 +43,6 @@ public class QuizItemVo implements EmbeddedDocument {
     @Field("explanation")
     private String explanation;
 
-    @Field("grammar_tags")
-    private List<GrammarTagVo> grammarTags;
+    @Field("tips")
+    private String tips;
 }
