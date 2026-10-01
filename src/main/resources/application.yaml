@@ -11,4 +11,4 @@ spring:
     port: ${MONGO_PORT:27017}
     database: ${APP_DB:engolearn_db}
     username: ${APP_USER:admin}
-    password: ${APP_PASSWORD:admin123}
+    password: ${APP_PASSWORD:admin123}  
