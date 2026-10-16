@@ -1,4 +1,4 @@
-package fit.iuh.engolearn.models.users;
+package fit.iuh.engolearn.user.model;
 
 import fit.iuh.engolearn.shared.BaseDocument;
 import lombok.*;

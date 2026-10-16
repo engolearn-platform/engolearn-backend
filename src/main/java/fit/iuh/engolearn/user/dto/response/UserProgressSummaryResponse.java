@@ -1,4 +1,4 @@
-package fit.iuh.engolearn.dto.response;
+package fit.iuh.engolearn.user.dto.response;
 
 import java.time.Instant;
 

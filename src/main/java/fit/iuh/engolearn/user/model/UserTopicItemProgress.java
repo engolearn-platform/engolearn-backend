@@ -1,7 +1,7 @@
-package fit.iuh.engolearn.models.users;
+package fit.iuh.engolearn.user.model;
 
 import fit.iuh.engolearn.shared.BaseDocument;
-import fit.iuh.engolearn.models.users.enums.ItemProgressStatus;
+import fit.iuh.engolearn.user.model.enums.ItemProgressStatus;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
 import org.springframework.data.mongodb.core.mapping.Document;
