@@ -1,4 +1,4 @@
-package fit.iuh.engolearn.models.vocabularies;
+package fit.iuh.engolearn.dictionary.model;
 
 import fit.iuh.engolearn.shared.enums.CefrLevel;
 import fit.iuh.engolearn.shared.EmbeddedDocument;
