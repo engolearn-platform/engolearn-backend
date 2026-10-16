@@ -2,7 +2,7 @@ package fit.iuh.engolearn.models.learning_assistant;
 
 import fit.iuh.engolearn.models.learning_assistant.enums.ConversationRole;
 import fit.iuh.engolearn.models.learning_assistant.enums.FeedbackType;
-import fit.iuh.engolearn.models.shared.EmbeddedDocument;
+import fit.iuh.engolearn.shared.EmbeddedDocument;
 import lombok.*;
 import org.springframework.data.mongodb.core.mapping.Field;
 

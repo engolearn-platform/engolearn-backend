@@ -1,6 +1,6 @@
 package fit.iuh.engolearn.dto.request;
 
-import fit.iuh.engolearn.models.shared.enums.CefrLevel;
+import fit.iuh.engolearn.shared.enums.CefrLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;

@@ -1,4 +1,4 @@
-package fit.iuh.engolearn.models.shared.enums;
+package fit.iuh.engolearn.shared.enums;
 
 public enum CefrLevel {
     A1,

@@ -1,7 +1,7 @@
 package fit.iuh.engolearn.models.vocabularies;
 
-import fit.iuh.engolearn.models.shared.enums.CefrLevel;
-import fit.iuh.engolearn.models.shared.EmbeddedDocument;
+import fit.iuh.engolearn.shared.enums.CefrLevel;
+import fit.iuh.engolearn.shared.EmbeddedDocument;
 import lombok.*;
 import org.springframework.data.mongodb.core.mapping.Field;
 

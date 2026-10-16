@@ -1,6 +1,6 @@
 package fit.iuh.engolearn.models.users;
 
-import fit.iuh.engolearn.models.shared.BaseDocument;
+import fit.iuh.engolearn.shared.BaseDocument;
 import fit.iuh.engolearn.models.users.enums.ItemProgressStatus;
 import lombok.*;
 import lombok.experimental.SuperBuilder;

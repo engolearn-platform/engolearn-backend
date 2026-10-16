@@ -1,4 +1,4 @@
-package fit.iuh.engolearn.models.shared;
+package fit.iuh.engolearn.shared;
 
 import lombok.*;
 import lombok.experimental.SuperBuilder;

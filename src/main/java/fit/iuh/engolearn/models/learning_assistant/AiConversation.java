@@ -2,7 +2,7 @@ package fit.iuh.engolearn.models.learning_assistant;
 
 import fit.iuh.engolearn.models.learning_assistant.enums.ContextType;
 import fit.iuh.engolearn.models.learning_assistant.enums.ConversationStatus;
-import fit.iuh.engolearn.models.shared.BaseDocument;
+import fit.iuh.engolearn.shared.BaseDocument;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
 import org.springframework.data.mongodb.core.index.Indexed;

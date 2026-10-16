@@ -1,6 +1,6 @@
 package fit.iuh.engolearn.models.users;
 
-import fit.iuh.engolearn.models.shared.BaseDocument;
+import fit.iuh.engolearn.shared.BaseDocument;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
 import org.springframework.data.mongodb.core.mapping.Document;

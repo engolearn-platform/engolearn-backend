@@ -1,4 +1,4 @@
-package fit.iuh.engolearn.configuaration;
+package fit.iuh.engolearn.config;
 
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.mongodb.config.EnableMongoAuditing;

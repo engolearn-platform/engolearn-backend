@@ -1,6 +1,6 @@
 package fit.iuh.engolearn.models.topics;
 
-import fit.iuh.engolearn.models.shared.BaseDocument;
+import fit.iuh.engolearn.shared.BaseDocument;
 import fit.iuh.engolearn.models.shared.enums.ContentStatus;
 import fit.iuh.engolearn.models.topics.enums.ChangeType;
 import fit.iuh.engolearn.models.topics.vo.ExpressionBlockVo;

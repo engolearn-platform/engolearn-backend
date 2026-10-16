@@ -1,6 +1,6 @@
 package fit.iuh.engolearn.models.topics.vo;
 
-import fit.iuh.engolearn.models.shared.EmbeddedDocument;
+import fit.iuh.engolearn.shared.EmbeddedDocument;
 import fit.iuh.engolearn.models.shared.enums.QuizType;
 import lombok.*;
 import org.springframework.data.mongodb.core.mapping.Field;
