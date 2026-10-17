@@ -22,7 +22,7 @@ Frozen-store rule for every 3.x move: once `archunit_store/` is touched, green `
 - [x] 3.3 Move `topic` — DONE commit `98f896a`, D8.1 re-baseline 2(b) family, reviewer PASS
 - [x] 3.4 Move `user` — DONE commit `6aae0b6`, D8.1 re-baseline 2(b) re-wording, reviewer PASS
 - [x] 3.5 Delete `models.learning_assistant.*` and empty dirs in a dedicated commit and verify `./mvnw verify` is green and no references to deleted packages remain — DONE commit `93be423` (14 files, 118 deletions, 0 insertions), store untouched, reviewer PASS
-- [ ] 3.6 Confirm the team dropped the dev DB / stale `ai_conversations` data by hand and verify the app boots against a fresh DB
+- [x] 3.6 Confirm the team dropped the dev DB / stale `ai_conversations` data by hand and verify the app boots against a fresh DB
 
 ## 4. Phase 3 — Contracts (minimal shells, no caller rewiring beyond the move)
 
