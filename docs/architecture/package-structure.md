@@ -1,66 +1,70 @@
 # Package structure
 
-One Maven module. One package level per feature. Layers live inside each feature.
+The application is a single Maven module. Organize production code by **feature first, layer second**. Create only the layers a feature needs; do not add empty placeholder packages.
 
-```
+```text
 fit.iuh.engolearn
-├── <feature>                 e.g. topic, vocabulary, assessment
-│   ├── contract              PUBLIC to other features: interfaces, DTOs, events, contract exceptions
-│   ├── controller            HTTP endpoints for the frontend
+├── <feature>                 current features: topic, dictionary, user
+│   ├── contract              public capability interfaces and contract types
+│   │   └── dto               DTOs shared through that contract
+│   ├── controller            frontend HTTP endpoints
 │   ├── dto
-│   │   ├── request
-│   │   └── response          web DTOs, used only by this feature's controllers
-│   ├── service               business logic; also holds the implementations of contract interfaces
+│   │   ├── request           frontend request DTOs
+│   │   └── response          frontend response DTOs
+│   ├── service               business logic and contract implementations
 │   ├── repository            persistence access
-│   └── model                 entities / documents
-├── shared                    cross-cutting code with NO dependency on any feature
-│   └── exception, util, ...  base exceptions, global handler, generic helpers
-├── config                    Spring configuration / wiring (may depend on anything)
+│   ├── model                 feature-owned entities/documents and domain types
+│   └── exception             optional; only for feature-local exceptions
+├── shared                    cross-cutting types with no feature knowledge
+├── config                    application configuration and wiring
 └── EngolearnApplication
 ```
 
-Tests mirror the same packages under `src/test/java`.
+Tests mirror production packages under `src/test/java`.
 
-## What each layer may depend on
+## Dependency policy
 
-| Layer | May use | Must not use |
+| Area | May depend on | Must not depend on |
 |---|---|---|
-| controller | service, dto, own contract | repository, model (return dto, never entities) |
-| service | repository, model, dto where needed, other features' `contract` | other features' anything-else |
-| repository | model | service, controller |
-| contract | `shared`, JDK, validation annotations | model, repository, service, controller, dto |
+| `controller` | Its feature's service and DTOs | Repositories or models directly; another feature's internals |
+| `service` | Its feature's repository, model, DTOs and contracts; other features' `contract` APIs | Another feature's controller, service, repository, model or web DTO |
+| `repository` | Its feature's model and persistence support | Controllers or services |
+| `contract` | Small contract types; JDK, `shared`, and validation types as needed | Entities, repositories, business logic, web DTOs, or framework-heavy types |
+| `shared` | Cross-cutting types that do not know about features | Any feature package |
+| `config` | Types needed for application wiring | Business logic that belongs in a feature |
 
-## Two kinds of DTO, do not mix them
+Controllers should return response DTOs, not persistence entities. A contract is a feature's public in-process API; its implementation belongs in that feature's `service` package.
 
-- `dto/request|response`: shaped for the frontend. Free to change with the UI. Private to the feature.
-- `contract/*Dto`: shaped for other features. Small and stable. Treat as a public API:
-  add fields freely, do not rename, remove or change the meaning of fields without checking all callers.
+## Two kinds of DTO
 
-## Where does new code go?
+- **Web DTO** — `<feature>.dto.request|response`; shaped for a frontend/API contract and private to that feature.
+- **Contract DTO** — `<feature>.contract.dto`; a small, stable type exchanged between features. Treat it as a public API: check callers before changing field meaning, removing a field, or renaming it.
 
-| I am adding... | Put it in |
+Do not place a feature-specific concept in `shared` merely to bypass a dependency boundary. Keep it in its owning feature and expose only the capability needed by other features.
+
+## Where new code goes
+
+| Adding | Put it in |
 |---|---|
-| An endpoint for the frontend | `<feature>/controller` (+ `dto`) |
+| Frontend endpoint | `<feature>/controller` and the relevant web DTOs |
 | Business logic | `<feature>/service` |
-| Something another feature needs from mine | an interface + DTO in `<feature>/contract`, implemented in `<feature>/service` |
-| An exception thrown through a contract method | `<feature>/contract` |
-| An exception used only inside the feature | `<feature>/service` (or a sibling `exception` package) |
-| A helper used by 2+ features that knows nothing about any feature | `shared` |
-| A helper that knows about one feature's concepts | that feature, even if another feature wants it (expose via `contract`) |
+| Capability another feature needs | Interface and contract types in `<feature>/contract`; implementation in `service` |
+| Persistence access | `<feature>/repository` |
+| Feature-owned entity or domain type | `<feature>/model` |
+| Generic cross-feature utility | `shared`, only if it has no feature knowledge |
+| Spring/application wiring | `config` |
 
-Do not put something in `shared` only to dodge the cross-feature rule. If it knows business concepts,
-it belongs to a feature.
+Package names are lowercase and use no underscores. Add a new top-level feature only with approval; update the approved feature-root set in `ArchitectureTest` as part of that change.
 
-## Naming
+## What is automatically enforced?
 
-- Package names: lowercase, no underscores (`learningassistant`, not `learning_assistant`).
-- Contract interfaces are named by capability: `TopicQuery`, `ProgressTracker`.
-  Implementations: `TopicQueryImpl` in `service`.
-- Contract DTOs: `<Thing>Dto` or Java records.
+`src/test/java/fit/iuh/engolearn/ArchitectureTest.java` currently checks:
 
-## Adding a new feature
+- approved top-level roots and feature-first package shape;
+- cross-feature class dependencies target a `contract` package;
+- `shared` does not depend on features;
+- package slices are free of dependency cycles;
+- dependencies used by contract classes stay within the ArchUnit allow-list;
+- Controller, Service, and Repository layer dependency direction.
 
-1. Create `fit.iuh.engolearn.<feature>` with the layers it needs (skip empty ones).
-2. Add a `contract` package only when another feature actually needs something from it.
-3. Declare which features it depends on in `cross-feature-communication.md` (allowed dependencies table).
-4. Run `ArchitectureTest`.
+These checks do not prove every rule in this document. In particular, review is still needed to ensure controllers expose DTOs rather than entities, the allowed-dependency table is respected, and a refactor preserves external and persistence behavior. Do not describe a rule as automatically enforced unless a test actually checks it.
