@@ -47,7 +47,9 @@ Keep this table up to date. A new arrow needs a reason. Arrows must not form a c
 
 | Feature | May depend on (via contract) |
 |---|---|
-| _fill in during the refactor, from the Phase 0 inventory_ | |
+| dictionary | (none) |
+| topic | dictionary |
+| user | topic |
 
 ## Future: extracting a feature into a service (do NOT build this now)
 
