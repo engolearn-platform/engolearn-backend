@@ -26,8 +26,8 @@ Tests mirror production packages under `src/test/java`.
 
 | Area | May depend on | Must not depend on |
 |---|---|---|
-| `controller` | Its feature's service and DTOs | Repositories or models directly; another feature's internals |
-| `service` | Its feature's repository, model, DTOs and contracts; other features' `contract` APIs | Another feature's controller, service, repository, model or web DTO |
+| `controller` | Its feature's service and web DTOs | Its own repository or model directly |
+| `service` | Its feature's repository, model, DTOs, and contracts | See [cross-feature communication](cross-feature-communication.md) for dependencies on other features |
 | `repository` | Its feature's model and persistence support | Controllers or services |
 | `contract` | Small contract types; JDK, `shared`, and validation types as needed | Entities, repositories, business logic, web DTOs, or framework-heavy types |
 | `shared` | Cross-cutting types that do not know about features | Any feature package |
@@ -67,4 +67,4 @@ Package names are lowercase and use no underscores. Add a new top-level feature 
 - dependencies used by contract classes stay within the ArchUnit allow-list;
 - Controller, Service, and Repository layer dependency direction.
 
-These checks do not prove every rule in this document. In particular, review is still needed to ensure controllers expose DTOs rather than entities, the allowed-dependency table is respected, and a refactor preserves external and persistence behavior. Do not describe a rule as automatically enforced unless a test actually checks it.
+These checks do not prove every rule in this document. In particular, review is still needed to ensure controllers expose DTOs rather than entities, the approved dependency table is respected, and a refactor preserves external and persistence behavior. Do not describe a rule as automatically enforced unless a test actually checks it.
