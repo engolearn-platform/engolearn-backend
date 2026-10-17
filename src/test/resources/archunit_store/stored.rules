@@ -1,7 +1,0 @@
-#
-#Fri Oct 16 10:55:31 ICT 2026
-Layered\ architecture\ considering\ only\ dependencies\ in\ layers,\ consisting\ of\nlayer\ 'Controller'\ ('..controller..')\nlayer\ 'Service'\ ('..service..')\nlayer\ 'Repository'\ ('..repository..')\nwhere\ layer\ 'Controller'\ may\ not\ be\ accessed\ by\ any\ layer\nwhere\ layer\ 'Service'\ may\ only\ be\ accessed\ by\ layers\ ['Controller']\nwhere\ layer\ 'Repository'\ may\ only\ be\ accessed\ by\ layers\ ['Service']=4c1c1690-aaa9-4969-aa45-85baa66adc1c
-classes\ should\ use\ other\ features\ only\ through\ their\ contract\ package=8d083114-4510-41b3-a786-b8e107144687
-classes\ that\ reside\ in\ a\ package\ '..contract..'\ should\ only\ depend\ on\ classes\ that\ reside\ in\ any\ package\ ['..contract..',\ 'fit.iuh.engolearn.shared..',\ 'java..',\ 'jakarta.validation..',\ 'lombok..']=a9aea1d8-d1f2-4072-b9aa-4757f542cc11
-classes\ that\ reside\ in\ a\ package\ 'fit.iuh.engolearn.shared..'\ should\ not\ depend\ on\ any\ feature=313b4e67-03a1-412c-95e0-4d85f4896e57
-slices\ matching\ 'fit.iuh.engolearn.(*)..'\ should\ be\ free\ of\ cycles=f0d4b67a-e159-4ac6-8e67-75e67c595778

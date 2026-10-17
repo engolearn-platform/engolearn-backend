@@ -9,7 +9,6 @@ import com.tngtech.archunit.lang.ArchCondition;
 import com.tngtech.archunit.lang.ArchRule;
 import com.tngtech.archunit.lang.ConditionEvents;
 import com.tngtech.archunit.lang.SimpleConditionEvent;
-import com.tngtech.archunit.library.freeze.FreezingArchRule;
 
 import java.util.Set;
 
@@ -31,7 +30,7 @@ class ArchitectureTest {
     }
 
     @ArchTest
-    static final ArchRule features_use_each_other_only_via_contract = FreezingArchRule.freeze(
+    static final ArchRule features_use_each_other_only_via_contract =
         classes().should(new ArchCondition<JavaClass>("use other features only through their contract package") {
             @Override
             public void check(JavaClass origin, ConditionEvents events) {
@@ -46,10 +45,10 @@ class ArchitectureTest {
                     }
                 }
             }
-        }));
+        });
 
     @ArchTest
-    static final ArchRule shared_does_not_depend_on_features = FreezingArchRule.freeze(
+    static final ArchRule shared_does_not_depend_on_features =
         classes().that().resideInAPackage("fit.iuh.engolearn.shared..")
             .should(new ArchCondition<JavaClass>("not depend on any feature") {
                 @Override
@@ -60,27 +59,27 @@ class ArchitectureTest {
                         }
                     }
                 }
-            }).allowEmptyShould(true));
+            });
 
     @ArchTest
-    static final ArchRule no_cycles_between_features = FreezingArchRule.freeze(
-        slices().matching("fit.iuh.engolearn.(*)..").should().beFreeOfCycles());
+    static final ArchRule no_cycles_between_features =
+        slices().matching("fit.iuh.engolearn.(*)..").should().beFreeOfCycles();
 
     // Extend the allow-list deliberately; contract must stay free of entities and logic layers.
     @ArchTest
-    static final ArchRule contract_is_self_contained = FreezingArchRule.freeze(
+    static final ArchRule contract_is_self_contained =
         classes().that().resideInAPackage("..contract..")
             .should().onlyDependOnClassesThat().resideInAnyPackage(
-                "..contract..", "fit.iuh.engolearn.shared..", "java..", "jakarta.validation..", "lombok..")
-            .allowEmptyShould(true));
+                "..contract..", "fit.iuh.engolearn.shared..", "java..", "jakarta.validation..", "lombok..");
 
     @ArchTest
-    static final ArchRule layers_inside_features = FreezingArchRule.freeze(
+    static final ArchRule layers_inside_features =
         layeredArchitecture().consideringOnlyDependenciesInLayers()
+            .withOptionalLayers(true)
             .layer("Controller").definedBy("..controller..")
             .layer("Service").definedBy("..service..")
             .layer("Repository").definedBy("..repository..")
             .whereLayer("Controller").mayNotBeAccessedByAnyLayer()
             .whereLayer("Service").mayOnlyBeAccessedByLayers("Controller")
-            .whereLayer("Repository").mayOnlyBeAccessedByLayers("Service"));
+            .whereLayer("Repository").mayOnlyBeAccessedByLayers("Service");
 }
