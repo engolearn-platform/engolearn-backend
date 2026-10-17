@@ -20,7 +20,6 @@ This document defines **how work is performed**. Completion criteria live in [De
 ## 3. Use OpenSpec honestly
 
 - Keep proposal, design, specs, and tasks aligned with the approved scope and actual implementation.
-- Acceptance criteria belong to the specific change; do not duplicate them as permanent repository-wide rules.
 - Mark a task complete only when its work is done and the required evidence has been checked. A checked box is a status record, not proof that a test ran.
 - Validate the change with the repository's OpenSpec tooling when applicable. Archive only after the applicable Definition of Done is satisfied; archiving is not verification.
 
