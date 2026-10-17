@@ -1,31 +1,28 @@
-# AGENTS.md — engolearn-backend
+# Agent instructions
 
-Spring Boot modular monolith. Base package: `fit.iuh.engolearn`.
-Small student team, so prefer simple and boring solutions.
+EngoLearn Backend is a Spring Boot modular monolith. Base package: `fit.iuh.engolearn`.
 
-## Read before changing structure or adding code
+## Start here
 
-- `docs/architecture/package-structure.md` — where code goes
-- `docs/architecture/cross-feature-communication.md` — how features talk to each other
+Read only what applies to the task:
 
-## Hard rules (enforced by `ArchitectureTest`; the build fails if they are broken)
+- `docs/architecture/package-structure.md` — package layout and layer boundaries.
+- `docs/architecture/cross-feature-communication.md` — allowed dependencies between features.
+- `docs/agent/working-agreement.md` — task workflow, OpenSpec, and implementation loop.
+- `docs/agent/definition-of-done.md` — completion criteria and verification gates.
 
-1. Package by feature first, layer second: `fit.iuh.engolearn.<feature>.<layer>`.
-2. A feature may use another feature ONLY through that feature's `contract` package.
-   Never import another feature's controller, service, repository, model or dto.
-3. Never reference another feature's entity. Store its id and ask its contract when you need details.
-4. `contract` contains only interfaces, plain DTOs, events, and exceptions that are part of the contract.
-   No logic, no entities, no framework-heavy types.
-5. `shared` must not depend on any feature.
-6. No dependency cycles between features. If two features need each other, use an event or
-   question the boundary. Ask before adding a cycle.
+For an existing OpenSpec change, inspect its proposal, design, applicable specs, and tasks before implementation.
 
-## Working agreements
+## Non-negotiable
 
-- Refactors must not change behaviour, REST paths, request/response JSON, or DB collection/table/field names.
-- Business rules live in the team's online docs, not in this repo. If a task depends on a rule you cannot
-  find, ask. Do not invent rules.
-- Do not add libraries, Maven modules, or new top-level packages without asking.
-- Run `./mvnw verify` before finishing (use the project's actual build command if different).
-- If a rule here blocks you, stop and ask. Do not work around it (no suppressions, no ArchUnit exclusions,
-  no copying entities into another feature).
+- Follow the documented package and cross-feature boundaries.
+- Refactors must preserve behavior and existing API/persistence contracts unless the approved scope explicitly says otherwise.
+- Do not invent missing business rules. Find the team's business documentation or report the ambiguity.
+- Do not add dependencies, Maven modules, or top-level feature packages without approval.
+- Do not bypass architecture rules, suppress violations, or weaken tests just to make a check pass.
+
+## Before declaring completion
+
+Follow the working agreement and the applicable Definition of Done. Report actual verification results, including failures, checks not run, and outstanding manual steps.
+
+`ArchitectureTest` enforces a subset of the architecture rules; the architecture documents remain the policy source for rules that are not automated.
