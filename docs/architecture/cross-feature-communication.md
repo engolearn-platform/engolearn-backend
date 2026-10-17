@@ -1,65 +1,53 @@
 # Cross-feature communication
 
-Goal: features stay loosely coupled so any of them could later be extracted into its own service
-without rewriting business logic.
+Features may depend on one another only through narrow public contracts. The goal is to keep feature internals private and make future extraction possible without rewriting business logic.
 
-## Three allowed ways for feature A to depend on feature B
+## Allowed communication
 
-1. **Synchronous query/command through B's `contract` interface.**
-   A injects `B.contract.SomeInterface`. Spring wires B's implementation. A never sees B's entities.
-2. **Event published by B (or A), consumed by the other.**
-   Use Spring `ApplicationEventPublisher`. The event class lives in the publisher's `contract` package.
-   Use this for "something happened" and for any dependency that would otherwise point backwards.
-3. **Reference by id.**
-   A stores B's id as a plain value. No object reference, no join, no cross-feature relationship
-   mapping. When A needs details it calls B's contract.
+1. **Contract call** — call a capability interface in the provider's `<feature>.contract`. The implementation stays in the provider's `service`; callers must not access its entities or repositories.
+2. **Event** — publish an event from the publisher feature and let the other feature react to it. Put the event type in the publisher's `contract` package. Prefer events when a direct call would create a backwards dependency.
+3. **ID reference** — store another feature's ID as a plain value, not as a cross-feature object relationship. Request details through that feature's contract when needed.
 
-Anything else (importing B's service/repository/model, reading B's collection/table directly) is forbidden.
+Direct imports of another feature's controller, service, repository, model, or web DTO are forbidden. Features must not read another feature's collection directly.
 
-## Recipe: A needs something from B
+## When feature A needs capability from feature B
 
-1. Work out exactly what A needs (which fields, which operation). Do not expose more.
-2. Add a small interface and DTO in `b.contract`.
-3. Implement the interface in `b.service`, delegating to existing services/repositories and mapping
-   entity to contract DTO.
-4. Inject the interface in A. Delete the old direct import.
+1. Define the smallest operation and data A needs.
+2. Add the interface and any stable DTOs under `B.contract` (DTOs go in `B.contract.dto`).
+3. Implement the interface in `B.service`, delegating to B's existing internals.
+4. Inject the interface into A; remove direct references to B's internals.
+5. Update the dependency table below and run `ArchitectureTest`.
+
+Design contract results and errors as public API: use types such as `Optional` where appropriate and expose business-level exceptions rather than persistence exceptions.
 
 ```java
-// b/contract/TopicQuery.java
-public interface TopicQuery {
-    Optional<TopicSummaryDto> findSummary(String topicId);
+// dictionary/contract/VocabularyLookup.java
+public interface VocabularyLookup {
+    Optional<VocabSenseDto> findSense(String vocabId, String senseId);
 }
 
-// b/service/TopicQueryImpl.java
+// dictionary/service/VocabularyLookupImpl.java
 @Service
-class TopicQueryImpl implements TopicQuery { /* uses TopicRepository, maps to dto */ }
+class VocabularyLookupImpl implements VocabularyLookup {
+    // Uses dictionary repositories and maps results to contract DTOs.
+}
 
-// a/service/SomeService.java
-private final TopicQuery topicQuery;   // the only thing A knows about Topic
+// topic/service/TopicAuthoringService.java
+private final VocabularyLookup vocabularyLookup;
 ```
 
-Design contract methods as if the call could be slow or fail someday: return `Optional` or throw a
-contract-level exception with business meaning. Do not leak persistence exceptions.
+## Approved feature dependencies
 
-## Allowed dependencies between features
+A new dependency needs an explicit reason and approval. Keep this table in sync with the architecture decisions; dependency arrows must not form a cycle.
 
-Keep this table up to date. A new arrow needs a reason. Arrows must not form a cycle.
-
-| Feature | May depend on (via contract) |
+| Feature | May depend on, through contract |
 |---|---|
-| dictionary | (none) |
-| topic | dictionary |
-| user | topic |
+| `dictionary` | None |
+| `topic` | `dictionary` |
+| `user` | `topic` |
 
-## Future: extracting a feature into a service (do NOT build this now)
+`ArchitectureTest` checks that cross-feature code dependencies target a contract and that dependency cycles do not exist. It does **not** currently enforce this table as an exact allow-list, so reviewers must check that new dependencies are listed and approved.
 
-When a feature is split out, the plan is:
+## Future service extraction — not part of current work
 
-- Provider: add an internal controller (for example `controller/internal/*InternalController`, path prefix
-  `/internal/**`, not exposed publicly) that only translates HTTP into calls on its own contract interface.
-- Caller: copy the interface and DTOs it needs into its own code (rename to fit its context), and add a
-  `restclient` package with an implementation that calls the provider over HTTP. Its service layer does
-  not change because it still talks to the interface.
-- The two sides then agree on the HTTP contract, not on shared code.
-
-Until that day, do not create internal controllers, REST clients, or shared contract jars.
+When a feature is extracted, its provider may expose a private/internal HTTP adapter and the caller may implement the same capability interface with a REST client. Keep service logic dependent on the interface so the transport can change without rewriting business logic. Do not build internal controllers, REST clients, or shared contract libraries before that extraction is approved.
