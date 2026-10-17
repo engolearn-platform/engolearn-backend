@@ -1,6 +1,6 @@
 package fit.iuh.engolearn.topic.dto.response;
 
-import fit.iuh.engolearn.user.dto.response.UserProgressSummaryResponse;
+import fit.iuh.engolearn.user.contract.dto.UserProgressSummaryDto;
 import fit.iuh.engolearn.shared.enums.CefrLevel;
 import fit.iuh.engolearn.topic.model.enums.ContentStatus;
 import lombok.AllArgsConstructor;
@@ -18,5 +18,5 @@ public class TopicItemSummaryResponse {
     private CefrLevel cefrLevel;
     private Integer order;
     private ContentStatus status;
-    private UserProgressSummaryResponse currentUserProgress;
+    private UserProgressSummaryDto currentUserProgress;
 }

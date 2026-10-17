@@ -8,7 +8,7 @@ import java.time.Instant;
  */
 public record UserProgressSummaryDto(
         String lastTopicItemId,
-        boolean completed,
+        Boolean isCompleted,
         Instant completedAt,
         Instant lastAccessedAt) {
 }
