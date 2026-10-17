@@ -21,7 +21,6 @@ class ArchitectureTest {
 
     private static final String ROOT_PACKAGE = "fit.iuh.engolearn";
     private static final String BASE = ROOT_PACKAGE + ".";
-    private static final Set<String> FEATURES = Set.of("topic", "dictionary", "user");
     private static final Set<String> INFRA = Set.of("shared", "config");
     private static final Set<String> TOP_LEVEL_PACKAGES = Set.of(
         "topic", "dictionary", "user", "shared", "config"
@@ -66,7 +65,7 @@ class ArchitectureTest {
                     return;
                 }
 
-                if (FEATURES.contains(root) && (parts.length < 2 || !FEATURE_LAYERS.contains(parts[1]))) {
+                if (!INFRA.contains(root) && (parts.length < 2 || !FEATURE_LAYERS.contains(parts[1]))) {
                     events.add(SimpleConditionEvent.violated(
                         origin, "Feature classes must use <feature>.<layer>: " + origin.getName()
                     ));
