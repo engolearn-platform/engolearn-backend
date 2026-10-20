@@ -10,6 +10,5 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @Builder
 public class GetTopicDetailRequest {
-    private String userId;
     private String topicId;
 }

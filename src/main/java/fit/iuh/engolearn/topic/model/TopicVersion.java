@@ -8,8 +8,9 @@ import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.mongodb.core.mapping.Field;
 
 import java.time.Instant;
+import java.util.List;
 
-@Document("topics_version")
+@Document("topic_versions")
 @Getter
 @Setter
 @NoArgsConstructor
@@ -28,6 +29,9 @@ public class TopicVersion extends BaseDocument {
 
     @Field("status")
     private ContentStatus status;
+
+    @Field("item_version_ids")
+    private List<String> itemVersionIds;
 
     @Field("published_at")
     private Instant publishedAt;

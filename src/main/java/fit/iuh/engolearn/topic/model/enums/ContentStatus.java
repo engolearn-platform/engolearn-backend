@@ -4,5 +4,6 @@ public enum ContentStatus {
     DRAFT,
     BETA,
     PUBLISHED,
+    HIDDEN,
     ARCHIVED
 }

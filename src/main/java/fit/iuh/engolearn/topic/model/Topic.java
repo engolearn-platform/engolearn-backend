@@ -19,7 +19,7 @@ import java.util.List;
 @EqualsAndHashCode(callSuper = true)
 public class Topic extends BaseDocument {
     @Field("latest_published_version")
-    private Integer latestPublishedVersion;
+    private String latestPublishedVersion;
 
     @Field("latest_beta_version")
     private Integer latestBetaVersion;

@@ -13,8 +13,10 @@ import java.util.List;
 @AllArgsConstructor
 @Builder
 public class TopicDetailResponse {
-    private String title;
-    private String description;
+    private String topicId;
+    private String titleEn;
+    private String titleVi;
     private CefrLevel cefrLevel;
-    List<TopicItemSummaryResponse> topicItems;
+    private String description;
+    private List<TopicItemSummaryResponse> items;
 }

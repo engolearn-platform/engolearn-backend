@@ -11,10 +11,12 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @Builder
 public class TopicSummaryResponse {
-    private String title;
-    private String description;
+    private String topicId;
+    private String coverUrl;
+    private String titleEn;
+    private String titleVi;
     private CefrLevel cefrLevel;
-    private Integer orderIndex;
-    private Integer totalWords;
-    private Integer durationMinutes;
+    private int vocabularyCount;
+    private int quizCount;
+    private int durationMinutes;
 }
