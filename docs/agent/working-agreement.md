@@ -18,6 +18,15 @@ This document defines **how work is performed**, regardless of which team workfl
 - If a check fails, read the failure, identify the cause, make a targeted fix, and rerun it. Do not remove, weaken, suppress, or bypass a check merely to obtain a passing result.
 - If the cause is unclear, a required decision is missing, or repeated attempts make no progress, stop and report the blocker instead of looping indefinitely.
 
+### Failure and Retry Discipline
+
+- After a failed operation, inspect the error and classify the likely cause before retrying: implementation/test failure, environment issue, tool invocation mistake, or transient failure.
+- Before retrying, state what was learned from the failure and what will change in the next attempt. Do not repeat the same operation with the same inputs and assumptions without new evidence or a concrete reason.
+- If the same operation produces the same failure twice, stop repeating it and investigate the underlying cause. Inspect the relevant file state, inputs, command syntax, environment, and previous output as applicable. The next attempt must use a justified change in approach or explain why an identical retry is appropriate.
+- If the current approach continues to fail, switch strategies, ask the appropriate agent to investigate, or report the blocker to the orchestrator. Do not keep retrying merely to appear productive.
+- Reuse valid verification results while the relevant code, configuration, inputs, and environment remain unchanged. Rerun checks when a relevant change invalidates previous evidence, when a check is flaky or transient failure is reasonably suspected, or when another concrete reason justifies it.
+- Keep verification proportional to the change: use targeted checks during implementation and perform the required final verification before declaring completion. Avoid disposable probe tests and repeated full builds unless they answer a specific unresolved question.
+
 ## 3. Workflow-specific handling
 
 - **OpenSpec:** use its validation and archive commands when applicable to the change. Archive only after the applicable Definition of Done is satisfied; archiving is not verification.

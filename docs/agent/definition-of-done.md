@@ -11,6 +11,7 @@ A task is Done when the common criteria and applicable task-type criteria are me
 - [ ] Existing checks have not been weakened, disabled, suppressed, or bypassed to obtain a pass.
 - [ ] Relevant documentation and examples match the resulting code and configuration.
 - [ ] Remaining risks, unrun checks, and required manual actions are disclosed.
+- [ ] Comments explain non-obvious *why* only; no signature-restating Javadoc.
 
 ## Additional criteria by task type
 

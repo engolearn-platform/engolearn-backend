@@ -21,6 +21,12 @@ Use the team's chosen workflow. OpenSpec is an optional pilot, not mandatory for
 - Do not add dependencies, Maven modules, or top-level feature packages without approval.
 - Do not bypass architecture rules, suppress violations, or weaken tests just to make a check pass.
 
+## Code comments
+
+- Default to no comments: names and structure should carry the intent; add a comment only for a non-obvious *why* (constraint, invariant, ordering, workaround, trade-off), max 1-2 lines.
+- Never restate what the code says: no "Gets the X" narration, no `@param`/`@return` boilerplate; reserve Javadoc for public cross-feature API, at most 1-3 lines.
+- Tests carry intent in their names: comment only non-obvious setup or a regression rationale; when unsure, delete the comment.
+
 ## Before declaring completion
 
 Follow the working agreement and the applicable Definition of Done, regardless of workflow. Report actual verification results, including failures, checks not run, and outstanding manual steps.
