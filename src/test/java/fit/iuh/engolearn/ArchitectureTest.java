@@ -2,6 +2,7 @@ package fit.iuh.engolearn;
 
 import com.tngtech.archunit.core.domain.Dependency;
 import com.tngtech.archunit.core.domain.JavaClass;
+import com.tngtech.archunit.core.domain.JavaMethod;
 import com.tngtech.archunit.core.importer.ImportOption;
 import com.tngtech.archunit.junit.AnalyzeClasses;
 import com.tngtech.archunit.junit.ArchTest;
@@ -9,10 +10,16 @@ import com.tngtech.archunit.lang.ArchCondition;
 import com.tngtech.archunit.lang.ArchRule;
 import com.tngtech.archunit.lang.ConditionEvents;
 import com.tngtech.archunit.lang.SimpleConditionEvent;
+import fit.iuh.engolearn.shared.web.ApiResponse;
+import org.springframework.http.ProblemDetail;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import java.util.Set;
 
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes;
+import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.methods;
 import static com.tngtech.archunit.library.Architectures.layeredArchitecture;
 import static com.tngtech.archunit.library.dependencies.SlicesRuleDefinition.slices;
 
@@ -110,6 +117,50 @@ class ArchitectureTest {
     @ArchTest
     static final ArchRule no_cycles_between_packages =
         slices().matching("fit.iuh.engolearn.(*)..").should().beFreeOfCycles();
+
+    @ArchTest
+    static final ArchRule controllers_expose_the_api_envelope =
+        methods().that().areDeclaredInClassesThat().areAnnotatedWith(RestController.class)
+            .and().arePublic()
+            .should().haveRawReturnType(ApiResponse.class);
+
+    @ArchTest
+    static final ArchRule per_controller_advice_lives_with_its_controllers =
+        classes().that().areAnnotatedWith(RestControllerAdvice.class)
+            .should(new ArchCondition<JavaClass>("reside in the package of every controller they target") {
+                @Override
+                public void check(JavaClass adviceClass, ConditionEvents events) {
+                    for (Class<?> controller : assignableControllers(adviceClass)) {
+                        if (!controller.getPackageName().equals(adviceClass.getPackageName())) {
+                            events.add(SimpleConditionEvent.violated(adviceClass,
+                                adviceClass.getName() + " resides in " + adviceClass.getPackageName()
+                                    + " but targets " + controller.getName()
+                                    + " in " + controller.getPackageName()));
+                        }
+                    }
+                }
+            });
+
+    @ArchTest
+    static final ArchRule per_controller_advice_returns_problem_detail =
+        methods().that().areAnnotatedWith(ExceptionHandler.class)
+            .should(new ArchCondition<JavaMethod>("return ProblemDetail in per-controller advice") {
+                @Override
+                public void check(JavaMethod method, ConditionEvents events) {
+                    if (assignableControllers(method.getOwner()).length == 0) return;
+                    if (!method.getRawReturnType().isEquivalentTo(ProblemDetail.class)) {
+                        events.add(SimpleConditionEvent.violated(method,
+                            method.getFullName() + " returns " + method.getRawReturnType().getName()
+                                + " instead of " + ProblemDetail.class.getName()));
+                    }
+                }
+            });
+
+    // assignableTypes is a Class[], which ArchUnit's annotation API cannot express, so read it reflectively.
+    private static Class<?>[] assignableControllers(JavaClass adviceClass) {
+        RestControllerAdvice advice = adviceClass.reflect().getAnnotation(RestControllerAdvice.class);
+        return advice == null ? new Class<?>[0] : advice.assignableTypes();
+    }
 
     // Extend the allow-list deliberately; package dependencies are checked, not class role/behavior.
     @ArchTest

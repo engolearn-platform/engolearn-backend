@@ -65,6 +65,8 @@ Package names are lowercase and use no underscores. Add a new top-level feature 
 - `shared` does not depend on features;
 - package slices are free of dependency cycles;
 - dependencies used by contract classes stay within the ArchUnit allow-list;
-- Controller, Service, and Repository layer dependency direction.
+- Controller, Service, and Repository layer dependency direction;
+- every public method of a `@RestController` returns the shared `ApiResponse` envelope;
+- per-controller `@RestControllerAdvice` handlers live with their controller and return `ProblemDetail` (RFC 7807);
 
 These checks do not prove every rule in this document. In particular, review is still needed to ensure controllers expose DTOs rather than entities, the approved dependency table is respected, and a refactor preserves external and persistence behavior. Do not describe a rule as automatically enforced unless a test actually checks it.
