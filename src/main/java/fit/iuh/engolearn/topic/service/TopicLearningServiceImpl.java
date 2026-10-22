@@ -5,21 +5,14 @@ import fit.iuh.engolearn.topic.dto.request.GetTopicItemContentRequest;
 import fit.iuh.engolearn.topic.dto.request.GetTopicItemPositionRequest;
 import fit.iuh.engolearn.topic.dto.request.GetTopicProgressRequest;
 import fit.iuh.engolearn.topic.dto.request.SaveTopicItemPositionRequest;
-import fit.iuh.engolearn.topic.dto.response.TopicContextResponse;
-import fit.iuh.engolearn.topic.dto.response.TopicDialogueTurnResponse;
-import fit.iuh.engolearn.topic.dto.response.TopicExpressionBlockResponse;
-import fit.iuh.engolearn.topic.dto.response.TopicExpressionExampleResponse;
-import fit.iuh.engolearn.topic.dto.response.TopicExpressionPurposeResponse;
 import fit.iuh.engolearn.topic.dto.response.TopicItemContentResponse;
 import fit.iuh.engolearn.topic.dto.response.TopicItemPositionResponse;
 import fit.iuh.engolearn.topic.dto.response.TopicItemProgressResponse;
 import fit.iuh.engolearn.topic.dto.response.TopicProgressResponse;
-import fit.iuh.engolearn.topic.dto.response.TopicQuickCheckResponse;
-import fit.iuh.engolearn.topic.dto.response.TopicVocabularyResponse;
-import fit.iuh.engolearn.topic.dto.response.TopicWordExampleResponse;
 import fit.iuh.engolearn.topic.exception.LearningPreconditionFailedException;
 import fit.iuh.engolearn.topic.exception.TopicItemNotFoundException;
 import fit.iuh.engolearn.topic.exception.TopicNotFoundException;
+import fit.iuh.engolearn.topic.mapper.TopicItemMapper;
 import fit.iuh.engolearn.topic.model.Topic;
 import fit.iuh.engolearn.topic.model.TopicItem;
 import fit.iuh.engolearn.topic.model.TopicItemVersion;
@@ -34,16 +27,7 @@ import fit.iuh.engolearn.topic.model.enums.AttemptType;
 import fit.iuh.engolearn.topic.model.enums.ContentStatus;
 import fit.iuh.engolearn.topic.model.enums.ItemProgressStatus;
 import fit.iuh.engolearn.topic.model.enums.LearningStage;
-import fit.iuh.engolearn.topic.model.vo.DialogueTurnVo;
-import fit.iuh.engolearn.topic.model.vo.ExpressionBlockVo;
-import fit.iuh.engolearn.topic.model.vo.ExpressionExampleVo;
-import fit.iuh.engolearn.topic.model.vo.ExpressionPurposeVo;
 import fit.iuh.engolearn.topic.model.vo.FurthestReachedVo;
-import fit.iuh.engolearn.topic.model.vo.ItemWordVo;
-import fit.iuh.engolearn.topic.model.vo.QuickCheckVo;
-import fit.iuh.engolearn.topic.model.vo.TopicContextVo;
-import fit.iuh.engolearn.topic.model.vo.WordSampleVo;
-import fit.iuh.engolearn.topic.model.vo.WordSnapshotVo;
 import fit.iuh.engolearn.topic.repository.TopicItemRepository;
 import fit.iuh.engolearn.topic.repository.TopicItemVersionRepository;
 import fit.iuh.engolearn.topic.repository.TopicRepository;
@@ -120,7 +104,7 @@ public class TopicLearningServiceImpl implements TopicLearningService {
         ItemContext item = resolvePublishedItem(topicItemId);
         UserTopicItemAttempt itemAttempt = findActiveItemAttempt(userId, topicItemId);
         TopicItemVersion version = resolveLearningVersion(item, itemAttempt);
-        return toContentResponse(topicItemId, version);
+        return TopicItemMapper.toContentResponse(topicItemId, version);
     }
 
     // --- position ----------------------------------------------------------------------
@@ -532,139 +516,6 @@ public class TopicLearningServiceImpl implements TopicLearningService {
                 .orElse(null);
     }
 
-    // --- mapping -----------------------------------------------------------------------
-
-    private TopicItemContentResponse toContentResponse(String topicItemId, TopicItemVersion version) {
-        return TopicItemContentResponse.builder()
-                .topicItemId(topicItemId)
-                .topicItemVersionId(version.getId())
-                .version(version.getVersion())
-                .title(version.getTitle())
-                .description(version.getDescription())
-                .context(toContextResponse(version.getContext()))
-                .vocabularies(version.getVocabularies() == null ? null
-                        : version.getVocabularies().stream().map(this::toVocabularyResponse).toList())
-                .expressions(version.getExpressions() == null ? null
-                        : version.getExpressions().stream().map(this::toExpressionBlockResponse).toList())
-                .build();
-    }
-
-    private TopicContextResponse toContextResponse(TopicContextVo context) {
-        if (context == null) {
-            return null;
-        }
-        List<TopicDialogueTurnResponse> dialogue = null;
-        if (context.getDialogue() != null) {
-            dialogue = context.getDialogue().stream().map(this::toDialogueTurnResponse).toList();
-        }
-        return TopicContextResponse.builder()
-                .scenarioDescription(context.getScenarioDescription())
-                .promptingQuestion(context.getPrompt())
-                .dialogue(dialogue)
-                .durationSec(context.getDurationSec())
-                .tips(context.getTips())
-                .build();
-    }
-
-    private TopicDialogueTurnResponse toDialogueTurnResponse(DialogueTurnVo turn) {
-        return TopicDialogueTurnResponse.builder()
-                .speaker(turn.getSpeaker())
-                .textEn(turn.getTextEn())
-                .textVi(turn.getTextVi())
-                .audioUrl(turn.getAudioUrl())
-                .build();
-    }
-
-    private TopicVocabularyResponse toVocabularyResponse(ItemWordVo word) {
-        WordSnapshotVo snapshot = word.getSnapshot();
-        List<TopicWordExampleResponse> examples = null;
-        if (word.getSamples() != null) {
-            examples = word.getSamples().stream().map(this::toWordExampleResponse).toList();
-        }
-        return TopicVocabularyResponse.builder()
-                .vocabId(word.getVocabId())
-                .senseId(word.getSenseId())
-                .word(snapshot == null ? null : snapshot.getWord())
-                .pronunciation(snapshot == null ? null : snapshot.getPhonetic())
-                .meaningVi(snapshot == null ? null : snapshot.getDescribeVi())
-                .partOfSpeech(snapshot == null ? null : snapshot.getPos())
-                // The stored word snapshot carries no usage description, so it stays empty
-                // until the content model holds one.
-                .usageDescription(null)
-                .audioUrl(snapshot == null ? null : snapshot.getAudioUrl())
-                .examples(examples)
-                .quickCheck(toQuickCheckResponse(word.getQuickCheck()))
-                .orderIndex(word.getOrderIndex())
-                .tips(word.getTips())
-                .build();
-    }
-
-    private TopicWordExampleResponse toWordExampleResponse(WordSampleVo sample) {
-        return TopicWordExampleResponse.builder()
-                .textEn(sample.getTextEn())
-                .textVi(sample.getTextVi())
-                .audioUrl(sample.getAudioUrl())
-                .build();
-    }
-
-    /**
-     * The quick check is stored as a sentence plus two free-form maps, while the API shape
-     * is a question, options and the correct answer. The values are read by key, accepting
-     * both the schema spelling and the camel case one.
-     */
-    private TopicQuickCheckResponse toQuickCheckResponse(QuickCheckVo quickCheck) {
-        if (quickCheck == null) {
-            return null;
-        }
-        String question = firstText(quickCheck.getQuizData(), "question");
-        if (question == null && quickCheck.getSentence() != null) {
-            question = quickCheck.getSentence().getTextEn();
-        }
-        String correctAnswer = firstText(quickCheck.getAnswerData(), "correct_answer", "correctAnswer", "answer");
-        if (correctAnswer == null) {
-            correctAnswer = firstText(quickCheck.getQuizData(), "correct_answer", "correctAnswer", "answer");
-        }
-        return TopicQuickCheckResponse.builder()
-                .question(question)
-                .options(textList(quickCheck.getQuizData(), "options"))
-                .correctAnswer(correctAnswer)
-                .build();
-    }
-
-    private TopicExpressionBlockResponse toExpressionBlockResponse(ExpressionBlockVo block) {
-        List<TopicExpressionPurposeResponse> purposes = null;
-        if (block.getPurposes() != null) {
-            purposes = block.getPurposes().stream().map(this::toExpressionPurposeResponse).toList();
-        }
-        return TopicExpressionBlockResponse.builder()
-                .purposes(purposes)
-                .tips(block.getTips())
-                .build();
-    }
-
-    private TopicExpressionPurposeResponse toExpressionPurposeResponse(ExpressionPurposeVo purpose) {
-        List<TopicExpressionExampleResponse> examples = null;
-        if (purpose.getExamples() != null) {
-            examples = purpose.getExamples().stream().map(this::toExpressionExampleResponse).toList();
-        }
-        return TopicExpressionPurposeResponse.builder()
-                .purposeEn(purpose.getPurposeEn())
-                .purposeVi(purpose.getPurposeVi())
-                .orderIndex(purpose.getOrderIndex())
-                .examples(examples)
-                .build();
-    }
-
-    private TopicExpressionExampleResponse toExpressionExampleResponse(ExpressionExampleVo example) {
-        return TopicExpressionExampleResponse.builder()
-                .type(example.getType())
-                .textEn(example.getTextEn())
-                .textVi(example.getTextVi())
-                .usageNote(example.getUsageNote())
-                .audioUrl(example.getAudioUrl())
-                .build();
-    }
-
     // --- guards ------------------------------------------------------------------------
 
     private String requireUserId() {
@@ -728,42 +579,6 @@ public class TopicLearningServiceImpl implements TopicLearningService {
             return ItemProgressStatus.IN_PROGRESS;
         }
         return ItemProgressStatus.NOT_STARTED;
-    }
-
-    private static String firstText(Map<String, Object> source, String... keys) {
-        if (source == null) {
-            return null;
-        }
-        for (String key : keys) {
-            Object value = source.get(key);
-            if (value == null) {
-                continue;
-            }
-            String text = String.valueOf(value);
-            if (!text.isBlank()) {
-                return text;
-            }
-        }
-        return null;
-    }
-
-    private static List<String> textList(Map<String, Object> source, String... keys) {
-        if (source == null) {
-            return List.of();
-        }
-        for (String key : keys) {
-            Object value = source.get(key);
-            if (value instanceof Iterable<?> values) {
-                List<String> texts = new ArrayList<>();
-                for (Object element : values) {
-                    if (element != null) {
-                        texts.add(String.valueOf(element));
-                    }
-                }
-                return texts;
-            }
-        }
-        return List.of();
     }
 
     /** The published item, the release that shows it and the visible sequence of that release. */
