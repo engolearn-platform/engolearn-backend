@@ -55,6 +55,8 @@ class TopicItemMapperTest {
                                 .describeVi("san bay")
                                 .pos("noun")
                                 .audioUrl("airport.mp3")
+                                .audioEnUrl("airport_en.mp3")
+                                .audioUsUrl("airport_us.mp3")
                                 .build())
                         .samples(List.of(WordSampleVo.builder()
                                 .textEn("The airport is far")
@@ -110,6 +112,8 @@ class TopicItemMapperTest {
             assertThat(vocabulary.getMeaningVi()).isEqualTo("san bay");
             assertThat(vocabulary.getPartOfSpeech()).isEqualTo("noun");
             assertThat(vocabulary.getAudioUrl()).isEqualTo("airport.mp3");
+            assertThat(vocabulary.getAudioEn()).isEqualTo("airport_en.mp3");
+            assertThat(vocabulary.getAudioUs()).isEqualTo("airport_us.mp3");
             assertThat(vocabulary.getOrderIndex()).isEqualTo(1);
             assertThat(vocabulary.getTips()).isEqualTo("word tips");
             assertThat(vocabulary.getExamples()).singleElement().satisfies(example -> {

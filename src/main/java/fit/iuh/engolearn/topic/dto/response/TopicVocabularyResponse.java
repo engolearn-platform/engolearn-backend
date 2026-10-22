@@ -20,6 +20,8 @@ public class TopicVocabularyResponse {
     private String partOfSpeech;
     private String usageDescription;
     private String audioUrl;
+    private String audioEn;
+    private String audioUs;
     private List<TopicWordExampleResponse> examples;
     private TopicQuickCheckResponse quickCheck;
     private Integer orderIndex;

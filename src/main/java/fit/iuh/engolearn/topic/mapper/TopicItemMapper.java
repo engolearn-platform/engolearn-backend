@@ -87,6 +87,8 @@ public final class TopicItemMapper {
                 // until the content model holds one.
                 .usageDescription(null)
                 .audioUrl(snapshot == null ? null : snapshot.getAudioUrl())
+                .audioEn(snapshot == null ? null : snapshot.getAudioEnUrl())
+                .audioUs(snapshot == null ? null : snapshot.getAudioUsUrl())
                 .examples(examples)
                 .quickCheck(toQuickCheckResponse(word.getQuickCheck()))
                 .orderIndex(word.getOrderIndex())
