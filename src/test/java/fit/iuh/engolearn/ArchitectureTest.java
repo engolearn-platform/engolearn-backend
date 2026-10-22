@@ -33,7 +33,7 @@ class ArchitectureTest {
         "topic", "dictionary", "user", "shared", "config"
     );
     private static final Set<String> FEATURE_LAYERS = Set.of(
-        "contract", "controller", "dto", "service", "repository", "model", "exception", "utils"
+        "contract", "controller", "dto", "service", "repository", "model", "exception", "utils", "mapper"
     );
 
     /** Feature name of a package, or null for the root package, shared and config. */
