@@ -100,7 +100,7 @@ public class TopicLearningServiceImpl implements TopicLearningService {
     @Override
     public TopicItemContentResponse getItemContent(GetTopicItemContentRequest request) {
         String userId = requireUserId();
-        String topicItemId = requireTopicItemId(request == null ? null : request.getTopicItemId());
+        String topicItemId = request.getTopicItemId();
         ItemContext item = resolvePublishedItem(topicItemId);
         UserTopicItemAttempt itemAttempt = findActiveItemAttempt(userId, topicItemId);
         TopicItemVersion version = resolveLearningVersion(item, itemAttempt);
@@ -112,7 +112,7 @@ public class TopicLearningServiceImpl implements TopicLearningService {
     @Override
     public TopicItemPositionResponse getItemPosition(GetTopicItemPositionRequest request) {
         String userId = requireUserId();
-        String topicItemId = requireTopicItemId(request == null ? null : request.getTopicItemId());
+        String topicItemId = request.getTopicItemId();
         ItemContext item = resolvePublishedItem(topicItemId);
         UserTopicItemAttempt itemAttempt = findActiveItemAttempt(userId, topicItemId);
         UserTopicItemProgress progress = findItemProgress(userId, topicItemId);
@@ -140,9 +140,9 @@ public class TopicLearningServiceImpl implements TopicLearningService {
             throw new LearningPreconditionFailedException("Request is required");
         }
         String userId = requireUserId();
-        String topicItemId = requireTopicItemId(request.getTopicItemId());
-        LearningStage stage = requireStage(request.getStage());
-        int itemIndex = requireItemIndex(request.getItemIndex());
+        String topicItemId = request.getTopicItemId();
+        LearningStage stage = request.getStage();
+        int itemIndex = request.getItemIndex();
 
         ItemContext item = resolvePublishedItem(topicItemId);
         UserTopicItemProgress progress = findItemProgress(userId, topicItemId);
@@ -184,7 +184,7 @@ public class TopicLearningServiceImpl implements TopicLearningService {
     @Override
     public TopicProgressResponse getTopicProgress(GetTopicProgressRequest request) {
         String userId = requireUserId();
-        String topicId = requireText(request == null ? null : request.getTopicId(), "Topic id is required");
+        String topicId = request.getTopicId();
         Topic topic = topicRepository.findById(topicId)
                 .orElseThrow(() -> new TopicNotFoundException("Topic " + topicId + " was not found"));
         TopicVersion release = resolvePublishedRelease(topic);
@@ -524,31 +524,6 @@ public class TopicLearningServiceImpl implements TopicLearningService {
             throw new LearningPreconditionFailedException("Sign in to learn a topic item");
         }
         return userId.trim();
-    }
-
-    private String requireTopicItemId(String topicItemId) {
-        return requireText(topicItemId, "Topic item id is required");
-    }
-
-    private String requireText(String value, String message) {
-        if (value == null || value.isBlank()) {
-            throw new LearningPreconditionFailedException(message);
-        }
-        return value.trim();
-    }
-
-    private LearningStage requireStage(LearningStage stage) {
-        if (stage == null) {
-            throw new LearningPreconditionFailedException("Learning stage is required");
-        }
-        return stage;
-    }
-
-    private int requireItemIndex(Integer itemIndex) {
-        if (itemIndex == null || itemIndex < 0) {
-            throw new LearningPreconditionFailedException("Item index must not be negative");
-        }
-        return itemIndex;
     }
 
     // --- helpers -----------------------------------------------------------------------
