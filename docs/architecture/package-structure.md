@@ -46,6 +46,10 @@ Controllers should return response DTOs, not persistence entities. A contract is
 
 Do not place a feature-specific concept in `shared` merely to bypass a dependency boundary. Keep it in its owning feature and expose only the capability needed by other features.
 
+## Validation policy
+
+The controller is the single gate for request shape validation. Declare Spring Bean Validation constraints on the request DTO fields and validate the controller method arguments with `@Valid`; the service must not repeat null, blank, or range checks. The service enforces business rules only (ordering, preconditions, state transitions, and similar). A validation failure is reported as a `400` `ProblemDetail`.
+
 ## Where new code goes
 
 | Adding | Put it in |
