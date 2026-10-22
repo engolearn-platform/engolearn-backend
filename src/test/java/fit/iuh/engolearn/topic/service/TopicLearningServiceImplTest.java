@@ -563,19 +563,6 @@ class TopicLearningServiceImplTest {
     }
 
     @Test
-    void savingAPositionWithoutAStageOrIndexIsRejected() {
-        when(currentUserProvider.getCurrentUserId()).thenReturn(USER);
-
-        assertThatThrownBy(() -> service.saveItemPosition(SaveTopicItemPositionRequest.builder()
-                .topicItemId(ITEM_ONE).itemIndex(0).build()))
-                .isInstanceOf(LearningPreconditionFailedException.class);
-        assertThatThrownBy(() -> service.saveItemPosition(SaveTopicItemPositionRequest.builder()
-                .topicItemId(ITEM_ONE).stage(LearningStage.VOCAB).itemIndex(-1).build()))
-                .isInstanceOf(LearningPreconditionFailedException.class);
-        verifyNoInteractions(topicItemRepository);
-    }
-
-    @Test
     void aFailingWriteAbortsTheWholeCallInsteadOfLeavingAPartialPosition() {
         stubPublishedRelease();
         stubTopicItems();

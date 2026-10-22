@@ -212,21 +212,13 @@ class TopicLearningControllerTest {
     }
 
     @Test
-    void savingThePositionWithoutABodyIsRejectedByTheServiceRules() throws Exception {
-        when(topicLearningService.saveItemPosition(any()))
-                .thenThrow(new LearningPreconditionFailedException("Learning stage is required"));
-
+    void savingThePositionWithoutABodyIsRejectedByControllerValidation() throws Exception {
         mockMvc.perform(put("/api/v1/topic-items/i1/position")
                         .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isUnprocessableEntity())
-                .andExpect(jsonPath("$.title").value("Learning precondition failed"));
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.title").value("Invalid learning request"));
 
-        ArgumentCaptor<SaveTopicItemPositionRequest> request =
-                ArgumentCaptor.forClass(SaveTopicItemPositionRequest.class);
-        verify(topicLearningService).saveItemPosition(request.capture());
-        assertThat(request.getValue().getTopicItemId()).isEqualTo("i1");
-        assertThat(request.getValue().getStage()).isNull();
-        assertThat(request.getValue().getItemIndex()).isNull();
+        verifyNoInteractions(topicLearningService);
     }
 
     @Test
@@ -266,6 +258,43 @@ class TopicLearningControllerTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
                 .andExpect(jsonPath("$.title").value("Invalid learning request"));
+
+        verifyNoInteractions(topicLearningService);
+    }
+
+    @Test
+    void aBlankItemIdIsABadRequestThatNeverReachesTheService() throws Exception {
+        mockMvc.perform(get("/api/v1/topic-items/ /content"))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.title").value("Invalid learning request"))
+                .andExpect(jsonPath("$.status").value(400));
+
+        verifyNoInteractions(topicLearningService);
+    }
+
+    @Test
+    void aMissingStageInTheBodyIsABadRequestThatNeverReachesTheService() throws Exception {
+        mockMvc.perform(put("/api/v1/topic-items/i1/position")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"itemIndex\":0}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.title").value("Invalid learning request"))
+                .andExpect(jsonPath("$.status").value(400));
+
+        verifyNoInteractions(topicLearningService);
+    }
+
+    @Test
+    void aNegativeItemIndexInTheBodyIsABadRequestThatNeverReachesTheService() throws Exception {
+        mockMvc.perform(put("/api/v1/topic-items/i1/position")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"stage\":\"VOCAB\",\"itemIndex\":-1}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.title").value("Invalid learning request"))
+                .andExpect(jsonPath("$.status").value(400));
 
         verifyNoInteractions(topicLearningService);
     }
