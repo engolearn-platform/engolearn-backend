@@ -10,6 +10,9 @@ import fit.iuh.engolearn.topic.dto.response.TopicItemContentResponse;
 import fit.iuh.engolearn.topic.dto.response.TopicItemPositionResponse;
 import fit.iuh.engolearn.topic.dto.response.TopicProgressResponse;
 import fit.iuh.engolearn.topic.service.TopicLearningService;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -28,21 +31,23 @@ public class TopicLearningController {
     }
 
     @GetMapping("/topic-items/{itemId}/content")
-    public ApiResponse<TopicItemContentResponse> getItemContent(@PathVariable("itemId") String itemId) {
+    public ApiResponse<TopicItemContentResponse> getItemContent(
+            @Valid @NotBlank @PathVariable("itemId") String itemId) {
         return ApiResponse.ok(topicLearningService.getItemContent(
                 GetTopicItemContentRequest.builder().topicItemId(itemId).build()));
     }
 
     @GetMapping("/topic-items/{itemId}/position")
-    public ApiResponse<TopicItemPositionResponse> getItemPosition(@PathVariable("itemId") String itemId) {
+    public ApiResponse<TopicItemPositionResponse> getItemPosition(
+            @Valid @NotBlank @PathVariable("itemId") String itemId) {
         return ApiResponse.ok(topicLearningService.getItemPosition(
                 GetTopicItemPositionRequest.builder().topicItemId(itemId).build()));
     }
 
     @PutMapping("/topic-items/{itemId}/position")
     public ApiResponse<TopicItemPositionResponse> saveItemPosition(
-            @PathVariable("itemId") String itemId,
-            @RequestBody(required = false) UpdateTopicItemPositionRequest body) {
+            @Valid @NotBlank @PathVariable("itemId") String itemId,
+            @Valid @NotNull @RequestBody UpdateTopicItemPositionRequest body) {
         SaveTopicItemPositionRequest request = SaveTopicItemPositionRequest.builder()
                 .topicItemId(itemId)
                 .stage(body == null ? null : body.getStage())
@@ -52,7 +57,8 @@ public class TopicLearningController {
     }
 
     @GetMapping("/topics/{topicId}/progress")
-    public ApiResponse<TopicProgressResponse> getTopicProgress(@PathVariable("topicId") String topicId) {
+    public ApiResponse<TopicProgressResponse> getTopicProgress(
+            @Valid @NotBlank @PathVariable("topicId") String topicId) {
         return ApiResponse.ok(topicLearningService.getTopicProgress(
                 GetTopicProgressRequest.builder().topicId(topicId).build()));
     }
