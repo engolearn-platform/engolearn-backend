@@ -14,7 +14,8 @@ fit.iuh.engolearn
 │   ├── service               business logic and contract implementations
 │   ├── repository            persistence access
 │   ├── model                 feature-owned entities/documents and domain types
-│   └── exception             optional; only for feature-local exceptions
+│   ├── exception             optional; only for feature-local exceptions
+│   └── utils                 optional; feature-local helpers and their abstractions
 ├── shared                    cross-cutting types with no feature knowledge
 ├── config                    application configuration and wiring
 └── EngolearnApplication
@@ -30,6 +31,7 @@ Tests mirror production packages under `src/test/java`.
 | `service` | Its feature's repository, model, DTOs, and contracts | See [cross-feature communication](cross-feature-communication.md) for dependencies on other features |
 | `repository` | Its feature's model and persistence support | Controllers or services |
 | `contract` | Small contract types; JDK, `shared`, and validation types as needed | Entities, repositories, business logic, web DTOs, or framework-heavy types |
+| `utils` | Feature-local helper types and the abstractions they implement | Controllers, repositories, or business logic |
 | `shared` | Cross-cutting types that do not know about features | Any feature package |
 | `config` | Types needed for application wiring | Business logic that belongs in a feature |
 
