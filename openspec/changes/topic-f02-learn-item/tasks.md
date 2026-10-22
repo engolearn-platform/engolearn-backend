@@ -37,4 +37,4 @@
 ## 7. Xác minh và hoàn tất
 
 - [x] 7.1 Chạy `openspec validate --change topic-f02-learn-item --strict` để xác nhận các artifact hợp lệ. Verify: validate không báo lỗi.
-- [ ] 7.2 Review toàn bộ artifacts (proposal, specs, design, tasks) với bro trước khi chuyển sang implement. Verify: bro approve artifacts.
+- [x] 7.2 Review toàn bộ artifacts (proposal, specs, design, tasks) với bro trước khi chuyển sang implement. Verify: bro approve artifacts.

@@ -1,6 +1,6 @@
 ## Context
 
-Hiện tại feature `topic` (`fit.iuh.engolearn.topic`) chỉ hỗ trợ F01/F02: duyệt danh sách topic và xem chi tiết topic (chỉ đọc, không auth). Các collection content (`topics`, `topic_versions`, `topic_items`, `topic_item_versions`) đã có model + repository. Chưa có collection progress, chưa có service/controller cho học item (UC03).
+Hiện tại feature `topic` (`fit.iuh.engolearn.topic`) chỉ hỗ trợ F01 (duyệt danh sách topic và xem chi tiết topic, chỉ đọc, không auth). F02 (học một topic_item) chưa có code. Các collection content (`topics`, `topic_versions`, `topic_items`, `topic_item_versions`) đã có model + repository. Chưa có collection progress, chưa có service/controller cho học item (UC03).
 
 Nguồn đơn sûr: `topic-learning-schema-v1.json` + `topic_learning_data_model.md`. Khi mismatch với code hiện tại, follow chặt file .json. Tất cả ID trong Java class giữ kiểu `String`; trường ID tham chiếu khai báo `@Field(targetType = OBJECT_ID)` để Spring Data lưu dưới dạng `ObjectId` trong MongoDB.
 
@@ -20,6 +20,7 @@ App chưa có Spring Security. Cần một abstraction để lấy `user_id` hi�
 - UC06 Chuỗi quiz (bài tập, giải thích sau quiz) — thuộc feature F03, không nằm trong UC03.
 - Thay đổi API hiện có của `topic-browse` (public chỉ đọc được bảo toàn).
 - Thêm Maven module, top-level feature package, hoặc dependency mới.
+- BR-03.3 (giữ kết quả quiz, tiếp tục đúng quiz) và BR-03.7 (lượt làm lại có vị trí riêng) — thuộc F03/F04, ngoài slice này.
 
 ## Quyết định
 
@@ -61,7 +62,7 @@ Alternatives: gộp tiến độ vào topic detail — bị loại vì phá vỡ
 
 ### D-5: Trạng thái và stage
 
-Quyết định: `UserTopicItemProgress.status` ∈ {NOT_STARTED, IN_PROGRESS, COMPLETED}. Stage theo thứ tự: CONTEXT → VOCAB → EXPRESSIONS → FILL_BLANK → SITUATIONAL_CHOICE (BR-M.10). `furthest_reached` chỉ cập nhật tiến lên, không cập nhật lùi khi xem lại nội dung phía trước.
+Quyết định: `UserTopicItemProgress.status` ∈ {NOT_STARTED, IN_PROGRESS, COMPLETED}. Stage theo thứ tự: CONTEXT → VOCAB → EXPRESSIONS → FILL_BLANK → SITUATIONAL_CHOICE (theo BR-04.1 và data model §7.5). `furthest_reached` chỉ cập nhật tiến lên, không cập nhật lùi khi xem lại nội dung phía trước.
 
 Lý do: phù hợp với BR-03.1 (vị trí = part + index), BR-F2.4 (bấm Tiếp tục là xong bước), BR-03.5 (lưu theo version).
 
@@ -74,6 +75,22 @@ Quyết định: lưu position + cập nhật item progress + cập nhật attem
 Lý do: shared state — nhiều request cùng ghi vị trí của cùng một learner/item, cần tránh inconsistent state. Đây là senior signal (shared state, partial failure).
 
 Alternatives: lưu từng collection riêng lẻ — bị loại vì rủi ro dữ liệu lệch.
+
+### D-7: Audio hai accent cho từ vựng
+
+Quyết định: `TopicVocabularyResponse` có hai trường `audioEn` (Anh-Anh) và `audioUs` (Anh-Mỹ), trên `WordSnapshotVo` tương ứng là `audioEnUrl` và `audioUsUrl`.
+
+Lý do: BR-04.6 yêu cầu mỗi từ vựng có audio Anh-Anh và Anh-Mỹ. Schema v1 chỉ có `pronunciation_audio_url` (một trường), nhưng cần tách ra hai accent để FE phát âm đúng.
+
+Alternatives: giữ một trường `audioUrl` — bị loại vì không đáp ứng BR-04.6.
+
+### D-8: Vị trí lưu sau khi rời Bối cảnh
+
+Quyết định: sau khi bấm Tiếp tục khỏi Bối cảnh, lưu `part = VOCAB`, `index = 0` (bước kế tiếp), không lưu `part = CONTEXT`.
+
+Lý do: BR-03.1 định nghĩa part là "phần đang xem". Sau khi rời Bối cảnh, phần đang xem là Từ vựng. Lưu `CONTEXT` sẽ khiến resume quay lại bước vừa xong, mâu thuẫn ý định "tiếp tục".
+
+Alternatives: lưu `part = CONTEXT` — bị loại vì gây lệch bước khi resume.
 
 ## Rủi ro / Trade-offs
 

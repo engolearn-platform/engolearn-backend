@@ -1,6 +1,6 @@
 ## Tại sao
 
-Người học chưa có cách bắt đầu học nội dung chi tiết của một topic_item (Bối cảnh → Từ vựng → Mẫu câu), lưu vị trí học dở và tiếp tục từ nơi đã dừng. Hiện tại feature `topic` chỉ hỗ trợ duyệt danh sách và xem chi tiết topic (F01/F02, chỉ đọc, không auth). Cần bổ sung UC03 để người học đăng nhập có thể bắt đầu học một item, đánh dấu item là đang học dở khi bấm Tiếp tục khỏi bước Bối cảnh, và tiếp tục đúng vị trí sau khi thoát giữa chừng.
+Người học chưa có cách bắt đầu học nội dung chi tiết của một topic_item (Bối cảnh → Từ vựng → Mẫu câu), lưu vị trí học dở và tiếp tục từ nơi đã dừng. Hiện tại feature `topic` chỉ hỗ trợ duyệt danh sách và xem chi tiết topic (F01, chỉ đọc, không auth). Cần bổ sung UC03 để người học đăng nhập có thể bắt đầu học một item, đánh dấu item là đang học dở khi bấm Tiếp tục khỏi bước Bối cảnh, và tiếp tục đúng vị trí sau khi thoát giữa chừng.
 
 ## Những thay đổi
 

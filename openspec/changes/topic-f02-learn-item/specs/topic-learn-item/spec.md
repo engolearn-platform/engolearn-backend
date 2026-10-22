@@ -11,7 +11,7 @@ Hệ thống SHALL trả về toàn bộ nội dung học của một topic_item
 #### Scenario: Đọc nội dung item thành công
 
 - **WHEN** người học đã đăng nhập yêu cầu nội dung của một topic_item đang publish
-- **THEN** hệ thống trả về Bối cảnh (mô tả tình huống, hội thoại mẫu nếu có), Danh sách từ vựng (chữ viết, phiên âm, nghĩa tiếng Việt, audio), và Danh sách nhóm expression với mẫu câu (câu tiếng Anh, bản dịch, ghi chú cách dùng, audio)
+- **THEN** hệ thống trả về Bối cảnh (mô tả tình huống, hội thoại mẫu nếu có), Danh sách từ vựng (chữ viết, phiên âm, nghĩa tiếng Việt, audio Anh-Anh và audio Anh-Mỹ), và Danh sách nhóm expression với mẫu câu (câu tiếng Anh, bản dịch, ghi chú cách dùng, audio)
 
 #### Scenario: Thành phần ngoài mô tả tình huống là tuỳ chọn
 
@@ -30,7 +30,7 @@ Hệ thống SHALL chuyển item sang trạng thái IN_PROGRESS (đang học d�
 #### Scenario: Bấm Tiếp tục khỏi Bối cảnh đánh dấu đang học dở
 
 - **WHEN** người học bấm Tiếp tục khỏi bước Bối cảnh của một item chưa học
-- **THEN** hệ thống chuyển trạng thái item thành IN_PROGRESS và lưu vị trí học dở (part = Bối cảnh, index sau bước Bối cảnh)
+- **THEN** hệ thống chuyển trạng thái item thành IN_PROGRESS và lưu vị trí học dở (part = Từ vựng, index = 0)
 
 #### Scenario: Mở xem rồi thoát không đánh dấu đang học dở
 
@@ -55,6 +55,16 @@ Hệ thống SHALL lưu vị trí học dở gồm part và index trong part khi
 
 - **WHEN** Content Manager publish MAJOR version mới của item, người học đang học dở version cũ
 - **THEN** người học tiếp tục học version đã chốt, vị trí học dở không bị lệch
+
+#### Scenario: GET nội dung trả version đã chốt khi đang học dở
+
+- **WHEN** người học đã bắt đầu học item và attempt đang chạy pin version X
+- **THEN** GET nội dung trả version X, không phải version MAJOR mới nhất nếu có
+
+#### Scenario: GET nội dung trong chế độ xem lại không đổi vị trí
+
+- **WHEN** người học đang làm quiz hoặc xem lại item đã bắt đầu
+- **THEN** GET nội dung trả nội dung đầy đủ nhưng không ghi vị trí học dở, không đổi trạng thái item
 
 ### Requirement: Vị trí học dở không hết hạn, nhiều topic song song
 
@@ -94,6 +104,11 @@ Hệ thống SHALL chỉ cho phép bắt đầu học một item chưa học khi
 - **WHEN** có ít nhất một item đứng trước trong topic chưa hoàn thành
 - **THEN** hệ thống từ chối bắt đầu học item hiện tại
 
+#### Scenario: Tiếp tục item đang dở không kiểm tra lại level
+
+- **WHEN** người học đang học dở item (IN_PROGRESS) và tiếp tục học lại
+- **THEN** hệ thống không kiểm tra lại level topic so với level người học
+
 ### Requirement: Audio không tự phát
 
 Hệ thống SHALL không phát audio tự động; người học bấm để nghe và nghe lại không giới hạn.
@@ -102,6 +117,20 @@ Hệ thống SHALL không phát audio tự động; người học bấm để n
 
 - **WHEN** hệ thống hiển thị Bối cảnh có hội thoại mẫu hoặc Từ vựng có audio phát âm
 - **THEN** audio không phát tự động, chỉ phát khi người học bấm nút nghe
+
+### Requirement: Mỗi từ vựng có audio Anh-Anh và audio Anh-Mỹ
+
+Hệ thống SHALL trả về hai trường audio cho mỗi từ vựng: `audioEn` (phát âm Anh-Anh) và `audioUs` (phát âm Anh-Mỹ), theo BR-04.6.
+
+#### Scenario: Trả hai accent audio cho từ vựng
+
+- **WHEN** GET nội dung item và từ vựng có bản ghi âm cả hai accent
+- **THEN** phản hồi chứa `audioEn` và `audioUs` cho mỗi từ
+
+#### Scenario: Một accent có thể thiếu
+
+- **WHEN** GET nội dung item và từ vựng chỉ có ghi âm một accent
+- **THEN** trường audio còn lại là null, không báo lỗi
 
 ### Requirement: Kiểm tra nhanh của từ vựng là tuỳ chọn
 
