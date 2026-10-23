@@ -30,7 +30,7 @@ Register `spring.mongodb.uri = mongo.getReplicaSetUrl("engolearn_it")`. This bea
 
 ### D2: Docker-absence guard on two layers
 
-`@EnabledIfDockerAvailable` on the concrete `TopicLearningControllerIntegrationTest` (the annotation is not `@Inherited`, and it is a JUnit `ExecutionCondition`, so it gates before context startup and `beforeAll`). `@Testcontainers(disabledWithoutDocker = true)` stays on the abstract base as the second layer (`@Inherited`). `getReplicaSetUrl(...)` throws before container start, so the condition must short-circuit before any URI is computed.
+`@EnabledIfDockerAvailable` on **every** concrete integration class: the annotation is not `@Inherited`, and it is a JUnit `ExecutionCondition`, so it gates before the Spring context loads and before `beforeAll`. The second layer is the Docker check in the base-class static initializer, which starts the singleton container only when `DockerClientFactory.instance().isDockerAvailable()`. Together they guarantee `getReplicaSetUrl(...)` is never called with no started container: a skipped class never starts a context, so the lazy `@DynamicPropertySource` supplier is never evaluated. The base class no longer uses `@Testcontainers`/`@Container`.
 
 ### D3: `RANDOM_PORT` + plain `RestTemplate` + `@LocalServerPort`
 
@@ -46,7 +46,7 @@ In Testcontainers 2.0.5 replica-set mode is not automatic: `org.testcontainers.m
 
 ### D6: Drop `engolearn_it` before each test
 
-The static `@Container` is shared across test classes and methods, so fixtures leak without cleanup. `mongoTemplate.getDb().drop()` runs against the container database only (no auth in the container, no chance of touching `mongodb_srv:27017`).
+The singleton container is started once per JVM and shared by every test class, so fixtures leak without cleanup. `mongoTemplate.getDb().drop()` runs before each test against the container database only (no auth in the container, no chance of touching `mongodb_srv:27017`). The JVM-wide singleton is also what keeps one Spring context valid across classes: the context is never re-pointed at a container that has stopped.
 
 ### D7: Testcontainers 1.20.1 → BOM-managed 2.0.5
 
@@ -69,7 +69,8 @@ No `src/main/` edit. The hardcoded mock user in `MockCurrentUserProvider` is an 
 - [Risk] Testcontainers 2.0.5 does not auto-initiate the replica set; forgetting `.withReplicaSet()` yields `type=STANDALONE` and breaks Phase 2 transactions. → Mitigation: Phase 1's evidence gate requires `REPLICA_SET`/`PRIMARY` in the driver log before Phase 2 begins.
 - [Risk] A base-class `@DynamicPropertySource` might not reach the subclass context, leaving `spring.mongodb.uri` or the transaction flag unset. → Mitigation: if observed, move the property source to the concrete class (Phase 2 verification catches it).
 - [Risk] Guard ordering: with Docker absent, a context that still tries `localhost:27017` could error instead of skip on a machine without a local mongod. → Mitigation: `@EnabledIfDockerAvailable` is an `ExecutionCondition` gating before `beforeAll`; proven with `DOCKER_HOST=tcp://127.0.0.1:1`.
-- [Risk] `getReplicaSetUrl` throws when called before container start with Docker absent. → Mitigation: the condition short-circuits first; the URI is only computed inside the property source, which runs after gating.
+- [Risk] `getReplicaSetUrl` throws when called before container start with Docker absent. → Mitigation: the static initializer only starts the container when Docker is available (so a started container exists whenever a context can load), and `@EnabledIfDockerAvailable` on each concrete class skips the class before the context — and therefore the lazy supplier — is evaluated.
+- [Risk] A static `@Container` on an abstract base is per-class, and the Spring TestContext cache key ignores `@DynamicPropertySource` values. → The second class then reuses the first class's cached context, which points at the stopped container's old port, and the `@BeforeEach` drop fails with `MongoTimeoutException`. → Mitigation: the current singleton design (one container per JVM, never stopped) plus a both-orders check in Phase 4 so each class leads once; not `@DirtiesContext`, which restarts contexts but leaves the per-class container start/stop in place.
 - [Risk] `db.drop()` fails if the container later enables auth. → Accepted: the container runs without auth today (no init script); revisit if auth is added.
 - [Risk] Docker image pull failure. → Accepted: `mongo:8.0.29-noble` is already local; fail fast instead of retrying in a loop.
 - [Risk] The 2.0.5 migration moves imports to flattened packages. → Mitigation: `test-compile` after the pom change; `testcontainers:2.0.5` and no `1.20.1` confirmed via `dependency:tree`.
@@ -79,7 +80,7 @@ No `src/main/` edit. The hardcoded mock user in `MockCurrentUserProvider` is an 
 
 1. `pom.xml`: replace the three pinned 1.20.1 test dependencies with BOM-managed `testcontainers-mongodb` and `testcontainers-junit-jupiter`. Old→new coordinates and the 2026-10-23 approval are recorded in `proposal.md`. No other pom change.
 2. Verify the dependency graph before touching test code, so the build never sits on a mixed 1.20.1/2.0.5 classpath.
-3. Redesign the base class, then rewrite the Phase 1 test.
+3. Redesign the base class around one JVM-wide container (started in a static initializer, never stopped), then rewrite the Phase 1 test.
 4. `@ServiceConnection` and `spring-boot-testcontainers` stay deferred: separate change, separate approval.
 
 ## Câu hỏi còn mở

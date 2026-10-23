@@ -9,26 +9,29 @@ import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.web.client.RestTemplate;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
+import org.testcontainers.DockerClientFactory;
 import org.testcontainers.mongodb.MongoDBContainer;
 import org.testcontainers.utility.DockerImageName;
 
 /**
- * The Docker gate must run before the Spring context: {@code getReplicaSetUrl(...)} throws
- * before container start when Docker is absent, so subclasses carry
- * {@code @EnabledIfDockerAvailable} ({@code @Testcontainers} on this base is only a second layer).
+ * Singleton container per JVM: started once, never stopped (Ryuk cleans up at exit).
+ * Subclasses must declare {@code @EnabledIfDockerAvailable} (not inherited) so the context
+ * never starts — and {@code getReplicaSetUrl(...)} is never called — when Docker is absent.
  */
-@Testcontainers(disabledWithoutDocker = true)
 @SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT)
 public abstract class AbstractMongoIntegrationTest {
 
     // Replica-set mode is not automatic in Testcontainers 2.x; withReplicaSet() is the
     // prerequisite for real @Transactional behaviour.
-    @Container
-    protected static final MongoDBContainer mongo = new MongoDBContainer(
+    private static final MongoDBContainer MONGO = new MongoDBContainer(
             DockerImageName.parse("mongo:8.0.29-noble"))
             .withReplicaSet();
+
+    static {
+        if (DockerClientFactory.instance().isDockerAvailable()) {
+            MONGO.start();
+        }
+    }
 
     private static final String TEST_DB_NAME = "engolearn_it";
 
@@ -36,7 +39,7 @@ public abstract class AbstractMongoIntegrationTest {
     // registered because application.yaml's value wins over the URI's database path.
     @DynamicPropertySource
     static void mongodbProperties(DynamicPropertyRegistry registry) {
-        registry.add("spring.mongodb.uri", () -> mongo.getReplicaSetUrl(TEST_DB_NAME));
+        registry.add("spring.mongodb.uri", () -> MONGO.getReplicaSetUrl(TEST_DB_NAME));
         registry.add("spring.mongodb.database", () -> TEST_DB_NAME);
         registry.add("engolearn.mongodb.transactions.enabled", () -> "true");
     }
