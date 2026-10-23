@@ -32,7 +32,13 @@
 
 ## 8. Phase 3 — topic progress (gated behind Phase 1)
 
-- [ ] 8.1 Pending. `GET /api/v1/topics/{topicId}/progress` → 200 with status, completed/total counts, `lastAccessedAt`, per-item progress list. Owner: coder unless the fixture requires transaction semantics, then senior. Verify: `.\mvnw.cmd test "-Dtest=TopicLearningControllerIntegrationTest"` → green.
+- [x] 8.1 Done and verified. One HTTP-level integration test for `GET /api/v1/topics/{topicId}/progress` runs on the Testcontainers replica set and asserts: `status=IN_PROGRESS`; completed/total counts; per-item `COMPLETED` / `IN_PROGRESS` / `NOT_STARTED` in one response; the completed-item payload (`topicItemId`, counts, `completedAt`); `lastAccessedAt` read from the `user_topic_progress` document written by the real `PUT /position`; and the hidden item excluded from both the counts and the `items` list (its version id is in the release manifest, so the exclusion is meaningful). Observed: full `.\mvnw.cmd verify -Dlogging.level.org.mongodb.driver.protocol.command=DEBUG` → `Tests run: 108, Failures: 0, Errors: 0, Skipped: 0`; IT class `Tests run: 3, Failures: 0, Errors: 0, Skipped: 0` (3 IT tests green on the container). Owner: coder.
+
+Known coverage gaps (review, not fixed in this task) — notes, not tasks:
+
+- Spec scenario "Chủ đề không có item hiển thị" (no visible items) has no test anywhere.
+- The `lastAccessedAt` null branch is untested.
+- The "chưa đăng nhập" scenario cannot be exercised over HTTP while `MockCurrentUserProvider` returns a fixed user.
 
 ## 9. Phase 4 — optimistic locking on `UserTopicItemAttempt` (SENIOR, gated behind Phase 1)
 
