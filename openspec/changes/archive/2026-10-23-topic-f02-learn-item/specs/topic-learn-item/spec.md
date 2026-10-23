@@ -1,6 +1,6 @@
 ## Purpose
 
-Cho phép người học đã đăng nhập bắt đầu học nội dung chi tiết của một topic_item (Bối cảnh → Từ vựng → Mẫu câu), lưu vị trí học dở và tiếp tục đúng nơi đã dừng sau khi thoát giữa chừng.
+Cho phép người học đã đăng nhập bắt đầu học nội dung chi tiết của một topic_item (Bối cảnh → Từ vựng → Mẫu câu), lưu vị trí học dở và tiếp tục đúng nơi đã dừng sau khi thoát giữa chừng, cũng như xem tiến độ học của một chủ đề.
 
 ## ADDED Requirements
 
@@ -145,3 +145,52 @@ Hệ thống SHALL cho phép bỏ qua Kiểm tra nhanh của từng từ, chấm
 
 - **WHEN** người học chọn đáp án sai của Kiểm tra nhanh
 - **THEN** hệ thống báo chưa đúng, cho chọn lại không giới hạn lần, không tính vào độ chính xác
+
+### Requirement: Xem tiến độ học của một chủ đề
+
+Hệ thống SHALL trả về tiến độ tổng hợp của người học trên một chủ đề (trạng thái chủ đề, số item đã hoàn thành/tổng số, lần truy cập gần nhất và danh sách tiến độ từng item). Trạng thái chủ đề là giá trị suy ra từ trạng thái các item đang hiển thị, không lưu cờ trạng thái riêng trong hồ sơ tiến độ chủ đề. Nguồn: `topic_learning_data_model.md` §7.2 và BR-F1.2.
+
+#### Scenario: Lấy tiến độ chủ đề khi đang học
+
+- **WHEN** người học đã đăng nhập yêu cầu tiến độ của một chủ đề đã publish, có ít nhất một item đang học dở và chưa hoàn thành tất cả item hiển thị
+- **THEN** hệ thống trả về trạng thái chủ đề là `IN_PROGRESS`, số item đã hoàn thành và tổng số item hiển thị, lần truy cập gần nhất, và danh sách tiến độ từng item (mã item, trạng thái, số quiz đúng lần đầu, tổng số quiz, thời điểm hoàn thành)
+
+#### Scenario: Chủ đề chưa có item nào bắt đầu học
+
+- **WHEN** người học đã đăng nhập yêu cầu tiến độ của một chủ đề có ít nhất một item hiển thị nhưng chưa có item nào bắt đầu hoặc hoàn thành
+- **THEN** hệ thống trả về trạng thái chủ đề là `NOT_STARTED`, số item đã hoàn thành bằng 0, tổng số bằng số item hiển thị, lần truy cập gần nhất là null, và mỗi item trong danh sách có trạng thái `NOT_STARTED`
+
+#### Scenario: Chủ đề không có item hiển thị
+
+- **WHEN** người học đã đăng nhập yêu cầu tiến độ của một chủ đề không có item hiển thị nào
+- **THEN** hệ thống trả về trạng thái chủ đề là `NOT_STARTED`, số item đã hoàn thành bằng 0, tổng số bằng 0, lần truy cập gần nhất là null (chưa có hồ sơ tiến độ chủ đề), và danh sách tiến độ từng item rỗng
+
+#### Scenario: Chủ đề đã hoàn thành tất cả item hiển thị
+
+- **WHEN** người học đã đăng nhập yêu cầu tiến độ của một chủ đề có ít nhất một item hiển thị và mọi item hiển thị đều đã hoàn thành
+- **THEN** hệ thống trả về trạng thái chủ đề là `COMPLETED`, số item đã hoàn thành bằng tổng số item hiển thị
+
+#### Scenario: Item bị ẩn không được tính vào tiến độ chủ đề
+
+- **WHEN** chủ đề có item hiển thị và ít nhất một item bị ẩn (`HIDDEN`)
+- **THEN** tổng số item và danh sách item chỉ chứa các item hiển thị, không chứa item bị ẩn
+
+#### Scenario: Lần truy cập gần nhất lấy từ hồ sơ tiến độ chủ đề
+
+- **WHEN** người học đã đăng nhập và đã có hồ sơ tiến độ chủ đề với lần truy cập gần nhất
+- **THEN** phản hồi chứa `lastAccessedAt` bằng thời điểm đó; nếu chưa có hồ sơ tiến độ chủ đề, `lastAccessedAt` là null
+
+#### Scenario: Trạng thái từng item được suy ra từ tiến độ và lượt đang chạy
+
+- **WHEN** một item có lượt học đang chạy nhưng chưa có kết quả hoàn thành
+- **THEN** trạng thái item trong phản hồi là `IN_PROGRESS`; item chưa có tiến độ và chưa có lượt chạy là `NOT_STARTED`; item đã hoàn thành là `COMPLETED`
+
+#### Scenario: Chủ đề không tồn tại hoặc chưa publish
+
+- **WHEN** người học yêu cầu tiến độ của một chủ đề không tồn tại, hoặc chủ đề chưa có bản phát hành đã publish
+- **THEN** hệ thống trả về lỗi không tìm thấy
+
+#### Scenario: Chưa đăng nhập không được xem tiến độ
+
+- **WHEN** người học chưa đăng nhập yêu cầu tiến độ của một chủ đề
+- **THEN** hệ thống từ chối, yêu cầu đăng nhập

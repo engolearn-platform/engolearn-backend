@@ -36,5 +36,5 @@
 
 ## 7. Xác minh và hoàn tất
 
-- [x] 7.1 Chạy `openspec validate --change topic-f02-learn-item --strict` để xác nhận các artifact hợp lệ. Verify: validate không báo lỗi.
-- [x] 7.2 Review toàn bộ artifacts (proposal, specs, design, tasks) với bro trước khi chuyển sang implement. Verify: bro approve artifacts.
+- [x] 7.1 Chạy `openspec validate topic-f02-learn-item --type change --strict` để xác nhận các artifact hợp lệ. Verify: validate không báo lỗi.
+- [x] 7.2 Review toàn bộ artifacts (proposal, specs, design, tasks) với bro trước khi chuyển sang implement. Verify: bro approve artifacts. — Gate review (review.md) đóng trong vòng này: đã xử lý F1–F8 và F10; F9 (ranh giới đọc ↔ publish-validation BR-04.2–04.5, 04.7) hoãn rõ sang F09, không coi là đã xử lý.

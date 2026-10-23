@@ -15,7 +15,7 @@ Người học chưa có cách bắt đầu học nội dung chi tiết của m�
 
 ### Khả năng mới
 
-- `topic-learn-item`: Học nội dung một topic_item (UC03): đọc nội dung item, bắt đầu/tiếp tục học, lưu vị trí học dở, đánh dấu item đang học dở, tiếp tục từ vị trí đã dừng. Đánh step 1-3 (Bối cảnh → Từ vựng → Mẫu câu), bàn giao sang chuỗi quiz UC06.
+- `topic-learn-item`: Học nội dung một topic_item (UC03): đọc nội dung item, bắt đầu/tiếp tục học, lưu vị trí học dở, đánh dấu item đang học dở, tiếp tục từ vị trí đã dừng, và xem tiến độ học của một chủ đề. Đánh step 1-3 (Bối cảnh → Từ vựng → Mẫu câu), bàn giao sang chuỗi quiz UC06.
 
 ### Khả năng đã sửa
 
