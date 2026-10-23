@@ -15,7 +15,7 @@
 ## 4. Rewrite `TopicLearningControllerIntegrationTest` for Phase 1 (GET content)
 
 - [x] 4.1 Remove `@Disabled`; add `@EnabledIfDockerAvailable` on the concrete class; switch to plain `org.springframework.web.client.RestTemplate` + `@LocalServerPort` and build `http://localhost:{port}/api/v1/topic-items/{itemId}/content`. Boot 4.1.1's `TestRestTemplate` needs `spring-boot-resttestclient`, which is not on this project's test classpath (`spring-boot-restclient` absent), so no dependency was added. Verify: `.\mvnw.cmd test "-Dtest=TopicLearningControllerIntegrationTest" "-Dlogging.level.org.mongodb.driver.protocol.command=DEBUG"` → `Tests run: 1, Failures: 0, Errors: 0, Skipped: 0`, HTTP 200.
-- [x] 4.2 Fix the fixture order with repository writes: topic → topic item → item version with id `"iv1"` → topic version whose `itemVersionIds` holds the item-version id → set `latestPublishedVersion` → save topic. Assert 200 + body content + persisted item-version title; do not assert `_id` type. Verify: same command as 4.1 → `Tests run: 1, Failures: 0, Errors: 0, Skipped: 0`; the green 200 proves both pointers resolve, and the `find` commands hit `topic_items` and `topic_item_versions`.
+- [x] 4.2 Fix the fixture order with repository writes: topic → topic item → item version whose id is repository-generated (not pinned to a business string, which the OBJECT_ID mapping on `topicItemVersionId` rejects) → topic version whose `itemVersionIds` holds the item-version id → set `latestPublishedVersion` → save topic. Assert 200 + body content + persisted item-version title; do not assert `_id` type. Verify: same command as 4.1 → `Tests run: 1, Failures: 0, Errors: 0, Skipped: 0`; the green 200 proves both pointers resolve, and the `find` commands hit `topic_items` and `topic_item_versions`.
 - [x] 4.3 Container proof from the driver DEBUG log: random mapped port present, server description `type=REPLICA_SET` and `PRIMARY`, zero `localhost:27017`. Verify: `ServerDescription{address=localhost:63001, type=REPLICA_SET_PRIMARY, setName='docker-rs'}` observed, `0` × `localhost:27017` in the IT log segment.
 
 ## 5. Prove the Docker-absence guard
@@ -28,7 +28,7 @@
 
 ## 7. Phase 2 — position read/write with real transaction semantics (SENIOR, gated behind Phase 1)
 
-- [ ] 7.1 Pending. `PUT /api/v1/topic-items/{itemId}/position` → 200, then `GET .../position` returns the same stage/index; after one `PUT` all three progress collections hold documents, proving the `@Transactional` boundary on the replica set. Owner: senior (partial-failure / transaction boundary). Verify: `.\mvnw.cmd test "-Dtest=TopicLearningControllerIntegrationTest"` → green plus repository count assertions.
+- [x] 7.1 Done and verified. `PUT /api/v1/topic-items/{itemId}/position` → 200, then `GET .../position` echoes the saved stage, index, and item-version id; after one `PUT`, exactly one document exists in each of the **four** collections `saveItemPosition` writes: `user_topic_attempts`, `user_topic_item_attempts`, `user_topic_item_progress`, `user_topic_progress`. The transaction is proven in the scoped driver log: `startTransaction` on the Tomcat request thread, then four `insert`s carrying the same `txnNumber`, then `commitTransaction` reply `ok: 1.0`. Owner: senior (partial-failure / transaction boundary). Verify: `.\mvnw.cmd verify -Dlogging.level.org.mongodb.driver.protocol.command=DEBUG` → `Tests run: 107, Failures: 0, Errors: 0, Skipped: 0`. Rollback is not asserted (see design limitation).
 
 ## 8. Phase 3 — topic progress (gated behind Phase 1)
 

@@ -54,7 +54,7 @@ Remove the three pinned test dependencies and add `org.testcontainers:testcontai
 
 ### D8: Fixture writes through repositories, in the seed-runner order
 
-Order: topic → topic item → item version with business id `"iv1"` → topic version whose `itemVersionIds` holds the item-version id → `topic.setLatestPublishedVersion(release.getId())` → save topic again. This matches `DevTopicSeedRunner`. `TopicItemVersion.id` is a business id, not an `ObjectId`; it stays a `String`. Raw `Document` writes are avoided so the fixture exercises the same mapping as production code.
+Order: topic → topic item → item version with a repository-generated id → topic version whose `itemVersionIds` holds the item-version id → `topic.setLatestPublishedVersion(release.getId())` → save topic again. This matches `DevTopicSeedRunner`, which never sets `TopicItemVersion.id`, so production ids are the repository-generated 24-hex strings that fit the `@Field(targetType = OBJECT_ID)` mapping on `topicItemVersionId`. Pinning a non-hex business id makes `PUT /position` fail with `ConversionFailedException` (500). Raw `Document` writes are avoided so the fixture exercises the same mapping as production code.
 
 ### D9: OpenSpec change before any test code
 
@@ -73,6 +73,7 @@ No `src/main/` edit. The hardcoded mock user in `MockCurrentUserProvider` is an 
 - [Risk] `db.drop()` fails if the container later enables auth. → Accepted: the container runs without auth today (no init script); revisit if auth is added.
 - [Risk] Docker image pull failure. → Accepted: `mongo:8.0.29-noble` is already local; fail fast instead of retrying in a loop.
 - [Risk] The 2.0.5 migration moves imports to flattened packages. → Mitigation: `test-compile` after the pom change; `testcontainers:2.0.5` and no `1.20.1` confirmed via `dependency:tree`.
+- [Limitation — Phase 2] Rollback on a mid-operation failure is **not asserted**: there is no production seam to force a failure between the four writes, and the only `abortTransaction` observation came incidentally from a pre-fix failing run. Phase 2 proves `startTransaction` → four inserts → `commitTransaction`; rollback remains unproven.
 
 ## Migration Plan
 

@@ -17,7 +17,11 @@ import fit.iuh.engolearn.topic.repository.TopicRepository;
 import fit.iuh.engolearn.topic.repository.TopicVersionRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.testcontainers.junit.jupiter.EnabledIfDockerAvailable;
 
@@ -31,8 +35,9 @@ import static org.assertj.core.api.Assertions.assertThat;
  * Representative API integration test for UC03 (learn topic_item).
  *
  * <p>Runs against a real MongoDB replica set via Testcontainers. Verifies the full
- * HTTP -> Spring Boot -> MongoDB flow for {@code GET /topic-items/{itemId}/content},
- * including that the response shape matches the DTO and data is actually persisted.
+ * HTTP -> Spring Boot -> MongoDB flow for {@code GET /topic-items/{itemId}/content}
+ * and the {@code PUT|GET /topic-items/{itemId}/position} round trip, including the
+ * progress documents the round trip writes.
  */
 @EnabledIfDockerAvailable
 class TopicLearningControllerIntegrationTest extends AbstractMongoIntegrationTest {
@@ -51,6 +56,70 @@ class TopicLearningControllerIntegrationTest extends AbstractMongoIntegrationTes
 
     @Test
     void getContentReturnsFullItemContentFromRealMongo() {
+        PublishedItem published = seedPublishedItem();
+        TopicItem item = published.item();
+        TopicItemVersion itemVersion = published.itemVersion();
+
+        ResponseEntity<String> response = restTemplate.getForEntity(
+                "http://localhost:" + port + "/api/v1/topic-items/" + item.getId() + "/content",
+                String.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody())
+                .contains("Asking for directions at the airport")
+                .contains("sân bay")
+                .contains("airport_en.mp3")
+                .contains("airport_us.mp3");
+
+        var stored = topicItemVersionRepository.findById(itemVersion.getId()).orElseThrow();
+        assertThat(stored.getTitle()).isEqualTo("Asking for directions at the airport");
+        assertThat(stored.getContext().getScenarioDescription())
+                .isEqualTo("You are at the airport asking for directions");
+        assertThat(stored.getVocabularies()).hasSize(1);
+        assertThat(stored.getVocabularies().get(0).getSnapshot().getAudioEnUrl())
+                .isEqualTo("airport_en.mp3");
+    }
+
+    @Test
+    void putPositionCommitsOneDocumentPerProgressCollectionAndGetPositionEchoesIt() {
+        PublishedItem published = seedPublishedItem();
+        String positionUrl = "http://localhost:" + port + "/api/v1/topic-items/"
+                + published.item().getId() + "/position";
+        String versionJson = "\"topicItemVersionId\":\"" + published.itemVersion().getId() + "\"";
+
+        HttpHeaders jsonHeaders = new HttpHeaders();
+        jsonHeaders.setContentType(MediaType.APPLICATION_JSON);
+        ResponseEntity<String> putResponse = restTemplate.exchange(positionUrl, HttpMethod.PUT,
+                new HttpEntity<>("{\"stage\":\"VOCAB\",\"itemIndex\":0}", jsonHeaders), String.class);
+
+        assertThat(putResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(putResponse.getBody())
+                .contains(versionJson)
+                .contains("\"stage\":\"VOCAB\"")
+                .contains("\"itemIndex\":0");
+
+        ResponseEntity<String> getResponse = restTemplate.getForEntity(positionUrl, String.class);
+
+        assertThat(getResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(getResponse.getBody())
+                .contains(versionJson)
+                .contains("\"stage\":\"VOCAB\"")
+                .contains("\"itemIndex\":0");
+
+        assertThat(documentCount("user_topic_attempts")).isEqualTo(1);
+        assertThat(documentCount("user_topic_item_attempts")).isEqualTo(1);
+        assertThat(documentCount("user_topic_item_progress")).isEqualTo(1);
+        assertThat(documentCount("user_topic_progress")).isEqualTo(1);
+    }
+
+    private long documentCount(String collection) {
+        return mongoTemplate.getCollection(collection).countDocuments();
+    }
+
+    private record PublishedItem(TopicItem item, TopicItemVersion itemVersion) {
+    }
+
+    private PublishedItem seedPublishedItem() {
         Topic topic = topicRepository.save(Topic.builder()
                 .titleEn("Travel topic")
                 .titleVi("Chủ đề Du lịch")
@@ -73,8 +142,9 @@ class TopicLearningControllerIntegrationTest extends AbstractMongoIntegrationTes
                 .publishedAt(Instant.now())
                 .build());
 
+        // No explicit id: the item attempt stores this id as ObjectId, so only a generated
+        // hex id (the shape DevTopicSeedRunner produces) survives the position write.
         TopicItemVersion itemVersion = topicItemVersionRepository.save(TopicItemVersion.builder()
-                .id("iv1")
                 .topicItemId(item.getId())
                 .topicId(topic.getId())
                 .topicVersionId(release.getId())
@@ -116,23 +186,6 @@ class TopicLearningControllerIntegrationTest extends AbstractMongoIntegrationTes
         topic.setLatestPublishedVersion(release.getId());
         topicRepository.save(topic);
 
-        ResponseEntity<String> response = restTemplate.getForEntity(
-                "http://localhost:" + port + "/api/v1/topic-items/" + item.getId() + "/content",
-                String.class);
-
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(response.getBody())
-                .contains("Asking for directions at the airport")
-                .contains("sân bay")
-                .contains("airport_en.mp3")
-                .contains("airport_us.mp3");
-
-        var stored = topicItemVersionRepository.findById(itemVersion.getId()).orElseThrow();
-        assertThat(stored.getTitle()).isEqualTo("Asking for directions at the airport");
-        assertThat(stored.getContext().getScenarioDescription())
-                .isEqualTo("You are at the airport asking for directions");
-        assertThat(stored.getVocabularies()).hasSize(1);
-        assertThat(stored.getVocabularies().get(0).getSnapshot().getAudioEnUrl())
-                .isEqualTo("airport_en.mp3");
+        return new PublishedItem(item, itemVersion);
     }
 }
