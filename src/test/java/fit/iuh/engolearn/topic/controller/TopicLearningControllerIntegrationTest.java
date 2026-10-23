@@ -1,34 +1,28 @@
 package fit.iuh.engolearn.topic.controller;
 
+import fit.iuh.engolearn.config.AbstractMongoIntegrationTest;
+import fit.iuh.engolearn.shared.enums.CefrLevel;
 import fit.iuh.engolearn.topic.model.Topic;
+import fit.iuh.engolearn.topic.model.TopicItem;
 import fit.iuh.engolearn.topic.model.TopicItemVersion;
 import fit.iuh.engolearn.topic.model.TopicVersion;
 import fit.iuh.engolearn.topic.model.enums.ChangeType;
 import fit.iuh.engolearn.topic.model.enums.ContentStatus;
-import fit.iuh.engolearn.topic.model.vo.ExpressionBlockVo;
-import fit.iuh.engolearn.topic.model.vo.ExpressionExampleVo;
-import fit.iuh.engolearn.topic.model.vo.ExpressionPurposeVo;
 import fit.iuh.engolearn.topic.model.vo.ItemWordVo;
-import fit.iuh.engolearn.topic.model.vo.QuizModuleVo;
 import fit.iuh.engolearn.topic.model.vo.TopicContextVo;
 import fit.iuh.engolearn.topic.model.vo.WordSnapshotVo;
 import fit.iuh.engolearn.topic.repository.TopicItemRepository;
 import fit.iuh.engolearn.topic.repository.TopicItemVersionRepository;
 import fit.iuh.engolearn.topic.repository.TopicRepository;
 import fit.iuh.engolearn.topic.repository.TopicVersionRepository;
-import fit.iuh.engolearn.config.AbstractMongoIntegrationTest;
-import org.bson.Document;
-import org.bson.types.ObjectId;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.client.RestTemplate;
+import org.testcontainers.junit.jupiter.EnabledIfDockerAvailable;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -40,7 +34,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * HTTP -> Spring Boot -> MongoDB flow for {@code GET /topic-items/{itemId}/content},
  * including that the response shape matches the DTO and data is actually persisted.
  */
-@Disabled("Blocked by wrong Boot 4 Mongo property key (spring.data.mongodb.uri) in AbstractMongoIntegrationTest plus an incomplete fixture; deferred to a follow-up change.")
+@EnabledIfDockerAvailable
 class TopicLearningControllerIntegrationTest extends AbstractMongoIntegrationTest {
 
     @Autowired
@@ -55,46 +49,33 @@ class TopicLearningControllerIntegrationTest extends AbstractMongoIntegrationTes
     @Autowired
     private TopicItemVersionRepository topicItemVersionRepository;
 
-    @Autowired
-    private MongoTemplate mongoTemplate;
-
-    private RestTemplate restTemplate;
-
-    @BeforeEach
-    void setUp() {
-        restTemplate = new RestTemplate();
-    }
-
     @Test
     void getContentReturnsFullItemContentFromRealMongo() {
-        // Given: a published topic with one item version in the release
         Topic topic = topicRepository.save(Topic.builder()
                 .titleEn("Travel topic")
                 .titleVi("Chủ đề Du lịch")
                 .description("Travel around")
-                .cefrLevel(fit.iuh.engolearn.shared.enums.CefrLevel.A1)
+                .cefrLevel(CefrLevel.A1)
                 .orderIndex(1)
                 .durationMinutes(30)
                 .coverUrl("https://cdn.example.test/travel.jpg")
                 .build());
 
-        // Insert TopicItem document with _id as ObjectId via MongoTemplate
-        ObjectId topicItemId = new ObjectId();
-        mongoTemplate.insert(new Document("_id", topicItemId)
-            .append("topic_id", topic.getId())
-            .append("_class", "fit.iuh.engolearn.topic.model.TopicItem"), "topic_items");
+        TopicItem item = topicItemRepository.save(TopicItem.builder()
+                .topicId(topic.getId())
+                .build());
 
         TopicVersion release = topicVersionRepository.save(TopicVersion.builder()
                 .topicId(topic.getId())
                 .version(1)
                 .status(ContentStatus.PUBLISHED)
-                .itemVersionIds(List.of(topicItemId.toHexString()))
+                .itemVersionIds(new ArrayList<>())
                 .publishedAt(Instant.now())
                 .build());
 
         TopicItemVersion itemVersion = topicItemVersionRepository.save(TopicItemVersion.builder()
                 .id("iv1")
-                .topicItemId(topicItemId.toHexString())
+                .topicItemId(item.getId())
                 .topicId(topic.getId())
                 .topicVersionId(release.getId())
                 .version(1)
@@ -104,14 +85,14 @@ class TopicLearningControllerIntegrationTest extends AbstractMongoIntegrationTes
                 .order(1)
                 .status(ContentStatus.PUBLISHED)
                 .durationMinutes(5)
-                .context(fit.iuh.engolearn.topic.model.vo.TopicContextVo.builder()
+                .context(TopicContextVo.builder()
                         .scenarioDescription("You are at the airport asking for directions")
                         .prompt("Where is the check-in counter?")
                         .build())
-                .vocabularies(List.of(fit.iuh.engolearn.topic.model.vo.ItemWordVo.builder()
+                .vocabularies(List.of(ItemWordVo.builder()
                         .vocabId("v1")
                         .senseId("s1")
-                        .snapshot(fit.iuh.engolearn.topic.model.vo.WordSnapshotVo.builder()
+                        .snapshot(WordSnapshotVo.builder()
                                 .word("airport")
                                 .phonetic("/ˈeər.pɔːt/")
                                 .sense("sân bay")
@@ -127,12 +108,18 @@ class TopicLearningControllerIntegrationTest extends AbstractMongoIntegrationTes
                 .quizzes(List.of())
                 .build());
 
-        // When: GET content
+        // The release manifest and the topic pointer must both reference the item
+        // version id, otherwise the item is not reachable through the published release.
+        release.setItemVersionIds(List.of(itemVersion.getId()));
+        topicVersionRepository.save(release);
+
+        topic.setLatestPublishedVersion(release.getId());
+        topicRepository.save(topic);
+
         ResponseEntity<String> response = restTemplate.getForEntity(
-                "http://localhost:8080/api/v1/topic-items/" + topicItemId.toHexString() + "/content",
+                "http://localhost:" + port + "/api/v1/topic-items/" + item.getId() + "/content",
                 String.class);
 
-        // Then: 200 OK with expected content
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody())
                 .contains("Asking for directions at the airport")
@@ -140,7 +127,6 @@ class TopicLearningControllerIntegrationTest extends AbstractMongoIntegrationTes
                 .contains("airport_en.mp3")
                 .contains("airport_us.mp3");
 
-        // And: data is actually in MongoDB
         var stored = topicItemVersionRepository.findById(itemVersion.getId()).orElseThrow();
         assertThat(stored.getTitle()).isEqualTo("Asking for directions at the airport");
         assertThat(stored.getContext().getScenarioDescription())
