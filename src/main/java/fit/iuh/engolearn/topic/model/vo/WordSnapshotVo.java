@@ -27,4 +27,10 @@ public class WordSnapshotVo implements EmbeddedDocument {
 
     @Field("audio_url")
     private String audioUrl;
+
+    @Field("audio_en_url")
+    private String audioEnUrl;
+
+    @Field("audio_us_url")
+    private String audioUsUrl;
 }

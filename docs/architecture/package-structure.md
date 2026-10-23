@@ -13,8 +13,10 @@ fit.iuh.engolearn
 │   │   └── response          frontend response DTOs
 │   ├── service               business logic and contract implementations
 │   ├── repository            persistence access
+│   ├── mapper                feature-local DTO/VO mapping helpers
 │   ├── model                 feature-owned entities/documents and domain types
-│   └── exception             optional; only for feature-local exceptions
+│   ├── exception             optional; only for feature-local exceptions
+│   └── utils                 optional; feature-local helpers and their abstractions
 ├── shared                    cross-cutting types with no feature knowledge
 ├── config                    application configuration and wiring
 └── EngolearnApplication
@@ -29,11 +31,13 @@ Tests mirror production packages under `src/test/java`.
 | `controller` | Its feature's service and web DTOs | Its own repository or model directly |
 | `service` | Its feature's repository, model, DTOs, and contracts | See [cross-feature communication](cross-feature-communication.md) for dependencies on other features |
 | `repository` | Its feature's model and persistence support | Controllers or services |
+| `mapper` | Its feature's DTOs and model VOs | Controllers, services, repositories, or business logic |
 | `contract` | Small contract types; JDK, `shared`, and validation types as needed | Entities, repositories, business logic, web DTOs, or framework-heavy types |
+| `utils` | Feature-local helper types and the abstractions they implement | Controllers, repositories, or business logic |
 | `shared` | Cross-cutting types that do not know about features | Any feature package |
 | `config` | Types needed for application wiring | Business logic that belongs in a feature |
 
-Controllers should return response DTOs, not persistence entities. A contract is a feature's public in-process API; its implementation belongs in that feature's `service` package.
+Controllers should return response DTOs, not persistence entities. A contract is a feature's public in-process API; its implementation belongs in that feature's `service` package. Mappers are feature-local, stateless, and carry no business logic.
 
 ## Two kinds of DTO
 
@@ -41,6 +45,10 @@ Controllers should return response DTOs, not persistence entities. A contract is
 - **Contract DTO** — `<feature>.contract.dto`; a small, stable type exchanged between features. Treat it as a public API: check callers before changing field meaning, removing a field, or renaming it.
 
 Do not place a feature-specific concept in `shared` merely to bypass a dependency boundary. Keep it in its owning feature and expose only the capability needed by other features.
+
+## Validation policy
+
+The controller is the single gate for request shape validation. Declare Spring Bean Validation constraints on the request DTO fields and validate the controller method arguments with `@Valid`; the service must not repeat null, blank, or range checks. The service enforces business rules only (ordering, preconditions, state transitions, and similar). A validation failure is reported as a `400` `ProblemDetail`.
 
 ## Where new code goes
 
