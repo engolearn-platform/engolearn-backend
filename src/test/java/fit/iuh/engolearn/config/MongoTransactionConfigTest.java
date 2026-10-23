@@ -1,26 +1,34 @@
 package fit.iuh.engolearn.config;
 
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.ApplicationContext;
+import org.springframework.boot.test.context.runner.ApplicationContextRunner;
+import org.springframework.data.mongodb.MongoDatabaseFactory;
 import org.springframework.data.mongodb.MongoTransactionManager;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
 
 /**
- * The progress writes are only atomic when a transaction manager backs the
- * {@code @Transactional} boundary, so the manager has to exist once transactions are
- * enabled.
+ * The transaction manager is opt-in: the docker dev server is a standalone mongod, which
+ * cannot run multi-document transactions, so enabling it there makes every transactional
+ * write fail.
  */
-@SpringBootTest(properties = "engolearn.mongodb.transactions.enabled=true")
 class MongoTransactionConfigTest {
 
-    @Autowired
-    private ApplicationContext context;
+    private final ApplicationContextRunner runner = new ApplicationContextRunner()
+            .withUserConfiguration(MongoTransactionConfig.class)
+            .withBean(MongoDatabaseFactory.class, () -> mock(MongoDatabaseFactory.class));
 
     @Test
     void theTransactionManagerIsRegisteredWhenTransactionsAreEnabled() {
-        assertThat(context.getBeanNamesForType(MongoTransactionManager.class)).isNotEmpty();
+        runner.withPropertyValues("engolearn.mongodb.transactions.enabled=true")
+                .run(context -> assertThat(context.getBeanNamesForType(MongoTransactionManager.class))
+                        .containsExactly("mongoTransactionManager"));
+    }
+
+    @Test
+    void noTransactionManagerIsRegisteredByDefault() {
+        runner.run(context -> assertThat(context.getBeanNamesForType(MongoTransactionManager.class))
+                .isEmpty());
     }
 }

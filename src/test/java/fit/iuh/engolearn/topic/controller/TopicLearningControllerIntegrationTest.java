@@ -1,23 +1,19 @@
 package fit.iuh.engolearn.topic.controller;
 
 import fit.iuh.engolearn.config.AbstractMongoIntegrationTest;
-import fit.iuh.engolearn.shared.enums.CefrLevel;
 import fit.iuh.engolearn.topic.model.Topic;
 import fit.iuh.engolearn.topic.model.TopicItem;
 import fit.iuh.engolearn.topic.model.TopicItemVersion;
 import fit.iuh.engolearn.topic.model.TopicVersion;
 import fit.iuh.engolearn.topic.model.UserTopicItemProgress;
-import fit.iuh.engolearn.topic.model.enums.ChangeType;
 import fit.iuh.engolearn.topic.model.enums.ContentStatus;
 import fit.iuh.engolearn.topic.model.enums.ItemProgressStatus;
-import fit.iuh.engolearn.topic.model.vo.ItemWordVo;
-import fit.iuh.engolearn.topic.model.vo.TopicContextVo;
-import fit.iuh.engolearn.topic.model.vo.WordSnapshotVo;
 import fit.iuh.engolearn.topic.repository.TopicItemRepository;
 import fit.iuh.engolearn.topic.repository.TopicItemVersionRepository;
 import fit.iuh.engolearn.topic.repository.TopicRepository;
 import fit.iuh.engolearn.topic.repository.TopicVersionRepository;
 import fit.iuh.engolearn.topic.repository.UserTopicItemProgressRepository;
+import fit.iuh.engolearn.topic.support.TopicLearningFixture.PublishedItem;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpEntity;
@@ -31,9 +27,11 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.List;
 
+import static fit.iuh.engolearn.topic.support.TopicLearningFixture.seedItemVersion;
+import static fit.iuh.engolearn.topic.support.TopicLearningFixture.seedMajorItemVersionUpdate;
+import static fit.iuh.engolearn.topic.support.TopicLearningFixture.seedPublishedItem;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
@@ -64,7 +62,8 @@ class TopicLearningControllerIntegrationTest extends AbstractMongoIntegrationTes
 
     @Test
     void getContentReturnsFullItemContentFromRealMongo() {
-        PublishedItem published = seedPublishedItem();
+        PublishedItem published = seedPublishedItem(
+                topicRepository, topicItemRepository, topicVersionRepository, topicItemVersionRepository);
         TopicItem item = published.item();
         TopicItemVersion itemVersion = published.itemVersion();
 
@@ -86,11 +85,32 @@ class TopicLearningControllerIntegrationTest extends AbstractMongoIntegrationTes
         assertThat(stored.getVocabularies()).hasSize(1);
         assertThat(stored.getVocabularies().get(0).getSnapshot().getAudioEnUrl())
                 .isEqualTo("airport_en.mp3");
+
+        JsonNode data = JsonMapper.builder().build().readTree(response.getBody()).get("data");
+        JsonNode expressions = data.get("expressions");
+        assertThat(expressions.size()).isEqualTo(1);
+        assertThat(expressions.get(0).get("tips").asString())
+                .isEqualTo("Use the pattern with a place word from the vocabulary step");
+        assertThat(expressions.get(0).get("purposes").size()).isEqualTo(1);
+        JsonNode purpose = expressions.get(0).get("purposes").get(0);
+        assertThat(purpose.get("purposeEn").asString())
+                .isEqualTo("Asking for directions politely");
+        assertThat(purpose.get("purposeVi").asString())
+                .isEqualTo("Hỏi đường một cách lịch sự");
+        JsonNode examples = purpose.get("examples");
+        assertThat(examples.size()).isEqualTo(2);
+        assertThat(examples.get(0).get("textEn").asString())
+                .isEqualTo("Could you tell me where the check-in counter is?");
+        assertThat(examples.get(0).get("textVi").asString())
+                .isEqualTo("Bạn có thể cho tôi biết quầy làm thủ tục ở đâu không?");
+        assertThat(examples.get(0).get("usageNote").asString())
+                .isEqualTo("Use 'Could you' for a polite request");
     }
 
     @Test
     void putPositionCommitsOneDocumentPerProgressCollectionAndGetPositionEchoesIt() {
-        PublishedItem published = seedPublishedItem();
+        PublishedItem published = seedPublishedItem(
+                topicRepository, topicItemRepository, topicVersionRepository, topicItemVersionRepository);
         String positionUrl = "http://localhost:" + port + "/api/v1/topic-items/"
                 + published.item().getId() + "/position";
         String versionJson = "\"topicItemVersionId\":\"" + published.itemVersion().getId() + "\"";
@@ -121,15 +141,73 @@ class TopicLearningControllerIntegrationTest extends AbstractMongoIntegrationTes
     }
 
     @Test
+    void majorUpdatePublishedAfterItemStartKeepsContentAndPositionOnPinnedVersion() {
+        PublishedItem published = seedPublishedItem(
+                topicRepository, topicItemRepository, topicVersionRepository, topicItemVersionRepository);
+        TopicItemVersion pinned = published.itemVersion();
+        String positionUrl = "http://localhost:" + port + "/api/v1/topic-items/"
+                + published.item().getId() + "/position";
+        String contentUrl = "http://localhost:" + port + "/api/v1/topic-items/"
+                + published.item().getId() + "/content";
+        String versionJson = "\"topicItemVersionId\":\"" + pinned.getId() + "\"";
+
+        HttpHeaders jsonHeaders = new HttpHeaders();
+        jsonHeaders.setContentType(MediaType.APPLICATION_JSON);
+        ResponseEntity<String> startResponse = restTemplate.exchange(positionUrl, HttpMethod.PUT,
+                new HttpEntity<>("{\"stage\":\"VOCAB\",\"itemIndex\":0}", jsonHeaders), String.class);
+
+        assertThat(startResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(startResponse.getBody()).contains(versionJson);
+
+        TopicItemVersion major = seedMajorItemVersionUpdate(published,
+                topicRepository, topicVersionRepository, topicItemVersionRepository,
+                "Asking for directions at the train station");
+        assertThat(major.getId()).isNotEqualTo(pinned.getId());
+        assertThat(major.getTitle()).isNotEqualTo(pinned.getTitle());
+
+        Topic topicAfterUpdate = topicRepository.findById(published.topic().getId()).orElseThrow();
+        assertThat(topicAfterUpdate.getLatestPublishedVersion()).isEqualTo(major.getTopicVersionId());
+        TopicVersion majorRelease = topicVersionRepository
+                .findById(major.getTopicVersionId()).orElseThrow();
+        assertThat(majorRelease.getItemVersionIds())
+                .containsExactly(major.getId())
+                .doesNotContain(pinned.getId());
+
+        ResponseEntity<String> contentResponse = restTemplate.getForEntity(contentUrl, String.class);
+
+        assertThat(contentResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
+        JsonNode data = JsonMapper.builder().build().readTree(contentResponse.getBody()).get("data");
+        assertThat(data.get("topicItemVersionId").asString()).isEqualTo(pinned.getId());
+        assertThat(data.get("version").asInt()).isEqualTo(pinned.getVersion());
+        assertThat(contentResponse.getBody())
+                .contains("Asking for directions at the airport")
+                .doesNotContain("Asking for directions at the train station");
+
+        ResponseEntity<String> resumeResponse = restTemplate.exchange(positionUrl, HttpMethod.PUT,
+                new HttpEntity<>("{\"stage\":\"VOCAB\",\"itemIndex\":1}", jsonHeaders), String.class);
+
+        assertThat(resumeResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(resumeResponse.getBody())
+                .contains(versionJson)
+                .contains("\"stage\":\"VOCAB\"")
+                .contains("\"itemIndex\":1")
+                .doesNotContain(major.getId());
+    }
+
+    @Test
     void getTopicProgressReportsCountsAndPerItemStatusFromRealMongo() {
-        PublishedItem published = seedPublishedItem();
+        PublishedItem published = seedPublishedItem(
+                topicRepository, topicItemRepository, topicVersionRepository, topicItemVersionRepository);
         TopicItemVersion completedVersion = published.itemVersion();
-        TopicItemVersion inProgressVersion =
-                seedItemVersion(published, "Ordering at a cafe", 2, ContentStatus.PUBLISHED);
-        TopicItemVersion notStartedVersion =
-                seedItemVersion(published, "Checking in at the hotel", 3, ContentStatus.PUBLISHED);
-        TopicItemVersion hiddenVersion =
-                seedItemVersion(published, "Hidden draft", 4, ContentStatus.HIDDEN);
+        TopicItemVersion inProgressVersion = seedItemVersion(published,
+                topicItemRepository, topicVersionRepository, topicItemVersionRepository,
+                "Ordering at a cafe", 2, ContentStatus.PUBLISHED);
+        TopicItemVersion notStartedVersion = seedItemVersion(published,
+                topicItemRepository, topicVersionRepository, topicItemVersionRepository,
+                "Checking in at the hotel", 3, ContentStatus.PUBLISHED);
+        TopicItemVersion hiddenVersion = seedItemVersion(published,
+                topicItemRepository, topicVersionRepository, topicItemVersionRepository,
+                "Hidden draft", 4, ContentStatus.HIDDEN);
 
         Instant completedAt = Instant.parse("2020-01-01T00:00:00Z");
         userTopicItemProgressRepository.save(UserTopicItemProgress.builder()
@@ -193,115 +271,120 @@ class TopicLearningControllerIntegrationTest extends AbstractMongoIntegrationTes
         assertThat(response.getBody()).doesNotContain(hiddenVersion.getTopicItemId());
     }
 
-    private long documentCount(String collection) {
-        return mongoTemplate.getCollection(collection).countDocuments();
-    }
-
-    private record PublishedItem(Topic topic, TopicVersion release, TopicItem item,
-                                 TopicItemVersion itemVersion) {
-    }
-
-    private PublishedItem seedPublishedItem() {
-        Topic topic = topicRepository.save(Topic.builder()
-                .titleEn("Travel topic")
-                .titleVi("Chủ đề Du lịch")
-                .description("Travel around")
-                .cefrLevel(CefrLevel.A1)
-                .orderIndex(1)
-                .durationMinutes(30)
-                .coverUrl("https://cdn.example.test/travel.jpg")
-                .build());
-
-        TopicItem item = topicItemRepository.save(TopicItem.builder()
-                .topicId(topic.getId())
-                .build());
-
-        TopicVersion release = topicVersionRepository.save(TopicVersion.builder()
-                .topicId(topic.getId())
-                .version(1)
-                .status(ContentStatus.PUBLISHED)
-                .itemVersionIds(new ArrayList<>())
-                .publishedAt(Instant.now())
-                .build());
-
-        // No explicit id: the item attempt stores this id as ObjectId, so only a generated
-        // hex id (the shape DevTopicSeedRunner produces) survives the position write.
-        TopicItemVersion itemVersion = topicItemVersionRepository.save(TopicItemVersion.builder()
-                .topicItemId(item.getId())
-                .topicId(topic.getId())
-                .topicVersionId(release.getId())
-                .version(1)
-                .changeType(ChangeType.MAJOR)
-                .title("Asking for directions at the airport")
-                .description("How to ask for directions at the airport")
-                .order(1)
-                .status(ContentStatus.PUBLISHED)
-                .durationMinutes(5)
-                .context(TopicContextVo.builder()
-                        .scenarioDescription("You are at the airport asking for directions")
-                        .prompt("Where is the check-in counter?")
-                        .build())
-                .vocabularies(List.of(ItemWordVo.builder()
-                        .vocabId("v1")
-                        .senseId("s1")
-                        .snapshot(WordSnapshotVo.builder()
-                                .word("airport")
-                                .phonetic("/ˈeər.pɔːt/")
-                                .sense("sân bay")
-                                .describeVi("sân bay")
-                                .pos("noun")
-                                .audioUrl("airport.mp3")
-                                .audioEnUrl("airport_en.mp3")
-                                .audioUsUrl("airport_us.mp3")
-                                .build())
-                        .orderIndex(1)
-                        .build()))
-                .expressions(List.of())
-                .quizzes(List.of())
-                .build());
-
-        // The release manifest and the topic pointer must both reference the item
-        // version id, otherwise the item is not reachable through the published release.
-        release.setItemVersionIds(List.of(itemVersion.getId()));
-        topicVersionRepository.save(release);
-
-        topic.setLatestPublishedVersion(release.getId());
-        topicRepository.save(topic);
-
-        return new PublishedItem(topic, release, item, itemVersion);
-    }
-
-    private TopicItemVersion seedItemVersion(PublishedItem published, String title, int order,
-                                             ContentStatus status) {
-        TopicItem item = topicItemRepository.save(TopicItem.builder()
-                .topicId(published.topic().getId())
-                .build());
-
-        TopicItemVersion itemVersion = topicItemVersionRepository.save(TopicItemVersion.builder()
-                .topicItemId(item.getId())
-                .topicId(published.topic().getId())
-                .topicVersionId(published.release().getId())
-                .version(1)
-                .changeType(ChangeType.MAJOR)
-                .title(title)
-                .description("Description for " + title)
-                .order(order)
-                .status(status)
-                .durationMinutes(5)
-                .context(TopicContextVo.builder()
-                        .scenarioDescription("Scenario for " + title)
-                        .prompt("Prompt for " + title)
-                        .build())
-                .vocabularies(List.of())
-                .expressions(List.of())
-                .quizzes(List.of())
-                .build());
-
-        List<String> manifest = new ArrayList<>(published.release().getItemVersionIds());
-        manifest.add(itemVersion.getId());
-        published.release().setItemVersionIds(manifest);
+    @Test
+    void getTopicProgressWithOnlyHiddenItemsInManifestReturnsEmptyNotStartedProgress() {
+        PublishedItem published = seedPublishedItem(
+                topicRepository, topicItemRepository, topicVersionRepository, topicItemVersionRepository);
+        TopicItemVersion hiddenVersion = seedItemVersion(published,
+                topicItemRepository, topicVersionRepository, topicItemVersionRepository,
+                "Hidden draft", 2, ContentStatus.HIDDEN);
+        published.release().setItemVersionIds(List.of(hiddenVersion.getId()));
         topicVersionRepository.save(published.release());
 
-        return itemVersion;
+        TopicVersion storedRelease = topicVersionRepository
+                .findById(published.release().getId()).orElseThrow();
+        TopicItemVersion storedHidden = topicItemVersionRepository
+                .findById(hiddenVersion.getId()).orElseThrow();
+        assertThat(storedRelease.getItemVersionIds()).containsExactly(storedHidden.getId());
+        assertThat(storedHidden.getStatus()).isEqualTo(ContentStatus.HIDDEN);
+
+        ResponseEntity<String> response = restTemplate.getForEntity(
+                "http://localhost:" + port + "/api/v1/topics/"
+                        + published.topic().getId() + "/progress",
+                String.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        JsonNode data = JsonMapper.builder().build().readTree(response.getBody()).get("data");
+        assertThat(data.get("topicId").asString()).isEqualTo(published.topic().getId());
+        assertThat(data.get("status").asString()).isEqualTo("NOT_STARTED");
+        assertThat(data.get("completedItemCount").asInt()).isEqualTo(0);
+        assertThat(data.get("totalItemCount").asInt()).isEqualTo(0);
+        assertThat(data.get("lastAccessedAt").isNull()).isTrue();
+        assertThat(data.get("items").size()).isEqualTo(0);
+    }
+
+    @Test
+    void getTopicProgressWithoutAnyRecordsReturnsNotStartedWithNullLastAccessedAt() {
+        PublishedItem published = seedPublishedItem(
+                topicRepository, topicItemRepository, topicVersionRepository, topicItemVersionRepository);
+        seedItemVersion(published,
+                topicItemRepository, topicVersionRepository, topicItemVersionRepository,
+                "Ordering at a cafe", 2, ContentStatus.PUBLISHED);
+        seedItemVersion(published,
+                topicItemRepository, topicVersionRepository, topicItemVersionRepository,
+                "Checking in at the hotel", 3, ContentStatus.PUBLISHED);
+
+        ResponseEntity<String> response = restTemplate.getForEntity(
+                "http://localhost:" + port + "/api/v1/topics/"
+                        + published.topic().getId() + "/progress",
+                String.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        JsonNode data = JsonMapper.builder().build().readTree(response.getBody()).get("data");
+        assertThat(data.get("status").asString()).isEqualTo("NOT_STARTED");
+        assertThat(data.get("completedItemCount").asInt()).isEqualTo(0);
+        assertThat(data.get("totalItemCount").asInt()).isEqualTo(3);
+        assertThat(data.get("lastAccessedAt").isNull()).isTrue();
+
+        JsonNode items = data.get("items");
+        assertThat(items.size()).isEqualTo(3);
+        for (JsonNode item : items) {
+            assertThat(item.get("status").asString()).isEqualTo("NOT_STARTED");
+            assertThat(item.get("firstTryCorrectCount").isNull()).isTrue();
+            assertThat(item.get("totalQuizCount").isNull()).isTrue();
+            assertThat(item.get("completedAt").isNull()).isTrue();
+        }
+
+        assertThat(documentCount("user_topic_progress")).isZero();
+        assertThat(documentCount("user_topic_attempts")).isZero();
+    }
+
+    @Test
+    void getTopicProgressWhenEveryVisibleItemIsCompletedReturnsCompleted() {
+        PublishedItem published = seedPublishedItem(
+                topicRepository, topicItemRepository, topicVersionRepository, topicItemVersionRepository);
+        TopicItemVersion secondVersion = seedItemVersion(published,
+                topicItemRepository, topicVersionRepository, topicItemVersionRepository,
+                "Ordering at a cafe", 2, ContentStatus.PUBLISHED);
+        TopicItemVersion firstVersion = published.itemVersion();
+
+        Instant completedAt = Instant.parse("2020-01-01T00:00:00Z");
+        for (TopicItemVersion version : List.of(firstVersion, secondVersion)) {
+            userTopicItemProgressRepository.save(UserTopicItemProgress.builder()
+                    .userId("user-mock-001")
+                    .topicId(published.topic().getId())
+                    .topicItemId(version.getTopicItemId())
+                    .completedTopicItemVersionId(version.getId())
+                    .status(ItemProgressStatus.COMPLETED)
+                    .firstTryCorrectCount(2)
+                    .totalQuizCount(2)
+                    .completedAt(completedAt)
+                    .lastAccessedAt(completedAt)
+                    .build());
+        }
+
+        ResponseEntity<String> response = restTemplate.getForEntity(
+                "http://localhost:" + port + "/api/v1/topics/"
+                        + published.topic().getId() + "/progress",
+                String.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        JsonNode data = JsonMapper.builder().build().readTree(response.getBody()).get("data");
+        assertThat(data.get("status").asString()).isEqualTo("COMPLETED");
+        assertThat(data.get("completedItemCount").asInt()).isEqualTo(2);
+        assertThat(data.get("totalItemCount").asInt()).isEqualTo(2);
+
+        JsonNode items = data.get("items");
+        assertThat(items.size()).isEqualTo(2);
+        assertThat(items.get(0).get("topicItemId").asString())
+                .isEqualTo(firstVersion.getTopicItemId());
+        assertThat(items.get(0).get("status").asString()).isEqualTo("COMPLETED");
+        assertThat(items.get(1).get("topicItemId").asString())
+                .isEqualTo(secondVersion.getTopicItemId());
+        assertThat(items.get(1).get("status").asString()).isEqualTo("COMPLETED");
+    }
+
+    private long documentCount(String collection) {
+        return mongoTemplate.getCollection(collection).countDocuments();
     }
 }
