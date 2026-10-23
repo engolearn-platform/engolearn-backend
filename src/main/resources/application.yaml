@@ -12,3 +12,11 @@ spring:
     database: ${APP_DB:engolearn_db}
     username: ${APP_USER:admin}
     password: ${APP_PASSWORD:admin123}
+  data:
+    mongodb:
+      # Disclosed config step (design §3.6 / VF-02): annotated indexes are inert without this.
+      auto-index-creation: true
+  jackson:
+    deserialization:
+      # DEC-21: reject unknown/forbidden request-body fields with 400 instead of ignoring them.
+      fail-on-unknown-properties: true

@@ -5,12 +5,27 @@ import fit.iuh.engolearn.shared.enums.CefrLevel;
 import fit.iuh.engolearn.topic.model.enums.TopicCategory;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
+import org.springframework.data.mongodb.core.index.CompoundIndex;
 import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.mongodb.core.mapping.Field;
 
 import java.util.List;
 
+/**
+ * Topic document.
+ *
+ * <p>Index (design record F05 §3.6): {@code updated_at} on {@code topics} for
+ * the management list's fixed {@code updatedAt DESC} sort. Declared as a
+ * single-field class-level {@code @CompoundIndex} named {@code updated_at}
+ * because {@code updatedAt} is inherited from {@code BaseDocument} (which is
+ * frozen) and Spring Data's {@code @Indexed} can only annotate fields.</p>
+ *
+ * <p>F05 never writes {@code durationMinutes} (computed on read) and never
+ * writes {@code tags}/{@code orderIndex}/{@code latestBetaVersion}; F05 writes
+ * {@code latestPublishedVersion} only never (publish is F09).</p>
+ */
 @Document("topics")
+@CompoundIndex(name = "updated_at", def = "{'updated_at': 1}")
 @Getter
 @Setter
 @NoArgsConstructor
