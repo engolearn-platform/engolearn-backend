@@ -6,7 +6,7 @@ import java.util.Map;
 /**
  * Read-only per-topic item aggregates (design record F05 §3.6): one
  * aggregation per request, no N+1 queries, no full-document loads.
- * Only items with {@code status != ARCHIVED} are counted.
+ * Statistics are derived from each item's latest version, excluding only HIDDEN.
  */
 public interface TopicStatsCustom {
 

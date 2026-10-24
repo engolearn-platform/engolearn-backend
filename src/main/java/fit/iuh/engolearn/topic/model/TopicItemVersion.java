@@ -11,11 +11,13 @@ import lombok.*;
 import lombok.experimental.SuperBuilder;
 import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.mongodb.core.mapping.Field;
+import org.springframework.data.mongodb.core.index.CompoundIndex;
 
 import java.time.Instant;
 import java.util.List;
 
 @Document("topic_item_versions")
+@CompoundIndex(name = "topic_status", def = "{'topic_id': 1, 'status': 1}")
 @Getter
 @Setter
 @NoArgsConstructor

@@ -11,8 +11,8 @@ import fit.iuh.engolearn.topic.dto.response.TopicManagementListResponse;
 import fit.iuh.engolearn.topic.dto.response.TopicManagementResponse;
 import fit.iuh.engolearn.topic.model.Topic;
 import fit.iuh.engolearn.topic.model.enums.TopicCategory;
-import fit.iuh.engolearn.topic.repository.TopicItemRepository;
 import fit.iuh.engolearn.topic.repository.TopicItemStats;
+import fit.iuh.engolearn.topic.repository.TopicItemVersionRepository;
 import fit.iuh.engolearn.topic.repository.TopicManagementSearchCriteria;
 import fit.iuh.engolearn.topic.repository.TopicRepository;
 import jakarta.validation.Validation;
@@ -49,7 +49,7 @@ import static org.mockito.Mockito.when;
  * T9 — service unit tests for the frozen F05 semantics (design §9.1 step 8):
  * minimal create, blank-name 400s, CEFR range, closed category set, the PATCH
  * absent/null/blank matrix, published-topic in-place edit (no version writes),
- * duration ceiling and counters-over-unfiltered-set.
+ * latest-version duration derivation and counters-over-unfiltered-set.
  */
 @ExtendWith(MockitoExtension.class)
 class TopicManagementServiceTest {
@@ -63,13 +63,13 @@ class TopicManagementServiceTest {
     private TopicRepository topicRepository;
 
     @Mock
-    private TopicItemRepository topicItemRepository;
+    private TopicItemVersionRepository topicItemVersionRepository;
 
     private TopicManagementService service;
 
     @BeforeEach
     void setUp() {
-        service = new TopicManagementService(topicRepository, topicItemRepository, VALIDATOR);
+        service = new TopicManagementService(topicRepository, topicItemVersionRepository, VALIDATOR);
     }
 
     // ---------------------------------------------------------------- create
@@ -101,7 +101,7 @@ class TopicManagementServiceTest {
         assertThat(persisted.getDurationMinutes()).isNull();
         assertThat(persisted.getTags()).isNull();
         assertThat(persisted.getOrderIndex()).isNull();
-        verifyNoInteractions(topicItemRepository);
+        verifyNoInteractions(topicItemVersionRepository);
     }
 
     @Test
@@ -162,21 +162,21 @@ class TopicManagementServiceTest {
     void get_returnsComputedFieldsAndDerivedStatus() {
         Topic topic = topic("t1", "Food", "Ẩm thực", 3);
         when(topicRepository.findById("t1")).thenReturn(Optional.of(topic));
-        when(topicItemRepository.statsByTopicId("t1")).thenReturn(new TopicItemStats(4, 90));
+        when(topicItemVersionRepository.statsByTopicId("t1")).thenReturn(new TopicItemStats(4, 90));
 
         TopicManagementResponse response = service.get("t1");
 
         assertThat(response.id()).isEqualTo("t1");
         assertThat(response.status()).isEqualTo("published");
         assertThat(response.itemCount()).isEqualTo(4);
-        assertThat(response.durationMinutes()).isEqualTo(2);
+        assertThat(response.durationMinutes()).isEqualTo(90);
     }
 
     @ParameterizedTest
-    @CsvSource({"0,0", "1,1", "59,1", "60,1", "61,2", "119,2", "120,2", "121,3"})
-    void get_durationMinutes_ceilsSeconds(long totalDurationSec, int expectedMinutes) {
+    @CsvSource({"0,0", "1,1", "59,59", "60,60", "61,61", "119,119", "120,120", "121,121"})
+    void get_durationMinutes_sumsStoredMinutesWithoutRounding(long totalDurationMinutes, int expectedMinutes) {
         when(topicRepository.findById("t1")).thenReturn(Optional.of(topic("t1", "Food", "Ẩm thực", null)));
-        when(topicItemRepository.statsByTopicId("t1")).thenReturn(new TopicItemStats(1, totalDurationSec));
+        when(topicItemVersionRepository.statsByTopicId("t1")).thenReturn(new TopicItemStats(1, totalDurationMinutes));
 
         assertThat(service.get("t1").durationMinutes()).isEqualTo(expectedMinutes);
     }
@@ -186,7 +186,7 @@ class TopicManagementServiceTest {
         Topic topic = topic("t1", "Food", "Ẩm thực", null);
         topic.setLatestBetaVersion(5);
         when(topicRepository.findById("t1")).thenReturn(Optional.of(topic));
-        when(topicItemRepository.statsByTopicId("t1")).thenReturn(TopicItemStats.EMPTY);
+        when(topicItemVersionRepository.statsByTopicId("t1")).thenReturn(TopicItemStats.EMPTY);
 
         assertThat(service.get("t1").status()).isEqualTo("draft");
     }
@@ -210,7 +210,7 @@ class TopicManagementServiceTest {
         Topic existing = fullDraft("t1");
         when(topicRepository.findById("t1")).thenReturn(Optional.of(existing));
         when(topicRepository.save(any(Topic.class))).thenAnswer(invocation -> withAuditing(invocation.getArgument(0)));
-        when(topicItemRepository.statsByTopicId("t1")).thenReturn(TopicItemStats.EMPTY);
+        when(topicItemVersionRepository.statsByTopicId("t1")).thenReturn(TopicItemStats.EMPTY);
 
         TopicManagementResponse response = service.update("t1",
                 updateRequest(Set.of(TopicUpdateRequest.DESCRIPTION), null, null, null, null, "new description", null));
@@ -230,7 +230,7 @@ class TopicManagementServiceTest {
         Topic existing = fullDraft("t1");
         when(topicRepository.findById("t1")).thenReturn(Optional.of(existing));
         when(topicRepository.save(any(Topic.class))).thenAnswer(invocation -> withAuditing(invocation.getArgument(0)));
-        when(topicItemRepository.statsByTopicId("t1")).thenReturn(TopicItemStats.EMPTY);
+        when(topicItemVersionRepository.statsByTopicId("t1")).thenReturn(TopicItemStats.EMPTY);
 
         TopicManagementResponse response = service.update("t1", updateRequest(
                 Set.of(TopicUpdateRequest.CEFR, TopicUpdateRequest.CATEGORY,
@@ -268,7 +268,7 @@ class TopicManagementServiceTest {
     void update_trimsProvidedTitles() {
         when(topicRepository.findById("t1")).thenReturn(Optional.of(fullDraft("t1")));
         when(topicRepository.save(any(Topic.class))).thenAnswer(invocation -> withAuditing(invocation.getArgument(0)));
-        when(topicItemRepository.statsByTopicId("t1")).thenReturn(TopicItemStats.EMPTY);
+        when(topicItemVersionRepository.statsByTopicId("t1")).thenReturn(TopicItemStats.EMPTY);
 
         TopicManagementResponse response = service.update("t1", updateRequest(
                 Set.of(TopicUpdateRequest.TITLE_EN, TopicUpdateRequest.TITLE_VI),
@@ -301,7 +301,7 @@ class TopicManagementServiceTest {
         published.setLatestBetaVersion(1);
         when(topicRepository.findById("t1")).thenReturn(Optional.of(published));
         when(topicRepository.save(any(Topic.class))).thenAnswer(invocation -> withAuditing(invocation.getArgument(0)));
-        when(topicItemRepository.statsByTopicId("t1")).thenReturn(TopicItemStats.EMPTY);
+        when(topicItemVersionRepository.statsByTopicId("t1")).thenReturn(TopicItemStats.EMPTY);
 
         TopicManagementResponse response = service.update("t1",
                 updateRequest(Set.of(TopicUpdateRequest.DESCRIPTION), null, null, null, null, "edited", null));
@@ -311,7 +311,7 @@ class TopicManagementServiceTest {
 
         ArgumentCaptor<Topic> saved = ArgumentCaptor.forClass(Topic.class);
         verify(topicRepository).save(saved.capture());
-        assertThat(saved.getValue().getLatestPublishedVersion()).isEqualTo(2);
+        assertThat(saved.getValue().getLatestPublishedVersion()).isEqualTo("2");
         assertThat(saved.getValue().getLatestBetaVersion()).isEqualTo(1);
         assertThat(saved.getValue().getId()).isEqualTo("t1");
     }
@@ -320,7 +320,7 @@ class TopicManagementServiceTest {
     void update_emptyBody_stillSavesAndReturnsOk() {
         when(topicRepository.findById("t1")).thenReturn(Optional.of(fullDraft("t1")));
         when(topicRepository.save(any(Topic.class))).thenAnswer(invocation -> withAuditing(invocation.getArgument(0)));
-        when(topicItemRepository.statsByTopicId("t1")).thenReturn(TopicItemStats.EMPTY);
+        when(topicItemVersionRepository.statsByTopicId("t1")).thenReturn(TopicItemStats.EMPTY);
 
         TopicManagementResponse response = service.update("t1",
                 updateRequest(Set.of(), null, null, null, null, null, null));
@@ -346,7 +346,7 @@ class TopicManagementServiceTest {
         Topic draft = topic("t1", "Food", "Ẩm thực", null);
         when(topicRepository.search(any(TopicManagementSearchCriteria.class), any(Pageable.class)))
                 .thenReturn(new PageImpl<>(List.of(draft), PageRequest.of(0, 20), 1));
-        when(topicItemRepository.statsByTopicIds(any())).thenReturn(Map.of("t1", new TopicItemStats(2, 30)));
+        when(topicItemVersionRepository.statsByTopicIds(any())).thenReturn(Map.of("t1", new TopicItemStats(2, 30)));
         when(topicRepository.count()).thenReturn(7L);
         when(topicRepository.countByLatestPublishedVersionNotNull()).thenReturn(3L);
 
@@ -379,7 +379,7 @@ class TopicManagementServiceTest {
     void list_statusDraft_mapsToUnpublishedCriteria() {
         when(topicRepository.search(any(TopicManagementSearchCriteria.class), any(Pageable.class)))
                 .thenReturn(new PageImpl<>(List.of(), PageRequest.of(0, 20), 0));
-        when(topicItemRepository.statsByTopicIds(any())).thenReturn(Map.of());
+        when(topicItemVersionRepository.statsByTopicIds(any())).thenReturn(Map.of());
         when(topicRepository.count()).thenReturn(0L);
         when(topicRepository.countByLatestPublishedVersionNotNull()).thenReturn(0L);
 
@@ -400,7 +400,7 @@ class TopicManagementServiceTest {
         Topic draft = topic("t1", "Food", "Ẩm thực", null);
         when(topicRepository.search(any(TopicManagementSearchCriteria.class), any(Pageable.class)))
                 .thenReturn(new PageImpl<>(List.of(draft), PageRequest.of(0, 20), 1));
-        when(topicItemRepository.statsByTopicIds(any())).thenReturn(Map.of());
+        when(topicItemVersionRepository.statsByTopicIds(any())).thenReturn(Map.of());
         when(topicRepository.count()).thenReturn(1L);
         when(topicRepository.countByLatestPublishedVersionNotNull()).thenReturn(0L);
 
@@ -478,7 +478,7 @@ class TopicManagementServiceTest {
                 .id(id)
                 .titleEn(titleEn)
                 .titleVi(titleVi)
-                .latestPublishedVersion(latestPublishedVersion)
+                .latestPublishedVersion(latestPublishedVersion == null ? null : latestPublishedVersion.toString())
                 .createdAt(CREATED)
                 .updatedAt(UPDATED)
                 .build();

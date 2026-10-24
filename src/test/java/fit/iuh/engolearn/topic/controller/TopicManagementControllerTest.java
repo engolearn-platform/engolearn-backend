@@ -4,8 +4,8 @@ import fit.iuh.engolearn.shared.enums.CefrLevel;
 import fit.iuh.engolearn.shared.web.GlobalExceptionHandler;
 import fit.iuh.engolearn.topic.model.Topic;
 import fit.iuh.engolearn.topic.model.enums.TopicCategory;
-import fit.iuh.engolearn.topic.repository.TopicItemRepository;
 import fit.iuh.engolearn.topic.repository.TopicItemStats;
+import fit.iuh.engolearn.topic.repository.TopicItemVersionRepository;
 import fit.iuh.engolearn.topic.repository.TopicManagementSearchCriteria;
 import fit.iuh.engolearn.topic.repository.TopicRepository;
 import fit.iuh.engolearn.topic.service.TopicManagementService;
@@ -68,7 +68,7 @@ class TopicManagementControllerTest {
     private TopicRepository topicRepository;
 
     @MockitoBean
-    private TopicItemRepository topicItemRepository;
+    private TopicItemVersionRepository topicItemVersionRepository;
 
     // -------------------------------------------------------------------- E1
 
@@ -83,19 +83,20 @@ class TopicManagementControllerTest {
                                 """))
                 .andExpect(status().isCreated())
                 .andExpect(header().string("Location", BASE + "/generated-id"))
-                .andExpect(jsonPath("$.id").value("generated-id"))
-                .andExpect(jsonPath("$.titleEn").value("Food"))
-                .andExpect(jsonPath("$.titleVi").value("Ẩm thực"))
-                .andExpect(jsonPath("$.status").value("draft"))
-                .andExpect(jsonPath("$.itemCount").value(0))
-                .andExpect(jsonPath("$.durationMinutes").value(0))
+                .andExpect(jsonPath("$.data.id").value("generated-id"))
+                .andExpect(jsonPath("$.data.titleEn").value("Food"))
+                .andExpect(jsonPath("$.data.titleVi").value("Ẩm thực"))
+                .andExpect(jsonPath("$.data.status").value("draft"))
+                .andExpect(jsonPath("$.data.itemCount").value(0))
+                .andExpect(jsonPath("$.data.durationMinutes").value(0))
+                .andExpect(jsonPath("$.timestamp").isNotEmpty())
                 // contract wire type is `string | null` — optional fields are present and null on a fresh draft
-                .andExpect(jsonPath("$.cefr").value(nullValue()))
-                .andExpect(jsonPath("$.category").value(nullValue()))
-                .andExpect(jsonPath("$.description").value(nullValue()))
-                .andExpect(jsonPath("$.coverUrl").value(nullValue()))
-                .andExpect(jsonPath("$.code").doesNotExist())
-                .andExpect(jsonPath("$.fieldErrors").doesNotExist());
+                .andExpect(jsonPath("$.data.cefr").value(nullValue()))
+                .andExpect(jsonPath("$.data.category").value(nullValue()))
+                .andExpect(jsonPath("$.data.description").value(nullValue()))
+                .andExpect(jsonPath("$.data.coverUrl").value(nullValue()))
+                .andExpect(jsonPath("$.data.code").doesNotExist())
+                .andExpect(jsonPath("$.data.fieldErrors").doesNotExist());
     }
 
     @Test
@@ -165,16 +166,17 @@ class TopicManagementControllerTest {
     @Test
     void get_returns200WithDerivedStatusAndComputedFields() throws Exception {
         when(topicRepository.findById("t1")).thenReturn(Optional.of(topic("t1", 3)));
-        when(topicItemRepository.statsByTopicId("t1")).thenReturn(new TopicItemStats(4, 90));
+        when(topicItemVersionRepository.statsByTopicId("t1")).thenReturn(new TopicItemStats(4, 90));
 
         mockMvc.perform(get(BASE + "/t1"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value("t1"))
-                .andExpect(jsonPath("$.status").value("published"))
-                .andExpect(jsonPath("$.itemCount").value(4))
-                .andExpect(jsonPath("$.durationMinutes").value(2))
-                .andExpect(jsonPath("$.cefr").value("B1"))
-                .andExpect(jsonPath("$.category").value("DINING"));
+                .andExpect(jsonPath("$.data.id").value("t1"))
+                .andExpect(jsonPath("$.data.status").value("published"))
+                .andExpect(jsonPath("$.data.itemCount").value(4))
+                .andExpect(jsonPath("$.data.durationMinutes").value(90))
+                .andExpect(jsonPath("$.data.cefr").value("B1"))
+                .andExpect(jsonPath("$.data.category").value("DINING"))
+                .andExpect(jsonPath("$.timestamp").isNotEmpty());
     }
 
     @Test
@@ -194,7 +196,7 @@ class TopicManagementControllerTest {
     void patch_absentFieldsAreKept_returns200() throws Exception {
         when(topicRepository.findById("t1")).thenReturn(Optional.of(topic("t1", null)));
         when(topicRepository.save(any(Topic.class))).thenAnswer(invocation -> withAuditing(invocation.getArgument(0)));
-        when(topicItemRepository.statsByTopicId("t1")).thenReturn(TopicItemStats.EMPTY);
+        when(topicItemVersionRepository.statsByTopicId("t1")).thenReturn(TopicItemStats.EMPTY);
 
         mockMvc.perform(patch(BASE + "/t1")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -202,19 +204,20 @@ class TopicManagementControllerTest {
                                 {"description":"new description"}
                                 """))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value("t1"))
-                .andExpect(jsonPath("$.description").value("new description"))
-                .andExpect(jsonPath("$.titleEn").value("Food"))
-                .andExpect(jsonPath("$.cefr").value("B1"))
-                .andExpect(jsonPath("$.category").value("DINING"))
-                .andExpect(jsonPath("$.status").value("draft"));
+                .andExpect(jsonPath("$.data.id").value("t1"))
+                .andExpect(jsonPath("$.data.description").value("new description"))
+                .andExpect(jsonPath("$.data.titleEn").value("Food"))
+                .andExpect(jsonPath("$.data.cefr").value("B1"))
+                .andExpect(jsonPath("$.data.category").value("DINING"))
+                .andExpect(jsonPath("$.data.status").value("draft"))
+                .andExpect(jsonPath("$.timestamp").isNotEmpty());
     }
 
     @Test
     void patch_explicitNullOptionalFields_clearsThemAndReturns200() throws Exception {
         when(topicRepository.findById("t1")).thenReturn(Optional.of(topic("t1", null)));
         when(topicRepository.save(any(Topic.class))).thenAnswer(invocation -> withAuditing(invocation.getArgument(0)));
-        when(topicItemRepository.statsByTopicId("t1")).thenReturn(TopicItemStats.EMPTY);
+        when(topicItemVersionRepository.statsByTopicId("t1")).thenReturn(TopicItemStats.EMPTY);
 
         mockMvc.perform(patch(BASE + "/t1")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -222,11 +225,11 @@ class TopicManagementControllerTest {
                                 {"cefr":null,"category":null,"description":null,"coverUrl":null}
                                 """))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.cefr").value(nullValue()))
-                .andExpect(jsonPath("$.category").value(nullValue()))
-                .andExpect(jsonPath("$.description").value(nullValue()))
-                .andExpect(jsonPath("$.coverUrl").value(nullValue()))
-                .andExpect(jsonPath("$.titleEn").value("Food"));
+                .andExpect(jsonPath("$.data.cefr").value(nullValue()))
+                .andExpect(jsonPath("$.data.category").value(nullValue()))
+                .andExpect(jsonPath("$.data.description").value(nullValue()))
+                .andExpect(jsonPath("$.data.coverUrl").value(nullValue()))
+                .andExpect(jsonPath("$.data.titleEn").value("Food"));
     }
 
     @Test
@@ -303,14 +306,14 @@ class TopicManagementControllerTest {
     void patch_emptyBody_returns200WithUnchangedTopic() throws Exception {
         when(topicRepository.findById("t1")).thenReturn(Optional.of(topic("t1", null)));
         when(topicRepository.save(any(Topic.class))).thenAnswer(invocation -> withAuditing(invocation.getArgument(0)));
-        when(topicItemRepository.statsByTopicId("t1")).thenReturn(TopicItemStats.EMPTY);
+        when(topicItemVersionRepository.statsByTopicId("t1")).thenReturn(TopicItemStats.EMPTY);
 
         mockMvc.perform(patch(BASE + "/t1")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{}"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.titleEn").value("Food"))
-                .andExpect(jsonPath("$.updatedAt").isNotEmpty());
+                .andExpect(jsonPath("$.data.titleEn").value("Food"))
+                .andExpect(jsonPath("$.data.updatedAt").isNotEmpty());
     }
 
     @Test
@@ -333,37 +336,38 @@ class TopicManagementControllerTest {
     void list_returns200WithItemsCountersAndPaging() throws Exception {
         when(topicRepository.search(any(TopicManagementSearchCriteria.class), any(Pageable.class)))
                 .thenReturn(new PageImpl<>(List.of(topic("t1", 3)), PageRequest.of(0, 20), 1));
-        when(topicItemRepository.statsByTopicIds(any())).thenReturn(Map.of("t1", new TopicItemStats(2, 30)));
+        when(topicItemVersionRepository.statsByTopicIds(any())).thenReturn(Map.of("t1", new TopicItemStats(2, 30)));
         when(topicRepository.count()).thenReturn(7L);
         when(topicRepository.countByLatestPublishedVersionNotNull()).thenReturn(3L);
 
         mockMvc.perform(get(BASE).param("search", "food").param("cefr", "B1")
                         .param("category", "DINING").param("status", "published"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.items[0].id").value("t1"))
-                .andExpect(jsonPath("$.items[0].titleEn").value("Food"))
-                .andExpect(jsonPath("$.items[0].status").value("published"))
-                .andExpect(jsonPath("$.items[0].itemCount").value(2))
-                .andExpect(jsonPath("$.page").value(0))
-                .andExpect(jsonPath("$.size").value(20))
-                .andExpect(jsonPath("$.totalElements").value(1))
-                .andExpect(jsonPath("$.counters.total").value(7))
-                .andExpect(jsonPath("$.counters.published").value(3))
-                .andExpect(jsonPath("$.counters.draft").value(4));
+                .andExpect(jsonPath("$.data.items[0].id").value("t1"))
+                .andExpect(jsonPath("$.data.items[0].titleEn").value("Food"))
+                .andExpect(jsonPath("$.data.items[0].status").value("published"))
+                .andExpect(jsonPath("$.data.items[0].itemCount").value(2))
+                .andExpect(jsonPath("$.data.page").value(0))
+                .andExpect(jsonPath("$.data.size").value(20))
+                .andExpect(jsonPath("$.data.totalElements").value(1))
+                .andExpect(jsonPath("$.data.counters.total").value(7))
+                .andExpect(jsonPath("$.data.counters.published").value(3))
+                .andExpect(jsonPath("$.data.counters.draft").value(4))
+                .andExpect(jsonPath("$.timestamp").isNotEmpty());
     }
 
     @Test
     void list_withoutParams_appliesDefaultPageAndSizeAndNoFilters() throws Exception {
         when(topicRepository.search(any(TopicManagementSearchCriteria.class), any(Pageable.class)))
                 .thenReturn(new PageImpl<>(List.of(), PageRequest.of(0, 20), 0));
-        when(topicItemRepository.statsByTopicIds(any())).thenReturn(Map.of());
+        when(topicItemVersionRepository.statsByTopicIds(any())).thenReturn(Map.of());
         when(topicRepository.count()).thenReturn(0L);
         when(topicRepository.countByLatestPublishedVersionNotNull()).thenReturn(0L);
 
         mockMvc.perform(get(BASE))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.items").isEmpty())
-                .andExpect(jsonPath("$.counters.total").value(0));
+                .andExpect(jsonPath("$.data.items").isEmpty())
+                .andExpect(jsonPath("$.data.counters.total").value(0));
 
         ArgumentCaptor<TopicManagementSearchCriteria> criteria = ArgumentCaptor.forClass(TopicManagementSearchCriteria.class);
         ArgumentCaptor<Pageable> pageable = ArgumentCaptor.forClass(Pageable.class);
@@ -381,14 +385,14 @@ class TopicManagementControllerTest {
     void list_emptyResult_returns200WithEmptyItems() throws Exception {
         when(topicRepository.search(any(TopicManagementSearchCriteria.class), any(Pageable.class)))
                 .thenReturn(new PageImpl<>(List.of(), PageRequest.of(0, 20), 0));
-        when(topicItemRepository.statsByTopicIds(any())).thenReturn(Map.of());
+        when(topicItemVersionRepository.statsByTopicIds(any())).thenReturn(Map.of());
         when(topicRepository.count()).thenReturn(0L);
         when(topicRepository.countByLatestPublishedVersionNotNull()).thenReturn(0L);
 
         mockMvc.perform(get(BASE).param("search", "nothing-matches"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.items").isEmpty())
-                .andExpect(jsonPath("$.totalElements").value(0));
+                .andExpect(jsonPath("$.data.items").isEmpty())
+                .andExpect(jsonPath("$.data.totalElements").value(0));
     }
 
     @ParameterizedTest
@@ -451,7 +455,7 @@ class TopicManagementControllerTest {
                 .titleVi("Ẩm thực")
                 .cefrLevel(CefrLevel.B1)
                 .category(TopicCategory.DINING)
-                .latestPublishedVersion(latestPublishedVersion)
+                .latestPublishedVersion(latestPublishedVersion == null ? null : latestPublishedVersion.toString())
                 .createdAt(CREATED)
                 .updatedAt(UPDATED)
                 .build();

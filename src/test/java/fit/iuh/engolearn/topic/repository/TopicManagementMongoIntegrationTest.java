@@ -6,10 +6,9 @@ import fit.iuh.engolearn.topic.dto.request.TopicManagementListQuery;
 import fit.iuh.engolearn.topic.dto.request.TopicUpdateRequest;
 import fit.iuh.engolearn.topic.dto.response.TopicManagementListItem;
 import fit.iuh.engolearn.topic.model.Topic;
-import fit.iuh.engolearn.topic.model.TopicItem;
+import fit.iuh.engolearn.topic.model.TopicItemVersion;
 import fit.iuh.engolearn.topic.model.enums.ContentStatus;
 import fit.iuh.engolearn.topic.model.enums.TopicCategory;
-import fit.iuh.engolearn.topic.model.vo.TopicContextVo;
 import fit.iuh.engolearn.topic.service.TopicManagementService;
 import org.bson.Document;
 import org.bson.types.ObjectId;
@@ -33,8 +32,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 /**
  * T10 — integration tests against a real MongoDB (design record F05 §9.1 step 10):
  * regex-escaped case-insensitive search, AND-combined filters, fixed
- * {@code updatedAt DESC} sort, paging, the ARCHIVED-excluding item aggregation
- * (null duration coalesced to 0), derived {@code durationMinutes}/{@code itemCount}
+ * {@code updatedAt DESC} sort, paging, latest-version aggregation excluding only
+ * HIDDEN (null duration coalesced to 0), derived {@code durationMinutes}/{@code itemCount}
  * through the service, and the two management indexes' key patterns.
  *
  * <p>Requires the docker-compose Mongo stack ({@code localhost:27017},
@@ -51,13 +50,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 class TopicManagementMongoIntegrationTest {
 
     private static final Instant BASE = Instant.parse("2026-10-01T00:00:00Z");
-    private static final String VERSIONS_COLLECTION = "topics_version";
+    private static final String VERSIONS_COLLECTION = "topic_versions";
 
     @Autowired
     private TopicRepository topicRepository;
 
     @Autowired
-    private TopicItemRepository topicItemRepository;
+    private TopicItemVersionRepository topicItemVersionRepository;
 
     @Autowired
     private TopicManagementService service;
@@ -68,7 +67,8 @@ class TopicManagementMongoIntegrationTest {
     @BeforeEach
     void cleanCollections() {
         topicRepository.deleteAll();
-        topicItemRepository.deleteAll();
+        topicItemVersionRepository.deleteAll();
+        mongoTemplate.getCollection("topic_items").deleteMany(new Document());
     }
 
     // --------------------------------------------------------------- search
@@ -160,42 +160,45 @@ class TopicManagementMongoIntegrationTest {
     // ---------------------------------------------------------- aggregation
 
     @Test
-    void statsByTopicIds_excludesArchivedItems_andCoalescesMissingDurationToZero() {
-        topicItemRepository.saveAll(List.of(
-                item("t1", ContentStatus.DRAFT, 30),
-                item("t1", ContentStatus.PUBLISHED, 40),
-                item("t1", ContentStatus.BETA, null),
-                item("t1", ContentStatus.ARCHIVED, 600),
-                item("t2", ContentStatus.DRAFT, 5)));
+    void statsByTopicIds_usesLatestVersionBeforeExcludingHidden_andSumsMinutes() {
+        topicItemVersionRepository.saveAll(List.of(
+                item("t1", "i1", 1, ContentStatus.DRAFT, 10),
+                item("t1", "i1", 2, ContentStatus.ARCHIVED, 12),
+                item("t1", "i2", 1, ContentStatus.PUBLISHED, 25),
+                item("t1", "i2", 2, ContentStatus.HIDDEN, 99),
+                item("t1", "i3", 1, ContentStatus.DRAFT, null),
+                item("t2", "i4", 1, ContentStatus.BETA, 5)));
 
-        var stats = topicItemRepository.statsByTopicIds(List.of("t1", "t2", "t3"));
+        var stats = topicItemVersionRepository.statsByTopicIds(List.of("t1", "t2", "t3"));
 
-        assertThat(stats.get("t1").itemCount()).isEqualTo(3);
-        assertThat(stats.get("t1").totalDurationSec()).isEqualTo(70);
+        assertThat(stats.get("t1").itemCount()).isEqualTo(2);
+        assertThat(stats.get("t1").totalDurationMinutes()).isEqualTo(12);
         assertThat(stats.get("t2").itemCount()).isEqualTo(1);
-        assertThat(stats.get("t2").totalDurationSec()).isEqualTo(5);
+        assertThat(stats.get("t2").totalDurationMinutes()).isEqualTo(5);
         assertThat(stats).doesNotContainKey("t3");
     }
 
     @Test
-    void statsByTopicId_returnsEmptyWhenTopicHasNoItems_orOnlyArchivedItems() {
-        topicItemRepository.save(item("t1", ContentStatus.ARCHIVED, 300));
+    void statsByTopicId_returnsEmptyWhenTopicHasNoVersions_orOnlyLatestVersionsAreHidden() {
+        topicItemVersionRepository.saveAll(List.of(
+                item("t1", "i1", 1, ContentStatus.PUBLISHED, 15),
+                item("t1", "i1", 2, ContentStatus.HIDDEN, 90)));
 
-        assertThat(topicItemRepository.statsByTopicId("t1")).isEqualTo(TopicItemStats.EMPTY);
-        assertThat(topicItemRepository.statsByTopicId("unknown")).isEqualTo(TopicItemStats.EMPTY);
+        assertThat(topicItemVersionRepository.statsByTopicId("t1")).isEqualTo(TopicItemStats.EMPTY);
+        assertThat(topicItemVersionRepository.statsByTopicId("unknown")).isEqualTo(TopicItemStats.EMPTY);
     }
 
     // ------------------------------------------------------ service + Mongo
 
     @Test
-    void service_list_derivesStatusItemCountAndCeiledDurationMinutesFromStoredItems() {
+    void service_listDerivesStatusAndStatsFromLatestVersions() {
         topicRepository.save(topic("published", "Ordering Food", "Gọi món", CefrLevel.B1, TopicCategory.DINING, 3, BASE.plusSeconds(10)));
         topicRepository.save(topic("draft", "Travel Plans", "Du lịch", CefrLevel.A2, TopicCategory.TRAVEL, null, BASE.plusSeconds(20)));
-        topicItemRepository.saveAll(List.of(
-                item("published", ContentStatus.PUBLISHED, 30),
-                item("published", ContentStatus.DRAFT, 40),
-                item("published", ContentStatus.ARCHIVED, 900),
-                item("draft", ContentStatus.DRAFT, null)));
+        topicItemVersionRepository.saveAll(List.of(
+                item("published", "i1", 1, ContentStatus.PUBLISHED, 30),
+                item("published", "i1", 2, ContentStatus.ARCHIVED, 40),
+                item("published", "i2", 1, ContentStatus.HIDDEN, 900),
+                item("draft", "i3", 1, ContentStatus.DRAFT, null)));
 
         var response = service.list(new TopicManagementListQuery(null, null, null, null, 0, 20));
 
@@ -207,7 +210,7 @@ class TopicManagementMongoIntegrationTest {
 
         var publishedItem = response.items().stream().filter(i -> i.id().equals("published")).findFirst().orElseThrow();
         assertThat(publishedItem.status()).isEqualTo("published");
-        assertThat(publishedItem.itemCount()).isEqualTo(2);
+        assertThat(publishedItem.itemCount()).isEqualTo(1);
         assertThat(publishedItem.cefr()).isEqualTo(CefrLevel.B1);
         assertThat(publishedItem.category()).isEqualTo(TopicCategory.DINING);
 
@@ -215,9 +218,8 @@ class TopicManagementMongoIntegrationTest {
         assertThat(draftItem.status()).isEqualTo("draft");
         assertThat(draftItem.itemCount()).isEqualTo(1);
 
-        // durationMinutes is not exposed by the list item; verify through the detail read (ceil(70/60) = 2)
-        assertThat(service.get("published").durationMinutes()).isEqualTo(2);
-        assertThat(service.get("published").itemCount()).isEqualTo(2);
+        assertThat(service.get("published").durationMinutes()).isEqualTo(40);
+        assertThat(service.get("published").itemCount()).isEqualTo(1);
         assertThat(service.get("draft").durationMinutes()).isZero();
     }
 
@@ -231,7 +233,7 @@ class TopicManagementMongoIntegrationTest {
         assertThat(created.itemCount()).isZero();
         assertThat(created.durationMinutes()).isZero();
         assertThat(mongoTemplate.getCollection(VERSIONS_COLLECTION).countDocuments()).isEqualTo(versionsBefore);
-        assertThat(topicItemRepository.count()).isZero();
+        assertThat(topicItemVersionRepository.count()).isZero();
 
         assertThat(created.id()).as("created topic id must be returned for the Location header").isNotNull();
 
@@ -274,7 +276,7 @@ class TopicManagementMongoIntegrationTest {
             assertThat(index.get("key")).isEqualTo(new Document("updated_at", 1));
         });
 
-        List<Document> itemIndexes = mongoTemplate.getCollection("topic_items").listIndexes().into(new ArrayList<>());
+        List<Document> itemIndexes = mongoTemplate.getCollection("topic_item_versions").listIndexes().into(new ArrayList<>());
         assertThat(itemIndexes).anySatisfy(index -> {
             assertThat(index.getString("name")).isEqualTo("topic_status");
             assertThat(index.get("key")).isEqualTo(new Document("topic_id", 1).append("status", 1));
@@ -303,17 +305,20 @@ class TopicManagementMongoIntegrationTest {
                 .titleVi(titleVi)
                 .cefrLevel(cefr)
                 .category(category)
-                .latestPublishedVersion(latestPublishedVersion)
+                .latestPublishedVersion(latestPublishedVersion == null ? null : latestPublishedVersion.toString())
                 .createdAt(updatedAt)
                 .updatedAt(updatedAt)
                 .build();
     }
 
-    private static TopicItem item(String topicId, ContentStatus status, Integer durationSec) {
-        return TopicItem.builder()
+    private static TopicItemVersion item(String topicId, String itemId, int version,
+                                         ContentStatus status, Integer durationMinutes) {
+        return TopicItemVersion.builder()
                 .topicId(topicId)
+                .topicItemId(itemId)
+                .version(version)
                 .status(status)
-                .context(TopicContextVo.builder().durationSec(durationSec).build())
+                .durationMinutes(durationMinutes)
                 .build();
     }
 

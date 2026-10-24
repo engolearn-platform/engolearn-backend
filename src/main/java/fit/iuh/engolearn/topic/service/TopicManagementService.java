@@ -13,8 +13,8 @@ import fit.iuh.engolearn.topic.dto.response.TopicManagementListResponse;
 import fit.iuh.engolearn.topic.dto.response.TopicManagementResponse;
 import fit.iuh.engolearn.topic.model.Topic;
 import fit.iuh.engolearn.topic.model.enums.TopicCategory;
-import fit.iuh.engolearn.topic.repository.TopicItemRepository;
 import fit.iuh.engolearn.topic.repository.TopicItemStats;
+import fit.iuh.engolearn.topic.repository.TopicItemVersionRepository;
 import fit.iuh.engolearn.topic.repository.TopicManagementSearchCriteria;
 import fit.iuh.engolearn.topic.repository.TopicRepository;
 import jakarta.validation.ConstraintViolation;
@@ -39,17 +39,15 @@ public class TopicManagementService {
     private static final String STATUS_DRAFT = "draft";
     private static final String STATUS_PUBLISHED = "published";
     private static final Sort LIST_SORT = Sort.by(Sort.Direction.DESC, "updatedAt");
-    private static final int SECONDS_PER_MINUTE = 60;
-
     private final TopicRepository topicRepository;
-    private final TopicItemRepository topicItemRepository;
+    private final TopicItemVersionRepository topicItemVersionRepository;
     private final Validator validator;
 
     public TopicManagementService(TopicRepository topicRepository,
-                                  TopicItemRepository topicItemRepository,
+                                  TopicItemVersionRepository topicItemVersionRepository,
                                   Validator validator) {
         this.topicRepository = topicRepository;
-        this.topicItemRepository = topicItemRepository;
+        this.topicItemVersionRepository = topicItemVersionRepository;
         this.validator = validator;
     }
 
@@ -74,7 +72,7 @@ public class TopicManagementService {
     /** E2 — read one topic with computed fields. */
     public TopicManagementResponse get(String id) {
         Topic topic = findTopic(id);
-        return toResponse(topic, topicItemRepository.statsByTopicId(id));
+        return toResponse(topic, topicItemVersionRepository.statsByTopicId(id));
     }
 
     /**
@@ -109,7 +107,7 @@ public class TopicManagementService {
         }
 
         Topic saved = topicRepository.save(topic);
-        return toResponse(saved, topicItemRepository.statsByTopicId(id));
+        return toResponse(saved, topicItemVersionRepository.statsByTopicId(id));
     }
 
     /** E4 — filtered/sorted/paged list plus counters over the unfiltered managed set. */
@@ -125,7 +123,7 @@ public class TopicManagementService {
         Pageable pageable = PageRequest.of(query.page(), query.size(), LIST_SORT);
         Page<Topic> page = topicRepository.search(criteria, pageable);
 
-        Map<String, TopicItemStats> stats = topicItemRepository.statsByTopicIds(
+        Map<String, TopicItemStats> stats = topicItemVersionRepository.statsByTopicIds(
                 page.getContent().stream().map(Topic::getId).toList());
 
         List<TopicManagementListItem> items = page.getContent().stream()
@@ -182,9 +180,9 @@ public class TopicManagementService {
         return topic.getLatestPublishedVersion() == null ? STATUS_DRAFT : STATUS_PUBLISHED;
     }
 
-    /** ceil(Σ durationSec / 60) so a non-zero topic never under-reports ({@code DEC-07}). */
+    /** Duration is already expressed in minutes by the counted latest versions ({@code D-19}). */
     private static int durationMinutes(TopicItemStats stats) {
-        return (int) Math.ceil(stats.totalDurationSec() / (double) SECONDS_PER_MINUTE);
+        return (int) stats.totalDurationMinutes();
     }
 
     /** Bean Validation on request DTOs — the service guard for direct (non-web) callers. */

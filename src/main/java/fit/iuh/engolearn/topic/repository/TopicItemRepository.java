@@ -6,5 +6,5 @@ import org.springframework.data.mongodb.repository.MongoRepository;
 /**
  * Repository for the {@code topic_items} collection (design record F05 §3.2).
  */
-public interface TopicItemRepository extends MongoRepository<TopicItem, String>, TopicStatsCustom {
+public interface TopicItemRepository extends MongoRepository<TopicItem, String> {
 }
