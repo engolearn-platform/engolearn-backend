@@ -69,7 +69,7 @@ class TopicManagementServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new TopicManagementService(topicRepository, topicItemVersionRepository, VALIDATOR);
+        service = new TopicManagementServiceImpl(topicRepository, topicItemVersionRepository, VALIDATOR);
     }
 
     // ---------------------------------------------------------------- create

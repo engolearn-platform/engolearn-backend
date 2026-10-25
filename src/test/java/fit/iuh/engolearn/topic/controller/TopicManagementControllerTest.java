@@ -8,7 +8,7 @@ import fit.iuh.engolearn.topic.repository.TopicItemStats;
 import fit.iuh.engolearn.topic.repository.TopicItemVersionRepository;
 import fit.iuh.engolearn.topic.repository.TopicManagementSearchCriteria;
 import fit.iuh.engolearn.topic.repository.TopicRepository;
-import fit.iuh.engolearn.topic.service.TopicManagementService;
+import fit.iuh.engolearn.topic.service.TopicManagementServiceImpl;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -54,7 +54,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * is picked up by the slice as a {@code @RestControllerAdvice}.</p>
  */
 @WebMvcTest(TopicManagementController.class)
-@Import(TopicManagementService.class)
+@Import(TopicManagementServiceImpl.class)
 class TopicManagementControllerTest {
 
     private static final Instant CREATED = Instant.parse("2026-10-20T09:15:30.123Z");
