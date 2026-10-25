@@ -32,4 +32,8 @@ public interface LearningPathRepository extends MongoRepository<LearningPath, Ob
     long countByUserIdAndStatus(ObjectId userId, String status);
 
     Optional<LearningPath> findByIdAndUserId(ObjectId id, ObjectId userId);
+
+    Optional<LearningPath> findBySourceAttemptId(ObjectId attemptId);
+
+    List<LearningPath> findByUserIdAndActiveTrue(ObjectId userId);
 }
