@@ -1,6 +1,7 @@
 
 package fit.iuh.engolearn.learningpath.model;
 
+import lombok.Setter;
 import org.bson.types.ObjectId;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
@@ -10,6 +11,7 @@ import java.util.Date;
 import java.util.List;
 
 @Document(collection = "learning_paths")
+@Setter
 public class LearningPath {
 
     @Id
@@ -48,6 +50,8 @@ public class LearningPath {
     private BaselineTotal baselineTotal;
 
     private Progress progress;
+
+    private Inactivity inactivity;
 
     @Field("next_run_at")
     private Date nextRunAt;
@@ -116,6 +120,10 @@ public class LearningPath {
         return progress;
     }
 
+    public Inactivity getInactivity() {
+        return inactivity;
+    }
+
     public Date getNextRunAt() {
         return nextRunAt;
     }
@@ -132,16 +140,32 @@ public class LearningPath {
         return cancel;
     }
 
+    @Setter
     public static class Source {
 
         @Field("attempt_id")
         private ObjectId attemptId;
 
+        @Field("test_set_id")
+        private ObjectId testSetId;
+
+        @Field("taken_at")
+        private Date takenAt;
+
         public ObjectId getAttemptId() {
             return attemptId;
         }
+
+        public ObjectId getTestSetId() {
+            return testSetId;
+        }
+
+        public Date getTakenAt() {
+            return takenAt;
+        }
     }
 
+    @Setter
     public static class Config {
 
         @Field("duration_weeks")
@@ -166,6 +190,7 @@ public class LearningPath {
         }
     }
 
+    @Setter
     public static class MicroSkillSnapshot {
 
         @Field("micro_skill")
@@ -187,6 +212,7 @@ public class LearningPath {
         }
     }
 
+    @Setter
     public static class Baseline {
 
         private Integer correct;
@@ -218,6 +244,7 @@ public class LearningPath {
         }
     }
 
+    @Setter
     public static class BaselineTotal {
 
         private Integer correct;
@@ -237,6 +264,7 @@ public class LearningPath {
         }
     }
 
+    @Setter
     public static class Progress {
 
         private Integer assigned;
@@ -256,6 +284,25 @@ public class LearningPath {
         }
     }
 
+    @Setter
+    public static class Inactivity {
+
+        @Field("anchor_date")
+        private String anchorDate;
+
+        @Field("cancel_at")
+        private Date cancelAt;
+
+        public String getAnchorDate() {
+            return anchorDate;
+        }
+
+        public Date getCancelAt() {
+            return cancelAt;
+        }
+    }
+
+    @Setter
     public static class Week {
 
         @Field("week_no")
@@ -316,6 +363,7 @@ public class LearningPath {
         }
     }
 
+    @Setter
     public static class WeekStats {
 
         @Field("by_micro_skill")
@@ -332,6 +380,7 @@ public class LearningPath {
         }
     }
 
+    @Setter
     public static class MicroSkillWeekStats {
 
         @Field("micro_skill")
@@ -386,6 +435,7 @@ public class LearningPath {
         }
     }
 
+    @Setter
     public static class OverallWeekStats {
 
         private Integer assigned;
@@ -397,6 +447,12 @@ public class LearningPath {
 
         @Field("practice_score")
         private Double practiceScore;
+
+        @Field("compared_to")
+        private ComparedTo comparedTo;
+
+        @Field("improvement_pp")
+        private Double improvementPp;
 
         public Integer getAssigned() {
             return assigned;
@@ -417,8 +473,17 @@ public class LearningPath {
         public Double getPracticeScore() {
             return practiceScore;
         }
+
+        public ComparedTo getComparedTo() {
+            return comparedTo;
+        }
+
+        public Double getImprovementPp() {
+            return improvementPp;
+        }
     }
 
+    @Setter
     public static class ComparedTo {
 
         private String type;
@@ -441,6 +506,7 @@ public class LearningPath {
         }
     }
 
+    @Setter
     public static class Day {
 
         @Field("day_no")
@@ -508,16 +574,54 @@ public class LearningPath {
         }
     }
 
+    @Setter
     public static class DayItem {
+
+        private Integer order;
+
+        @Field("question_id")
+        private String questionId;
 
         @Field("micro_skill")
         private String microSkill;
 
+        private Answer answer;
+
+        public Integer getOrder() {
+            return order;
+        }
+
+        public String getQuestionId() {
+            return questionId;
+        }
+
         public String getMicroSkill() {
             return microSkill;
         }
+
+        public Answer getAnswer() {
+            return answer;
+        }
     }
 
+    @Setter
+    public static class Answer {
+
+        @Field("selected_option_id")
+        private String selectedOptionId;
+
+        @Field("is_correct")
+        private Boolean correct;
+
+        @Field("answered_at")
+        private Date answeredAt;
+
+        public Boolean getCorrect() {
+            return correct;
+        }
+    }
+
+    @Setter
     public static class DayResult {
 
         private Integer wrong;
@@ -541,6 +645,7 @@ public class LearningPath {
         }
     }
 
+    @Setter
     public static class Summary {
 
         @Field("by_micro_skill")
@@ -564,6 +669,7 @@ public class LearningPath {
         }
     }
 
+    @Setter
     public static class SummaryMicroSkill {
 
         @Field("micro_skill")
@@ -606,6 +712,7 @@ public class LearningPath {
         }
     }
 
+    @Setter
     public static class SummaryCompletion {
 
         private Integer assigned;
@@ -627,6 +734,7 @@ public class LearningPath {
         }
     }
 
+    @Setter
     public static class Cancel {
 
         private Date at;
