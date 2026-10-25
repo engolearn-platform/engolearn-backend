@@ -13,11 +13,28 @@ import fit.iuh.engolearn.learningpath.dto.LearningPathListStatus;
 import fit.iuh.engolearn.learningpath.model.LearningPath;
 import fit.iuh.engolearn.learningpath.repository.LearningPathRepository;
 
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
+import java.time.format.ResolverStyle;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Optional;
 
 @Service
 public class LearningPathService {
+
+    private static final List<String> SEARCHABLE_STATUSES = List.of(
+            "NOT_STARTED", "IN_PROGRESS", "COMPLETED"
+    );
+    private static final DateTimeFormatter SEARCH_DATE_FORMAT = DateTimeFormatter
+            .ofPattern("dd/MM/uuuu", Locale.ROOT)
+            .withResolverStyle(ResolverStyle.STRICT);
 
     private final LearningPathRepository repository;
 
@@ -30,12 +47,6 @@ public class LearningPathService {
             LearningPathListStatus status
     ) {
         ObjectId userObjectId = new ObjectId(userId);
-        long activeCount = repository.countByUserIdAndStatusIn(
-                userObjectId,
-                List.of("NOT_STARTED", "IN_PROGRESS")
-        );
-        long completedCount = repository.countByUserIdAndStatus(userObjectId, "COMPLETED");
-        long cancelledCount = repository.countByUserIdAndStatus(userObjectId, "CANCELLED");
 
         List<LearningPathListItemResponse> items = repository
                 .findByUserIdAndStatusInOrderByCreatedAtDesc(userObjectId, statusesFor(status))
@@ -43,14 +54,59 @@ public class LearningPathService {
                 .map(this::toListItemResponse)
                 .toList();
 
-        return new LearningPathListResponse(
-                items,
-                new LearningPathListResponse.SectionCounts(
-                        activeCount,
-                        completedCount,
-                        cancelledCount
+        return new LearningPathListResponse(items, countsFor(userObjectId));
+    }
+
+    public LearningPathListResponse search(String userId, String keyword) {
+        ObjectId userObjectId = new ObjectId(userId);
+        String normalizedKeyword = keyword.trim();
+
+        List<LearningPath> matches = new ArrayList<>(repository
+                .findByUserIdAndStatusInAndMicroSkillsMicroSkillContainingIgnoreCaseOrderByCreatedAtDesc(
+                        userObjectId,
+                        SEARCHABLE_STATUSES,
+                        normalizedKeyword
+                ));
+
+        parseSearchDate(normalizedKeyword).ifPresent(createdDate -> matches.addAll(
+                repository.findByUserIdAndStatusInAndCreatedDateOrderByCreatedAtDesc(
+                        userObjectId,
+                        SEARCHABLE_STATUSES,
+                        createdDate
                 )
+        ));
+
+        Map<ObjectId, LearningPath> uniqueMatches = new LinkedHashMap<>();
+        matches.forEach(path -> uniqueMatches.putIfAbsent(path.getId(), path));
+
+        List<LearningPathListItemResponse> items = uniqueMatches.values().stream()
+                .sorted(Comparator.comparing(
+                        LearningPath::getCreatedAt,
+                        Comparator.nullsLast(Comparator.reverseOrder())
+                ))
+                .map(this::toListItemResponse)
+                .toList();
+
+        return new LearningPathListResponse(items, countsFor(userObjectId));
+    }
+
+    private LearningPathListResponse.SectionCounts countsFor(ObjectId userId) {
+        return new LearningPathListResponse.SectionCounts(
+                repository.countByUserIdAndStatusIn(
+                        userId,
+                        List.of("NOT_STARTED", "IN_PROGRESS")
+                ),
+                repository.countByUserIdAndStatus(userId, "COMPLETED"),
+                repository.countByUserIdAndStatus(userId, "CANCELLED")
         );
+    }
+
+    private Optional<String> parseSearchDate(String keyword) {
+        try {
+            return Optional.of(LocalDate.parse(keyword, SEARCH_DATE_FORMAT).toString());
+        } catch (DateTimeParseException exception) {
+            return Optional.empty();
+        }
     }
 
     private List<String> statusesFor(LearningPathListStatus status) {

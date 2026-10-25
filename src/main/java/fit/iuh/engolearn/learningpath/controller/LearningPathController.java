@@ -12,7 +12,9 @@ import fit.iuh.engolearn.learningpath.dto.LearningPathDetailResponse;
 import fit.iuh.engolearn.learningpath.dto.LearningPathListResponse;
 import fit.iuh.engolearn.learningpath.dto.LearningPathListStatus;
 import fit.iuh.engolearn.learningpath.service.LearningPathService;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
 
 @RestController
 @RequestMapping("/api/learning-paths")
@@ -33,6 +35,17 @@ public class LearningPathController {
             @RequestParam(defaultValue = "ACTIVE") LearningPathListStatus status
     ) {
         return ApiResponse.ok(learningPathService.getByUserId(userId, status));
+    }
+
+    @GetMapping("/search")
+    public ApiResponse<LearningPathListResponse> searchLearningPaths(
+            @Pattern(regexp = OBJECT_ID_PATTERN, message = "userId không hợp lệ")
+            @RequestParam String userId,
+            @NotBlank(message = "keyword không được để trống")
+            @Size(max = 100, message = "keyword không được vượt quá 100 ký tự")
+            @RequestParam String keyword
+    ) {
+        return ApiResponse.ok(learningPathService.search(userId, keyword));
     }
 
     @GetMapping("/{pathId}")
