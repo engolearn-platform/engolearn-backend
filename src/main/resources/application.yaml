@@ -20,3 +20,10 @@ spring:
     deserialization:
       # DEC-21: reject unknown/forbidden request-body fields with 400 instead of ignoring them.
       fail-on-unknown-properties: true
+
+# CORS configuration
+# The frontend dev server runs on a different origin; allowed origins are config-driven
+# so staging/production can override without code changes.
+engolearn:
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000}
