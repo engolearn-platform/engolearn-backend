@@ -16,11 +16,15 @@ import fit.iuh.engolearn.learningpath.dto.LearningPathListStatus;
 import fit.iuh.engolearn.learningpath.dto.request.CreateLearningPathRequest;
 import fit.iuh.engolearn.learningpath.dto.response.CreateLearningPathResponse;
 import fit.iuh.engolearn.learningpath.dto.response.LearningPathRecommendationResponse;
+import fit.iuh.engolearn.learningpath.dto.response.StartLearningPathDayResponse;
 import fit.iuh.engolearn.learningpath.service.LearningPathCreationService;
+import fit.iuh.engolearn.learningpath.service.LearningPathDayPracticeService;
 import fit.iuh.engolearn.learningpath.service.LearningPathRecommendationService;
 import fit.iuh.engolearn.learningpath.service.LearningPathService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
@@ -33,13 +37,16 @@ public class LearningPathController {
     private final LearningPathService learningPathService;
     private final LearningPathRecommendationService recommendationService;
     private final LearningPathCreationService creationService;
+    private final LearningPathDayPracticeService dayPracticeService;
 
     public LearningPathController(LearningPathService learningPathService,
                                   LearningPathRecommendationService recommendationService,
-                                  LearningPathCreationService creationService) {
+                                  LearningPathCreationService creationService,
+                                  LearningPathDayPracticeService dayPracticeService) {
         this.learningPathService = learningPathService;
         this.recommendationService = recommendationService;
         this.creationService = creationService;
+        this.dayPracticeService = dayPracticeService;
     }
 
     @GetMapping("/recommendation")
@@ -87,5 +94,17 @@ public class LearningPathController {
             @RequestParam String userId
     ) {
         return ApiResponse.ok(learningPathService.getDetail(pathId, userId));
+    }
+
+    @PostMapping("/{pathId}/weeks/{weekNo}/days/{dayNo}/start")
+    public ApiResponse<StartLearningPathDayResponse> startDay(
+            @Pattern(regexp = OBJECT_ID_PATTERN, message = "pathId không hợp lệ")
+            @PathVariable String pathId,
+            @Min(1) @Max(3) @PathVariable int weekNo,
+            @Min(1) @Max(5) @PathVariable int dayNo,
+            @Pattern(regexp = OBJECT_ID_PATTERN, message = "userId không hợp lệ")
+            @RequestParam String userId
+    ) {
+        return ApiResponse.ok(dayPracticeService.start(pathId, weekNo, dayNo, userId));
     }
 }
