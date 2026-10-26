@@ -19,7 +19,8 @@ public record StartLearningPathDayResponse(
             String skill,
             Passage passage,
             String prompt,
-            List<Option> options
+            List<Option> options,
+            String selectedOptionId
     ) {}
 
     public record Passage(String title, String text, Audio audio) {}

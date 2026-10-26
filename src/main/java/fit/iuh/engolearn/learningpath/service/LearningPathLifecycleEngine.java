@@ -17,6 +17,11 @@ final class LearningPathLifecycleEngine {
     static final ZoneId ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
 
     Map<String, Object> advance(LearningPath path, Instant now) {
+        return advance(path, now, Map.of());
+    }
+
+    Map<String, Object> advance(LearningPath path, Instant now,
+                                Map<String, String> answerKeys) {
         Map<String, Object> changes = new LinkedHashMap<>();
         LearningPath.Week week = openWeek(path);
         Instant eventAt = nextEvent(path, week);
@@ -33,14 +38,14 @@ final class LearningPathLifecycleEngine {
             LearningPath.Day day = week.getDays().get(dayIndex);
             if ("IN_PROGRESS".equals(day.getStatus()) && day.getAutoCloseAt() != null
                     && !day.getAutoCloseAt().toInstant().isAfter(eventAt)) {
-                closeDay(day, dayIndex, weekIndex, day.getAutoCloseAt().toInstant(),
-                        "MIDNIGHT", changes);
+                closeDay(path, week, day, dayIndex, weekIndex,
+                        day.getAutoCloseAt().toInstant(), "MIDNIGHT", answerKeys, changes);
             }
         }
 
         Instant weekDue = weekDeadline(week);
         if (weekDue != null && !weekDue.isAfter(eventAt)) {
-            closeWeek(path, week, weekIndex, eventAt, changes);
+            closeWeek(path, week, weekIndex, eventAt, answerKeys, changes);
         }
 
         Instant cancelAt = cancelDeadline(path);
@@ -132,9 +137,30 @@ final class LearningPathLifecycleEngine {
         return first.isBefore(second) ? first : second;
     }
 
-    private void closeDay(LearningPath.Day day, int dayIndex, int weekIndex,
-                          Instant at, String reason, Map<String, Object> changes) {
+    private void closeDay(LearningPath path, LearningPath.Week week, LearningPath.Day day,
+                          int dayIndex, int weekIndex, Instant at, String reason,
+                          Map<String, String> answerKeys, Map<String, Object> changes) {
         String prefix = "weeks." + weekIndex + ".days." + dayIndex + ".";
+        if (day.getItems() != null) {
+            for (int itemIndex = 0; itemIndex < day.getItems().size(); itemIndex++) {
+                LearningPath.DayItem item = day.getItems().get(itemIndex);
+                if (item.getDraft() == null || item.getAnswer() != null) continue;
+                String key = answerKeys.get(item.getQuestionId());
+                if (key == null) {
+                    throw new IllegalStateException("Missing answer key for " + item.getQuestionId());
+                }
+                LearningPath.Answer answer = new LearningPath.Answer();
+                answer.setSelectedOptionId(item.getDraft().getSelectedOptionId());
+                answer.setCorrect(key.equals(item.getDraft().getSelectedOptionId()));
+                answer.setAnsweredAt(item.getDraft().getSavedAt());
+                item.setAnswer(answer);
+                item.setDraft(null);
+                String itemPrefix = prefix + "items." + itemIndex + ".";
+                changes.put(itemPrefix + "answer", answer);
+                changes.put(itemPrefix + "draft", null);
+            }
+        }
+        syncProgress(path, week, day, weekIndex, prefix, changes);
         LearningPath.DayResult result = dayResult(day);
         day.setStatus("CLOSED");
         day.setClosedAt(Date.from(at));
@@ -144,6 +170,35 @@ final class LearningPathLifecycleEngine {
         changes.put(prefix + "closed_at", Date.from(at));
         changes.put(prefix + "close_reason", reason);
         changes.put(prefix + "result", result);
+    }
+
+    private void syncProgress(LearningPath path, LearningPath.Week week,
+                              LearningPath.Day day, int weekIndex, String dayPrefix,
+                              Map<String, Object> changes) {
+        Counts dayCounts = countItems(day.getItems(), null);
+        if (day.getProgress() == null) day.setProgress(new LearningPath.Progress());
+        updateProgress(day.getProgress(), dayCounts);
+        changes.put(dayPrefix + "progress", day.getProgress());
+        Counts weekCounts = countDays(week.getDays(), null);
+        if (week.getProgress() == null) week.setProgress(new LearningPath.Progress());
+        updateProgress(week.getProgress(), weekCounts);
+        changes.put("weeks." + weekIndex + ".progress", week.getProgress());
+        Counts pathCounts = new Counts();
+        for (LearningPath.Week current : path.getWeeks()) {
+            Counts counts = countDays(current.getDays(), null);
+            pathCounts.assigned += counts.assigned;
+            pathCounts.answered += counts.answered;
+            pathCounts.correct += counts.correct;
+        }
+        if (path.getProgress() == null) path.setProgress(new LearningPath.Progress());
+        updateProgress(path.getProgress(), pathCounts);
+        changes.put("progress", path.getProgress());
+    }
+
+    private void updateProgress(LearningPath.Progress progress, Counts counts) {
+        progress.setAssigned(counts.assigned);
+        progress.setAnswered(counts.answered);
+        progress.setCorrect(counts.correct);
     }
 
     private LearningPath.DayResult dayResult(LearningPath.Day day) {
@@ -156,13 +211,14 @@ final class LearningPathLifecycleEngine {
     }
 
     private void closeWeek(LearningPath path, LearningPath.Week week, int weekIndex,
-                           Instant at, Map<String, Object> changes) {
+                           Instant at, Map<String, String> answerKeys,
+                           Map<String, Object> changes) {
         for (int dayIndex = 0; dayIndex < week.getDays().size(); dayIndex++) {
             LearningPath.Day day = week.getDays().get(dayIndex);
             if (!isTerminalDay(day)) {
-                closeDay(day, dayIndex, weekIndex, at,
+                closeDay(path, week, day, dayIndex, weekIndex, at,
                         "NOT_STARTED".equals(day.getStatus()) ? "WEEK_CLOSED" : "MIDNIGHT",
-                        changes);
+                        answerKeys, changes);
             }
         }
 

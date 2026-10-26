@@ -4,6 +4,7 @@ package fit.iuh.engolearn.learningpath.controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -14,10 +15,13 @@ import fit.iuh.engolearn.learningpath.dto.LearningPathDetailResponse;
 import fit.iuh.engolearn.learningpath.dto.LearningPathListResponse;
 import fit.iuh.engolearn.learningpath.dto.LearningPathListStatus;
 import fit.iuh.engolearn.learningpath.dto.request.CreateLearningPathRequest;
+import fit.iuh.engolearn.learningpath.dto.request.SaveLearningPathAnswerDraftRequest;
 import fit.iuh.engolearn.learningpath.dto.response.CreateLearningPathResponse;
 import fit.iuh.engolearn.learningpath.dto.response.LearningPathRecommendationResponse;
+import fit.iuh.engolearn.learningpath.dto.response.SaveLearningPathAnswerDraftResponse;
 import fit.iuh.engolearn.learningpath.dto.response.StartLearningPathDayResponse;
 import fit.iuh.engolearn.learningpath.service.LearningPathCreationService;
+import fit.iuh.engolearn.learningpath.service.LearningPathAnswerDraftService;
 import fit.iuh.engolearn.learningpath.service.LearningPathDayPracticeService;
 import fit.iuh.engolearn.learningpath.service.LearningPathRecommendationService;
 import fit.iuh.engolearn.learningpath.service.LearningPathService;
@@ -38,15 +42,18 @@ public class LearningPathController {
     private final LearningPathRecommendationService recommendationService;
     private final LearningPathCreationService creationService;
     private final LearningPathDayPracticeService dayPracticeService;
+    private final LearningPathAnswerDraftService answerDraftService;
 
     public LearningPathController(LearningPathService learningPathService,
                                   LearningPathRecommendationService recommendationService,
                                   LearningPathCreationService creationService,
-                                  LearningPathDayPracticeService dayPracticeService) {
+                                  LearningPathDayPracticeService dayPracticeService,
+                                  LearningPathAnswerDraftService answerDraftService) {
         this.learningPathService = learningPathService;
         this.recommendationService = recommendationService;
         this.creationService = creationService;
         this.dayPracticeService = dayPracticeService;
+        this.answerDraftService = answerDraftService;
     }
 
     @GetMapping("/recommendation")
@@ -106,5 +113,20 @@ public class LearningPathController {
             @RequestParam String userId
     ) {
         return ApiResponse.ok(dayPracticeService.start(pathId, weekNo, dayNo, userId));
+    }
+
+    @PutMapping("/{pathId}/weeks/{weekNo}/days/{dayNo}/questions/{questionId}/draft")
+    public ApiResponse<SaveLearningPathAnswerDraftResponse> saveAnswerDraft(
+            @Pattern(regexp = OBJECT_ID_PATTERN, message = "pathId không hợp lệ")
+            @PathVariable String pathId,
+            @Min(1) @Max(3) @PathVariable int weekNo,
+            @Min(1) @Max(5) @PathVariable int dayNo,
+            @NotBlank @Size(max = 100) @PathVariable String questionId,
+            @Pattern(regexp = OBJECT_ID_PATTERN, message = "userId không hợp lệ")
+            @RequestParam String userId,
+            @Valid @RequestBody SaveLearningPathAnswerDraftRequest request
+    ) {
+        return ApiResponse.ok(answerDraftService.save(pathId, weekNo, dayNo,
+                questionId, userId, request));
     }
 }

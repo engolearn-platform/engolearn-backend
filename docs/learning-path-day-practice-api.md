@@ -17,6 +17,8 @@ The response `data` contains `pathId`, `weekNo`, `dayNo`, `status`, `startedAt`,
 `autoCloseAt`, and `questions`. Each question contains `order`, `questionId`,
 `microSkill`, `skill`, `prompt`, four `{ optionId, text }` options, and an optional
 `passage` with `title`, `text`, and optional `audio { url, durationSec, format }`.
+It also contains `selectedOptionId`, which is null until a draft is saved and
+restores the latest selection when an in-progress day is reopened.
 Content is read from the immutable `learning_path_questions` snapshots, never
 from the mutable question pool. The response type has no correct option,
 explanation, or transcript field.
@@ -26,6 +28,23 @@ the user or a nonexistent week/day returns 404; a locked, closed, completed,
 cancelled, or expired day returns 409. Missing or inconsistent saved question
 snapshots are server errors and do not start a new day.
 
-This endpoint only begins or reopens a day and returns questions. Saving answer
-drafts, submitting, and viewing the detailed day result need separate APIs.
+## Save or change one answer draft
+
+`PUT /api/learning-paths/{pathId}/weeks/{weekNo}/days/{dayNo}/questions/{questionId}/draft?userId={userId}`
+accepts `{ "selectedOptionId": "A" }`, where the option is one of A–D and must
+exist in that question's saved snapshot. Each successful call replaces the
+selection for that question and returns `questionId`, `selectedOptionId`, and
+`savedAt` in the shared response envelope. A repeat call can change the answer.
+The server saves the draft inside the Learning Path, updates the local activity
+date and inactivity cancellation deadline, and recalculates `next_run_at`.
+It does not grade the draft or return the correct option.
+
+The path must belong to the user; the week and day must still be open and the
+day must already be in progress. A question that has been finalized or a day
+whose deadline has passed cannot be edited. Unknown path/week/day/question
+returns 404, invalid option returns 400, and a closed or expired state returns
+409. The atomic update also checks the saved deadline and item state to guard
+against concurrent closure.
+
+Submitting and viewing the detailed day result need separate APIs.
 The frontend practice screen is still a local preview until it is connected.

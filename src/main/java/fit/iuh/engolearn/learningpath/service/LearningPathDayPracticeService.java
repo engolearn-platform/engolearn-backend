@@ -167,6 +167,7 @@ public class LearningPathDayPracticeService {
                 .toList();
         return new StartLearningPathDayResponse.Question(item.getOrder(), item.getQuestionId(),
                 item.getMicroSkill(), snapshot.getString("skill"), passageInfo,
-                snapshot.getString("prompt"), options);
+                snapshot.getString("prompt"), options,
+                item.getDraft() == null ? null : item.getDraft().getSelectedOptionId());
     }
 }

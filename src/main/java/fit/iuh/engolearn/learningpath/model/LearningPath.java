@@ -585,6 +585,8 @@ public class LearningPath {
         @Field("micro_skill")
         private String microSkill;
 
+        private Draft draft;
+
         private Answer answer;
 
         public Integer getOrder() {
@@ -599,8 +601,30 @@ public class LearningPath {
             return microSkill;
         }
 
+        public Draft getDraft() {
+            return draft;
+        }
+
         public Answer getAnswer() {
             return answer;
+        }
+    }
+
+    @Setter
+    public static class Draft {
+
+        @Field("selected_option_id")
+        private String selectedOptionId;
+
+        @Field("saved_at")
+        private Date savedAt;
+
+        public String getSelectedOptionId() {
+            return selectedOptionId;
+        }
+
+        public Date getSavedAt() {
+            return savedAt;
         }
     }
 
