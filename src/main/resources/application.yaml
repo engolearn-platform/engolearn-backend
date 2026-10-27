@@ -4,6 +4,8 @@ server:
 spring:
   application:
     name: engolearn
+  autoconfigure:
+    exclude: org.springframework.boot.security.autoconfigure.UserDetailsServiceAutoConfiguration
   config:
     import: optional:file:.env[.properties]
   mongodb:
@@ -19,3 +21,7 @@ spring:
 engolearn:
   cors:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000}
+  security:
+    dev-auth:
+      enabled: false
+
