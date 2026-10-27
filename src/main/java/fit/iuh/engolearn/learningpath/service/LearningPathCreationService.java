@@ -30,12 +30,9 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import org.bson.Document;
 import org.bson.types.ObjectId;
-import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.dao.DuplicateKeyException;
-import org.springframework.data.mongodb.MongoTransactionManager;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.server.ResponseStatusException;
 
 @Service
@@ -43,20 +40,17 @@ public class LearningPathCreationService {
 
     private static final ZoneOffset LEARNING_ZONE = ZoneOffset.ofHours(7);
 
-    private final ObjectProvider<MongoTransactionManager> transactionManagers;
     private final LearningPathRecommendationService recommendations;
     private final PeriodicTestReadRepository periodicTests;
     private final LearningPathRepository paths;
     private final QuestionPoolRepository questionPool;
     private final LearningPlanGenerator planGenerator;
 
-    public LearningPathCreationService(ObjectProvider<MongoTransactionManager> transactionManagers,
-                                       LearningPathRecommendationService recommendations,
+    public LearningPathCreationService(LearningPathRecommendationService recommendations,
                                        PeriodicTestReadRepository periodicTests,
                                        LearningPathRepository paths,
                                        QuestionPoolRepository questionPool,
                                        LearningPlanGenerator planGenerator) {
-        this.transactionManagers = transactionManagers;
         this.recommendations = recommendations;
         this.periodicTests = periodicTests;
         this.paths = paths;
@@ -75,14 +69,8 @@ public class LearningPathCreationService {
             }
             return new CreateLearningPathResponse(existing.getId().toHexString(), false);
         }
-        MongoTransactionManager manager = transactionManagers.getIfAvailable();
-        if (manager == null) {
-            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,
-                    "Cần bật MongoDB transaction trên replica set để tạo Learning Path");
-        }
         try {
-            return new TransactionTemplate(manager).execute(status -> createInTransaction(
-                    request, userId, attemptId));
+            return createPath(request, userId, attemptId);
         } catch (DuplicateKeyException exception) {
             LearningPath created = paths.findBySourceAttemptId(attemptId).orElse(null);
             if (created != null) {
@@ -96,8 +84,8 @@ public class LearningPathCreationService {
         }
     }
 
-    private CreateLearningPathResponse createInTransaction(CreateLearningPathRequest request,
-                                                           ObjectId userId, ObjectId attemptId) {
+    private CreateLearningPathResponse createPath(CreateLearningPathRequest request,
+                                                  ObjectId userId, ObjectId attemptId) {
         LearningPathRecommendationResponse current = recommendations.recommend(userId, attemptId);
         if (current.state() == LearningPathRecommendationResponse.State.ALREADY_CREATED) {
             return new CreateLearningPathResponse(current.existingPathId(), false);
@@ -136,8 +124,8 @@ public class LearningPathCreationService {
         Date createdAt = Date.from(Instant.now());
         LocalDate createdDate = createdAt.toInstant().atOffset(LEARNING_ZONE).toLocalDate();
         LearningPath path = buildPath(test, current, results, selected, createdAt, createdDate);
-        paths.save(path);
         questionPool.insertSnapshots(path.getId(), userId, allQuestions, passages, createdAt);
+        paths.save(path);
         return new CreateLearningPathResponse(path.getId().toHexString(), true);
     }
 

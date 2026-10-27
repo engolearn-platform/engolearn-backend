@@ -51,9 +51,8 @@ server recalculates it. If it changed, it returns `409 ProblemDetail` with the c
 created a path, it returns the existing ID with `created: false`.
 
 Creation samples 30 distinct ACTIVE questions per eligible micro-skill, assigns 10 per week,
-and builds all three weeks immediately. The path and immutable question snapshots are saved in
-one MongoDB transaction. MongoDB must run as a replica set or sharded cluster and
-`engolearn.mongodb.transactions.enabled=true` must be configured. Until then, creation returns
-`503`; recommendation remains available. The existing local Docker setup is standalone and
-requires conversion before a successful local POST. The source test records currently lack
-`test_set_id` and `taken_at`, so those optional source snapshot fields remain empty.
+and builds all three weeks immediately. It saves immutable question snapshots first, then the
+path, so creation works with the standalone MongoDB used by local Docker. These are separate
+writes without a transaction. If a write fails, orphaned snapshots may remain; creation does not
+clean them up automatically. The source test records currently lack `test_set_id` and `taken_at`,
+so those optional source snapshot fields remain empty.
