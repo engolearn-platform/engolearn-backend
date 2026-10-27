@@ -1,0 +1,59 @@
+package fit.iuh.engolearn.learningpath.model;
+
+import lombok.Setter;
+import org.springframework.data.mongodb.core.mapping.Field;
+
+@Setter
+public class LearningPathMicroSkillWeekStats {
+
+    @Field("micro_skill")
+    private String microSkill;
+
+    private Integer assigned;
+    private Integer answered;
+    private Integer correct;
+
+    @Field("completion_rate")
+    private Double completionRate;
+
+    @Field("practice_score")
+    private Double practiceScore;
+
+    @Field("compared_to")
+    private LearningPathComparedTo comparedTo;
+
+    @Field("improvement_pp")
+    private Double improvementPp;
+
+    public String getMicroSkill() {
+        return microSkill;
+    }
+
+    public Integer getAssigned() {
+        return assigned;
+    }
+
+    public Integer getAnswered() {
+        return answered;
+    }
+
+    public Integer getCorrect() {
+        return correct;
+    }
+
+    public Double getCompletionRate() {
+        return completionRate;
+    }
+
+    public Double getPracticeScore() {
+        return practiceScore;
+    }
+
+    public LearningPathComparedTo getComparedTo() {
+        return comparedTo;
+    }
+
+    public Double getImprovementPp() {
+        return improvementPp;
+    }
+}

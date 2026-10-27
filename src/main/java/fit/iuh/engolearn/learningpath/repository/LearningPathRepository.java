@@ -15,9 +15,25 @@ public interface LearningPathRepository extends MongoRepository<LearningPath, Ob
             List<String> statuses
     );
 
+    List<LearningPath> findByUserIdAndStatusInAndMicroSkillsMicroSkillContainingIgnoreCaseOrderByCreatedAtDesc(
+            ObjectId userId,
+            List<String> statuses,
+            String microSkill
+    );
+
+    List<LearningPath> findByUserIdAndStatusInAndCreatedDateOrderByCreatedAtDesc(
+            ObjectId userId,
+            List<String> statuses,
+            String createdDate
+    );
+
     long countByUserIdAndStatusIn(ObjectId userId, List<String> statuses);
 
     long countByUserIdAndStatus(ObjectId userId, String status);
 
     Optional<LearningPath> findByIdAndUserId(ObjectId id, ObjectId userId);
+
+    Optional<LearningPath> findBySourceAttemptId(ObjectId attemptId);
+
+    List<LearningPath> findByUserIdAndActiveTrue(ObjectId userId);
 }
