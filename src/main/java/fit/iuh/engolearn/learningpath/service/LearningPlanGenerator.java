@@ -1,8 +1,10 @@
 package fit.iuh.engolearn.learningpath.service;
 
 import fit.iuh.engolearn.learningpath.model.LearningPath;
-import org.bson.Document;
-
+import fit.iuh.engolearn.learningpath.model.LearningPathDay;
+import fit.iuh.engolearn.learningpath.model.LearningPathDayItem;
+import fit.iuh.engolearn.learningpath.model.LearningPathProgress;
+import fit.iuh.engolearn.learningpath.model.LearningPathWeek;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
@@ -12,7 +14,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
+import org.bson.Document;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -20,7 +22,7 @@ public class LearningPlanGenerator {
 
     private static final ZoneOffset LEARNING_ZONE = ZoneOffset.ofHours(7);
 
-    public List<LearningPath.Week> generate(List<String> skills,
+    public List<LearningPathWeek> generate(List<String> skills,
                                             Map<String, List<Document>> selected,
                                             Date createdAt,
                                             LocalDate createdDate) {
@@ -43,9 +45,9 @@ public class LearningPlanGenerator {
             }
         }
 
-        List<LearningPath.Week> weeks = new ArrayList<>(3);
+        List<LearningPathWeek> weeks = new ArrayList<>(3);
         for (int weekIndex = 0; weekIndex < 3; weekIndex++) {
-            List<List<LearningPath.DayItem>> dayItems = new ArrayList<>(k);
+            List<List<LearningPathDayItem>> dayItems = new ArrayList<>(k);
             for (int dayIndex = 0; dayIndex < k; dayIndex++) {
                 dayItems.add(new ArrayList<>(10));
             }
@@ -57,7 +59,7 @@ public class LearningPlanGenerator {
                     int extraPosition = Math.floorMod(dayIndex - skillIndex - weekIndex, k);
                     int count = 10 / k + (extraPosition < 10 % k ? 1 : 0);
                     for (int offset = 0; offset < count; offset++) {
-                        LearningPath.DayItem item = new LearningPath.DayItem();
+                        LearningPathDayItem item = new LearningPathDayItem();
                         item.setQuestionId(questions.get(cursor++).getString("question_id"));
                         item.setMicroSkill(skill);
                         dayItems.get(dayIndex).add(item);
@@ -68,9 +70,9 @@ public class LearningPlanGenerator {
                 }
             }
 
-            List<LearningPath.Day> days = new ArrayList<>(k);
+            List<LearningPathDay> days = new ArrayList<>(k);
             for (int dayIndex = 0; dayIndex < k; dayIndex++) {
-                List<LearningPath.DayItem> items = dayItems.get(dayIndex);
+                List<LearningPathDayItem> items = dayItems.get(dayIndex);
                 if (items.size() != 10) {
                     throw new IllegalStateException("Each learning day must contain 10 questions");
                 }
@@ -78,7 +80,7 @@ public class LearningPlanGenerator {
                 for (int order = 0; order < items.size(); order++) {
                     items.get(order).setOrder(order + 1);
                 }
-                LearningPath.Day day = new LearningPath.Day();
+                LearningPathDay day = new LearningPathDay();
                 day.setDayNo(dayIndex + 1);
                 day.setStatus("NOT_STARTED");
                 day.setProgress(progress(10));
@@ -86,7 +88,7 @@ public class LearningPlanGenerator {
                 days.add(day);
             }
 
-            LearningPath.Week week = new LearningPath.Week();
+            LearningPathWeek week = new LearningPathWeek();
             week.setWeekNo(weekIndex + 1);
             week.setStatus(weekIndex == 0 ? "OPEN" : "LOCKED");
             if (weekIndex == 0) {
@@ -101,8 +103,8 @@ public class LearningPlanGenerator {
         return weeks;
     }
 
-    private LearningPath.Progress progress(int assigned) {
-        LearningPath.Progress progress = new LearningPath.Progress();
+    private LearningPathProgress progress(int assigned) {
+        LearningPathProgress progress = new LearningPathProgress();
         progress.setAssigned(assigned);
         progress.setAnswered(0);
         progress.setCorrect(0);

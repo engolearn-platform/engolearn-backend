@@ -3,6 +3,7 @@ package fit.iuh.engolearn.learningpath.service;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
 import fit.iuh.engolearn.learningpath.repository.LearningPathLifecycleRepository;
+import fit.iuh.engolearn.learningpath.repository.LearningPathQuestionRepository;
 import org.bson.Document;
 import org.bson.types.ObjectId;
 import org.junit.jupiter.api.AfterAll;
@@ -114,7 +115,8 @@ class LearningPathLifecycleIntegrationTest {
 
     private LearningPathLifecycleScheduler scheduler(MongoTemplate template, String nowDate) {
         LearningPathLifecycleRepository repository = new LearningPathLifecycleRepository(template);
-        LearningPathLifecycleService service = new LearningPathLifecycleService(repository);
+        LearningPathLifecycleService service = new LearningPathLifecycleService(
+                repository, new LearningPathQuestionRepository(template));
         return new LearningPathLifecycleScheduler(service, Clock.fixed(midnight(nowDate), ZONE));
     }
 

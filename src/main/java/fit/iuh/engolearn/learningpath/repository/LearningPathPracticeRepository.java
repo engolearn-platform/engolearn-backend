@@ -1,14 +1,14 @@
 package fit.iuh.engolearn.learningpath.repository;
 
 import fit.iuh.engolearn.learningpath.model.LearningPath;
+import fit.iuh.engolearn.learningpath.model.LearningPathDraft;
+import java.util.Date;
 import org.bson.types.ObjectId;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Repository;
-
-import java.util.Date;
 
 @Repository
 public class LearningPathPracticeRepository {
@@ -49,7 +49,7 @@ public class LearningPathPracticeRepository {
 
     public boolean saveDraft(ObjectId pathId, ObjectId userId, int weekNo, int dayNo,
                              String questionId, Date expectedNextRunAt, Date savedAt,
-                             LearningPath.Draft draft, String anchorDate,
+                             LearningPathDraft draft, String anchorDate,
                              Date cancelAt, Date nextRunAt) {
         Criteria item = Criteria.where("question_id").is(questionId).and("answer").is(null);
         Criteria day = Criteria.where("day_no").is(dayNo)

@@ -3,21 +3,24 @@ package fit.iuh.engolearn.learningpath.service;
 import fit.iuh.engolearn.learningpath.dto.request.SaveLearningPathAnswerDraftRequest;
 import fit.iuh.engolearn.learningpath.dto.response.SaveLearningPathAnswerDraftResponse;
 import fit.iuh.engolearn.learningpath.model.LearningPath;
+import fit.iuh.engolearn.learningpath.model.LearningPathDay;
+import fit.iuh.engolearn.learningpath.model.LearningPathDayItem;
+import fit.iuh.engolearn.learningpath.model.LearningPathDraft;
+import fit.iuh.engolearn.learningpath.model.LearningPathWeek;
 import fit.iuh.engolearn.learningpath.repository.LearningPathPracticeRepository;
 import fit.iuh.engolearn.learningpath.repository.LearningPathQuestionRepository;
 import fit.iuh.engolearn.learningpath.repository.LearningPathRepository;
-import org.bson.Document;
-import org.bson.types.ObjectId;
-import org.springframework.http.HttpStatus;
-import org.springframework.stereotype.Service;
-import org.springframework.web.server.ResponseStatusException;
-
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.Date;
 import java.util.List;
+import org.bson.Document;
+import org.bson.types.ObjectId;
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 @Service
 public class LearningPathAnswerDraftService {
@@ -51,17 +54,17 @@ public class LearningPathAnswerDraftService {
             LearningPath path = paths.findByIdAndUserId(pathObjectId, userObjectId)
                     .orElseThrow(() -> new ResponseStatusException(
                             HttpStatus.NOT_FOUND, "Không tìm thấy Learning Path"));
-            LearningPath.Week week = path.getWeeks().stream()
+            LearningPathWeek week = path.getWeeks().stream()
                     .filter(item -> item.getWeekNo() == weekNo)
                     .findFirst()
                     .orElseThrow(() -> new ResponseStatusException(
                             HttpStatus.NOT_FOUND, "Không tìm thấy tuần luyện tập"));
-            LearningPath.Day day = week.getDays().stream()
+            LearningPathDay day = week.getDays().stream()
                     .filter(item -> item.getDayNo() == dayNo)
                     .findFirst()
                     .orElseThrow(() -> new ResponseStatusException(
                             HttpStatus.NOT_FOUND, "Không tìm thấy ngày luyện tập"));
-            LearningPath.DayItem item = day.getItems().stream()
+            LearningPathDayItem item = day.getItems().stream()
                     .filter(question -> questionId.equals(question.getQuestionId()))
                     .findFirst()
                     .orElseThrow(() -> new ResponseStatusException(
@@ -73,13 +76,13 @@ public class LearningPathAnswerDraftService {
             Date savedAt = Date.from(now);
             Date cancelAt = Date.from(activityDate.plusDays(15).atStartOfDay(ZONE).toInstant());
             Date nextRunAt = earlier(week.getCloseAt(), cancelAt);
-            for (LearningPath.Day scheduledDay : week.getDays()) {
+            for (LearningPathDay scheduledDay : week.getDays()) {
                 if ("IN_PROGRESS".equals(scheduledDay.getStatus())
                         && scheduledDay.getAutoCloseAt() != null) {
                     nextRunAt = earlier(nextRunAt, scheduledDay.getAutoCloseAt());
                 }
             }
-            LearningPath.Draft draft = new LearningPath.Draft();
+            LearningPathDraft draft = new LearningPathDraft();
             draft.setSelectedOptionId(request.selectedOptionId());
             draft.setSavedAt(savedAt);
             if (practice.saveDraft(pathObjectId, userObjectId, weekNo, dayNo,
@@ -93,8 +96,8 @@ public class LearningPathAnswerDraftService {
                 "Bài luyện tập vừa thay đổi, vui lòng thử lại");
     }
 
-    private void ensureEditable(LearningPath path, LearningPath.Week week,
-                                LearningPath.Day day, LearningPath.DayItem item, Instant now) {
+    private void ensureEditable(LearningPath path, LearningPathWeek week,
+                                LearningPathDay day, LearningPathDayItem item, Instant now) {
         if (!Boolean.TRUE.equals(path.getActive()) || !"IN_PROGRESS".equals(path.getStatus())
                 || path.getNextRunAt() == null || !path.getNextRunAt().toInstant().isAfter(now)
                 || path.getInactivity() == null || path.getInactivity().getCancelAt() == null
