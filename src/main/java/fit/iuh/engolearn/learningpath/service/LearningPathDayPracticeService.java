@@ -2,15 +2,12 @@ package fit.iuh.engolearn.learningpath.service;
 
 import fit.iuh.engolearn.learningpath.dto.response.StartLearningPathDayResponse;
 import fit.iuh.engolearn.learningpath.model.LearningPath;
+import fit.iuh.engolearn.learningpath.model.LearningPathDay;
+import fit.iuh.engolearn.learningpath.model.LearningPathDayItem;
+import fit.iuh.engolearn.learningpath.model.LearningPathWeek;
 import fit.iuh.engolearn.learningpath.repository.LearningPathPracticeRepository;
 import fit.iuh.engolearn.learningpath.repository.LearningPathQuestionRepository;
 import fit.iuh.engolearn.learningpath.repository.LearningPathRepository;
-import org.bson.Document;
-import org.bson.types.ObjectId;
-import org.springframework.http.HttpStatus;
-import org.springframework.stereotype.Service;
-import org.springframework.web.server.ResponseStatusException;
-
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -21,6 +18,11 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import org.bson.Document;
+import org.bson.types.ObjectId;
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 @Service
 public class LearningPathDayPracticeService {
@@ -52,25 +54,25 @@ public class LearningPathDayPracticeService {
             LearningPath path = paths.findByIdAndUserId(pathObjectId, userObjectId)
                     .orElseThrow(() -> new ResponseStatusException(
                             HttpStatus.NOT_FOUND, "Không tìm thấy Learning Path"));
-            LearningPath.Week week = path.getWeeks().stream()
+            LearningPathWeek week = path.getWeeks().stream()
                     .filter(item -> item.getWeekNo() == weekNo)
                     .findFirst()
                     .orElseThrow(() -> new ResponseStatusException(
                             HttpStatus.NOT_FOUND, "Không tìm thấy tuần luyện tập"));
-            LearningPath.Day day = week.getDays().stream()
+            LearningPathDay day = week.getDays().stream()
                     .filter(item -> item.getDayNo() == dayNo)
                     .findFirst()
                     .orElseThrow(() -> new ResponseStatusException(
                             HttpStatus.NOT_FOUND, "Không tìm thấy ngày luyện tập"));
             ensureAvailable(path, week, day, now);
 
-            List<LearningPath.DayItem> items = day.getItems().stream()
-                    .sorted(Comparator.comparing(LearningPath.DayItem::getOrder))
+            List<LearningPathDayItem> items = day.getItems().stream()
+                    .sorted(Comparator.comparing(LearningPathDayItem::getOrder))
                     .toList();
             if (path.getConfig() == null || path.getConfig().getQuestionsPerDay() == null
                     || items.size() != path.getConfig().getQuestionsPerDay()
                     || items.size() != new HashSet<>(items.stream()
-                    .map(LearningPath.DayItem::getQuestionId).toList()).size()) {
+                    .map(LearningPathDayItem::getQuestionId).toList()).size()) {
                 throw new IllegalStateException("Learning Path day has missing or duplicate questions");
             }
             for (int index = 0; index < items.size(); index++) {
@@ -102,8 +104,8 @@ public class LearningPathDayPracticeService {
                 "Ngày luyện tập vừa thay đổi, vui lòng thử lại");
     }
 
-    private void ensureAvailable(LearningPath path, LearningPath.Week week,
-                                 LearningPath.Day day, Instant now) {
+    private void ensureAvailable(LearningPath path, LearningPathWeek week,
+                                 LearningPathDay day, Instant now) {
         if (!Boolean.TRUE.equals(path.getActive())
                 || !("NOT_STARTED".equals(path.getStatus()) || "IN_PROGRESS".equals(path.getStatus()))
                 || path.getNextRunAt() == null || !path.getNextRunAt().toInstant().isAfter(now)
@@ -120,8 +122,8 @@ public class LearningPathDayPracticeService {
     }
 
     private Map<String, Document> loadSnapshots(ObjectId pathId, ObjectId userId,
-                                                 List<LearningPath.DayItem> items) {
-        List<String> ids = items.stream().map(LearningPath.DayItem::getQuestionId).toList();
+                                                 List<LearningPathDayItem> items) {
+        List<String> ids = items.stream().map(LearningPathDayItem::getQuestionId).toList();
         Map<String, Document> snapshots = new HashMap<>();
         for (Document snapshot : questions.findSnapshots(pathId, userId, ids)) {
             if (snapshots.putIfAbsent(snapshot.getString("question_id"), snapshot) != null) {
@@ -141,7 +143,7 @@ public class LearningPathDayPracticeService {
                 "IN_PROGRESS", startedAt, autoCloseAt, questions);
     }
 
-    private StartLearningPathDayResponse.Question question(LearningPath.DayItem item,
+    private StartLearningPathDayResponse.Question question(LearningPathDayItem item,
                                                             Document snapshot) {
         if (snapshot.getString("prompt") == null || snapshot.getString("skill") == null
                 || !item.getMicroSkill().equals(snapshot.getString("micro_skill"))) {

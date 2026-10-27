@@ -2,22 +2,26 @@ package fit.iuh.engolearn.learningpath.service;
 
 import fit.iuh.engolearn.learningpath.dto.request.SaveLearningPathAnswerDraftRequest;
 import fit.iuh.engolearn.learningpath.model.LearningPath;
+import fit.iuh.engolearn.learningpath.model.LearningPathDay;
+import fit.iuh.engolearn.learningpath.model.LearningPathDayItem;
+import fit.iuh.engolearn.learningpath.model.LearningPathDraft;
+import fit.iuh.engolearn.learningpath.model.LearningPathInactivity;
+import fit.iuh.engolearn.learningpath.model.LearningPathWeek;
 import fit.iuh.engolearn.learningpath.repository.LearningPathPracticeRepository;
 import fit.iuh.engolearn.learningpath.repository.LearningPathQuestionRepository;
 import fit.iuh.engolearn.learningpath.repository.LearningPathRepository;
-import org.bson.Document;
-import org.bson.types.ObjectId;
-import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
-import org.springframework.http.HttpStatus;
-import org.springframework.web.server.ResponseStatusException;
-
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
+import org.bson.Document;
+import org.bson.types.ObjectId;
+import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -57,7 +61,7 @@ class LearningPathAnswerDraftServiceTest {
         assertThat(result.savedAt()).isEqualTo(Date.from(NOW));
         assertThat(path.getWeeks().getFirst().getDays().getFirst().getItems().getFirst()
                 .getAnswer()).isNull();
-        ArgumentCaptor<LearningPath.Draft> draft = ArgumentCaptor.forClass(LearningPath.Draft.class);
+        ArgumentCaptor<LearningPathDraft> draft = ArgumentCaptor.forClass(LearningPathDraft.class);
         verify(practice).saveDraft(eq(pathId), eq(userId), eq(1), eq(1), eq("q-1"),
                 eq(MIDNIGHT), eq(Date.from(NOW)), draft.capture(), eq("2026-10-09"),
                 eq(Date.from(Instant.parse("2026-10-23T17:00:00Z"))), eq(MIDNIGHT));
@@ -97,17 +101,17 @@ class LearningPathAnswerDraftServiceTest {
         path.setActive(true);
         path.setStatus("IN_PROGRESS");
         path.setNextRunAt(MIDNIGHT);
-        LearningPath.Inactivity inactivity = new LearningPath.Inactivity();
+        LearningPathInactivity inactivity = new LearningPathInactivity();
         inactivity.setCancelAt(Date.from(Instant.parse("2026-10-23T17:00:00Z")));
         path.setInactivity(inactivity);
-        LearningPath.DayItem item = new LearningPath.DayItem();
+        LearningPathDayItem item = new LearningPathDayItem();
         item.setQuestionId("q-1");
-        LearningPath.Day day = new LearningPath.Day();
+        LearningPathDay day = new LearningPathDay();
         day.setDayNo(1);
         day.setStatus("IN_PROGRESS");
         day.setAutoCloseAt(MIDNIGHT);
         day.setItems(List.of(item));
-        LearningPath.Week week = new LearningPath.Week();
+        LearningPathWeek week = new LearningPathWeek();
         week.setWeekNo(1);
         week.setStatus("OPEN");
         week.setCloseAt(Date.from(Instant.parse("2026-10-15T17:00:00Z")));

@@ -5,20 +5,18 @@ import fit.iuh.engolearn.learningpath.dto.response.CreateLearningPathResponse;
 import fit.iuh.engolearn.learningpath.dto.response.LearningPathRecommendationResponse;
 import fit.iuh.engolearn.learningpath.exception.RecommendationChangedException;
 import fit.iuh.engolearn.learningpath.model.LearningPath;
+import fit.iuh.engolearn.learningpath.model.LearningPathBaseline;
+import fit.iuh.engolearn.learningpath.model.LearningPathBaselineTotal;
+import fit.iuh.engolearn.learningpath.model.LearningPathConfig;
+import fit.iuh.engolearn.learningpath.model.LearningPathInactivity;
+import fit.iuh.engolearn.learningpath.model.LearningPathMicroSkillSnapshot;
+import fit.iuh.engolearn.learningpath.model.LearningPathProgress;
+import fit.iuh.engolearn.learningpath.model.LearningPathSource;
+import fit.iuh.engolearn.learningpath.model.LearningPathWeek;
 import fit.iuh.engolearn.learningpath.model.PeriodicTestSnapshot;
 import fit.iuh.engolearn.learningpath.repository.LearningPathRepository;
 import fit.iuh.engolearn.learningpath.repository.PeriodicTestReadRepository;
 import fit.iuh.engolearn.learningpath.repository.QuestionPoolRepository;
-import org.bson.Document;
-import org.bson.types.ObjectId;
-import org.springframework.beans.factory.ObjectProvider;
-import org.springframework.dao.DuplicateKeyException;
-import org.springframework.data.mongodb.MongoTransactionManager;
-import org.springframework.http.HttpStatus;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.support.TransactionTemplate;
-import org.springframework.web.server.ResponseStatusException;
-
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
@@ -30,6 +28,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.bson.Document;
+import org.bson.types.ObjectId;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.dao.DuplicateKeyException;
+import org.springframework.data.mongodb.MongoTransactionManager;
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.support.TransactionTemplate;
+import org.springframework.web.server.ResponseStatusException;
 
 @Service
 public class LearningPathCreationService {
@@ -145,7 +152,7 @@ public class LearningPathCreationService {
         LearningPath path = new LearningPath();
         path.setId(new ObjectId());
         path.setUserId(test.userId());
-        LearningPath.Source source = new LearningPath.Source();
+        LearningPathSource source = new LearningPathSource();
         source.setAttemptId(test.attemptId());
         source.setTestSetId(test.testSetId());
         source.setTakenAt(test.takenAt());
@@ -158,7 +165,7 @@ public class LearningPathCreationService {
         path.setActive(true);
         path.setCurrentWeekNo(1);
 
-        LearningPath.Config config = new LearningPath.Config();
+        LearningPathConfig config = new LearningPathConfig();
         config.setDurationWeeks(3);
         config.setQuestionsPerDay(10);
         config.setQuestionsPerSkillPerWeek(10);
@@ -166,16 +173,16 @@ public class LearningPathCreationService {
 
         int baselineCorrect = 0;
         int baselineTotal = 0;
-        List<LearningPath.MicroSkillSnapshot> baselineSkills = new ArrayList<>();
+        List<LearningPathMicroSkillSnapshot> baselineSkills = new ArrayList<>();
         for (String skill : skills) {
             PeriodicTestSnapshot.MicroSkillResult result = results.get(skill);
-            LearningPath.Baseline baseline = new LearningPath.Baseline();
+            LearningPathBaseline baseline = new LearningPathBaseline();
             baseline.setCorrect(result.correct());
             baseline.setTotal(result.total());
             baseline.setPercent(result.percent());
             baseline.setBand(result.band());
             baseline.setResultId(result.resultId());
-            LearningPath.MicroSkillSnapshot snapshot = new LearningPath.MicroSkillSnapshot();
+            LearningPathMicroSkillSnapshot snapshot = new LearningPathMicroSkillSnapshot();
             snapshot.setMicroSkill(skill);
             snapshot.setSkill(result.skill());
             snapshot.setBaseline(baseline);
@@ -184,26 +191,26 @@ public class LearningPathCreationService {
             baselineTotal += result.total();
         }
         path.setMicroSkills(baselineSkills);
-        LearningPath.BaselineTotal baselineTotalSnapshot = new LearningPath.BaselineTotal();
+        LearningPathBaselineTotal baselineTotalSnapshot = new LearningPathBaselineTotal();
         baselineTotalSnapshot.setCorrect(baselineCorrect);
         baselineTotalSnapshot.setTotal(baselineTotal);
         baselineTotalSnapshot.setPercent(baselineTotal == 0 ? null
                 : 100.0 * baselineCorrect / baselineTotal);
         path.setBaselineTotal(baselineTotalSnapshot);
 
-        LearningPath.Progress progress = new LearningPath.Progress();
+        LearningPathProgress progress = new LearningPathProgress();
         progress.setAssigned(skills.size() * 30);
         progress.setAnswered(0);
         progress.setCorrect(0);
         path.setProgress(progress);
 
-        LearningPath.Inactivity inactivity = new LearningPath.Inactivity();
+        LearningPathInactivity inactivity = new LearningPathInactivity();
         inactivity.setAnchorDate(createdDate.toString());
         inactivity.setCancelAt(Date.from(createdDate.plusDays(15)
                 .atStartOfDay(LEARNING_ZONE).toInstant()));
         path.setInactivity(inactivity);
 
-        List<LearningPath.Week> weeks = planGenerator.generate(skills, selected,
+        List<LearningPathWeek> weeks = planGenerator.generate(skills, selected,
                 createdAt, createdDate);
         path.setWeeks(weeks);
         path.setNextRunAt(weeks.getFirst().getCloseAt());

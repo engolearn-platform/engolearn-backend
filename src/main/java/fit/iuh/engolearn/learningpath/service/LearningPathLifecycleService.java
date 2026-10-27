@@ -1,20 +1,21 @@
 package fit.iuh.engolearn.learningpath.service;
 
 import fit.iuh.engolearn.learningpath.model.LearningPath;
+import fit.iuh.engolearn.learningpath.model.LearningPathDay;
+import fit.iuh.engolearn.learningpath.model.LearningPathDayItem;
 import fit.iuh.engolearn.learningpath.repository.LearningPathLifecycleRepository;
 import fit.iuh.engolearn.learningpath.repository.LearningPathQuestionRepository;
-import org.bson.Document;
-import org.bson.types.ObjectId;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Service;
-
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import org.bson.Document;
+import org.bson.types.ObjectId;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
 
 @Service
 public class LearningPathLifecycleService {
@@ -77,7 +78,7 @@ public class LearningPathLifecycleService {
                 .filter(day -> "IN_PROGRESS".equals(day.getStatus()))
                 .flatMap(day -> day.getItems().stream())
                 .filter(item -> item.getDraft() != null && item.getAnswer() == null)
-                .map(LearningPath.DayItem::getQuestionId)
+                .map(LearningPathDayItem::getQuestionId)
                 .toList();
         if (ids.isEmpty()) return Map.of();
         Map<String, String> keys = new HashMap<>();

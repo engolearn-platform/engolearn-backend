@@ -1,16 +1,15 @@
 package fit.iuh.engolearn.learningpath.service;
 
-import tools.jackson.databind.json.JsonMapper;
 import fit.iuh.engolearn.learningpath.model.LearningPath;
+import fit.iuh.engolearn.learningpath.model.LearningPathConfig;
+import fit.iuh.engolearn.learningpath.model.LearningPathDay;
+import fit.iuh.engolearn.learningpath.model.LearningPathDayItem;
+import fit.iuh.engolearn.learningpath.model.LearningPathDraft;
+import fit.iuh.engolearn.learningpath.model.LearningPathInactivity;
+import fit.iuh.engolearn.learningpath.model.LearningPathWeek;
 import fit.iuh.engolearn.learningpath.repository.LearningPathPracticeRepository;
 import fit.iuh.engolearn.learningpath.repository.LearningPathQuestionRepository;
 import fit.iuh.engolearn.learningpath.repository.LearningPathRepository;
-import org.bson.Document;
-import org.bson.types.ObjectId;
-import org.junit.jupiter.api.Test;
-import org.springframework.http.HttpStatus;
-import org.springframework.web.server.ResponseStatusException;
-
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
@@ -18,12 +17,18 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
+import org.bson.Document;
+import org.bson.types.ObjectId;
+import org.junit.jupiter.api.Test;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
+import tools.jackson.databind.json.JsonMapper;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -69,11 +74,11 @@ class LearningPathDayPracticeServiceTest {
     @Test
     void reopeningStartedDayKeepsOriginalDeadline() {
         LearningPath path = path("IN_PROGRESS");
-        LearningPath.Day day = path.getWeeks().getFirst().getDays().getFirst();
+        LearningPathDay day = path.getWeeks().getFirst().getDays().getFirst();
         day.setStatus("IN_PROGRESS");
         day.setStartedAt(Date.from(NOW.minusSeconds(1800)));
         day.setAutoCloseAt(Date.from(NEXT_MIDNIGHT));
-        LearningPath.Draft draft = new LearningPath.Draft();
+        LearningPathDraft draft = new LearningPathDraft();
         draft.setSelectedOptionId("C");
         day.getItems().getLast().setDraft(draft);
         when(paths.findByIdAndUserId(pathId, userId)).thenReturn(Optional.of(path));
@@ -102,7 +107,7 @@ class LearningPathDayPracticeServiceTest {
     @Test
     void rejectsLockedWeekAndExpiredDay() {
         LearningPath path = path("IN_PROGRESS");
-        LearningPath.Week week = path.getWeeks().getFirst();
+        LearningPathWeek week = path.getWeeks().getFirst();
         week.setStatus("LOCKED");
         when(paths.findByIdAndUserId(pathId, userId)).thenReturn(Optional.of(path));
 
@@ -149,25 +154,25 @@ class LearningPathDayPracticeServiceTest {
         path.setStatus(status);
         path.setActive(true);
         path.setNextRunAt(Date.from(Instant.parse("2026-10-15T17:00:00Z")));
-        LearningPath.Config config = new LearningPath.Config();
+        LearningPathConfig config = new LearningPathConfig();
         config.setQuestionsPerDay(10);
         path.setConfig(config);
-        LearningPath.Inactivity inactivity = new LearningPath.Inactivity();
+        LearningPathInactivity inactivity = new LearningPathInactivity();
         inactivity.setCancelAt(Date.from(Instant.parse("2026-10-23T17:00:00Z")));
         path.setInactivity(inactivity);
-        List<LearningPath.DayItem> items = new ArrayList<>();
+        List<LearningPathDayItem> items = new ArrayList<>();
         for (int order = 10; order >= 1; order--) {
-            LearningPath.DayItem item = new LearningPath.DayItem();
+            LearningPathDayItem item = new LearningPathDayItem();
             item.setOrder(order);
             item.setQuestionId("q-" + order);
             item.setMicroSkill("Reading for Gist");
             items.add(item);
         }
-        LearningPath.Day day = new LearningPath.Day();
+        LearningPathDay day = new LearningPathDay();
         day.setDayNo(1);
         day.setStatus("NOT_STARTED");
         day.setItems(items);
-        LearningPath.Week week = new LearningPath.Week();
+        LearningPathWeek week = new LearningPathWeek();
         week.setWeekNo(1);
         week.setStatus("OPEN");
         week.setCloseAt(Date.from(Instant.parse("2026-10-15T17:00:00Z")));

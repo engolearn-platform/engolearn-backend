@@ -1,7 +1,21 @@
 package fit.iuh.engolearn.learningpath.service;
 
 import fit.iuh.engolearn.learningpath.model.LearningPath;
-
+import fit.iuh.engolearn.learningpath.model.LearningPathAnswer;
+import fit.iuh.engolearn.learningpath.model.LearningPathCancel;
+import fit.iuh.engolearn.learningpath.model.LearningPathComparedTo;
+import fit.iuh.engolearn.learningpath.model.LearningPathDay;
+import fit.iuh.engolearn.learningpath.model.LearningPathDayItem;
+import fit.iuh.engolearn.learningpath.model.LearningPathDayResult;
+import fit.iuh.engolearn.learningpath.model.LearningPathMicroSkillSnapshot;
+import fit.iuh.engolearn.learningpath.model.LearningPathMicroSkillWeekStats;
+import fit.iuh.engolearn.learningpath.model.LearningPathOverallWeekStats;
+import fit.iuh.engolearn.learningpath.model.LearningPathProgress;
+import fit.iuh.engolearn.learningpath.model.LearningPathSummary;
+import fit.iuh.engolearn.learningpath.model.LearningPathSummaryCompletion;
+import fit.iuh.engolearn.learningpath.model.LearningPathSummaryMicroSkill;
+import fit.iuh.engolearn.learningpath.model.LearningPathWeek;
+import fit.iuh.engolearn.learningpath.model.LearningPathWeekStats;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
@@ -23,7 +37,7 @@ final class LearningPathLifecycleEngine {
     Map<String, Object> advance(LearningPath path, Instant now,
                                 Map<String, String> answerKeys) {
         Map<String, Object> changes = new LinkedHashMap<>();
-        LearningPath.Week week = openWeek(path);
+        LearningPathWeek week = openWeek(path);
         Instant eventAt = nextEvent(path, week);
         if (eventAt == null) {
             throw new IllegalStateException("Active Learning Path has no scheduled deadline: " + path.getId());
@@ -35,7 +49,7 @@ final class LearningPathLifecycleEngine {
 
         int weekIndex = path.getWeeks().indexOf(week);
         for (int dayIndex = 0; dayIndex < week.getDays().size(); dayIndex++) {
-            LearningPath.Day day = week.getDays().get(dayIndex);
+            LearningPathDay day = week.getDays().get(dayIndex);
             if ("IN_PROGRESS".equals(day.getStatus()) && day.getAutoCloseAt() != null
                     && !day.getAutoCloseAt().toInstant().isAfter(eventAt)) {
                 closeDay(path, week, day, dayIndex, weekIndex,
@@ -51,7 +65,7 @@ final class LearningPathLifecycleEngine {
         Instant cancelAt = cancelDeadline(path);
         if (Boolean.TRUE.equals(path.getActive()) && cancelAt != null
                 && !cancelAt.isAfter(eventAt)) {
-            LearningPath.Cancel cancel = new LearningPath.Cancel();
+            LearningPathCancel cancel = new LearningPathCancel();
             cancel.setAt(Date.from(cancelAt));
             cancel.setReason("INACTIVITY");
             path.setCancel(cancel);
@@ -70,7 +84,7 @@ final class LearningPathLifecycleEngine {
         return changes;
     }
 
-    private LearningPath.Week openWeek(LearningPath path) {
+    private LearningPathWeek openWeek(LearningPath path) {
         if (path.getWeeks() == null) {
             throw new IllegalStateException("Learning Path has no weeks: " + path.getId());
         }
@@ -81,9 +95,9 @@ final class LearningPathLifecycleEngine {
                         "Active Learning Path has no open week: " + path.getId()));
     }
 
-    private Instant nextEvent(LearningPath path, LearningPath.Week week) {
+    private Instant nextEvent(LearningPath path, LearningPathWeek week) {
         Instant next = weekDeadline(week);
-        for (LearningPath.Day day : week.getDays()) {
+        for (LearningPathDay day : week.getDays()) {
             if ("IN_PROGRESS".equals(day.getStatus()) && day.getAutoCloseAt() != null) {
                 next = earlier(next, day.getAutoCloseAt().toInstant());
             }
@@ -91,13 +105,13 @@ final class LearningPathLifecycleEngine {
         return earlier(next, cancelDeadline(path));
     }
 
-    private Instant weekDeadline(LearningPath.Week week) {
+    private Instant weekDeadline(LearningPathWeek week) {
         Instant deadline = week.getCloseAt() == null ? null : week.getCloseAt().toInstant();
         if (week.getWeekNo() != null && week.getWeekNo() < 3 && week.getDays() != null
                 && !week.getDays().isEmpty()
                 && week.getDays().stream().allMatch(this::isTerminalDay)) {
             Instant lastClosed = week.getDays().stream()
-                    .map(LearningPath.Day::getClosedAt)
+                    .map(LearningPathDay::getClosedAt)
                     .filter(date -> date != null)
                     .map(Date::toInstant)
                     .max(Instant::compareTo)
@@ -109,7 +123,7 @@ final class LearningPathLifecycleEngine {
         return deadline;
     }
 
-    private boolean isTerminalDay(LearningPath.Day day) {
+    private boolean isTerminalDay(LearningPathDay day) {
         return "COMPLETED".equals(day.getStatus()) || "CLOSED".equals(day.getStatus());
     }
 
@@ -137,19 +151,19 @@ final class LearningPathLifecycleEngine {
         return first.isBefore(second) ? first : second;
     }
 
-    private void closeDay(LearningPath path, LearningPath.Week week, LearningPath.Day day,
+    private void closeDay(LearningPath path, LearningPathWeek week, LearningPathDay day,
                           int dayIndex, int weekIndex, Instant at, String reason,
                           Map<String, String> answerKeys, Map<String, Object> changes) {
         String prefix = "weeks." + weekIndex + ".days." + dayIndex + ".";
         if (day.getItems() != null) {
             for (int itemIndex = 0; itemIndex < day.getItems().size(); itemIndex++) {
-                LearningPath.DayItem item = day.getItems().get(itemIndex);
+                LearningPathDayItem item = day.getItems().get(itemIndex);
                 if (item.getDraft() == null || item.getAnswer() != null) continue;
                 String key = answerKeys.get(item.getQuestionId());
                 if (key == null) {
                     throw new IllegalStateException("Missing answer key for " + item.getQuestionId());
                 }
-                LearningPath.Answer answer = new LearningPath.Answer();
+                LearningPathAnswer answer = new LearningPathAnswer();
                 answer.setSelectedOptionId(item.getDraft().getSelectedOptionId());
                 answer.setCorrect(key.equals(item.getDraft().getSelectedOptionId()));
                 answer.setAnsweredAt(item.getDraft().getSavedAt());
@@ -161,7 +175,7 @@ final class LearningPathLifecycleEngine {
             }
         }
         syncProgress(path, week, day, weekIndex, prefix, changes);
-        LearningPath.DayResult result = dayResult(day);
+        LearningPathDayResult result = dayResult(day);
         day.setStatus("CLOSED");
         day.setClosedAt(Date.from(at));
         day.setCloseReason(reason);
@@ -172,49 +186,49 @@ final class LearningPathLifecycleEngine {
         changes.put(prefix + "result", result);
     }
 
-    private void syncProgress(LearningPath path, LearningPath.Week week,
-                              LearningPath.Day day, int weekIndex, String dayPrefix,
+    private void syncProgress(LearningPath path, LearningPathWeek week,
+                              LearningPathDay day, int weekIndex, String dayPrefix,
                               Map<String, Object> changes) {
         Counts dayCounts = countItems(day.getItems(), null);
-        if (day.getProgress() == null) day.setProgress(new LearningPath.Progress());
+        if (day.getProgress() == null) day.setProgress(new LearningPathProgress());
         updateProgress(day.getProgress(), dayCounts);
         changes.put(dayPrefix + "progress", day.getProgress());
         Counts weekCounts = countDays(week.getDays(), null);
-        if (week.getProgress() == null) week.setProgress(new LearningPath.Progress());
+        if (week.getProgress() == null) week.setProgress(new LearningPathProgress());
         updateProgress(week.getProgress(), weekCounts);
         changes.put("weeks." + weekIndex + ".progress", week.getProgress());
         Counts pathCounts = new Counts();
-        for (LearningPath.Week current : path.getWeeks()) {
+        for (LearningPathWeek current : path.getWeeks()) {
             Counts counts = countDays(current.getDays(), null);
             pathCounts.assigned += counts.assigned;
             pathCounts.answered += counts.answered;
             pathCounts.correct += counts.correct;
         }
-        if (path.getProgress() == null) path.setProgress(new LearningPath.Progress());
+        if (path.getProgress() == null) path.setProgress(new LearningPathProgress());
         updateProgress(path.getProgress(), pathCounts);
         changes.put("progress", path.getProgress());
     }
 
-    private void updateProgress(LearningPath.Progress progress, Counts counts) {
+    private void updateProgress(LearningPathProgress progress, Counts counts) {
         progress.setAssigned(counts.assigned);
         progress.setAnswered(counts.answered);
         progress.setCorrect(counts.correct);
     }
 
-    private LearningPath.DayResult dayResult(LearningPath.Day day) {
+    private LearningPathDayResult dayResult(LearningPathDay day) {
         Counts counts = countItems(day.getItems(), null);
-        LearningPath.DayResult result = new LearningPath.DayResult();
+        LearningPathDayResult result = new LearningPathDayResult();
         result.setWrong(counts.answered - counts.correct);
         result.setCompletionRate(rate(counts.answered, counts.assigned));
         result.setPracticeScore(rate(counts.correct, counts.answered));
         return result;
     }
 
-    private void closeWeek(LearningPath path, LearningPath.Week week, int weekIndex,
+    private void closeWeek(LearningPath path, LearningPathWeek week, int weekIndex,
                            Instant at, Map<String, String> answerKeys,
                            Map<String, Object> changes) {
         for (int dayIndex = 0; dayIndex < week.getDays().size(); dayIndex++) {
-            LearningPath.Day day = week.getDays().get(dayIndex);
+            LearningPathDay day = week.getDays().get(dayIndex);
             if (!isTerminalDay(day)) {
                 closeDay(path, week, day, dayIndex, weekIndex, at,
                         "NOT_STARTED".equals(day.getStatus()) ? "WEEK_CLOSED" : "MIDNIGHT",
@@ -225,7 +239,7 @@ final class LearningPathLifecycleEngine {
         String prefix = "weeks." + weekIndex + ".";
         String reason = week.getCloseAt() != null && !week.getCloseAt().toInstant().isAfter(at)
                 ? "TIME_UP" : "ALL_DAYS_DONE";
-        LearningPath.WeekStats stats = weekStats(path, week, weekIndex);
+        LearningPathWeekStats stats = weekStats(path, week, weekIndex);
         week.setStatus("CLOSED");
         week.setClosedAt(Date.from(at));
         week.setCloseAt(Date.from(at));
@@ -238,7 +252,7 @@ final class LearningPathLifecycleEngine {
         changes.put(prefix + "stats", stats);
 
         if (week.getWeekNo() == 3) {
-            LearningPath.Summary summary = summary(path, at);
+            LearningPathSummary summary = summary(path, at);
             path.setSummary(summary);
             path.setStatus("COMPLETED");
             path.setActive(false);
@@ -250,7 +264,7 @@ final class LearningPathLifecycleEngine {
             return;
         }
 
-        LearningPath.Week next = path.getWeeks().get(weekIndex + 1);
+        LearningPathWeek next = path.getWeeks().get(weekIndex + 1);
         Instant nextClose = at.atZone(ZONE).toLocalDate().plusDays(7)
                 .atStartOfDay(ZONE).toInstant();
         next.setStatus("OPEN");
@@ -264,17 +278,17 @@ final class LearningPathLifecycleEngine {
         changes.put("current_week_no", next.getWeekNo());
     }
 
-    private LearningPath.WeekStats weekStats(LearningPath path, LearningPath.Week week,
+    private LearningPathWeekStats weekStats(LearningPath path, LearningPathWeek week,
                                              int weekIndex) {
-        LearningPath.WeekStats stats = new LearningPath.WeekStats();
-        List<LearningPath.MicroSkillWeekStats> bySkill = new ArrayList<>();
-        for (LearningPath.MicroSkillSnapshot skill : path.getMicroSkills()) {
+        LearningPathWeekStats stats = new LearningPathWeekStats();
+        List<LearningPathMicroSkillWeekStats> bySkill = new ArrayList<>();
+        for (LearningPathMicroSkillSnapshot skill : path.getMicroSkills()) {
             Counts counts = countDays(week.getDays(), skill.getMicroSkill());
             Double practiceScore = rate(counts.correct, counts.answered);
             Double previous = weekIndex == 0
                     ? skill.getBaseline().getPercent()
                     : previousScore(path.getWeeks().get(weekIndex - 1), skill.getMicroSkill());
-            LearningPath.MicroSkillWeekStats entry = new LearningPath.MicroSkillWeekStats();
+            LearningPathMicroSkillWeekStats entry = new LearningPathMicroSkillWeekStats();
             entry.setMicroSkill(skill.getMicroSkill());
             entry.setAssigned(counts.assigned);
             entry.setAnswered(counts.answered);
@@ -292,7 +306,7 @@ final class LearningPathLifecycleEngine {
                 ? path.getBaselineTotal().getPercent()
                 : path.getWeeks().get(weekIndex - 1).getStats().getOverall().getPracticeScore();
         Double practiceScore = rate(total.correct, total.answered);
-        LearningPath.OverallWeekStats overall = new LearningPath.OverallWeekStats();
+        LearningPathOverallWeekStats overall = new LearningPathOverallWeekStats();
         overall.setAssigned(total.assigned);
         overall.setAnswered(total.answered);
         overall.setCorrect(total.correct);
@@ -304,32 +318,32 @@ final class LearningPathLifecycleEngine {
         return stats;
     }
 
-    private LearningPath.ComparedTo comparison(int weekIndex, Double percent) {
-        LearningPath.ComparedTo comparedTo = new LearningPath.ComparedTo();
+    private LearningPathComparedTo comparison(int weekIndex, Double percent) {
+        LearningPathComparedTo comparedTo = new LearningPathComparedTo();
         comparedTo.setType(weekIndex == 0 ? "SOURCE_TEST" : "PREVIOUS_WEEK");
         comparedTo.setWeekNo(weekIndex == 0 ? null : weekIndex);
         comparedTo.setPercent(percent);
         return comparedTo;
     }
 
-    private Double previousScore(LearningPath.Week previousWeek, String microSkill) {
+    private Double previousScore(LearningPathWeek previousWeek, String microSkill) {
         return previousWeek.getStats().getByMicroSkill().stream()
                 .filter(entry -> microSkill.equals(entry.getMicroSkill()))
                 .findFirst()
-                .map(LearningPath.MicroSkillWeekStats::getPracticeScore)
+                .map(LearningPathMicroSkillWeekStats::getPracticeScore)
                 .orElse(null);
     }
 
-    private LearningPath.Summary summary(LearningPath path, Instant at) {
-        LearningPath.Summary summary = new LearningPath.Summary();
-        List<LearningPath.SummaryMicroSkill> bySkill = new ArrayList<>();
-        List<LearningPath.Day> allDays = path.getWeeks().stream()
+    private LearningPathSummary summary(LearningPath path, Instant at) {
+        LearningPathSummary summary = new LearningPathSummary();
+        List<LearningPathSummaryMicroSkill> bySkill = new ArrayList<>();
+        List<LearningPathDay> allDays = path.getWeeks().stream()
                 .flatMap(week -> week.getDays().stream()).toList();
-        for (LearningPath.MicroSkillSnapshot skill : path.getMicroSkills()) {
+        for (LearningPathMicroSkillSnapshot skill : path.getMicroSkills()) {
             Counts counts = countDays(allDays, skill.getMicroSkill());
             Double score = rate(counts.correct, counts.answered);
             Double baseline = skill.getBaseline().getPercent();
-            LearningPath.SummaryMicroSkill entry = new LearningPath.SummaryMicroSkill();
+            LearningPathSummaryMicroSkill entry = new LearningPathSummaryMicroSkill();
             entry.setMicroSkill(skill.getMicroSkill());
             entry.setBaselinePercent(baseline);
             entry.setAnswered(counts.answered);
@@ -339,7 +353,7 @@ final class LearningPathLifecycleEngine {
             bySkill.add(entry);
         }
         Counts total = countDays(allDays, null);
-        LearningPath.SummaryCompletion completion = new LearningPath.SummaryCompletion();
+        LearningPathSummaryCompletion completion = new LearningPathSummaryCompletion();
         completion.setAssigned(total.assigned);
         completion.setAnswered(total.answered);
         completion.setCompletionRate(rate(total.answered, total.assigned));
@@ -349,9 +363,9 @@ final class LearningPathLifecycleEngine {
         return summary;
     }
 
-    private Counts countDays(List<LearningPath.Day> days, String microSkill) {
+    private Counts countDays(List<LearningPathDay> days, String microSkill) {
         Counts total = new Counts();
-        for (LearningPath.Day day : days) {
+        for (LearningPathDay day : days) {
             Counts current = countItems(day.getItems(), microSkill);
             total.assigned += current.assigned;
             total.answered += current.answered;
@@ -360,10 +374,10 @@ final class LearningPathLifecycleEngine {
         return total;
     }
 
-    private Counts countItems(List<LearningPath.DayItem> items, String microSkill) {
+    private Counts countItems(List<LearningPathDayItem> items, String microSkill) {
         Counts counts = new Counts();
         if (items == null) return counts;
-        for (LearningPath.DayItem item : items) {
+        for (LearningPathDayItem item : items) {
             if (microSkill != null && !microSkill.equals(item.getMicroSkill())) continue;
             counts.assigned++;
             if (item.getAnswer() != null) {

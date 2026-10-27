@@ -1,12 +1,18 @@
 package fit.iuh.engolearn.learningpath.service;
 
 import fit.iuh.engolearn.learningpath.model.LearningPath;
+import fit.iuh.engolearn.learningpath.model.LearningPathAnswer;
+import fit.iuh.engolearn.learningpath.model.LearningPathBaseline;
+import fit.iuh.engolearn.learningpath.model.LearningPathBaselineTotal;
+import fit.iuh.engolearn.learningpath.model.LearningPathDay;
+import fit.iuh.engolearn.learningpath.model.LearningPathDayItem;
+import fit.iuh.engolearn.learningpath.model.LearningPathDraft;
+import fit.iuh.engolearn.learningpath.model.LearningPathInactivity;
+import fit.iuh.engolearn.learningpath.model.LearningPathMicroSkillSnapshot;
+import fit.iuh.engolearn.learningpath.model.LearningPathProgress;
+import fit.iuh.engolearn.learningpath.model.LearningPathWeek;
 import fit.iuh.engolearn.learningpath.repository.LearningPathLifecycleRepository;
 import fit.iuh.engolearn.learningpath.repository.LearningPathQuestionRepository;
-import org.bson.Document;
-import org.bson.types.ObjectId;
-import org.junit.jupiter.api.Test;
-
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -14,6 +20,9 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import org.bson.Document;
+import org.bson.types.ObjectId;
+import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
@@ -47,7 +56,7 @@ class LearningPathLifecycleEngineTest {
 
         engine.advance(path, midnight("2026-10-08"));
 
-        LearningPath.Day day = path.getWeeks().get(0).getDays().get(0);
+        LearningPathDay day = path.getWeeks().get(0).getDays().get(0);
         assertThat(day.getStatus()).isEqualTo("CLOSED");
         assertThat(day.getResult().getWrong()).isEqualTo(2);
         assertThat(day.getResult().getCompletionRate()).isEqualTo(60.0);
@@ -60,11 +69,11 @@ class LearningPathLifecycleEngineTest {
     void midnightFinalizesDraftsBeforeComputingProgressAndLeavesBlankQuestionsUnanswered() {
         LearningPath path = path("2026-10-01", "2026-10-07");
         startFirstDay(path, "2026-10-07", 0, 0);
-        LearningPath.Day day = path.getWeeks().getFirst().getDays().getFirst();
+        LearningPathDay day = path.getWeeks().getFirst().getDays().getFirst();
         day.getItems().get(0).setQuestionId("q-1");
         day.getItems().get(1).setQuestionId("q-2");
         for (int index = 0; index < 2; index++) {
-            LearningPath.Draft draft = new LearningPath.Draft();
+            LearningPathDraft draft = new LearningPathDraft();
             draft.setSelectedOptionId(index == 0 ? "A" : "B");
             draft.setSavedAt(Date.from(midnight("2026-10-07")));
             day.getItems().get(index).setDraft(draft);
@@ -89,7 +98,7 @@ class LearningPathLifecycleEngineTest {
     void finishedWeekWaitsForNextMidnight() {
         LearningPath path = path("2026-10-09", "2026-10-09");
         startFirstDay(path, "2026-10-09", 10, 8);
-        LearningPath.Day day = path.getWeeks().get(0).getDays().get(0);
+        LearningPathDay day = path.getWeeks().get(0).getDays().get(0);
         day.setStatus("COMPLETED");
         day.setClosedAt(Date.from(Instant.parse("2026-10-09T03:00:00Z")));
 
@@ -154,10 +163,10 @@ class LearningPathLifecycleEngineTest {
         path.setId(new ObjectId());
         path.setUserId(new ObjectId());
         startFirstDay(path, "2026-10-07", 0, 0);
-        LearningPath.DayItem item = path.getWeeks().getFirst().getDays().getFirst()
+        LearningPathDayItem item = path.getWeeks().getFirst().getDays().getFirst()
                 .getItems().getFirst();
         item.setQuestionId("q-1");
-        LearningPath.Draft draft = new LearningPath.Draft();
+        LearningPathDraft draft = new LearningPathDraft();
         draft.setSelectedOptionId("B");
         draft.setSavedAt(Date.from(midnight("2026-10-07")));
         item.setDraft(draft);
@@ -180,29 +189,29 @@ class LearningPathLifecycleEngineTest {
         path.setStatus("NOT_STARTED");
         path.setActive(true);
         path.setCurrentWeekNo(1);
-        LearningPath.Progress progress = new LearningPath.Progress();
+        LearningPathProgress progress = new LearningPathProgress();
         progress.setAssigned(30);
         progress.setAnswered(0);
         progress.setCorrect(0);
         path.setProgress(progress);
-        LearningPath.Inactivity inactivity = new LearningPath.Inactivity();
+        LearningPathInactivity inactivity = new LearningPathInactivity();
         inactivity.setAnchorDate(anchorDate);
         inactivity.setCancelAt(Date.from(LocalDate.parse(anchorDate).plusDays(15)
                 .atStartOfDay(LearningPathLifecycleEngine.ZONE).toInstant()));
         path.setInactivity(inactivity);
-        LearningPath.Baseline baseline = new LearningPath.Baseline();
+        LearningPathBaseline baseline = new LearningPathBaseline();
         baseline.setPercent(40.0);
-        LearningPath.MicroSkillSnapshot skill = new LearningPath.MicroSkillSnapshot();
+        LearningPathMicroSkillSnapshot skill = new LearningPathMicroSkillSnapshot();
         skill.setMicroSkill("Reading for Gist");
         skill.setBaseline(baseline);
         path.setMicroSkills(List.of(skill));
-        LearningPath.BaselineTotal baselineTotal = new LearningPath.BaselineTotal();
+        LearningPathBaselineTotal baselineTotal = new LearningPathBaselineTotal();
         baselineTotal.setPercent(40.0);
         path.setBaselineTotal(baselineTotal);
 
-        List<LearningPath.Week> weeks = new ArrayList<>();
+        List<LearningPathWeek> weeks = new ArrayList<>();
         for (int number = 1; number <= 3; number++) {
-            LearningPath.Week week = new LearningPath.Week();
+            LearningPathWeek week = new LearningPathWeek();
             week.setWeekNo(number);
             week.setStatus(number == 1 ? "OPEN" : "LOCKED");
             if (number == 1) {
@@ -210,12 +219,12 @@ class LearningPathLifecycleEngineTest {
                 week.setCloseAt(Date.from(LocalDate.parse(createdDate).plusDays(7)
                         .atStartOfDay(LearningPathLifecycleEngine.ZONE).toInstant()));
             }
-            LearningPath.Day day = new LearningPath.Day();
+            LearningPathDay day = new LearningPathDay();
             day.setDayNo(1);
             day.setStatus("NOT_STARTED");
             day.setItems(new ArrayList<>());
             for (int order = 1; order <= 10; order++) {
-                LearningPath.DayItem item = new LearningPath.DayItem();
+                LearningPathDayItem item = new LearningPathDayItem();
                 item.setOrder(order);
                 item.setMicroSkill("Reading for Gist");
                 day.getItems().add(item);
@@ -230,13 +239,13 @@ class LearningPathLifecycleEngineTest {
 
     private void startFirstDay(LearningPath path, String date, int answered, int correct) {
         path.setStatus("IN_PROGRESS");
-        LearningPath.Day day = path.getWeeks().get(0).getDays().get(0);
+        LearningPathDay day = path.getWeeks().get(0).getDays().get(0);
         day.setStatus("IN_PROGRESS");
         day.setStartedDate(date);
         day.setAutoCloseAt(Date.from(LocalDate.parse(date).plusDays(1)
                 .atStartOfDay(LearningPathLifecycleEngine.ZONE).toInstant()));
         for (int i = 0; i < answered; i++) {
-            LearningPath.Answer answer = new LearningPath.Answer();
+            LearningPathAnswer answer = new LearningPathAnswer();
             answer.setCorrect(i < correct);
             day.getItems().get(i).setAnswer(answer);
         }

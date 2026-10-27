@@ -1,21 +1,21 @@
 package fit.iuh.engolearn.learningpath.service;
 
-import fit.iuh.engolearn.learningpath.dto.response.LearningPathRecommendationResponse;
 import fit.iuh.engolearn.learningpath.dto.response.LearningPathRecommendationResponse.MicroSkill;
 import fit.iuh.engolearn.learningpath.dto.response.LearningPathRecommendationResponse.State;
+import fit.iuh.engolearn.learningpath.dto.response.LearningPathRecommendationResponse;
 import fit.iuh.engolearn.learningpath.model.LearningPath;
+import fit.iuh.engolearn.learningpath.model.LearningPathMicroSkillSnapshot;
 import fit.iuh.engolearn.learningpath.model.PeriodicTestSnapshot;
 import fit.iuh.engolearn.learningpath.repository.LearningPathRepository;
 import fit.iuh.engolearn.learningpath.repository.PeriodicTestReadRepository;
 import fit.iuh.engolearn.learningpath.repository.QuestionPoolRepository;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import org.bson.types.ObjectId;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
-
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
 
 @Service
 public class LearningPathRecommendationService {
@@ -70,7 +70,7 @@ public class LearningPathRecommendationService {
         for (LearningPath path : paths.findByUserIdAndActiveTrue(userId)) {
             if (path.getMicroSkills() != null) {
                 path.getMicroSkills().stream()
-                        .map(LearningPath.MicroSkillSnapshot::getMicroSkill)
+                        .map(LearningPathMicroSkillSnapshot::getMicroSkill)
                         .forEach(occupied::add);
             }
         }

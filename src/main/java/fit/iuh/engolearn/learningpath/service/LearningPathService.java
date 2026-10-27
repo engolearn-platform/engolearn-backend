@@ -1,18 +1,26 @@
 
 package fit.iuh.engolearn.learningpath.service;
 
-import org.bson.types.ObjectId;
-import org.springframework.http.HttpStatus;
-import org.springframework.stereotype.Service;
-import org.springframework.web.server.ResponseStatusException;
-
 import fit.iuh.engolearn.learningpath.dto.LearningPathDetailResponse;
 import fit.iuh.engolearn.learningpath.dto.LearningPathListItemResponse;
 import fit.iuh.engolearn.learningpath.dto.LearningPathListResponse;
 import fit.iuh.engolearn.learningpath.dto.LearningPathListStatus;
 import fit.iuh.engolearn.learningpath.model.LearningPath;
+import fit.iuh.engolearn.learningpath.model.LearningPathComparedTo;
+import fit.iuh.engolearn.learningpath.model.LearningPathConfig;
+import fit.iuh.engolearn.learningpath.model.LearningPathDay;
+import fit.iuh.engolearn.learningpath.model.LearningPathDayItem;
+import fit.iuh.engolearn.learningpath.model.LearningPathDayResult;
+import fit.iuh.engolearn.learningpath.model.LearningPathMicroSkillSnapshot;
+import fit.iuh.engolearn.learningpath.model.LearningPathMicroSkillWeekStats;
+import fit.iuh.engolearn.learningpath.model.LearningPathOverallWeekStats;
+import fit.iuh.engolearn.learningpath.model.LearningPathProgress;
+import fit.iuh.engolearn.learningpath.model.LearningPathSummary;
+import fit.iuh.engolearn.learningpath.model.LearningPathSummaryCompletion;
+import fit.iuh.engolearn.learningpath.model.LearningPathSummaryMicroSkill;
+import fit.iuh.engolearn.learningpath.model.LearningPathWeek;
+import fit.iuh.engolearn.learningpath.model.LearningPathWeekStats;
 import fit.iuh.engolearn.learningpath.repository.LearningPathRepository;
-
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
@@ -25,6 +33,10 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import org.bson.types.ObjectId;
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 @Service
 public class LearningPathService {
@@ -122,10 +134,10 @@ public class LearningPathService {
                 path.getMicroSkills() == null
                         ? List.of()
                         : path.getMicroSkills().stream()
-                        .map(LearningPath.MicroSkillSnapshot::getMicroSkill)
+                        .map(LearningPathMicroSkillSnapshot::getMicroSkill)
                         .toList();
 
-        LearningPath.Progress sourceProgress = path.getProgress();
+        LearningPathProgress sourceProgress = path.getProgress();
 
         LearningPathListItemResponse.ProgressSummary progress =
                 sourceProgress == null
@@ -173,7 +185,7 @@ public class LearningPathService {
     }
 
     private LearningPathDetailResponse toDetailResponse(LearningPath path) {
-        LearningPath.Config config = path.getConfig();
+        LearningPathConfig config = path.getConfig();
 
         LearningPathDetailResponse.ConfigInfo configInfo =
                 config == null
@@ -186,7 +198,7 @@ public class LearningPathService {
 
         List<LearningPathDetailResponse.MicroSkillInfo> microSkills =
                 (path.getMicroSkills() == null
-                        ? Collections.<LearningPath.MicroSkillSnapshot>emptyList()
+                        ? Collections.<LearningPathMicroSkillSnapshot>emptyList()
                         : path.getMicroSkills())
                         .stream()
                         .map(skill -> {
@@ -209,7 +221,7 @@ public class LearningPathService {
 
         List<LearningPathDetailResponse.WeekInfo> weeks =
                 (path.getWeeks() == null
-                        ? Collections.<LearningPath.Week>emptyList()
+                        ? Collections.<LearningPathWeek>emptyList()
                         : path.getWeeks())
                         .stream()
                         .map(week -> toWeekInfo(path, week))
@@ -237,13 +249,13 @@ public class LearningPathService {
 
     private LearningPathDetailResponse.WeekInfo toWeekInfo(
             LearningPath path,
-            LearningPath.Week week
+            LearningPathWeek week
     ) {
         List<LearningPathDetailResponse.DayInfo> days =
                 "LOCKED".equals(week.getStatus())
                         ? List.of()
                         : (week.getDays() == null
-                        ? Collections.<LearningPath.Day>emptyList()
+                        ? Collections.<LearningPathDay>emptyList()
                         : week.getDays())
                         .stream()
                         .map(day -> toDayInfo(path, day))
@@ -268,9 +280,9 @@ public class LearningPathService {
 
     private LearningPathDetailResponse.DayInfo toDayInfo(
             LearningPath path,
-            LearningPath.Day day
+            LearningPathDay day
     ) {
-        LearningPath.DayResult result = day.getResult();
+        LearningPathDayResult result = day.getResult();
 
         LearningPathDetailResponse.DayResultInfo resultInfo =
                 result == null
@@ -294,14 +306,14 @@ public class LearningPathService {
 
     private List<LearningPathDetailResponse.SkillAllocationInfo> toSkillAllocations(
             LearningPath path,
-            LearningPath.Day day
+            LearningPathDay day
     ) {
-        List<LearningPath.MicroSkillSnapshot> selectedSkills =
+        List<LearningPathMicroSkillSnapshot> selectedSkills =
                 path.getMicroSkills() == null
                         ? List.of()
                         : path.getMicroSkills();
 
-        List<LearningPath.DayItem> items = day.getItems() == null
+        List<LearningPathDayItem> items = day.getItems() == null
                 ? List.of()
                 : day.getItems();
 
@@ -322,11 +334,11 @@ public class LearningPathService {
     }
 
     private LearningPathDetailResponse.WeekStatsInfo toWeekStatsInfo(
-            LearningPath.WeekStats stats
+            LearningPathWeekStats stats
     ) {
         List<LearningPathDetailResponse.MicroSkillWeekStatsInfo> byMicroSkill =
                 (stats.getByMicroSkill() == null
-                        ? Collections.<LearningPath.MicroSkillWeekStats>emptyList()
+                        ? Collections.<LearningPathMicroSkillWeekStats>emptyList()
                         : stats.getByMicroSkill())
                         .stream()
                         .map(skill ->
@@ -342,7 +354,7 @@ public class LearningPathService {
                         )
                         .toList();
 
-        LearningPath.OverallWeekStats overall = stats.getOverall();
+        LearningPathOverallWeekStats overall = stats.getOverall();
 
         LearningPathDetailResponse.OverallWeekStatsInfo overallInfo =
                 overall == null
@@ -366,7 +378,7 @@ public class LearningPathService {
     }
 
     private LearningPathDetailResponse.ComparedToInfo toComparedToInfo(
-            LearningPath.ComparedTo comparedTo
+            LearningPathComparedTo comparedTo
     ) {
         if (comparedTo == null) {
             return null;
@@ -380,11 +392,11 @@ public class LearningPathService {
     }
 
     private LearningPathDetailResponse.SummaryInfo toSummaryInfo(
-            LearningPath.Summary summary
+            LearningPathSummary summary
     ) {
         List<LearningPathDetailResponse.SummaryMicroSkillInfo> byMicroSkill =
                 (summary.getByMicroSkill() == null
-                        ? Collections.<LearningPath.SummaryMicroSkill>emptyList()
+                        ? Collections.<LearningPathSummaryMicroSkill>emptyList()
                         : summary.getByMicroSkill())
                         .stream()
                         .map(skill ->
@@ -399,7 +411,7 @@ public class LearningPathService {
                         )
                         .toList();
 
-        LearningPath.SummaryCompletion completion = summary.getCompletion();
+        LearningPathSummaryCompletion completion = summary.getCompletion();
 
         LearningPathDetailResponse.SummaryCompletionInfo completionInfo =
                 completion == null
@@ -418,7 +430,7 @@ public class LearningPathService {
     }
 
     private LearningPathDetailResponse.ProgressInfo toProgressInfo(
-            LearningPath.Progress progress
+            LearningPathProgress progress
     ) {
         if (progress == null) {
             return null;
