@@ -4,6 +4,8 @@ server:
 spring:
   application:
     name: engolearn
+  autoconfigure:
+    exclude: org.springframework.boot.security.autoconfigure.UserDetailsServiceAutoConfiguration
   config:
     import: optional:file:.env[.properties]
   mongodb:
@@ -15,9 +17,13 @@ spring:
 
 engolearn:
   cors:
-    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000,http://127.0.0.1:3000}
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000}
   mongodb:
     server-selection-timeout-ms: 2000
+  security:
+    dev-auth:
+      enabled: false
+
 
   topic:
     local-learner-id: ${TOPIC_LOCAL_LEARNER_ID:}
