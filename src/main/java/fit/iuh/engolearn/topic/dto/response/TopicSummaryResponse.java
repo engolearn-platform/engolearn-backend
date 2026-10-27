@@ -19,4 +19,9 @@ public class TopicSummaryResponse {
     private int vocabularyCount;
     private int quizCount;
     private int durationMinutes;
+    private int totalItemCount;
+    private TopicCatalogPolicy.ProgressSummary progress;
+    private boolean hasNewContent;
+    private TopicCatalogPolicy.Availability startAvailability;
+    private java.time.Instant lastAccessedAt;
 }

@@ -4,6 +4,7 @@ import fit.iuh.engolearn.shared.enums.CefrLevel;
 import fit.iuh.engolearn.topic.dto.request.GetAvailableTopicRequest;
 import fit.iuh.engolearn.topic.dto.request.GetTopicDetailRequest;
 import fit.iuh.engolearn.topic.dto.response.TopicDetailResponse;
+import fit.iuh.engolearn.topic.dto.response.TopicCatalogPolicy;
 import fit.iuh.engolearn.topic.dto.response.TopicItemSummaryResponse;
 import fit.iuh.engolearn.topic.dto.response.TopicPageResponse;
 import fit.iuh.engolearn.topic.dto.response.TopicSummaryResponse;
@@ -100,6 +101,7 @@ public class TopicBrowseServiceImpl implements TopicBrowseService {
         }
         return TopicPageResponse.builder()
                 .items(items)
+                .total(countPublishedTopics(level, keyword))
                 .nextCursor(nextCursor)
                 .hasMore(hasMore)
                 .build();
@@ -138,6 +140,12 @@ public class TopicBrowseServiceImpl implements TopicBrowseService {
                 .titleVi(topic.getTitleVi())
                 .cefrLevel(topic.getCefrLevel())
                 .description(topic.getDescription())
+                .coverUrl(topic.getCoverUrl())
+                .durationMinutes(items.stream().mapToInt(TopicItemSummaryResponse::getDurationMinutes).sum())
+                .vocabularyCount(items.stream().mapToInt(TopicItemSummaryResponse::getVocabularyCount).sum())
+                .expressionCount(items.stream().mapToInt(TopicItemSummaryResponse::getExpressionCount).sum())
+                .quizCount(items.stream().mapToInt(TopicItemSummaryResponse::getQuizCount).sum())
+                .retryAvailability(TopicCatalogPolicy.Availability.signInRequired())
                 .items(items)
                 .build();
     }
@@ -181,6 +189,7 @@ public class TopicBrowseServiceImpl implements TopicBrowseService {
             }
             int vocabularyCount = 0;
             int quizCount = 0;
+            int itemCount = 0;
             if (release.getItemVersionIds() != null) {
                 for (String itemVersionId : release.getItemVersionIds()) {
                     TopicItemVersion itemVersion = itemVersions.get(itemVersionId);
@@ -189,10 +198,11 @@ public class TopicBrowseServiceImpl implements TopicBrowseService {
                     }
                     vocabularyCount += sizeOf(itemVersion.getVocabularies());
                     quizCount += sizeOf(itemVersion.getQuizzes());
+                    itemCount++;
                 }
             }
             listed.add(topic);
-            countsByTopic.put(topic.getId(), new Counts(vocabularyCount, quizCount));
+            countsByTopic.put(topic.getId(), new Counts(vocabularyCount, quizCount, itemCount));
         }
         return new ResolvedPage(listed, countsByTopic);
     }
@@ -223,6 +233,8 @@ public class TopicBrowseServiceImpl implements TopicBrowseService {
                 .cefrLevel(topic.getCefrLevel())
                 .vocabularyCount(counts.vocabularyCount())
                 .quizCount(counts.quizCount())
+                .totalItemCount(counts.itemCount())
+                .startAvailability(TopicCatalogPolicy.Availability.signInRequired())
                 // Maintained on the topic document, the same value the duration sort key uses.
                 .durationMinutes(orZero(topic.getDurationMinutes()))
                 .build();
@@ -236,8 +248,19 @@ public class TopicBrowseServiceImpl implements TopicBrowseService {
                 .durationMinutes(orZero(itemVersion.getDurationMinutes()))
                 .vocabularyCount(sizeOf(itemVersion.getVocabularies()))
                 .expressionCount(countExpressions(itemVersion))
+                .actions(TopicCatalogPolicy.ItemActions.anonymous())
                 .quizCount(sizeOf(itemVersion.getQuizzes()))
                 .build();
+    }
+
+    private long countPublishedTopics(CefrLevel level, String keyword) {
+        List<Topic> candidates = topicRepository.findPublishedCandidates(level, keyword);
+        List<String> releaseIds = candidates.stream().map(Topic::getLatestPublishedVersion).distinct().toList();
+        java.util.Set<String> publishedIds = new java.util.HashSet<>();
+        for (TopicVersion release : topicVersionRepository.findAllById(releaseIds)) {
+            if (release.getStatus() == ContentStatus.PUBLISHED) publishedIds.add(release.getId());
+        }
+        return candidates.stream().filter(topic -> publishedIds.contains(topic.getLatestPublishedVersion())).count();
     }
 
     private static int countExpressions(TopicItemVersion itemVersion) {
@@ -309,9 +332,9 @@ public class TopicBrowseServiceImpl implements TopicBrowseService {
     }
 
     /** Visible-item counts of one topic card. */
-    private record Counts(int vocabularyCount, int quizCount) {
+    private record Counts(int vocabularyCount, int quizCount, int itemCount) {
 
-        private static final Counts EMPTY = new Counts(0, 0);
+        private static final Counts EMPTY = new Counts(0, 0, 0);
     }
 
     /** Rows of one fetched batch that can be listed, with their visible-item counts. */

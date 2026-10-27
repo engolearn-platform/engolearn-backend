@@ -17,4 +17,10 @@ public class TopicItemSummaryResponse {
     private int vocabularyCount;
     private int expressionCount;
     private int quizCount;
+    private String learningStatus;
+    private boolean hasNewContent;
+    private TopicCatalogPolicy.ItemActions actions;
+    private TopicCatalogPolicy.AttemptReference learningAttempt;
+    private TopicCatalogPolicy.AttemptReference retryAttempt;
+    private String completedAttemptId;
 }

@@ -19,4 +19,13 @@ public class TopicDetailResponse {
     private CefrLevel cefrLevel;
     private String description;
     private List<TopicItemSummaryResponse> items;
+    private String coverUrl;
+    private int durationMinutes;
+    private int vocabularyCount;
+    private int expressionCount;
+    private int quizCount;
+    private boolean hasNewContent;
+    private TopicCatalogPolicy.ProgressSummary progress;
+    private TopicCatalogPolicy.Availability retryAvailability;
+    private TopicCatalogPolicy.RetrySession retrySession;
 }
