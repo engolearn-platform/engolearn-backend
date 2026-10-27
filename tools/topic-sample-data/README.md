@@ -24,17 +24,21 @@ The business rules require UK and US pronunciation audio for publish-ready vocab
 
 ## Run on Windows PowerShell
 
-Run from the repository root. Set a local connection URI and the exact database name; do not use a production URI.
+Prerequisites: the local MongoDB container must be running and `mongosh` must be installed on Windows (`mongosh --version` checks this). Run commands from the backend repository root.
+
+This repo's `.env.example` configures MongoDB authentication. Copy the actual credentials from your local, uncommitted `.env`; do not assume the example password if you changed it. With the example values (`APP_DB=engolearn_db`, `APP_USER=admin`, `APP_PASSWORD=admin123`), the application-user URI is:
 
 ```powershell
-$env:TOPIC_SAMPLE_MONGO_URI = "mongodb://localhost:27017"
+$env:TOPIC_SAMPLE_MONGO_URI = "mongodb://admin:admin123@localhost:27017/?authSource=engolearn_db"
 $env:TOPIC_SAMPLE_DATABASE = "engolearn_db"
 
-# Read-only preflight (default)
+# Read-only preflight (default; no inserts)
 mongosh --nodb --file tools/topic-sample-data/import-a1-cafe-topic.mongosh.js
 ```
 
-For a **local UI preview only**, the missing-audio warning must be explicitly acknowledged:
+If your local `.env` uses different values, replace the username, password, port and database/authSource to match. The script connects using `TOPIC_SAMPLE_MONGO_URI` and then explicitly selects `TOPIC_SAMPLE_DATABASE`; it never guesses the database. Do not use a production URI.
+
+Only after the dry-run output is correct, and only for a disposable/local development database, import for a **local UI preview**. The sample has no confirmed UK/US audio yet, so the missing-audio warning must be explicitly acknowledged:
 
 ```powershell
 $env:TOPIC_SAMPLE_APPLY = "1"
@@ -49,4 +53,12 @@ The importer refuses non-local hosts, system/production-looking database names, 
 
 **Run the import before starting the app with the `dev` profile.** The current `DevTopicSeedRunner` inserts placeholder topics when `topics` is empty; importing this topic first makes that runner see a non-empty collection and skip its placeholder seed.
 
-After import, verify the topic via `GET /api/v1/topics?level=A1` and `GET /api/v1/topics/<topicId>`. Start/learn/quiz checks depend on which learning endpoints are currently implemented in the checked-out branch; do not count a missing endpoint as a sample-data failure.
+After import, verify counts in `mongosh` (use the same credentials/URI), then verify the topic via `GET /api/v1/topics?level=A1` and `GET /api/v1/topics/<topicId>`. You can find the ID with:
+
+```javascript
+db.topics.findOne({ tags: "sample-a1-cafe-v1" }, { _id: 1, title_en: 1 })
+```
+
+Start/learn/quiz checks depend on which learning endpoints are actually implemented in the checked-out branch; do not count a missing endpoint as a sample-data failure.
+
+To clean up this **sample only**, do not drop a whole collection. First ask for a separate cleanup plan that targets this pack's exact IDs and confirms no attempts reference them.
