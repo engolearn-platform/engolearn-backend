@@ -73,6 +73,9 @@ class LearningPathDayPracticeServiceTest {
         day.setStatus("IN_PROGRESS");
         day.setStartedAt(Date.from(NOW.minusSeconds(1800)));
         day.setAutoCloseAt(Date.from(NEXT_MIDNIGHT));
+        LearningPath.Draft draft = new LearningPath.Draft();
+        draft.setSelectedOptionId("C");
+        day.getItems().getLast().setDraft(draft);
         when(paths.findByIdAndUserId(pathId, userId)).thenReturn(Optional.of(path));
         when(questions.findSnapshots(any(), any(), anyList())).thenReturn(snapshots());
 
@@ -80,6 +83,8 @@ class LearningPathDayPracticeServiceTest {
 
         assertThat(response.startedAt()).isEqualTo(day.getStartedAt());
         assertThat(response.autoCloseAt()).isEqualTo(day.getAutoCloseAt());
+        assertThat(response.questions().getFirst().selectedOptionId()).isEqualTo("C");
+        assertThat(response.questions().get(1).selectedOptionId()).isNull();
         verify(practice, never()).startDay(any(), any(), anyInt(), anyInt(),
                 any(), any(), any(), any(), any(), any());
     }

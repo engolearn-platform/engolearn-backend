@@ -2,6 +2,8 @@ package fit.iuh.engolearn.learningpath.service;
 
 import fit.iuh.engolearn.learningpath.model.LearningPath;
 import fit.iuh.engolearn.learningpath.repository.LearningPathLifecycleRepository;
+import fit.iuh.engolearn.learningpath.repository.LearningPathQuestionRepository;
+import org.bson.Document;
 import org.bson.types.ObjectId;
 import org.junit.jupiter.api.Test;
 
@@ -14,6 +16,8 @@ import java.util.Map;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 class LearningPathLifecycleEngineTest {
 
@@ -50,6 +54,35 @@ class LearningPathLifecycleEngineTest {
         assertThat(day.getResult().getPracticeScore()).isCloseTo(66.6666666667,
                 org.assertj.core.data.Offset.offset(0.00001));
         assertThat(path.getWeeks().get(0).getStats().getOverall().getAnswered()).isEqualTo(6);
+    }
+
+    @Test
+    void midnightFinalizesDraftsBeforeComputingProgressAndLeavesBlankQuestionsUnanswered() {
+        LearningPath path = path("2026-10-01", "2026-10-07");
+        startFirstDay(path, "2026-10-07", 0, 0);
+        LearningPath.Day day = path.getWeeks().getFirst().getDays().getFirst();
+        day.getItems().get(0).setQuestionId("q-1");
+        day.getItems().get(1).setQuestionId("q-2");
+        for (int index = 0; index < 2; index++) {
+            LearningPath.Draft draft = new LearningPath.Draft();
+            draft.setSelectedOptionId(index == 0 ? "A" : "B");
+            draft.setSavedAt(Date.from(midnight("2026-10-07")));
+            day.getItems().get(index).setDraft(draft);
+        }
+
+        Map<String, Object> changes = engine.advance(path, midnight("2026-10-08"),
+                Map.of("q-1", "A", "q-2", "A"));
+
+        assertThat(day.getItems().get(0).getAnswer().getCorrect()).isTrue();
+        assertThat(day.getItems().get(1).getAnswer().getCorrect()).isFalse();
+        assertThat(day.getItems().get(0).getDraft()).isNull();
+        assertThat(day.getItems().get(2).getAnswer()).isNull();
+        assertThat(day.getProgress().getAnswered()).isEqualTo(2);
+        assertThat(path.getProgress().getAnswered()).isEqualTo(2);
+        assertThat(day.getResult().getCompletionRate()).isEqualTo(20.0);
+        assertThat(day.getResult().getPracticeScore()).isEqualTo(50.0);
+        assertThat(changes).containsKeys("weeks.0.days.0.items.0.answer",
+                "weeks.0.days.0.items.0.draft", "progress");
     }
 
     @Test
@@ -108,10 +141,37 @@ class LearningPathLifecycleEngineTest {
         Instant recoveredAt = midnight("2026-10-23");
         FakeRepository repository = new FakeRepository(path);
 
-        new LearningPathLifecycleService(repository).processDue(recoveredAt);
+        new LearningPathLifecycleService(repository, mock(LearningPathQuestionRepository.class))
+                .processDue(recoveredAt);
 
         assertThat(path.getStatus()).isEqualTo("CANCELLED");
         assertThat(repository.transitions).isEqualTo(3);
+    }
+
+    @Test
+    void lifecycleServiceLoadsAnswerKeyToFinalizeDraft() {
+        LearningPath path = path("2026-10-01", "2026-10-07");
+        path.setId(new ObjectId());
+        path.setUserId(new ObjectId());
+        startFirstDay(path, "2026-10-07", 0, 0);
+        LearningPath.DayItem item = path.getWeeks().getFirst().getDays().getFirst()
+                .getItems().getFirst();
+        item.setQuestionId("q-1");
+        LearningPath.Draft draft = new LearningPath.Draft();
+        draft.setSelectedOptionId("B");
+        draft.setSavedAt(Date.from(midnight("2026-10-07")));
+        item.setDraft(draft);
+        LearningPathQuestionRepository questions = mock(LearningPathQuestionRepository.class);
+        when(questions.findAnswerKeys(path.getId(), path.getUserId(), List.of("q-1")))
+                .thenReturn(List.of(new Document("question_id", "q-1")
+                        .append("correct_option_id", "B")));
+
+        new LearningPathLifecycleService(new FakeRepository(path), questions)
+                .processDue(midnight("2026-10-08"));
+
+        assertThat(item.getAnswer().getCorrect()).isTrue();
+        assertThat(item.getDraft()).isNull();
+        assertThat(path.getProgress().getAnswered()).isEqualTo(1);
     }
 
     private LearningPath path(String createdDate, String anchorDate) {

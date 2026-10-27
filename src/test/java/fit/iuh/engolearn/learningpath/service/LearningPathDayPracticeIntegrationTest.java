@@ -3,6 +3,7 @@ package fit.iuh.engolearn.learningpath.service;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
 import fit.iuh.engolearn.learningpath.model.LearningPath;
+import fit.iuh.engolearn.learningpath.dto.request.SaveLearningPathAnswerDraftRequest;
 import fit.iuh.engolearn.learningpath.repository.LearningPathPracticeRepository;
 import fit.iuh.engolearn.learningpath.repository.LearningPathQuestionRepository;
 import fit.iuh.engolearn.learningpath.repository.LearningPathRepository;
@@ -90,6 +91,53 @@ class LearningPathDayPracticeIntegrationTest {
                 assertThat(day.getString("started_date")).isEqualTo("2026-10-09");
                 assertThat(day.getDate("started_at")).isEqualTo(Date.from(STARTED_AT));
                 assertThat(day.getDate("auto_close_at")).isEqualTo(AUTO_CLOSE_AT);
+            } finally {
+                template.getDb().drop();
+            }
+        }
+    }
+
+    @Test
+    void draftCanBeChangedAndIsRestoredWhenDayReopens() {
+        try (MongoClient client = MongoClients.create(mongoUri)) {
+            MongoTemplate template = new MongoTemplate(client, "learning_path_draft_"
+                    + UUID.randomUUID().toString().replace("-", ""));
+            try {
+                ObjectId pathId = new ObjectId();
+                ObjectId userId = new ObjectId();
+                insertPath(template, pathId, userId);
+                insertSnapshots(template, pathId, userId);
+                LearningPathRepository paths = mock(LearningPathRepository.class);
+                when(paths.findByIdAndUserId(pathId, userId)).thenAnswer(invocation ->
+                        Optional.ofNullable(template.findOne(Query.query(Criteria.where("_id").is(pathId)
+                                .and("user_id").is(userId)), LearningPath.class)));
+                LearningPathPracticeRepository practice = new LearningPathPracticeRepository(template);
+                LearningPathQuestionRepository questions = new LearningPathQuestionRepository(template);
+                Clock clock = Clock.fixed(STARTED_AT, ZoneOffset.UTC);
+                LearningPathDayPracticeService dayService = new LearningPathDayPracticeService(
+                        paths, practice, questions, clock);
+                LearningPathAnswerDraftService draftService = new LearningPathAnswerDraftService(
+                        paths, practice, questions, clock);
+                dayService.start(pathId.toHexString(), 1, 1, userId.toHexString());
+
+                draftService.save(pathId.toHexString(), 1, 1, "q-1", userId.toHexString(),
+                        new SaveLearningPathAnswerDraftRequest("A"));
+                draftService.save(pathId.toHexString(), 1, 1, "q-1", userId.toHexString(),
+                        new SaveLearningPathAnswerDraftRequest("B"));
+                var reopened = dayService.start(pathId.toHexString(), 1, 1, userId.toHexString());
+
+                assertThat(reopened.questions().getFirst().selectedOptionId()).isEqualTo("B");
+                Document persisted = template.getCollection("learning_paths")
+                        .find(new Document("_id", pathId)).first();
+                assertThat(persisted).isNotNull();
+                assertThat(persisted.get("inactivity", Document.class).getString("anchor_date"))
+                        .isEqualTo("2026-10-09");
+                Document item = persisted.getList("weeks", Document.class).getFirst()
+                        .getList("days", Document.class).getFirst()
+                        .getList("items", Document.class).getFirst();
+                assertThat(item.get("draft", Document.class).getString("selected_option_id"))
+                        .isEqualTo("B");
+                assertThat(item.get("answer")).isNull();
             } finally {
                 template.getDb().drop();
             }
