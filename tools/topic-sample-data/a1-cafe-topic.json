@@ -1,0 +1,3111 @@
+{
+  "meta": {
+    "pack_id": "sample-a1-cafe-v1",
+    "purpose": "Single-topic local verification pack for the existing Topic Learning backend models and F01 catalog/detail flow.",
+    "topic_level": "A1",
+    "note": "This pack follows the current BE model/VO shape in fix/topic-live-catalog. Top-level _id values are converted to BSON ObjectId by the importer; reference fields remain strings to match current model serialization. This differs from the illustrative ObjectId reference types in topic-learning-schema-v1.json and should be reconciled before generalizing this pack.",
+    "media_status": "LOCAL_PREVIEW_ONLY",
+    "media_blockers": [
+      "No confirmed project-hosted UK/US vocabulary pronunciation assets were found in the inspected repository sources.",
+      "Vocabulary audio_en_url/audio_us_url and optional cover/dialogue audio are null rather than fabricated URLs. Business rules require UK/US audio for publish-ready vocabulary content."
+    ]
+  },
+  "collections": {
+    "topics": [
+      {
+        "_id": "6a7200000000000000000001",
+        "latest_published_version": "6a7200000000000000000002",
+        "latest_beta_version": null,
+        "title_en": "At the Café: My First Order",
+        "title_vi": "Gọi món ở quán cà phê lần đầu",
+        "description": "Learn to greet café staff, choose a drink and size, order a snack, and pay politely. Học cách chào hỏi, chọn đồ uống và kích cỡ, gọi món ăn nhẹ, rồi thanh toán lịch sự.",
+        "cefr_level": "A1",
+        "category": "DINING",
+        "order_index": 10,
+        "duration_minutes": 21,
+        "cover_url": null,
+        "tags": [
+          "sample-data",
+          "sample-a1-cafe-v1",
+          "daily-english",
+          "a1"
+        ],
+        "created_at": "2026-10-27T12:00:00.000Z",
+        "updated_at": "2026-10-27T12:00:00.000Z"
+      }
+    ],
+    "topic_versions": [
+      {
+        "_id": "6a7200000000000000000002",
+        "topic_id": "6a7200000000000000000001",
+        "version": 1,
+        "previous_version_id": null,
+        "status": "PUBLISHED",
+        "item_version_ids": [
+          "6a7200000000000000000021",
+          "6a7200000000000000000022",
+          "6a7200000000000000000023",
+          "6a7200000000000000000024",
+          "6a7200000000000000000025"
+        ],
+        "published_at": "2026-10-27T12:00:00.000Z",
+        "created_at": "2026-10-27T12:00:00.000Z",
+        "updated_at": "2026-10-27T12:00:00.000Z"
+      }
+    ],
+    "topic_items": [
+      {
+        "_id": "6a7200000000000000000011",
+        "topic_id": "6a7200000000000000000001",
+        "created_at": "2026-10-27T12:00:00.000Z",
+        "updated_at": "2026-10-27T12:00:00.000Z"
+      },
+      {
+        "_id": "6a7200000000000000000012",
+        "topic_id": "6a7200000000000000000001",
+        "created_at": "2026-10-27T12:00:00.000Z",
+        "updated_at": "2026-10-27T12:00:00.000Z"
+      },
+      {
+        "_id": "6a7200000000000000000013",
+        "topic_id": "6a7200000000000000000001",
+        "created_at": "2026-10-27T12:00:00.000Z",
+        "updated_at": "2026-10-27T12:00:00.000Z"
+      },
+      {
+        "_id": "6a7200000000000000000014",
+        "topic_id": "6a7200000000000000000001",
+        "created_at": "2026-10-27T12:00:00.000Z",
+        "updated_at": "2026-10-27T12:00:00.000Z"
+      },
+      {
+        "_id": "6a7200000000000000000015",
+        "topic_id": "6a7200000000000000000001",
+        "created_at": "2026-10-27T12:00:00.000Z",
+        "updated_at": "2026-10-27T12:00:00.000Z"
+      }
+    ],
+    "topic_item_versions": [
+      {
+        "_id": "6a7200000000000000000021",
+        "topic_item_id": "6a7200000000000000000011",
+        "topic_id": "6a7200000000000000000001",
+        "topic_version_id": "6a7200000000000000000002",
+        "version": 1,
+        "change_type": "MAJOR",
+        "previous_item_version_id": null,
+        "title": "Say Hello and Ask for the Menu",
+        "description": "Greet the café staff and ask to see the menu. Chào nhân viên và xin xem thực đơn.",
+        "order": 1,
+        "status": "PUBLISHED",
+        "duration_minutes": 4,
+        "context": {
+          "prompt": "What can you say when you enter a café and want to see the menu?",
+          "scenario_description": "Bạn vừa vào quán cà phê. Bạn chào nhân viên và xin xem thực đơn trước khi gọi món.",
+          "dialogue": [
+            {
+              "speaker": "Customer",
+              "text_en": "Hello. Could I see the menu, please?",
+              "text_vi": "Xin chào. Cho tôi xem thực đơn được không?",
+              "audio_url": null
+            },
+            {
+              "speaker": "Barista",
+              "text_en": "Of course. Here you are.",
+              "text_vi": "Được chứ. Của bạn đây.",
+              "audio_url": null
+            },
+            {
+              "speaker": "Customer",
+              "text_en": "Thank you.",
+              "text_vi": "Cảm ơn bạn.",
+              "audio_url": null
+            }
+          ],
+          "duration_sec": 240,
+          "tips": "Start with a greeting. Adding please makes a request sound polite."
+        },
+        "vocabularies": [
+          {
+            "vocab_id": "a1-cafe-01-menu",
+            "sense_id": "a1-cafe-01-menu-sense-v1",
+            "snapshot": {
+              "word": "menu",
+              "pos": "noun",
+              "sense": "A list of food and drinks you can choose from.",
+              "describe_vi": "thực đơn",
+              "phonetic": "/ˈmen.juː/",
+              "audio_url": null,
+              "audio_en_url": null,
+              "audio_us_url": null
+            },
+            "samples": [
+              {
+                "text_en": "Could I see the menu, please?",
+                "text_vi": "Tôi có thể xem thực đơn được không?",
+                "audio_url": null,
+                "is_manual": false
+              },
+              {
+                "text_en": "The menu is on the table.",
+                "text_vi": "Thực đơn ở trên bàn.",
+                "audio_url": null,
+                "is_manual": false
+              }
+            ],
+            "collocations": [
+              {
+                "text": "look at the menu",
+                "example": {
+                  "en": "Let's look at the menu first.",
+                  "vi": "Chúng ta xem thực đơn trước nhé."
+                },
+                "description_vi": "xem thực đơn"
+              }
+            ],
+            "quick_check": {
+              "sentence": {
+                "text_en": "What does “menu” mean here?",
+                "meaning_vi": "Trong ngữ cảnh này, “menu” có nghĩa là gì?",
+                "audio_url": null
+              },
+              "quiz_data": {
+                "question": "What does “menu” mean here?",
+                "options": [
+                  "thực đơn",
+                  "hóa đơn",
+                  "cái bàn"
+                ]
+              },
+              "answer_data": {
+                "answer": "thực đơn",
+                "correct_answer": "thực đơn"
+              },
+              "explanation": "“menu” có nghĩa là “thực đơn”."
+            },
+            "order_index": 1,
+            "tips": "Menu is the list of food and drinks, not the bill."
+          },
+          {
+            "vocab_id": "a1-cafe-01-table",
+            "sense_id": "a1-cafe-01-table-sense-v1",
+            "snapshot": {
+              "word": "table",
+              "pos": "noun",
+              "sense": "A piece of furniture where people sit to eat or work.",
+              "describe_vi": "cái bàn",
+              "phonetic": "/ˈteɪ.bəl/",
+              "audio_url": null,
+              "audio_en_url": null,
+              "audio_us_url": null
+            },
+            "samples": [
+              {
+                "text_en": "This table is near the window.",
+                "text_vi": "Cái bàn này ở gần cửa sổ.",
+                "audio_url": null,
+                "is_manual": false
+              },
+              {
+                "text_en": "Our table is ready.",
+                "text_vi": "Bàn của chúng ta đã sẵn sàng.",
+                "audio_url": null,
+                "is_manual": false
+              }
+            ],
+            "collocations": [
+              {
+                "text": "a table for two",
+                "example": {
+                  "en": "Can we have a table for two?",
+                  "vi": "Chúng tôi có thể ngồi bàn dành cho hai người không?"
+                },
+                "description_vi": "bàn dành cho hai người"
+              }
+            ],
+            "quick_check": {
+              "sentence": {
+                "text_en": "What does “table” mean here?",
+                "meaning_vi": "Trong ngữ cảnh này, “table” có nghĩa là gì?",
+                "audio_url": null
+              },
+              "quiz_data": {
+                "question": "What does “table” mean here?",
+                "options": [
+                  "cái bàn",
+                  "thực đơn",
+                  "tách cà phê"
+                ]
+              },
+              "answer_data": {
+                "answer": "cái bàn",
+                "correct_answer": "cái bàn"
+              },
+              "explanation": "“table” có nghĩa là “cái bàn”."
+            },
+            "order_index": 2,
+            "tips": "A table is furniture; a menu tells you what you can order."
+          },
+          {
+            "vocab_id": "a1-cafe-01-please",
+            "sense_id": "a1-cafe-01-please-sense-v1",
+            "snapshot": {
+              "word": "please",
+              "pos": "adverb",
+              "sense": "A polite word used when asking for something.",
+              "describe_vi": "làm ơn; vui lòng",
+              "phonetic": "/pliːz/",
+              "audio_url": null,
+              "audio_en_url": null,
+              "audio_us_url": null
+            },
+            "samples": [
+              {
+                "text_en": "A coffee, please.",
+                "text_vi": "Cho tôi một ly cà phê.",
+                "audio_url": null,
+                "is_manual": false
+              },
+              {
+                "text_en": "Please sit here.",
+                "text_vi": "Mời bạn ngồi ở đây.",
+                "audio_url": null,
+                "is_manual": false
+              }
+            ],
+            "collocations": [
+              {
+                "text": "ask politely",
+                "example": {
+                  "en": "You can ask politely with the word please.",
+                  "vi": "Bạn có thể yêu cầu một cách lịch sự bằng từ please."
+                },
+                "description_vi": "yêu cầu một cách lịch sự"
+              }
+            ],
+            "quick_check": {
+              "sentence": {
+                "text_en": "What does “please” mean here?",
+                "meaning_vi": "Trong ngữ cảnh này, “please” có nghĩa là gì?",
+                "audio_url": null
+              },
+              "quiz_data": {
+                "question": "What does “please” mean here?",
+                "options": [
+                  "làm ơn; vui lòng",
+                  "xin lỗi",
+                  "tạm biệt"
+                ]
+              },
+              "answer_data": {
+                "answer": "làm ơn; vui lòng",
+                "correct_answer": "làm ơn; vui lòng"
+              },
+              "explanation": "“please” có nghĩa là “làm ơn; vui lòng”."
+            },
+            "order_index": 3,
+            "tips": "Please often comes at the end of a short request."
+          }
+        ],
+        "expressions": [
+          {
+            "purposes": [
+              {
+                "purpose_en": "Ask to see the menu",
+                "purpose_vi": "Xin xem thực đơn",
+                "order_index": 1,
+                "examples": [
+                  {
+                    "type": "POLITE_INQUIRY",
+                    "text_en": "Could I see the menu, please?",
+                    "text_vi": "Cho tôi xem thực đơn được không?",
+                    "usage_note": "A polite way to ask to look at the menu.",
+                    "audio_url": null,
+                    "linked_vocab_ids": [
+                      "a1-cafe-01-menu",
+                      "a1-cafe-01-please"
+                    ]
+                  },
+                  {
+                    "type": "BASIC_SUGGESTION",
+                    "text_en": "Can I have the menu, please?",
+                    "text_vi": "Cho tôi xin thực đơn nhé?",
+                    "usage_note": "A common request in a café.",
+                    "audio_url": null,
+                    "linked_vocab_ids": [
+                      "a1-cafe-01-menu",
+                      "a1-cafe-01-please"
+                    ]
+                  }
+                ]
+              }
+            ],
+            "tips": "Use could I or can I to make a simple request."
+          },
+          {
+            "purposes": [
+              {
+                "purpose_en": "Greet the staff",
+                "purpose_vi": "Chào nhân viên",
+                "order_index": 2,
+                "examples": [
+                  {
+                    "type": "BASIC_SUGGESTION",
+                    "text_en": "Hello!",
+                    "text_vi": "Xin chào!",
+                    "usage_note": "Use this simple greeting at any time of day.",
+                    "audio_url": null,
+                    "linked_vocab_ids": []
+                  },
+                  {
+                    "type": "POLITE_INQUIRY",
+                    "text_en": "Excuse me, please.",
+                    "text_vi": "Xin lỗi, cho tôi hỏi.",
+                    "usage_note": "Use this to get someone's attention politely.",
+                    "audio_url": null,
+                    "linked_vocab_ids": [
+                      "a1-cafe-01-please"
+                    ]
+                  }
+                ]
+              }
+            ],
+            "tips": "A short greeting is enough when you enter."
+          }
+        ],
+        "quizzes": [
+          {
+            "quiz_id": "a1-cafe-01-fill-blank",
+            "quiz_type": "FILL_BLANK",
+            "title": "Complete the sentence",
+            "instructions": "Chọn từ phù hợp nhất để hoàn thành câu.",
+            "order_index": 1,
+            "questions": [
+              {
+                "prompt": "Complete the sentence: “Could I see the ___, please?”",
+                "options": [
+                  {
+                    "label": "A",
+                    "text_en": "menu",
+                    "is_correct": true
+                  },
+                  {
+                    "label": "B",
+                    "text_en": "table",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "C",
+                    "text_en": "bill",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "D",
+                    "text_en": "cake",
+                    "is_correct": false
+                  }
+                ],
+                "correct": "A",
+                "explanation_ok": "Đáp án là menu (thực đơn), vì người nói muốn xem danh sách món ăn và đồ uống.",
+                "explanation_ng": "Table là cái bàn; bill là hóa đơn. Câu này hỏi xin xem thực đơn.",
+                "sentence": {
+                  "text_en": "Could I see the menu, please?",
+                  "meaning_vi": "Cho tôi xem thực đơn được không?",
+                  "audio_url": null,
+                  "audio_url_slow": null
+                },
+                "quiz_data": {
+                  "question_type": "FILL_BLANK",
+                  "word_bank": [
+                    "menu",
+                    "table",
+                    "bill",
+                    "cake"
+                  ],
+                  "blank_count": 1
+                },
+                "answer_data": {
+                  "answer": "menu",
+                  "correct_answer": "menu",
+                  "correct_option": "A"
+                },
+                "explanation": "Đáp án là menu (thực đơn), vì người nói muốn xem danh sách món ăn và đồ uống.",
+                "tips": "Think about what a customer reads before ordering."
+              },
+              {
+                "prompt": "Complete the sentence: “Please sit at the ___ by the window.”",
+                "options": [
+                  {
+                    "label": "A",
+                    "text_en": "table",
+                    "is_correct": true
+                  },
+                  {
+                    "label": "B",
+                    "text_en": "menu",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "C",
+                    "text_en": "coffee",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "D",
+                    "text_en": "card",
+                    "is_correct": false
+                  }
+                ],
+                "correct": "A",
+                "explanation_ok": "Table là cái bàn, nơi khách ngồi trong quán.",
+                "explanation_ng": "Menu là thực đơn; coffee là cà phê. Chỗ ngồi trong quán là table.",
+                "sentence": {
+                  "text_en": "Please sit at the table by the window.",
+                  "meaning_vi": "Mời bạn ngồi ở chiếc bàn cạnh cửa sổ.",
+                  "audio_url": null,
+                  "audio_url_slow": null
+                },
+                "quiz_data": {
+                  "question_type": "FILL_BLANK",
+                  "word_bank": [
+                    "table",
+                    "menu",
+                    "coffee",
+                    "card"
+                  ],
+                  "blank_count": 1
+                },
+                "answer_data": {
+                  "answer": "table",
+                  "correct_answer": "table",
+                  "correct_option": "A"
+                },
+                "explanation": "Table là cái bàn, nơi khách ngồi trong quán.",
+                "tips": "Choose the word for a place to sit."
+              },
+              {
+                "prompt": "Complete the request: “A coffee, ___.”",
+                "options": [
+                  {
+                    "label": "A",
+                    "text_en": "please",
+                    "is_correct": true
+                  },
+                  {
+                    "label": "B",
+                    "text_en": "menu",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "C",
+                    "text_en": "table",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "D",
+                    "text_en": "water",
+                    "is_correct": false
+                  }
+                ],
+                "correct": "A",
+                "explanation_ok": "Please làm cho lời yêu cầu lịch sự hơn.",
+                "explanation_ng": "Menu, table và water là danh từ; vị trí trống cần từ lịch sự ở cuối câu.",
+                "sentence": {
+                  "text_en": "A coffee, please.",
+                  "meaning_vi": "Cho tôi một ly cà phê.",
+                  "audio_url": null,
+                  "audio_url_slow": null
+                },
+                "quiz_data": {
+                  "question_type": "FILL_BLANK",
+                  "word_bank": [
+                    "please",
+                    "menu",
+                    "table",
+                    "water"
+                  ],
+                  "blank_count": 1
+                },
+                "answer_data": {
+                  "answer": "please",
+                  "correct_answer": "please",
+                  "correct_option": "A"
+                },
+                "explanation": "Please làm cho lời yêu cầu lịch sự hơn.",
+                "tips": "A short order often ends with please."
+              }
+            ]
+          },
+          {
+            "quiz_id": "a1-cafe-01-situational-choice",
+            "quiz_type": "SITUATIONAL_CHOICE",
+            "title": "Choose the best response",
+            "instructions": "Đọc tình huống và chọn câu trả lời phù hợp nhất.",
+            "order_index": 2,
+            "questions": [
+              {
+                "prompt": "Bạn vừa vào quán và muốn xem thực đơn. Bạn nên nói câu nào?",
+                "options": [
+                  {
+                    "label": "A",
+                    "text_en": "Could I see the menu, please?",
+                    "is_correct": true
+                  },
+                  {
+                    "label": "B",
+                    "text_en": "Could I have the bill, please?",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "C",
+                    "text_en": "I pay by card.",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "D",
+                    "text_en": "This table is large.",
+                    "is_correct": false
+                  }
+                ],
+                "correct": "A",
+                "explanation_ok": "Câu này lịch sự và đúng mục đích: xin xem thực đơn.",
+                "explanation_ng": "Bill là hóa đơn thường xin sau khi ăn; các câu còn lại không yêu cầu xem thực đơn.",
+                "sentence": {
+                  "text_en": "Could I see the menu, please?",
+                  "meaning_vi": "Cho tôi xem thực đơn được không?",
+                  "audio_url": null,
+                  "audio_url_slow": null
+                },
+                "quiz_data": {
+                  "question_type": "SITUATIONAL_CHOICE",
+                  "scenario_vi": "Xin xem thực đơn trước khi gọi món.",
+                  "question": "Bạn vừa vào quán và muốn xem thực đơn. Bạn nên nói câu nào?"
+                },
+                "answer_data": {
+                  "answer": "Could I see the menu, please?",
+                  "correct_answer": "Could I see the menu, please?",
+                  "correct_option": "A"
+                },
+                "explanation": "Câu này lịch sự và đúng mục đích: xin xem thực đơn.",
+                "tips": "Match the sentence to what you need now."
+              },
+              {
+                "prompt": "Nhân viên nói “Hello!” khi bạn bước vào. Câu trả lời đơn giản nào phù hợp?",
+                "options": [
+                  {
+                    "label": "A",
+                    "text_en": "Hello!",
+                    "is_correct": true
+                  },
+                  {
+                    "label": "B",
+                    "text_en": "A medium, please.",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "C",
+                    "text_en": "The bill, please.",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "D",
+                    "text_en": "Where is the airport?",
+                    "is_correct": false
+                  }
+                ],
+                "correct": "A",
+                "explanation_ok": "Hello! là lời chào tự nhiên để đáp lại Hello!",
+                "explanation_ng": "Các câu còn lại dùng khi chọn kích cỡ, xin hóa đơn hoặc hỏi đường.",
+                "sentence": {
+                  "text_en": "Hello!",
+                  "meaning_vi": "Xin chào!",
+                  "audio_url": null,
+                  "audio_url_slow": null
+                },
+                "quiz_data": {
+                  "question_type": "SITUATIONAL_CHOICE",
+                  "scenario_vi": "Đáp lại lời chào của nhân viên.",
+                  "question": "Nhân viên nói “Hello!” khi bạn bước vào. Câu trả lời đơn giản nào phù hợp?"
+                },
+                "answer_data": {
+                  "answer": "Hello!",
+                  "correct_answer": "Hello!",
+                  "correct_option": "A"
+                },
+                "explanation": "Hello! là lời chào tự nhiên để đáp lại Hello!",
+                "tips": "A greeting can be answered with the same greeting."
+              },
+              {
+                "prompt": "Bạn muốn thu hút sự chú ý của nhân viên trước khi hỏi. Bạn nói gì?",
+                "options": [
+                  {
+                    "label": "A",
+                    "text_en": "Excuse me, please.",
+                    "is_correct": true
+                  },
+                  {
+                    "label": "B",
+                    "text_en": "I am a table.",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "C",
+                    "text_en": "Good night, menu.",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "D",
+                    "text_en": "I pay yesterday.",
+                    "is_correct": false
+                  }
+                ],
+                "correct": "A",
+                "explanation_ok": "Excuse me là cách phổ biến để bắt đầu một câu hỏi với người chưa quen.",
+                "explanation_ng": "Các lựa chọn khác không phải lời mở đầu tự nhiên trong tình huống này.",
+                "sentence": {
+                  "text_en": "Excuse me, please.",
+                  "meaning_vi": "Xin lỗi, cho tôi hỏi.",
+                  "audio_url": null,
+                  "audio_url_slow": null
+                },
+                "quiz_data": {
+                  "question_type": "SITUATIONAL_CHOICE",
+                  "scenario_vi": "Gọi nhân viên một cách lịch sự.",
+                  "question": "Bạn muốn thu hút sự chú ý của nhân viên trước khi hỏi. Bạn nói gì?"
+                },
+                "answer_data": {
+                  "answer": "Excuse me, please.",
+                  "correct_answer": "Excuse me, please.",
+                  "correct_option": "A"
+                },
+                "explanation": "Excuse me là cách phổ biến để bắt đầu một câu hỏi với người chưa quen.",
+                "tips": "Use a polite opener before a request."
+              }
+            ]
+          }
+        ],
+        "created_at": "2026-10-27T12:00:00.000Z",
+        "updated_at": "2026-10-27T12:00:00.000Z",
+        "published_at": "2026-10-27T12:00:00.000Z"
+      },
+      {
+        "_id": "6a7200000000000000000022",
+        "topic_item_id": "6a7200000000000000000012",
+        "topic_id": "6a7200000000000000000001",
+        "topic_version_id": "6a7200000000000000000002",
+        "version": 1,
+        "change_type": "MAJOR",
+        "previous_item_version_id": null,
+        "title": "Choose a Drink",
+        "description": "Choose coffee, tea or water and place a simple drink order. Chọn cà phê, trà hoặc nước và gọi đồ uống đơn giản.",
+        "order": 2,
+        "status": "PUBLISHED",
+        "duration_minutes": 4,
+        "context": {
+          "prompt": "How can you order a drink using a short, polite sentence?",
+          "scenario_description": "Nhân viên hỏi bạn muốn uống gì. Bạn chọn đồ uống và gọi món bằng một câu ngắn, lịch sự.",
+          "dialogue": [
+            {
+              "speaker": "Barista",
+              "text_en": "What would you like to drink?",
+              "text_vi": "Bạn muốn uống gì?",
+              "audio_url": null
+            },
+            {
+              "speaker": "Customer",
+              "text_en": "I'd like a coffee, please.",
+              "text_vi": "Cho tôi một ly cà phê.",
+              "audio_url": null
+            },
+            {
+              "speaker": "Barista",
+              "text_en": "Sure. Anything else?",
+              "text_vi": "Được chứ. Bạn có muốn thêm gì không?",
+              "audio_url": null
+            }
+          ],
+          "duration_sec": 240,
+          "tips": "I'd like ... is a useful phrase for ordering. You can also say ... please."
+        },
+        "vocabularies": [
+          {
+            "vocab_id": "a1-cafe-02-coffee",
+            "sense_id": "a1-cafe-02-coffee-sense-v1",
+            "snapshot": {
+              "word": "coffee",
+              "pos": "noun",
+              "sense": "A hot drink made from roasted coffee beans.",
+              "describe_vi": "cà phê",
+              "phonetic": "/ˈkɒf.i/",
+              "audio_url": null,
+              "audio_en_url": null,
+              "audio_us_url": null
+            },
+            "samples": [
+              {
+                "text_en": "I'd like a coffee, please.",
+                "text_vi": "Cho tôi một ly cà phê.",
+                "audio_url": null,
+                "is_manual": false
+              },
+              {
+                "text_en": "My coffee is hot.",
+                "text_vi": "Cà phê của tôi còn nóng.",
+                "audio_url": null,
+                "is_manual": false
+              }
+            ],
+            "collocations": [
+              {
+                "text": "a cup of coffee",
+                "example": {
+                  "en": "I'd like a cup of coffee.",
+                  "vi": "Tôi muốn một tách cà phê."
+                },
+                "description_vi": "một tách cà phê"
+              }
+            ],
+            "quick_check": {
+              "sentence": {
+                "text_en": "What does “coffee” mean here?",
+                "meaning_vi": "Trong ngữ cảnh này, “coffee” có nghĩa là gì?",
+                "audio_url": null
+              },
+              "quiz_data": {
+                "question": "What does “coffee” mean here?",
+                "options": [
+                  "cà phê",
+                  "trà",
+                  "nước"
+                ]
+              },
+              "answer_data": {
+                "answer": "cà phê",
+                "correct_answer": "cà phê"
+              },
+              "explanation": "“coffee” có nghĩa là “cà phê”."
+            },
+            "order_index": 1,
+            "tips": "Use a cup of coffee when you want to mention the cup."
+          },
+          {
+            "vocab_id": "a1-cafe-02-tea",
+            "sense_id": "a1-cafe-02-tea-sense-v1",
+            "snapshot": {
+              "word": "tea",
+              "pos": "noun",
+              "sense": "A hot drink made by putting tea leaves in hot water.",
+              "describe_vi": "trà",
+              "phonetic": "/tiː/",
+              "audio_url": null,
+              "audio_en_url": null,
+              "audio_us_url": null
+            },
+            "samples": [
+              {
+                "text_en": "Tea, please.",
+                "text_vi": "Cho tôi trà.",
+                "audio_url": null,
+                "is_manual": false
+              },
+              {
+                "text_en": "I drink tea in the morning.",
+                "text_vi": "Tôi uống trà vào buổi sáng.",
+                "audio_url": null,
+                "is_manual": false
+              }
+            ],
+            "collocations": [
+              {
+                "text": "a cup of tea",
+                "example": {
+                  "en": "Can I have a cup of tea?",
+                  "vi": "Cho tôi một tách trà được không?"
+                },
+                "description_vi": "một tách trà"
+              }
+            ],
+            "quick_check": {
+              "sentence": {
+                "text_en": "What does “tea” mean here?",
+                "meaning_vi": "Trong ngữ cảnh này, “tea” có nghĩa là gì?",
+                "audio_url": null
+              },
+              "quiz_data": {
+                "question": "What does “tea” mean here?",
+                "options": [
+                  "trà",
+                  "cà phê",
+                  "bánh ngọt"
+                ]
+              },
+              "answer_data": {
+                "answer": "trà",
+                "correct_answer": "trà"
+              },
+              "explanation": "“tea” có nghĩa là “trà”."
+            },
+            "order_index": 2,
+            "tips": "Tea and coffee are drinks; choose the one you want."
+          },
+          {
+            "vocab_id": "a1-cafe-02-water",
+            "sense_id": "a1-cafe-02-water-sense-v1",
+            "snapshot": {
+              "word": "water",
+              "pos": "noun",
+              "sense": "The clear liquid that people drink.",
+              "describe_vi": "nước",
+              "phonetic": "/ˈwɔː.tər/",
+              "audio_url": null,
+              "audio_en_url": null,
+              "audio_us_url": null
+            },
+            "samples": [
+              {
+                "text_en": "Can I have some water, please?",
+                "text_vi": "Cho tôi xin ít nước được không?",
+                "audio_url": null,
+                "is_manual": false
+              },
+              {
+                "text_en": "The water is cold.",
+                "text_vi": "Nước lạnh.",
+                "audio_url": null,
+                "is_manual": false
+              }
+            ],
+            "collocations": [
+              {
+                "text": "a glass of water",
+                "example": {
+                  "en": "Could I have a glass of water?",
+                  "vi": "Cho tôi một ly nước được không?"
+                },
+                "description_vi": "một ly nước"
+              }
+            ],
+            "quick_check": {
+              "sentence": {
+                "text_en": "What does “water” mean here?",
+                "meaning_vi": "Trong ngữ cảnh này, “water” có nghĩa là gì?",
+                "audio_url": null
+              },
+              "quiz_data": {
+                "question": "What does “water” mean here?",
+                "options": [
+                  "nước",
+                  "trà",
+                  "hóa đơn"
+                ]
+              },
+              "answer_data": {
+                "answer": "nước",
+                "correct_answer": "nước"
+              },
+              "explanation": "“water” có nghĩa là “nước”."
+            },
+            "order_index": 3,
+            "tips": "Say some water or a glass of water when ordering."
+          }
+        ],
+        "expressions": [
+          {
+            "purposes": [
+              {
+                "purpose_en": "Order a drink",
+                "purpose_vi": "Gọi đồ uống",
+                "order_index": 1,
+                "examples": [
+                  {
+                    "type": "BASIC_SUGGESTION",
+                    "text_en": "A coffee, please.",
+                    "text_vi": "Cho tôi một ly cà phê.",
+                    "usage_note": "A short and common order.",
+                    "audio_url": null,
+                    "linked_vocab_ids": [
+                      "a1-cafe-02-coffee",
+                      "a1-cafe-02-please"
+                    ]
+                  },
+                  {
+                    "type": "POLITE_INQUIRY",
+                    "text_en": "Can I have a cup of tea, please?",
+                    "text_vi": "Cho tôi một tách trà được không?",
+                    "usage_note": "Use can I have to make a polite request.",
+                    "audio_url": null,
+                    "linked_vocab_ids": [
+                      "a1-cafe-02-tea",
+                      "a1-cafe-02-please"
+                    ]
+                  }
+                ]
+              }
+            ],
+            "tips": "Name the drink and add please."
+          },
+          {
+            "purposes": [
+              {
+                "purpose_en": "Say what you would like",
+                "purpose_vi": "Nói món bạn muốn",
+                "order_index": 2,
+                "examples": [
+                  {
+                    "type": "BASIC_SUGGESTION",
+                    "text_en": "I'd like a coffee, please.",
+                    "text_vi": "Tôi muốn một ly cà phê.",
+                    "usage_note": "A useful phrase for ordering.",
+                    "audio_url": null,
+                    "linked_vocab_ids": [
+                      "a1-cafe-02-coffee",
+                      "a1-cafe-02-please"
+                    ]
+                  },
+                  {
+                    "type": "BASIC_SUGGESTION",
+                    "text_en": "Water, please.",
+                    "text_vi": "Cho tôi nước.",
+                    "usage_note": "A short order is fine when the context is clear.",
+                    "audio_url": null,
+                    "linked_vocab_ids": [
+                      "a1-cafe-02-water",
+                      "a1-cafe-02-please"
+                    ]
+                  }
+                ]
+              }
+            ],
+            "tips": "I'd like ... is a simple way to say what you want."
+          }
+        ],
+        "quizzes": [
+          {
+            "quiz_id": "a1-cafe-02-fill-blank",
+            "quiz_type": "FILL_BLANK",
+            "title": "Complete the sentence",
+            "instructions": "Chọn từ phù hợp nhất để hoàn thành câu.",
+            "order_index": 1,
+            "questions": [
+              {
+                "prompt": "Complete the sentence: “I'd like a cup of ___, please.”",
+                "options": [
+                  {
+                    "label": "A",
+                    "text_en": "coffee",
+                    "is_correct": true
+                  },
+                  {
+                    "label": "B",
+                    "text_en": "table",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "C",
+                    "text_en": "menu",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "D",
+                    "text_en": "cash",
+                    "is_correct": false
+                  }
+                ],
+                "correct": "A",
+                "explanation_ok": "Coffee là đồ uống phù hợp với cụm a cup of coffee.",
+                "explanation_ng": "Table, menu và cash không phải đồ uống trong câu này.",
+                "sentence": {
+                  "text_en": "I'd like a cup of coffee, please.",
+                  "meaning_vi": "Cho tôi một tách cà phê.",
+                  "audio_url": null,
+                  "audio_url_slow": null
+                },
+                "quiz_data": {
+                  "question_type": "FILL_BLANK",
+                  "word_bank": [
+                    "coffee",
+                    "table",
+                    "menu",
+                    "cash"
+                  ],
+                  "blank_count": 1
+                },
+                "answer_data": {
+                  "answer": "coffee",
+                  "correct_answer": "coffee",
+                  "correct_option": "A"
+                },
+                "explanation": "Coffee là đồ uống phù hợp với cụm a cup of coffee.",
+                "tips": "Choose a drink that can be served in a cup."
+              },
+              {
+                "prompt": "The barista asks “Tea or coffee?” Complete: “___, please.”",
+                "options": [
+                  {
+                    "label": "A",
+                    "text_en": "Tea",
+                    "is_correct": true
+                  },
+                  {
+                    "label": "B",
+                    "text_en": "Bill",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "C",
+                    "text_en": "Table",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "D",
+                    "text_en": "Large",
+                    "is_correct": false
+                  }
+                ],
+                "correct": "A",
+                "explanation_ok": "Tea trả lời trực tiếp câu hỏi lựa chọn giữa trà và cà phê.",
+                "explanation_ng": "Bill là hóa đơn; table là cái bàn; large là kích cỡ.",
+                "sentence": {
+                  "text_en": "Tea, please.",
+                  "meaning_vi": "Cho tôi trà.",
+                  "audio_url": null,
+                  "audio_url_slow": null
+                },
+                "quiz_data": {
+                  "question_type": "FILL_BLANK",
+                  "word_bank": [
+                    "Tea",
+                    "Bill",
+                    "Table",
+                    "Large"
+                  ],
+                  "blank_count": 1
+                },
+                "answer_data": {
+                  "answer": "Tea",
+                  "correct_answer": "Tea",
+                  "correct_option": "A"
+                },
+                "explanation": "Tea trả lời trực tiếp câu hỏi lựa chọn giữa trà và cà phê.",
+                "tips": "Choose one of the two drinks in the question."
+              },
+              {
+                "prompt": "Complete the sentence: “Can I have some ___, please?”",
+                "options": [
+                  {
+                    "label": "A",
+                    "text_en": "water",
+                    "is_correct": true
+                  },
+                  {
+                    "label": "B",
+                    "text_en": "menu",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "C",
+                    "text_en": "cake",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "D",
+                    "text_en": "card",
+                    "is_correct": false
+                  }
+                ],
+                "correct": "A",
+                "explanation_ok": "Some water là cách nói tự nhiên khi xin nước uống.",
+                "explanation_ng": "Menu, cake và card không phù hợp với some trong ngữ cảnh gọi nước.",
+                "sentence": {
+                  "text_en": "Can I have some water, please?",
+                  "meaning_vi": "Cho tôi xin ít nước được không?",
+                  "audio_url": null,
+                  "audio_url_slow": null
+                },
+                "quiz_data": {
+                  "question_type": "FILL_BLANK",
+                  "word_bank": [
+                    "water",
+                    "menu",
+                    "cake",
+                    "card"
+                  ],
+                  "blank_count": 1
+                },
+                "answer_data": {
+                  "answer": "water",
+                  "correct_answer": "water",
+                  "correct_option": "A"
+                },
+                "explanation": "Some water là cách nói tự nhiên khi xin nước uống.",
+                "tips": "Think of something people drink when they are thirsty."
+              }
+            ]
+          },
+          {
+            "quiz_id": "a1-cafe-02-situational-choice",
+            "quiz_type": "SITUATIONAL_CHOICE",
+            "title": "Choose the best response",
+            "instructions": "Đọc tình huống và chọn câu trả lời phù hợp nhất.",
+            "order_index": 2,
+            "questions": [
+              {
+                "prompt": "Bạn muốn gọi cà phê. Bạn nói câu nào phù hợp nhất?",
+                "options": [
+                  {
+                    "label": "A",
+                    "text_en": "I'd like a coffee, please.",
+                    "is_correct": true
+                  },
+                  {
+                    "label": "B",
+                    "text_en": "I'd like a table, please.",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "C",
+                    "text_en": "Could I have the bill, please?",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "D",
+                    "text_en": "I am a coffee.",
+                    "is_correct": false
+                  }
+                ],
+                "correct": "A",
+                "explanation_ok": "I'd like a coffee, please là câu gọi món rõ ràng và lịch sự.",
+                "explanation_ng": "Table là bàn; bill là hóa đơn; I am a coffee không đúng nghĩa.",
+                "sentence": {
+                  "text_en": "I'd like a coffee, please.",
+                  "meaning_vi": "Tôi muốn một ly cà phê.",
+                  "audio_url": null,
+                  "audio_url_slow": null
+                },
+                "quiz_data": {
+                  "question_type": "SITUATIONAL_CHOICE",
+                  "scenario_vi": "Gọi một ly cà phê.",
+                  "question": "Bạn muốn gọi cà phê. Bạn nói câu nào phù hợp nhất?"
+                },
+                "answer_data": {
+                  "answer": "I'd like a coffee, please.",
+                  "correct_answer": "I'd like a coffee, please.",
+                  "correct_option": "A"
+                },
+                "explanation": "I'd like a coffee, please là câu gọi món rõ ràng và lịch sự.",
+                "tips": "Name the drink you want."
+              },
+              {
+                "prompt": "Nhân viên hỏi “Tea or coffee?” Bạn muốn trà. Bạn trả lời thế nào?",
+                "options": [
+                  {
+                    "label": "A",
+                    "text_en": "Tea, please.",
+                    "is_correct": true
+                  },
+                  {
+                    "label": "B",
+                    "text_en": "A bill, please.",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "C",
+                    "text_en": "A table, please.",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "D",
+                    "text_en": "Goodbye, water.",
+                    "is_correct": false
+                  }
+                ],
+                "correct": "A",
+                "explanation_ok": "Tea, please chọn đúng một trong hai đồ uống được hỏi.",
+                "explanation_ng": "Các lựa chọn khác không trả lời câu hỏi về đồ uống.",
+                "sentence": {
+                  "text_en": "Tea, please.",
+                  "meaning_vi": "Cho tôi trà.",
+                  "audio_url": null,
+                  "audio_url_slow": null
+                },
+                "quiz_data": {
+                  "question_type": "SITUATIONAL_CHOICE",
+                  "scenario_vi": "Chọn trà thay vì cà phê.",
+                  "question": "Nhân viên hỏi “Tea or coffee?” Bạn muốn trà. Bạn trả lời thế nào?"
+                },
+                "answer_data": {
+                  "answer": "Tea, please.",
+                  "correct_answer": "Tea, please.",
+                  "correct_option": "A"
+                },
+                "explanation": "Tea, please chọn đúng một trong hai đồ uống được hỏi.",
+                "tips": "Answer with the drink you choose."
+              },
+              {
+                "prompt": "Bạn khát nước và muốn xin một ly nước. Bạn nói gì?",
+                "options": [
+                  {
+                    "label": "A",
+                    "text_en": "Could I have a glass of water, please?",
+                    "is_correct": true
+                  },
+                  {
+                    "label": "B",
+                    "text_en": "Could I have a large table, please?",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "C",
+                    "text_en": "Where is the menu yesterday?",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "D",
+                    "text_en": "I pay with water.",
+                    "is_correct": false
+                  }
+                ],
+                "correct": "A",
+                "explanation_ok": "A glass of water là cụm từ phù hợp để xin một ly nước.",
+                "explanation_ng": "Các câu còn lại không diễn đạt yêu cầu xin nước tự nhiên.",
+                "sentence": {
+                  "text_en": "Could I have a glass of water, please?",
+                  "meaning_vi": "Cho tôi một ly nước được không?",
+                  "audio_url": null,
+                  "audio_url_slow": null
+                },
+                "quiz_data": {
+                  "question_type": "SITUATIONAL_CHOICE",
+                  "scenario_vi": "Xin nước uống khi đang khát.",
+                  "question": "Bạn khát nước và muốn xin một ly nước. Bạn nói gì?"
+                },
+                "answer_data": {
+                  "answer": "Could I have a glass of water, please?",
+                  "correct_answer": "Could I have a glass of water, please?",
+                  "correct_option": "A"
+                },
+                "explanation": "A glass of water là cụm từ phù hợp để xin một ly nước.",
+                "tips": "Use a polite request with the name of the drink."
+              }
+            ]
+          }
+        ],
+        "created_at": "2026-10-27T12:00:00.000Z",
+        "updated_at": "2026-10-27T12:00:00.000Z",
+        "published_at": "2026-10-27T12:00:00.000Z"
+      },
+      {
+        "_id": "6a7200000000000000000023",
+        "topic_item_id": "6a7200000000000000000013",
+        "topic_id": "6a7200000000000000000001",
+        "topic_version_id": "6a7200000000000000000002",
+        "version": 1,
+        "change_type": "MAJOR",
+        "previous_item_version_id": null,
+        "title": "Ask for a Size",
+        "description": "Understand small, medium and large and choose the size you want. Hiểu kích cỡ nhỏ, vừa, lớn và chọn kích cỡ phù hợp.",
+        "order": 3,
+        "status": "PUBLISHED",
+        "duration_minutes": 4,
+        "context": {
+          "prompt": "What can you say when the barista asks which size you want?",
+          "scenario_description": "Nhân viên hỏi bạn muốn cỡ nhỏ, vừa hay lớn. Bạn nhận biết các kích cỡ và chọn một cỡ.",
+          "dialogue": [
+            {
+              "speaker": "Barista",
+              "text_en": "What size would you like?",
+              "text_vi": "Bạn muốn kích cỡ nào?",
+              "audio_url": null
+            },
+            {
+              "speaker": "Customer",
+              "text_en": "A medium coffee, please.",
+              "text_vi": "Cho tôi một ly cà phê cỡ vừa.",
+              "audio_url": null
+            },
+            {
+              "speaker": "Barista",
+              "text_en": "No problem.",
+              "text_vi": "Không vấn đề gì.",
+              "audio_url": null
+            }
+          ],
+          "duration_sec": 240,
+          "tips": "Small is the smallest size, medium is in the middle, and large is the biggest."
+        },
+        "vocabularies": [
+          {
+            "vocab_id": "a1-cafe-03-small",
+            "sense_id": "a1-cafe-03-small-sense-v1",
+            "snapshot": {
+              "word": "small",
+              "pos": "adjective",
+              "sense": "Not large in size.",
+              "describe_vi": "nhỏ",
+              "phonetic": "/smɔːl/",
+              "audio_url": null,
+              "audio_en_url": null,
+              "audio_us_url": null
+            },
+            "samples": [
+              {
+                "text_en": "A small coffee, please.",
+                "text_vi": "Cho tôi một ly cà phê nhỏ.",
+                "audio_url": null,
+                "is_manual": false
+              },
+              {
+                "text_en": "This cup is small.",
+                "text_vi": "Cái cốc này nhỏ.",
+                "audio_url": null,
+                "is_manual": false
+              }
+            ],
+            "collocations": [
+              {
+                "text": "a small size",
+                "example": {
+                  "en": "Do you have a small size?",
+                  "vi": "Bạn có cỡ nhỏ không?"
+                },
+                "description_vi": "kích cỡ nhỏ"
+              }
+            ],
+            "quick_check": {
+              "sentence": {
+                "text_en": "What does “small” mean here?",
+                "meaning_vi": "Trong ngữ cảnh này, “small” có nghĩa là gì?",
+                "audio_url": null
+              },
+              "quiz_data": {
+                "question": "What does “small” mean here?",
+                "options": [
+                  "nhỏ",
+                  "vừa",
+                  "lớn"
+                ]
+              },
+              "answer_data": {
+                "answer": "nhỏ",
+                "correct_answer": "nhỏ"
+              },
+              "explanation": "“small” có nghĩa là “nhỏ”."
+            },
+            "order_index": 1,
+            "tips": "Small is the smallest of these three common sizes."
+          },
+          {
+            "vocab_id": "a1-cafe-03-medium",
+            "sense_id": "a1-cafe-03-medium-sense-v1",
+            "snapshot": {
+              "word": "medium",
+              "pos": "adjective",
+              "sense": "In the middle between small and large.",
+              "describe_vi": "vừa; cỡ trung bình",
+              "phonetic": "/ˈmiː.di.əm/",
+              "audio_url": null,
+              "audio_en_url": null,
+              "audio_us_url": null
+            },
+            "samples": [
+              {
+                "text_en": "A medium tea, please.",
+                "text_vi": "Cho tôi một ly trà cỡ vừa.",
+                "audio_url": null,
+                "is_manual": false
+              },
+              {
+                "text_en": "I would like a medium size.",
+                "text_vi": "Tôi muốn cỡ vừa.",
+                "audio_url": null,
+                "is_manual": false
+              }
+            ],
+            "collocations": [
+              {
+                "text": "medium size",
+                "example": {
+                  "en": "The medium size is fine for me.",
+                  "vi": "Cỡ vừa phù hợp với tôi."
+                },
+                "description_vi": "kích cỡ vừa"
+              }
+            ],
+            "quick_check": {
+              "sentence": {
+                "text_en": "What does “medium” mean here?",
+                "meaning_vi": "Trong ngữ cảnh này, “medium” có nghĩa là gì?",
+                "audio_url": null
+              },
+              "quiz_data": {
+                "question": "What does “medium” mean here?",
+                "options": [
+                  "vừa; cỡ trung bình",
+                  "nhỏ",
+                  "lớn"
+                ]
+              },
+              "answer_data": {
+                "answer": "vừa; cỡ trung bình",
+                "correct_answer": "vừa; cỡ trung bình"
+              },
+              "explanation": "“medium” có nghĩa là “vừa; cỡ trung bình”."
+            },
+            "order_index": 2,
+            "tips": "Medium is between small and large."
+          },
+          {
+            "vocab_id": "a1-cafe-03-large",
+            "sense_id": "a1-cafe-03-large-sense-v1",
+            "snapshot": {
+              "word": "large",
+              "pos": "adjective",
+              "sense": "Big in size.",
+              "describe_vi": "lớn",
+              "phonetic": "/lɑːdʒ/",
+              "audio_url": null,
+              "audio_en_url": null,
+              "audio_us_url": null
+            },
+            "samples": [
+              {
+                "text_en": "A large water, please.",
+                "text_vi": "Cho tôi nước cỡ lớn.",
+                "audio_url": null,
+                "is_manual": false
+              },
+              {
+                "text_en": "This is a large cup.",
+                "text_vi": "Đây là một chiếc cốc lớn.",
+                "audio_url": null,
+                "is_manual": false
+              }
+            ],
+            "collocations": [
+              {
+                "text": "a large drink",
+                "example": {
+                  "en": "He ordered a large drink.",
+                  "vi": "Anh ấy gọi một đồ uống cỡ lớn."
+                },
+                "description_vi": "đồ uống cỡ lớn"
+              }
+            ],
+            "quick_check": {
+              "sentence": {
+                "text_en": "What does “large” mean here?",
+                "meaning_vi": "Trong ngữ cảnh này, “large” có nghĩa là gì?",
+                "audio_url": null
+              },
+              "quiz_data": {
+                "question": "What does “large” mean here?",
+                "options": [
+                  "lớn",
+                  "nhỏ",
+                  "vừa"
+                ]
+              },
+              "answer_data": {
+                "answer": "lớn",
+                "correct_answer": "lớn"
+              },
+              "explanation": "“large” có nghĩa là “lớn”."
+            },
+            "order_index": 3,
+            "tips": "Large is bigger than medium and small."
+          }
+        ],
+        "expressions": [
+          {
+            "purposes": [
+              {
+                "purpose_en": "Ask about sizes",
+                "purpose_vi": "Hỏi về kích cỡ",
+                "order_index": 1,
+                "examples": [
+                  {
+                    "type": "POLITE_INQUIRY",
+                    "text_en": "What sizes do you have?",
+                    "text_vi": "Bạn có những kích cỡ nào?",
+                    "usage_note": "Ask this when you do not know the available sizes.",
+                    "audio_url": null,
+                    "linked_vocab_ids": [
+                      "a1-cafe-03-small",
+                      "a1-cafe-03-medium",
+                      "a1-cafe-03-large"
+                    ]
+                  },
+                  {
+                    "type": "POLITE_INQUIRY",
+                    "text_en": "Do you have a medium size?",
+                    "text_vi": "Bạn có cỡ vừa không?",
+                    "usage_note": "Ask about one specific size.",
+                    "audio_url": null,
+                    "linked_vocab_ids": [
+                      "a1-cafe-03-medium"
+                    ]
+                  }
+                ]
+              }
+            ],
+            "tips": "Use what sizes or do you have to ask about available choices."
+          },
+          {
+            "purposes": [
+              {
+                "purpose_en": "Choose a size",
+                "purpose_vi": "Chọn kích cỡ",
+                "order_index": 2,
+                "examples": [
+                  {
+                    "type": "BASIC_SUGGESTION",
+                    "text_en": "A medium coffee, please.",
+                    "text_vi": "Cho tôi một ly cà phê cỡ vừa.",
+                    "usage_note": "Put the size before the drink name.",
+                    "audio_url": null,
+                    "linked_vocab_ids": [
+                      "a1-cafe-03-medium"
+                    ]
+                  },
+                  {
+                    "type": "BASIC_SUGGESTION",
+                    "text_en": "Small, please.",
+                    "text_vi": "Cho tôi cỡ nhỏ.",
+                    "usage_note": "A short answer works when the staff has asked about size.",
+                    "audio_url": null,
+                    "linked_vocab_ids": [
+                      "a1-cafe-03-small"
+                    ]
+                  }
+                ]
+              }
+            ],
+            "tips": "Say the size before the drink, or say the size alone if the drink is clear."
+          }
+        ],
+        "quizzes": [
+          {
+            "quiz_id": "a1-cafe-03-fill-blank",
+            "quiz_type": "FILL_BLANK",
+            "title": "Complete the sentence",
+            "instructions": "Chọn từ phù hợp nhất để hoàn thành câu.",
+            "order_index": 1,
+            "questions": [
+              {
+                "prompt": "Complete the sentence: “A ___ coffee, please.” You want the smallest size.",
+                "options": [
+                  {
+                    "label": "A",
+                    "text_en": "small",
+                    "is_correct": true
+                  },
+                  {
+                    "label": "B",
+                    "text_en": "cash",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "C",
+                    "text_en": "cake",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "D",
+                    "text_en": "menu",
+                    "is_correct": false
+                  }
+                ],
+                "correct": "A",
+                "explanation_ok": "Small là kích cỡ nhỏ nhất trong ba lựa chọn phổ biến.",
+                "explanation_ng": "Cash, cake và menu không phải tên kích cỡ.",
+                "sentence": {
+                  "text_en": "A small coffee, please.",
+                  "meaning_vi": "Cho tôi một ly cà phê nhỏ.",
+                  "audio_url": null,
+                  "audio_url_slow": null
+                },
+                "quiz_data": {
+                  "question_type": "FILL_BLANK",
+                  "word_bank": [
+                    "small",
+                    "cash",
+                    "cake",
+                    "menu"
+                  ],
+                  "blank_count": 1
+                },
+                "answer_data": {
+                  "answer": "small",
+                  "correct_answer": "small",
+                  "correct_option": "A"
+                },
+                "explanation": "Small là kích cỡ nhỏ nhất trong ba lựa chọn phổ biến.",
+                "tips": "Choose the word for the smallest size."
+              },
+              {
+                "prompt": "Complete the sentence: “I would like a ___ size.” You want the size in the middle.",
+                "options": [
+                  {
+                    "label": "A",
+                    "text_en": "medium",
+                    "is_correct": true
+                  },
+                  {
+                    "label": "B",
+                    "text_en": "bill",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "C",
+                    "text_en": "water",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "D",
+                    "text_en": "please",
+                    "is_correct": false
+                  }
+                ],
+                "correct": "A",
+                "explanation_ok": "Medium là cỡ ở giữa small và large.",
+                "explanation_ng": "Bill, water và please không diễn tả cỡ trung bình.",
+                "sentence": {
+                  "text_en": "I would like a medium size.",
+                  "meaning_vi": "Tôi muốn cỡ vừa.",
+                  "audio_url": null,
+                  "audio_url_slow": null
+                },
+                "quiz_data": {
+                  "question_type": "FILL_BLANK",
+                  "word_bank": [
+                    "medium",
+                    "bill",
+                    "water",
+                    "please"
+                  ],
+                  "blank_count": 1
+                },
+                "answer_data": {
+                  "answer": "medium",
+                  "correct_answer": "medium",
+                  "correct_option": "A"
+                },
+                "explanation": "Medium là cỡ ở giữa small và large.",
+                "tips": "The middle size is called medium."
+              },
+              {
+                "prompt": "Complete the sentence: “A ___ drink is bigger than a small drink.”",
+                "options": [
+                  {
+                    "label": "A",
+                    "text_en": "large",
+                    "is_correct": true
+                  },
+                  {
+                    "label": "B",
+                    "text_en": "small",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "C",
+                    "text_en": "medium",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "D",
+                    "text_en": "please",
+                    "is_correct": false
+                  }
+                ],
+                "correct": "A",
+                "explanation_ok": "Large nghĩa là lớn, trái nghĩa với small trong ngữ cảnh kích cỡ.",
+                "explanation_ng": "Small không lớn hơn small; medium là cỡ vừa.",
+                "sentence": {
+                  "text_en": "A large drink is bigger than a small drink.",
+                  "meaning_vi": "Đồ uống cỡ lớn to hơn đồ uống cỡ nhỏ.",
+                  "audio_url": null,
+                  "audio_url_slow": null
+                },
+                "quiz_data": {
+                  "question_type": "FILL_BLANK",
+                  "word_bank": [
+                    "large",
+                    "small",
+                    "medium",
+                    "please"
+                  ],
+                  "blank_count": 1
+                },
+                "answer_data": {
+                  "answer": "large",
+                  "correct_answer": "large",
+                  "correct_option": "A"
+                },
+                "explanation": "Large nghĩa là lớn, trái nghĩa với small trong ngữ cảnh kích cỡ.",
+                "tips": "Choose the biggest size."
+              }
+            ]
+          },
+          {
+            "quiz_id": "a1-cafe-03-situational-choice",
+            "quiz_type": "SITUATIONAL_CHOICE",
+            "title": "Choose the best response",
+            "instructions": "Đọc tình huống và chọn câu trả lời phù hợp nhất.",
+            "order_index": 2,
+            "questions": [
+              {
+                "prompt": "Bạn muốn đồ uống cỡ nhỏ nhất. Bạn gọi thế nào?",
+                "options": [
+                  {
+                    "label": "A",
+                    "text_en": "A small coffee, please.",
+                    "is_correct": true
+                  },
+                  {
+                    "label": "B",
+                    "text_en": "A large coffee, please.",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "C",
+                    "text_en": "A bill, please.",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "D",
+                    "text_en": "I am medium coffee.",
+                    "is_correct": false
+                  }
+                ],
+                "correct": "A",
+                "explanation_ok": "Small là kích cỡ nhỏ nhất.",
+                "explanation_ng": "Large là cỡ lớn; bill là hóa đơn.",
+                "sentence": {
+                  "text_en": "A small coffee, please.",
+                  "meaning_vi": "Cho tôi một ly cà phê nhỏ.",
+                  "audio_url": null,
+                  "audio_url_slow": null
+                },
+                "quiz_data": {
+                  "question_type": "SITUATIONAL_CHOICE",
+                  "scenario_vi": "Gọi đồ uống cỡ nhỏ.",
+                  "question": "Bạn muốn đồ uống cỡ nhỏ nhất. Bạn gọi thế nào?"
+                },
+                "answer_data": {
+                  "answer": "A small coffee, please.",
+                  "correct_answer": "A small coffee, please.",
+                  "correct_option": "A"
+                },
+                "explanation": "Small là kích cỡ nhỏ nhất.",
+                "tips": "Choose the smallest size."
+              },
+              {
+                "prompt": "Bạn muốn hỏi quán có cỡ vừa không. Câu nào phù hợp?",
+                "options": [
+                  {
+                    "label": "A",
+                    "text_en": "Do you have a medium size?",
+                    "is_correct": true
+                  },
+                  {
+                    "label": "B",
+                    "text_en": "Do you have a bill size?",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "C",
+                    "text_en": "I have medium yesterday.",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "D",
+                    "text_en": "Where is the airport?",
+                    "is_correct": false
+                  }
+                ],
+                "correct": "A",
+                "explanation_ok": "Do you have ...? dùng để hỏi quán có một lựa chọn hay không.",
+                "explanation_ng": "Các lựa chọn còn lại không phải câu hỏi tự nhiên về kích cỡ.",
+                "sentence": {
+                  "text_en": "Do you have a medium size?",
+                  "meaning_vi": "Bạn có cỡ vừa không?",
+                  "audio_url": null,
+                  "audio_url_slow": null
+                },
+                "quiz_data": {
+                  "question_type": "SITUATIONAL_CHOICE",
+                  "scenario_vi": "Hỏi về lựa chọn cỡ vừa.",
+                  "question": "Bạn muốn hỏi quán có cỡ vừa không. Câu nào phù hợp?"
+                },
+                "answer_data": {
+                  "answer": "Do you have a medium size?",
+                  "correct_answer": "Do you have a medium size?",
+                  "correct_option": "A"
+                },
+                "explanation": "Do you have ...? dùng để hỏi quán có một lựa chọn hay không.",
+                "tips": "Ask whether the café has the size you want."
+              },
+              {
+                "prompt": "Nhân viên hỏi “Small, medium, or large?” Bạn muốn cỡ vừa. Bạn trả lời gì?",
+                "options": [
+                  {
+                    "label": "A",
+                    "text_en": "Medium, please.",
+                    "is_correct": true
+                  },
+                  {
+                    "label": "B",
+                    "text_en": "The menu, please.",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "C",
+                    "text_en": "Cash, please.",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "D",
+                    "text_en": "Good morning, table.",
+                    "is_correct": false
+                  }
+                ],
+                "correct": "A",
+                "explanation_ok": "Medium, please là câu trả lời ngắn, trực tiếp và lịch sự.",
+                "explanation_ng": "Menu và cash không phải kích cỡ; lựa chọn còn lại không tự nhiên.",
+                "sentence": {
+                  "text_en": "Medium, please.",
+                  "meaning_vi": "Cho tôi cỡ vừa.",
+                  "audio_url": null,
+                  "audio_url_slow": null
+                },
+                "quiz_data": {
+                  "question_type": "SITUATIONAL_CHOICE",
+                  "scenario_vi": "Chọn cỡ vừa khi được hỏi.",
+                  "question": "Nhân viên hỏi “Small, medium, or large?” Bạn muốn cỡ vừa. Bạn trả lời gì?"
+                },
+                "answer_data": {
+                  "answer": "Medium, please.",
+                  "correct_answer": "Medium, please.",
+                  "correct_option": "A"
+                },
+                "explanation": "Medium, please là câu trả lời ngắn, trực tiếp và lịch sự.",
+                "tips": "Name the size you choose."
+              }
+            ]
+          }
+        ],
+        "created_at": "2026-10-27T12:00:00.000Z",
+        "updated_at": "2026-10-27T12:00:00.000Z",
+        "published_at": "2026-10-27T12:00:00.000Z"
+      },
+      {
+        "_id": "6a7200000000000000000024",
+        "topic_item_id": "6a7200000000000000000014",
+        "topic_id": "6a7200000000000000000001",
+        "topic_version_id": "6a7200000000000000000002",
+        "version": 1,
+        "change_type": "MAJOR",
+        "previous_item_version_id": null,
+        "title": "Order a Snack",
+        "description": "Order a sandwich or a slice of cake and ask what is available. Gọi bánh mì kẹp hoặc một miếng bánh và hỏi quán có món gì.",
+        "order": 4,
+        "status": "PUBLISHED",
+        "duration_minutes": 5,
+        "context": {
+          "prompt": "How can you order a snack or ask if the café has cake?",
+          "scenario_description": "Bạn muốn ăn nhẹ ở quán cà phê. Bạn gọi một món ăn và hỏi nhân viên về món bánh có sẵn.",
+          "dialogue": [
+            {
+              "speaker": "Customer",
+              "text_en": "I'd like a sandwich, please.",
+              "text_vi": "Cho tôi một chiếc bánh mì kẹp.",
+              "audio_url": null
+            },
+            {
+              "speaker": "Barista",
+              "text_en": "Of course. Would you like a slice of cake too?",
+              "text_vi": "Được chứ. Bạn có muốn thêm một miếng bánh ngọt không?",
+              "audio_url": null
+            },
+            {
+              "speaker": "Customer",
+              "text_en": "No, thank you.",
+              "text_vi": "Không, cảm ơn bạn.",
+              "audio_url": null
+            }
+          ],
+          "duration_sec": 300,
+          "tips": "Use a sandwich for a whole snack and a slice of cake for one piece of cake."
+        },
+        "vocabularies": [
+          {
+            "vocab_id": "a1-cafe-04-sandwich",
+            "sense_id": "a1-cafe-04-sandwich-sense-v1",
+            "snapshot": {
+              "word": "sandwich",
+              "pos": "noun",
+              "sense": "Food made with two pieces of bread and a filling.",
+              "describe_vi": "bánh mì kẹp",
+              "phonetic": "/ˈsæn.wɪdʒ/",
+              "audio_url": null,
+              "audio_en_url": null,
+              "audio_us_url": null
+            },
+            "samples": [
+              {
+                "text_en": "I'd like a sandwich, please.",
+                "text_vi": "Cho tôi một chiếc bánh mì kẹp.",
+                "audio_url": null,
+                "is_manual": false
+              },
+              {
+                "text_en": "This sandwich is good.",
+                "text_vi": "Chiếc bánh mì kẹp này ngon.",
+                "audio_url": null,
+                "is_manual": false
+              }
+            ],
+            "collocations": [
+              {
+                "text": "a cheese sandwich",
+                "example": {
+                  "en": "I'd like a cheese sandwich.",
+                  "vi": "Tôi muốn một chiếc bánh mì kẹp phô mai."
+                },
+                "description_vi": "bánh mì kẹp phô mai"
+              }
+            ],
+            "quick_check": {
+              "sentence": {
+                "text_en": "What does “sandwich” mean here?",
+                "meaning_vi": "Trong ngữ cảnh này, “sandwich” có nghĩa là gì?",
+                "audio_url": null
+              },
+              "quiz_data": {
+                "question": "What does “sandwich” mean here?",
+                "options": [
+                  "bánh mì kẹp",
+                  "bánh ngọt",
+                  "hóa đơn"
+                ]
+              },
+              "answer_data": {
+                "answer": "bánh mì kẹp",
+                "correct_answer": "bánh mì kẹp"
+              },
+              "explanation": "“sandwich” có nghĩa là “bánh mì kẹp”."
+            },
+            "order_index": 1,
+            "tips": "A sandwich often has bread with cheese, meat or vegetables inside."
+          },
+          {
+            "vocab_id": "a1-cafe-04-cake",
+            "sense_id": "a1-cafe-04-cake-sense-v1",
+            "snapshot": {
+              "word": "cake",
+              "pos": "noun",
+              "sense": "A sweet baked food, often eaten as dessert.",
+              "describe_vi": "bánh ngọt; bánh kem",
+              "phonetic": "/keɪk/",
+              "audio_url": null,
+              "audio_en_url": null,
+              "audio_us_url": null
+            },
+            "samples": [
+              {
+                "text_en": "Can I have a slice of cake?",
+                "text_vi": "Cho tôi một miếng bánh ngọt được không?",
+                "audio_url": null,
+                "is_manual": false
+              },
+              {
+                "text_en": "The cake is chocolate.",
+                "text_vi": "Chiếc bánh có vị sô-cô-la.",
+                "audio_url": null,
+                "is_manual": false
+              }
+            ],
+            "collocations": [
+              {
+                "text": "a slice of cake",
+                "example": {
+                  "en": "A slice of cake, please.",
+                  "vi": "Cho tôi một miếng bánh ngọt."
+                },
+                "description_vi": "một miếng bánh ngọt"
+              }
+            ],
+            "quick_check": {
+              "sentence": {
+                "text_en": "What does “cake” mean here?",
+                "meaning_vi": "Trong ngữ cảnh này, “cake” có nghĩa là gì?",
+                "audio_url": null
+              },
+              "quiz_data": {
+                "question": "What does “cake” mean here?",
+                "options": [
+                  "bánh ngọt; bánh kem",
+                  "bánh mì kẹp",
+                  "nước"
+                ]
+              },
+              "answer_data": {
+                "answer": "bánh ngọt; bánh kem",
+                "correct_answer": "bánh ngọt; bánh kem"
+              },
+              "explanation": "“cake” có nghĩa là “bánh ngọt; bánh kem”."
+            },
+            "order_index": 2,
+            "tips": "Use a slice of cake when you want one piece."
+          },
+          {
+            "vocab_id": "a1-cafe-04-hungry",
+            "sense_id": "a1-cafe-04-hungry-sense-v1",
+            "snapshot": {
+              "word": "hungry",
+              "pos": "adjective",
+              "sense": "Having a need or wish to eat food.",
+              "describe_vi": "đói",
+              "phonetic": "/ˈhʌŋ.ɡri/",
+              "audio_url": null,
+              "audio_en_url": null,
+              "audio_us_url": null
+            },
+            "samples": [
+              {
+                "text_en": "I'm hungry.",
+                "text_vi": "Tôi đói.",
+                "audio_url": null,
+                "is_manual": false
+              },
+              {
+                "text_en": "I'm hungry, so I'd like a sandwich.",
+                "text_vi": "Tôi đói nên muốn một chiếc bánh mì kẹp.",
+                "audio_url": null,
+                "is_manual": false
+              }
+            ],
+            "collocations": [
+              {
+                "text": "feel hungry",
+                "example": {
+                  "en": "I feel hungry after work.",
+                  "vi": "Tôi cảm thấy đói sau giờ làm."
+                },
+                "description_vi": "cảm thấy đói"
+              }
+            ],
+            "quick_check": {
+              "sentence": {
+                "text_en": "What does “hungry” mean here?",
+                "meaning_vi": "Trong ngữ cảnh này, “hungry” có nghĩa là gì?",
+                "audio_url": null
+              },
+              "quiz_data": {
+                "question": "What does “hungry” mean here?",
+                "options": [
+                  "đói",
+                  "khát",
+                  "no"
+                ]
+              },
+              "answer_data": {
+                "answer": "đói",
+                "correct_answer": "đói"
+              },
+              "explanation": "“hungry” có nghĩa là “đói”."
+            },
+            "order_index": 3,
+            "tips": "Hungry describes how you feel when you want food."
+          }
+        ],
+        "expressions": [
+          {
+            "purposes": [
+              {
+                "purpose_en": "Order a snack",
+                "purpose_vi": "Gọi món ăn nhẹ",
+                "order_index": 1,
+                "examples": [
+                  {
+                    "type": "BASIC_SUGGESTION",
+                    "text_en": "I'd like a sandwich, please.",
+                    "text_vi": "Cho tôi một chiếc bánh mì kẹp.",
+                    "usage_note": "A simple and polite way to order food.",
+                    "audio_url": null,
+                    "linked_vocab_ids": [
+                      "a1-cafe-04-sandwich",
+                      "a1-cafe-04-please"
+                    ]
+                  },
+                  {
+                    "type": "POLITE_INQUIRY",
+                    "text_en": "Can I have a slice of cake, please?",
+                    "text_vi": "Cho tôi một miếng bánh ngọt được không?",
+                    "usage_note": "Use a slice of cake for one piece.",
+                    "audio_url": null,
+                    "linked_vocab_ids": [
+                      "a1-cafe-04-cake",
+                      "a1-cafe-04-please"
+                    ]
+                  }
+                ]
+              }
+            ],
+            "tips": "Use I'd like or can I have, followed by the food."
+          },
+          {
+            "purposes": [
+              {
+                "purpose_en": "Ask what is available",
+                "purpose_vi": "Hỏi quán có món gì",
+                "order_index": 2,
+                "examples": [
+                  {
+                    "type": "POLITE_INQUIRY",
+                    "text_en": "Do you have cake today?",
+                    "text_vi": "Hôm nay quán có bánh ngọt không?",
+                    "usage_note": "Ask whether the café has a particular food.",
+                    "audio_url": null,
+                    "linked_vocab_ids": [
+                      "a1-cafe-04-cake"
+                    ]
+                  },
+                  {
+                    "type": "POLITE_INQUIRY",
+                    "text_en": "Do you have any sandwiches?",
+                    "text_vi": "Quán có bánh mì kẹp không?",
+                    "usage_note": "Use any in a simple question about availability.",
+                    "audio_url": null,
+                    "linked_vocab_ids": [
+                      "a1-cafe-04-sandwich"
+                    ]
+                  }
+                ]
+              }
+            ],
+            "tips": "Do you have ...? asks whether an item is available."
+          }
+        ],
+        "quizzes": [
+          {
+            "quiz_id": "a1-cafe-04-fill-blank",
+            "quiz_type": "FILL_BLANK",
+            "title": "Complete the sentence",
+            "instructions": "Chọn từ phù hợp nhất để hoàn thành câu.",
+            "order_index": 1,
+            "questions": [
+              {
+                "prompt": "Complete the sentence: “I'd like a ___, please.” Choose a snack made with bread and a filling.",
+                "options": [
+                  {
+                    "label": "A",
+                    "text_en": "sandwich",
+                    "is_correct": true
+                  },
+                  {
+                    "label": "B",
+                    "text_en": "cake",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "C",
+                    "text_en": "bill",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "D",
+                    "text_en": "water",
+                    "is_correct": false
+                  }
+                ],
+                "correct": "A",
+                "explanation_ok": "Sandwich là món ăn làm từ bánh mì và phần nhân bên trong.",
+                "explanation_ng": "Cake là bánh ngọt; bill là hóa đơn; water là nước.",
+                "sentence": {
+                  "text_en": "I'd like a sandwich, please.",
+                  "meaning_vi": "Cho tôi một chiếc bánh mì kẹp.",
+                  "audio_url": null,
+                  "audio_url_slow": null
+                },
+                "quiz_data": {
+                  "question_type": "FILL_BLANK",
+                  "word_bank": [
+                    "sandwich",
+                    "cake",
+                    "bill",
+                    "water"
+                  ],
+                  "blank_count": 1
+                },
+                "answer_data": {
+                  "answer": "sandwich",
+                  "correct_answer": "sandwich",
+                  "correct_option": "A"
+                },
+                "explanation": "Sandwich là món ăn làm từ bánh mì và phần nhân bên trong.",
+                "tips": "Think of a snack made with bread."
+              },
+              {
+                "prompt": "Complete the sentence: “Can I have a slice of ___?”",
+                "options": [
+                  {
+                    "label": "A",
+                    "text_en": "cake",
+                    "is_correct": true
+                  },
+                  {
+                    "label": "B",
+                    "text_en": "cash",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "C",
+                    "text_en": "table",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "D",
+                    "text_en": "coffee",
+                    "is_correct": false
+                  }
+                ],
+                "correct": "A",
+                "explanation_ok": "A slice of cake là một miếng bánh ngọt.",
+                "explanation_ng": "Cash, table và coffee không phù hợp với slice of trong câu này.",
+                "sentence": {
+                  "text_en": "Can I have a slice of cake?",
+                  "meaning_vi": "Cho tôi một miếng bánh ngọt được không?",
+                  "audio_url": null,
+                  "audio_url_slow": null
+                },
+                "quiz_data": {
+                  "question_type": "FILL_BLANK",
+                  "word_bank": [
+                    "cake",
+                    "cash",
+                    "table",
+                    "coffee"
+                  ],
+                  "blank_count": 1
+                },
+                "answer_data": {
+                  "answer": "cake",
+                  "correct_answer": "cake",
+                  "correct_option": "A"
+                },
+                "explanation": "A slice of cake là một miếng bánh ngọt.",
+                "tips": "A slice is one piece of something like cake."
+              },
+              {
+                "prompt": "Complete the sentence: “I'm ___, so I'd like something to eat.”",
+                "options": [
+                  {
+                    "label": "A",
+                    "text_en": "hungry",
+                    "is_correct": true
+                  },
+                  {
+                    "label": "B",
+                    "text_en": "large",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "C",
+                    "text_en": "please",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "D",
+                    "text_en": "medium",
+                    "is_correct": false
+                  }
+                ],
+                "correct": "A",
+                "explanation_ok": "Hungry nghĩa là đói, giải thích vì sao người nói muốn ăn.",
+                "explanation_ng": "Large, please và medium không mô tả cảm giác cần ăn.",
+                "sentence": {
+                  "text_en": "I'm hungry, so I'd like something to eat.",
+                  "meaning_vi": "Tôi đói nên muốn ăn gì đó.",
+                  "audio_url": null,
+                  "audio_url_slow": null
+                },
+                "quiz_data": {
+                  "question_type": "FILL_BLANK",
+                  "word_bank": [
+                    "hungry",
+                    "large",
+                    "please",
+                    "medium"
+                  ],
+                  "blank_count": 1
+                },
+                "answer_data": {
+                  "answer": "hungry",
+                  "correct_answer": "hungry",
+                  "correct_option": "A"
+                },
+                "explanation": "Hungry nghĩa là đói, giải thích vì sao người nói muốn ăn.",
+                "tips": "Choose the feeling that makes you want food."
+              }
+            ]
+          },
+          {
+            "quiz_id": "a1-cafe-04-situational-choice",
+            "quiz_type": "SITUATIONAL_CHOICE",
+            "title": "Choose the best response",
+            "instructions": "Đọc tình huống và chọn câu trả lời phù hợp nhất.",
+            "order_index": 2,
+            "questions": [
+              {
+                "prompt": "Bạn muốn gọi một chiếc bánh mì kẹp. Bạn nên nói gì?",
+                "options": [
+                  {
+                    "label": "A",
+                    "text_en": "I'd like a sandwich, please.",
+                    "is_correct": true
+                  },
+                  {
+                    "label": "B",
+                    "text_en": "I'd like a table, please.",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "C",
+                    "text_en": "Can I have the bill?",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "D",
+                    "text_en": "I'm a sandwich.",
+                    "is_correct": false
+                  }
+                ],
+                "correct": "A",
+                "explanation_ok": "I'd like a sandwich, please nêu đúng món bạn muốn gọi.",
+                "explanation_ng": "Table là bàn, bill là hóa đơn, và I'm a sandwich không đúng nghĩa.",
+                "sentence": {
+                  "text_en": "I'd like a sandwich, please.",
+                  "meaning_vi": "Cho tôi một chiếc bánh mì kẹp.",
+                  "audio_url": null,
+                  "audio_url_slow": null
+                },
+                "quiz_data": {
+                  "question_type": "SITUATIONAL_CHOICE",
+                  "scenario_vi": "Gọi bánh mì kẹp.",
+                  "question": "Bạn muốn gọi một chiếc bánh mì kẹp. Bạn nên nói gì?"
+                },
+                "answer_data": {
+                  "answer": "I'd like a sandwich, please.",
+                  "correct_answer": "I'd like a sandwich, please.",
+                  "correct_option": "A"
+                },
+                "explanation": "I'd like a sandwich, please nêu đúng món bạn muốn gọi.",
+                "tips": "Name the food you want."
+              },
+              {
+                "prompt": "Bạn muốn biết quán có bánh ngọt hôm nay không. Bạn hỏi thế nào?",
+                "options": [
+                  {
+                    "label": "A",
+                    "text_en": "Do you have cake today?",
+                    "is_correct": true
+                  },
+                  {
+                    "label": "B",
+                    "text_en": "Do you pay cake yesterday?",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "C",
+                    "text_en": "Where is my table airport?",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "D",
+                    "text_en": "I'm cake, please.",
+                    "is_correct": false
+                  }
+                ],
+                "correct": "A",
+                "explanation_ok": "Do you have ...? là mẫu câu đúng để hỏi về món có sẵn.",
+                "explanation_ng": "Các lựa chọn khác không diễn đạt câu hỏi về sự sẵn có của bánh.",
+                "sentence": {
+                  "text_en": "Do you have cake today?",
+                  "meaning_vi": "Hôm nay quán có bánh ngọt không?",
+                  "audio_url": null,
+                  "audio_url_slow": null
+                },
+                "quiz_data": {
+                  "question_type": "SITUATIONAL_CHOICE",
+                  "scenario_vi": "Hỏi món bánh có sẵn không.",
+                  "question": "Bạn muốn biết quán có bánh ngọt hôm nay không. Bạn hỏi thế nào?"
+                },
+                "answer_data": {
+                  "answer": "Do you have cake today?",
+                  "correct_answer": "Do you have cake today?",
+                  "correct_option": "A"
+                },
+                "explanation": "Do you have ...? là mẫu câu đúng để hỏi về món có sẵn.",
+                "tips": "Use Do you have ...? for availability."
+              },
+              {
+                "prompt": "Nhân viên hỏi bạn có muốn thêm một miếng bánh không. Bạn muốn nhận. Câu nào phù hợp?",
+                "options": [
+                  {
+                    "label": "A",
+                    "text_en": "Yes, please.",
+                    "is_correct": true
+                  },
+                  {
+                    "label": "B",
+                    "text_en": "No, the bill yesterday.",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "C",
+                    "text_en": "I am a table.",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "D",
+                    "text_en": "Large cash menu.",
+                    "is_correct": false
+                  }
+                ],
+                "correct": "A",
+                "explanation_ok": "Yes, please là câu trả lời ngắn và lịch sự khi đồng ý.",
+                "explanation_ng": "Các lựa chọn còn lại không phải câu trả lời tự nhiên cho lời đề nghị.",
+                "sentence": {
+                  "text_en": "Yes, please.",
+                  "meaning_vi": "Vâng, cho tôi nhé.",
+                  "audio_url": null,
+                  "audio_url_slow": null
+                },
+                "quiz_data": {
+                  "question_type": "SITUATIONAL_CHOICE",
+                  "scenario_vi": "Đồng ý nhận thêm một miếng bánh.",
+                  "question": "Nhân viên hỏi bạn có muốn thêm một miếng bánh không. Bạn muốn nhận. Câu nào phù hợp?"
+                },
+                "answer_data": {
+                  "answer": "Yes, please.",
+                  "correct_answer": "Yes, please.",
+                  "correct_option": "A"
+                },
+                "explanation": "Yes, please là câu trả lời ngắn và lịch sự khi đồng ý.",
+                "tips": "Use Yes, please to accept politely."
+              }
+            ]
+          }
+        ],
+        "created_at": "2026-10-27T12:00:00.000Z",
+        "updated_at": "2026-10-27T12:00:00.000Z",
+        "published_at": "2026-10-27T12:00:00.000Z"
+      },
+      {
+        "_id": "6a7200000000000000000025",
+        "topic_item_id": "6a7200000000000000000015",
+        "topic_id": "6a7200000000000000000001",
+        "topic_version_id": "6a7200000000000000000002",
+        "version": 1,
+        "change_type": "MAJOR",
+        "previous_item_version_id": null,
+        "title": "Pay and Say Thank You",
+        "description": "Ask for the bill, choose cash or card, and end the visit politely. Xin hóa đơn, chọn tiền mặt hoặc thẻ và kết thúc buổi ghé quán lịch sự.",
+        "order": 5,
+        "status": "PUBLISHED",
+        "duration_minutes": 4,
+        "context": {
+          "prompt": "What can you say when you finish your drink and want to pay?",
+          "scenario_description": "Bạn đã dùng xong đồ uống và món ăn. Bạn xin hóa đơn, cho biết cách thanh toán và cảm ơn nhân viên.",
+          "dialogue": [
+            {
+              "speaker": "Customer",
+              "text_en": "Could I have the bill, please?",
+              "text_vi": "Cho tôi xin hóa đơn được không?",
+              "audio_url": null
+            },
+            {
+              "speaker": "Barista",
+              "text_en": "Of course. Cash or card?",
+              "text_vi": "Được chứ. Bạn trả tiền mặt hay bằng thẻ?",
+              "audio_url": null
+            },
+            {
+              "speaker": "Customer",
+              "text_en": "By card, please. Thank you.",
+              "text_vi": "Tôi trả bằng thẻ. Cảm ơn bạn.",
+              "audio_url": null
+            }
+          ],
+          "duration_sec": 240,
+          "tips": "Ask for the bill when you are ready to pay. Finish with thank you."
+        },
+        "vocabularies": [
+          {
+            "vocab_id": "a1-cafe-05-bill",
+            "sense_id": "a1-cafe-05-bill-sense-v1",
+            "snapshot": {
+              "word": "bill",
+              "pos": "noun",
+              "sense": "A document showing how much you need to pay.",
+              "describe_vi": "hóa đơn",
+              "phonetic": "/bɪl/",
+              "audio_url": null,
+              "audio_en_url": null,
+              "audio_us_url": null
+            },
+            "samples": [
+              {
+                "text_en": "Could I have the bill, please?",
+                "text_vi": "Cho tôi xin hóa đơn được không?",
+                "audio_url": null,
+                "is_manual": false
+              },
+              {
+                "text_en": "The bill is on the table.",
+                "text_vi": "Hóa đơn ở trên bàn.",
+                "audio_url": null,
+                "is_manual": false
+              }
+            ],
+            "collocations": [
+              {
+                "text": "pay the bill",
+                "example": {
+                  "en": "Can I pay the bill now?",
+                  "vi": "Tôi thanh toán hóa đơn bây giờ được không?"
+                },
+                "description_vi": "thanh toán hóa đơn"
+              }
+            ],
+            "quick_check": {
+              "sentence": {
+                "text_en": "What does “bill” mean here?",
+                "meaning_vi": "Trong ngữ cảnh này, “bill” có nghĩa là gì?",
+                "audio_url": null
+              },
+              "quiz_data": {
+                "question": "What does “bill” mean here?",
+                "options": [
+                  "hóa đơn",
+                  "tiền mặt",
+                  "thẻ"
+                ]
+              },
+              "answer_data": {
+                "answer": "hóa đơn",
+                "correct_answer": "hóa đơn"
+              },
+              "explanation": "“bill” có nghĩa là “hóa đơn”."
+            },
+            "order_index": 1,
+            "tips": "You usually ask for the bill at the end of a meal or café visit."
+          },
+          {
+            "vocab_id": "a1-cafe-05-cash",
+            "sense_id": "a1-cafe-05-cash-sense-v1",
+            "snapshot": {
+              "word": "cash",
+              "pos": "noun",
+              "sense": "Money in the form of notes and coins.",
+              "describe_vi": "tiền mặt",
+              "phonetic": "/kæʃ/",
+              "audio_url": null,
+              "audio_en_url": null,
+              "audio_us_url": null
+            },
+            "samples": [
+              {
+                "text_en": "I will pay in cash.",
+                "text_vi": "Tôi sẽ trả bằng tiền mặt.",
+                "audio_url": null,
+                "is_manual": false
+              },
+              {
+                "text_en": "Do you have cash?",
+                "text_vi": "Bạn có tiền mặt không?",
+                "audio_url": null,
+                "is_manual": false
+              }
+            ],
+            "collocations": [
+              {
+                "text": "pay in cash",
+                "example": {
+                  "en": "I would like to pay in cash.",
+                  "vi": "Tôi muốn trả bằng tiền mặt."
+                },
+                "description_vi": "thanh toán bằng tiền mặt"
+              }
+            ],
+            "quick_check": {
+              "sentence": {
+                "text_en": "What does “cash” mean here?",
+                "meaning_vi": "Trong ngữ cảnh này, “cash” có nghĩa là gì?",
+                "audio_url": null
+              },
+              "quiz_data": {
+                "question": "What does “cash” mean here?",
+                "options": [
+                  "tiền mặt",
+                  "hóa đơn",
+                  "bánh ngọt"
+                ]
+              },
+              "answer_data": {
+                "answer": "tiền mặt",
+                "correct_answer": "tiền mặt"
+              },
+              "explanation": "“cash” có nghĩa là “tiền mặt”."
+            },
+            "order_index": 2,
+            "tips": "Cash means notes and coins, not a bank card."
+          },
+          {
+            "vocab_id": "a1-cafe-05-card",
+            "sense_id": "a1-cafe-05-card-sense-v1",
+            "snapshot": {
+              "word": "card",
+              "pos": "noun",
+              "sense": "A small plastic card used to pay electronically.",
+              "describe_vi": "thẻ; thẻ thanh toán",
+              "phonetic": "/kɑːd/",
+              "audio_url": null,
+              "audio_en_url": null,
+              "audio_us_url": null
+            },
+            "samples": [
+              {
+                "text_en": "Can I pay by card?",
+                "text_vi": "Tôi trả bằng thẻ được không?",
+                "audio_url": null,
+                "is_manual": false
+              },
+              {
+                "text_en": "I have my card with me.",
+                "text_vi": "Tôi mang theo thẻ.",
+                "audio_url": null,
+                "is_manual": false
+              }
+            ],
+            "collocations": [
+              {
+                "text": "pay by card",
+                "example": {
+                  "en": "Can I pay by card?",
+                  "vi": "Tôi trả bằng thẻ được không?"
+                },
+                "description_vi": "thanh toán bằng thẻ"
+              }
+            ],
+            "quick_check": {
+              "sentence": {
+                "text_en": "What does “card” mean here?",
+                "meaning_vi": "Trong ngữ cảnh này, “card” có nghĩa là gì?",
+                "audio_url": null
+              },
+              "quiz_data": {
+                "question": "What does “card” mean here?",
+                "options": [
+                  "thẻ thanh toán",
+                  "tiền mặt",
+                  "hóa đơn"
+                ]
+              },
+              "answer_data": {
+                "answer": "thẻ; thẻ thanh toán",
+                "correct_answer": "thẻ; thẻ thanh toán"
+              },
+              "explanation": "“card” có nghĩa là “thẻ; thẻ thanh toán”."
+            },
+            "order_index": 3,
+            "tips": "Pay by card is a common phrase for card payment."
+          }
+        ],
+        "expressions": [
+          {
+            "purposes": [
+              {
+                "purpose_en": "Ask for the bill",
+                "purpose_vi": "Xin hóa đơn",
+                "order_index": 1,
+                "examples": [
+                  {
+                    "type": "POLITE_INQUIRY",
+                    "text_en": "Could I have the bill, please?",
+                    "text_vi": "Cho tôi xin hóa đơn được không?",
+                    "usage_note": "A polite request to receive the bill.",
+                    "audio_url": null,
+                    "linked_vocab_ids": [
+                      "a1-cafe-05-bill",
+                      "a1-cafe-05-please"
+                    ]
+                  },
+                  {
+                    "type": "BASIC_SUGGESTION",
+                    "text_en": "Can I pay now, please?",
+                    "text_vi": "Tôi thanh toán bây giờ được không?",
+                    "usage_note": "Use this when you are ready to pay.",
+                    "audio_url": null,
+                    "linked_vocab_ids": [
+                      "a1-cafe-05-bill",
+                      "a1-cafe-05-please"
+                    ]
+                  }
+                ]
+              }
+            ],
+            "tips": "Ask for the bill when you are ready to pay."
+          },
+          {
+            "purposes": [
+              {
+                "purpose_en": "Say how you will pay",
+                "purpose_vi": "Nói cách bạn thanh toán",
+                "order_index": 2,
+                "examples": [
+                  {
+                    "type": "POLITE_INQUIRY",
+                    "text_en": "Can I pay by card?",
+                    "text_vi": "Tôi trả bằng thẻ được không?",
+                    "usage_note": "Use by card to ask about card payment.",
+                    "audio_url": null,
+                    "linked_vocab_ids": [
+                      "a1-cafe-05-card"
+                    ]
+                  },
+                  {
+                    "type": "BASIC_SUGGESTION",
+                    "text_en": "I'll pay in cash, please.",
+                    "text_vi": "Tôi sẽ trả bằng tiền mặt.",
+                    "usage_note": "Use in cash for notes and coins.",
+                    "audio_url": null,
+                    "linked_vocab_ids": [
+                      "a1-cafe-05-cash"
+                    ]
+                  }
+                ]
+              }
+            ],
+            "tips": "Use by card for a card payment and in cash for cash."
+          }
+        ],
+        "quizzes": [
+          {
+            "quiz_id": "a1-cafe-05-fill-blank",
+            "quiz_type": "FILL_BLANK",
+            "title": "Complete the sentence",
+            "instructions": "Chọn từ phù hợp nhất để hoàn thành câu.",
+            "order_index": 1,
+            "questions": [
+              {
+                "prompt": "Complete the sentence: “Could I have the ___, please?” You want to see how much to pay.",
+                "options": [
+                  {
+                    "label": "A",
+                    "text_en": "bill",
+                    "is_correct": true
+                  },
+                  {
+                    "label": "B",
+                    "text_en": "menu",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "C",
+                    "text_en": "water",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "D",
+                    "text_en": "table",
+                    "is_correct": false
+                  }
+                ],
+                "correct": "A",
+                "explanation_ok": "Bill là hóa đơn cho biết số tiền cần thanh toán.",
+                "explanation_ng": "Menu là thực đơn; water là nước; table là bàn.",
+                "sentence": {
+                  "text_en": "Could I have the bill, please?",
+                  "meaning_vi": "Cho tôi xin hóa đơn được không?",
+                  "audio_url": null,
+                  "audio_url_slow": null
+                },
+                "quiz_data": {
+                  "question_type": "FILL_BLANK",
+                  "word_bank": [
+                    "bill",
+                    "menu",
+                    "water",
+                    "table"
+                  ],
+                  "blank_count": 1
+                },
+                "answer_data": {
+                  "answer": "bill",
+                  "correct_answer": "bill",
+                  "correct_option": "A"
+                },
+                "explanation": "Bill là hóa đơn cho biết số tiền cần thanh toán.",
+                "tips": "Ask for this when you are ready to pay."
+              },
+              {
+                "prompt": "Complete the sentence: “Can I pay by ___?” You want to use your bank card.",
+                "options": [
+                  {
+                    "label": "A",
+                    "text_en": "card",
+                    "is_correct": true
+                  },
+                  {
+                    "label": "B",
+                    "text_en": "cake",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "C",
+                    "text_en": "menu",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "D",
+                    "text_en": "cash",
+                    "is_correct": false
+                  }
+                ],
+                "correct": "A",
+                "explanation_ok": "Pay by card là thanh toán bằng thẻ.",
+                "explanation_ng": "Cash là tiền mặt; cake và menu không phải phương thức thanh toán.",
+                "sentence": {
+                  "text_en": "Can I pay by card?",
+                  "meaning_vi": "Tôi trả bằng thẻ được không?",
+                  "audio_url": null,
+                  "audio_url_slow": null
+                },
+                "quiz_data": {
+                  "question_type": "FILL_BLANK",
+                  "word_bank": [
+                    "card",
+                    "cake",
+                    "menu",
+                    "cash"
+                  ],
+                  "blank_count": 1
+                },
+                "answer_data": {
+                  "answer": "card",
+                  "correct_answer": "card",
+                  "correct_option": "A"
+                },
+                "explanation": "Pay by card là thanh toán bằng thẻ.",
+                "tips": "Choose the payment method that uses a card."
+              },
+              {
+                "prompt": "Complete the sentence: “I have some ___ with me, so I can pay with notes and coins.”",
+                "options": [
+                  {
+                    "label": "A",
+                    "text_en": "cash",
+                    "is_correct": true
+                  },
+                  {
+                    "label": "B",
+                    "text_en": "bill",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "C",
+                    "text_en": "table",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "D",
+                    "text_en": "tea",
+                    "is_correct": false
+                  }
+                ],
+                "correct": "A",
+                "explanation_ok": "Cash là tiền mặt, gồm tiền giấy và tiền xu.",
+                "explanation_ng": "Bill là hóa đơn; table là bàn; tea là trà.",
+                "sentence": {
+                  "text_en": "I have some cash with me, so I can pay with notes and coins.",
+                  "meaning_vi": "Tôi có tiền mặt bên mình nên có thể trả bằng tiền giấy và tiền xu.",
+                  "audio_url": null,
+                  "audio_url_slow": null
+                },
+                "quiz_data": {
+                  "question_type": "FILL_BLANK",
+                  "word_bank": [
+                    "cash",
+                    "bill",
+                    "table",
+                    "tea"
+                  ],
+                  "blank_count": 1
+                },
+                "answer_data": {
+                  "answer": "cash",
+                  "correct_answer": "cash",
+                  "correct_option": "A"
+                },
+                "explanation": "Cash là tiền mặt, gồm tiền giấy và tiền xu.",
+                "tips": "Think of the opposite of paying by card."
+              }
+            ]
+          },
+          {
+            "quiz_id": "a1-cafe-05-situational-choice",
+            "quiz_type": "SITUATIONAL_CHOICE",
+            "title": "Choose the best response",
+            "instructions": "Đọc tình huống và chọn câu trả lời phù hợp nhất.",
+            "order_index": 2,
+            "questions": [
+              {
+                "prompt": "Bạn dùng xong đồ uống và muốn thanh toán. Bạn xin hóa đơn thế nào?",
+                "options": [
+                  {
+                    "label": "A",
+                    "text_en": "Could I have the bill, please?",
+                    "is_correct": true
+                  },
+                  {
+                    "label": "B",
+                    "text_en": "Could I have the menu, please?",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "C",
+                    "text_en": "A large coffee, please.",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "D",
+                    "text_en": "I'm a bill.",
+                    "is_correct": false
+                  }
+                ],
+                "correct": "A",
+                "explanation_ok": "Bill là hóa đơn, phù hợp khi bạn muốn thanh toán.",
+                "explanation_ng": "Menu dùng trước khi gọi món; large coffee là gọi đồ uống.",
+                "sentence": {
+                  "text_en": "Could I have the bill, please?",
+                  "meaning_vi": "Cho tôi xin hóa đơn được không?",
+                  "audio_url": null,
+                  "audio_url_slow": null
+                },
+                "quiz_data": {
+                  "question_type": "SITUATIONAL_CHOICE",
+                  "scenario_vi": "Xin hóa đơn sau khi dùng xong.",
+                  "question": "Bạn dùng xong đồ uống và muốn thanh toán. Bạn xin hóa đơn thế nào?"
+                },
+                "answer_data": {
+                  "answer": "Could I have the bill, please?",
+                  "correct_answer": "Could I have the bill, please?",
+                  "correct_option": "A"
+                },
+                "explanation": "Bill là hóa đơn, phù hợp khi bạn muốn thanh toán.",
+                "tips": "At the end, ask for the bill."
+              },
+              {
+                "prompt": "Nhân viên hỏi “Cash or card?” Bạn muốn trả bằng thẻ. Bạn nói gì?",
+                "options": [
+                  {
+                    "label": "A",
+                    "text_en": "By card, please.",
+                    "is_correct": true
+                  },
+                  {
+                    "label": "B",
+                    "text_en": "A table, please.",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "C",
+                    "text_en": "The menu is small.",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "D",
+                    "text_en": "I'm cash.",
+                    "is_correct": false
+                  }
+                ],
+                "correct": "A",
+                "explanation_ok": "By card trả lời trực tiếp câu hỏi về cách thanh toán.",
+                "explanation_ng": "Các lựa chọn khác không nêu phương thức thanh toán phù hợp.",
+                "sentence": {
+                  "text_en": "By card, please.",
+                  "meaning_vi": "Tôi trả bằng thẻ.",
+                  "audio_url": null,
+                  "audio_url_slow": null
+                },
+                "quiz_data": {
+                  "question_type": "SITUATIONAL_CHOICE",
+                  "scenario_vi": "Chọn thanh toán bằng thẻ.",
+                  "question": "Nhân viên hỏi “Cash or card?” Bạn muốn trả bằng thẻ. Bạn nói gì?"
+                },
+                "answer_data": {
+                  "answer": "By card, please.",
+                  "correct_answer": "By card, please.",
+                  "correct_option": "A"
+                },
+                "explanation": "By card trả lời trực tiếp câu hỏi về cách thanh toán.",
+                "tips": "Use by card when you want to pay with a card."
+              },
+              {
+                "prompt": "Bạn rời quán sau khi thanh toán. Bạn muốn cảm ơn nhân viên. Bạn nói câu nào?",
+                "options": [
+                  {
+                    "label": "A",
+                    "text_en": "Thank you. Have a nice day!",
+                    "is_correct": true
+                  },
+                  {
+                    "label": "B",
+                    "text_en": "The bill is a table.",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "C",
+                    "text_en": "Medium, please.",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "D",
+                    "text_en": "I am hungry yesterday.",
+                    "is_correct": false
+                  }
+                ],
+                "correct": "A",
+                "explanation_ok": "Thank you là lời cảm ơn tự nhiên; Have a nice day là lời chúc lịch sự.",
+                "explanation_ng": "Các lựa chọn khác nói về kích cỡ, đồ vật hoặc không đúng ngữ pháp.",
+                "sentence": {
+                  "text_en": "Thank you. Have a nice day!",
+                  "meaning_vi": "Cảm ơn bạn. Chúc bạn một ngày tốt lành!",
+                  "audio_url": null,
+                  "audio_url_slow": null
+                },
+                "quiz_data": {
+                  "question_type": "SITUATIONAL_CHOICE",
+                  "scenario_vi": "Kết thúc cuộc trò chuyện lịch sự trước khi rời quán.",
+                  "question": "Bạn rời quán sau khi thanh toán. Bạn muốn cảm ơn nhân viên. Bạn nói câu nào?"
+                },
+                "answer_data": {
+                  "answer": "Thank you. Have a nice day!",
+                  "correct_answer": "Thank you. Have a nice day!",
+                  "correct_option": "A"
+                },
+                "explanation": "Thank you là lời cảm ơn tự nhiên; Have a nice day là lời chúc lịch sự.",
+                "tips": "Finish the conversation with thanks."
+              }
+            ]
+          }
+        ],
+        "created_at": "2026-10-27T12:00:00.000Z",
+        "updated_at": "2026-10-27T12:00:00.000Z",
+        "published_at": "2026-10-27T12:00:00.000Z"
+      }
+    ]
+  }
+}
