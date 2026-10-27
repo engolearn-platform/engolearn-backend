@@ -1,0 +1,47 @@
+package fit.iuh.engolearn.topic.controller;
+
+import fit.iuh.engolearn.shared.web.ApiResponse;
+import fit.iuh.engolearn.topic.dto.request.*;
+import fit.iuh.engolearn.topic.dto.response.*;
+import fit.iuh.engolearn.topic.service.TopicAttemptService;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
+import org.springframework.web.bind.annotation.*;
+import java.time.Instant;
+import java.util.Map;
+
+@RestController
+@RequestMapping("/api/v1")
+public class TopicAttemptController {
+    private final TopicAttemptService attempts;
+    public TopicAttemptController(TopicAttemptService attempts) { this.attempts = attempts; }
+
+    @PostMapping("/topic-items/{itemId}/attempts")
+    public ApiResponse<TopicAttemptResponse> start(@PathVariable String itemId, @Valid @RequestBody StartTopicAttemptRequest body,
+            @NotBlank @Size(max = 128) @RequestHeader("Idempotency-Key") String key) {
+        return ApiResponse.ok(attempts.start(itemId, body, key));
+    }
+
+    @GetMapping("/topic-attempts/{attemptId}")
+    public ApiResponse<TopicAttemptResponse> get(@PathVariable String attemptId) {
+        return ApiResponse.ok(attempts.get(attemptId));
+    }
+
+    @GetMapping("/topic-attempts/{attemptId}/content")
+    public ApiResponse<TopicItemContentResponse> content(@PathVariable String attemptId) {
+        return ApiResponse.ok(attempts.content(attemptId));
+    }
+
+    @PostMapping("/topic-attempts/{attemptId}/advance")
+    public ApiResponse<TopicAttemptResponse> advance(@PathVariable String attemptId, @Valid @RequestBody AdvanceTopicContentRequest body,
+            @NotBlank @Size(max = 128) @RequestHeader("Idempotency-Key") String key) {
+        return ApiResponse.ok(attempts.advance(attemptId, body, key));
+    }
+
+    @PostMapping("/topic-attempts/{attemptId}/access")
+    public ApiResponse<Map<String, Instant>> access(@PathVariable String attemptId,
+            @NotBlank @Size(max = 128) @RequestHeader("Idempotency-Key") String key) {
+        return ApiResponse.ok(attempts.access(attemptId, key));
+    }
+}

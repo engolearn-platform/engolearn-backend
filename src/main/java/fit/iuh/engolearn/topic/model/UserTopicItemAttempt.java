@@ -26,6 +26,15 @@ import java.util.List;
 @SuperBuilder
 @EqualsAndHashCode(callSuper = true)
 public class UserTopicItemAttempt extends BaseDocument {
+    @Field("attempt_type")
+    private fit.iuh.engolearn.topic.model.enums.AttemptType attemptType;
+    @Field("start_request_key")
+    private String startRequestKey;
+    @Field("start_fingerprint")
+    private String startFingerprint;
+    @Field("mutation_receipts")
+    private List<fit.iuh.engolearn.topic.model.vo.ContentMutationReceiptVo> mutationReceipts;
+
     @Field(value = "user_topic_attempt_id", targetType = FieldType.OBJECT_ID)
     private String userTopicAttemptId;
 

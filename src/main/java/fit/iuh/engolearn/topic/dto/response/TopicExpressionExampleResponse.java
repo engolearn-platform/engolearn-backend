@@ -4,9 +4,11 @@ import fit.iuh.engolearn.topic.model.enums.ExpressionType;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
+import lombok.Setter;
 import lombok.NoArgsConstructor;
 
 @Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -16,4 +18,5 @@ public class TopicExpressionExampleResponse {
     private String textVi;
     private String usageNote;
     private String audioUrl;
+    private String expressionId;
 }

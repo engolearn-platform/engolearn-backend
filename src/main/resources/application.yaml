@@ -15,6 +15,9 @@ spring:
 
 engolearn:
   cors:
-    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000}
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000,http://127.0.0.1:3000}
   mongodb:
     server-selection-timeout-ms: 2000
+
+  topic:
+    local-learner-id: ${TOPIC_LOCAL_LEARNER_ID:}

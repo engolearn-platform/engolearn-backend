@@ -190,6 +190,7 @@ public class TopicBrowseServiceImpl implements TopicBrowseService {
             int vocabularyCount = 0;
             int quizCount = 0;
             int itemCount = 0;
+            Map<String, String> itemVersionsByItem = new HashMap<>();
             if (release.getItemVersionIds() != null) {
                 for (String itemVersionId : release.getItemVersionIds()) {
                     TopicItemVersion itemVersion = itemVersions.get(itemVersionId);
@@ -197,12 +198,13 @@ public class TopicBrowseServiceImpl implements TopicBrowseService {
                         continue;
                     }
                     vocabularyCount += sizeOf(itemVersion.getVocabularies());
-                    quizCount += sizeOf(itemVersion.getQuizzes());
+                    quizCount += countQuizQuestions(itemVersion);
                     itemCount++;
+                    itemVersionsByItem.put(itemVersion.getTopicItemId(), itemVersion.getId());
                 }
             }
             listed.add(topic);
-            countsByTopic.put(topic.getId(), new Counts(vocabularyCount, quizCount, itemCount));
+            countsByTopic.put(topic.getId(), new Counts(vocabularyCount, quizCount, itemCount, itemVersionsByItem));
         }
         return new ResolvedPage(listed, countsByTopic);
     }
@@ -234,6 +236,8 @@ public class TopicBrowseServiceImpl implements TopicBrowseService {
                 .vocabularyCount(counts.vocabularyCount())
                 .quizCount(counts.quizCount())
                 .totalItemCount(counts.itemCount())
+                .visibleItemVersions(counts.itemVersions())
+                .sortOrderIndex(topic.getOrderIndex())
                 .startAvailability(TopicCatalogPolicy.Availability.signInRequired())
                 // Maintained on the topic document, the same value the duration sort key uses.
                 .durationMinutes(orZero(topic.getDurationMinutes()))
@@ -243,13 +247,14 @@ public class TopicBrowseServiceImpl implements TopicBrowseService {
     private TopicItemSummaryResponse toItemSummary(TopicItemVersion itemVersion) {
         return TopicItemSummaryResponse.builder()
                 .topicItemId(itemVersion.getTopicItemId())
+                .publishedVersionId(itemVersion.getId())
                 .title(itemVersion.getTitle())
                 .description(itemVersion.getDescription())
                 .durationMinutes(orZero(itemVersion.getDurationMinutes()))
                 .vocabularyCount(sizeOf(itemVersion.getVocabularies()))
                 .expressionCount(countExpressions(itemVersion))
                 .actions(TopicCatalogPolicy.ItemActions.anonymous())
-                .quizCount(sizeOf(itemVersion.getQuizzes()))
+                .quizCount(countQuizQuestions(itemVersion))
                 .build();
     }
 
@@ -261,6 +266,13 @@ public class TopicBrowseServiceImpl implements TopicBrowseService {
             if (release.getStatus() == ContentStatus.PUBLISHED) publishedIds.add(release.getId());
         }
         return candidates.stream().filter(topic -> publishedIds.contains(topic.getLatestPublishedVersion())).count();
+    }
+
+    private static int countQuizQuestions(TopicItemVersion version) {
+        return version.getQuizzes() == null ? 0 : version.getQuizzes().stream()
+                .filter(module -> module.getQuizType() == fit.iuh.engolearn.topic.model.enums.QuizType.FILL_BLANK ||
+                        module.getQuizType() == fit.iuh.engolearn.topic.model.enums.QuizType.SITUATIONAL_CHOICE)
+                .mapToInt(module -> sizeOf(module.getQuestions())).sum();
     }
 
     private static int countExpressions(TopicItemVersion itemVersion) {
@@ -332,9 +344,9 @@ public class TopicBrowseServiceImpl implements TopicBrowseService {
     }
 
     /** Visible-item counts of one topic card. */
-    private record Counts(int vocabularyCount, int quizCount, int itemCount) {
+    private record Counts(int vocabularyCount, int quizCount, int itemCount, Map<String, String> itemVersions) {
 
-        private static final Counts EMPTY = new Counts(0, 0, 0);
+        private static final Counts EMPTY = new Counts(0, 0, 0, Map.of());
     }
 
     /** Rows of one fetched batch that can be listed, with their visible-item counts. */

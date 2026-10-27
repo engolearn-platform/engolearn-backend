@@ -2,10 +2,10 @@ package fit.iuh.engolearn.topic.controller;
 
 import fit.iuh.engolearn.shared.web.ApiResponse;
 import fit.iuh.engolearn.topic.dto.request.GetAvailableTopicRequest;
-import fit.iuh.engolearn.topic.dto.request.GetTopicDetailRequest;
 import fit.iuh.engolearn.topic.dto.response.TopicDetailResponse;
 import fit.iuh.engolearn.topic.dto.response.TopicPageResponse;
-import fit.iuh.engolearn.topic.service.TopicBrowseService;
+import fit.iuh.engolearn.topic.service.TopicLearnerCatalogService;
+import fit.iuh.engolearn.topic.dto.response.MyTopicPageResponse;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -15,9 +15,9 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/v1/topics")
 public class TopicBrowseController {
-    private final TopicBrowseService topicBrowseService;
+    private final TopicLearnerCatalogService topicBrowseService;
 
-    public TopicBrowseController(TopicBrowseService topicBrowseService) {
+    public TopicBrowseController(TopicLearnerCatalogService topicBrowseService) {
         this.topicBrowseService = topicBrowseService;
     }
 
@@ -35,14 +35,19 @@ public class TopicBrowseController {
                 .limit(limit)
                 .cursor(cursor)
                 .build();
-        return ApiResponse.ok(topicBrowseService.getAvailableTopics(request));
+        return ApiResponse.ok(topicBrowseService.discover(request));
+    }
+
+    @GetMapping("/mine")
+    public ApiResponse<MyTopicPageResponse> getMyTopics(
+            @RequestParam(name = "status", defaultValue = "IN_PROGRESS") String status,
+            @RequestParam(name = "limit", required = false) Integer limit,
+            @RequestParam(name = "cursor", required = false) String cursor) {
+        return ApiResponse.ok(topicBrowseService.mine(status, limit, cursor));
     }
 
     @GetMapping("/{topicId}")
     public ApiResponse<TopicDetailResponse> getTopicDetail(@PathVariable("topicId") String topicId) {
-        GetTopicDetailRequest request = GetTopicDetailRequest.builder()
-                .topicId(topicId)
-                .build();
-        return ApiResponse.ok(topicBrowseService.getTopicDetail(request));
+        return ApiResponse.ok(topicBrowseService.detail(topicId));
     }
 }
