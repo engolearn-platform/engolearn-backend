@@ -37,3 +37,8 @@ Context/Vocab/Expressions trả snapshot đã pin. IDs purpose/example được 
 - Personal catalog hiện đọc tập published để tính/filter/cursor trước phân trang; chưa tối ưu truy vấn cho catalog lớn.
 
 Cách chọn hồ sơ: POST /api/v1/topic-learning/local-profiles với displayName và cefrLevel thật, lưu learnerId trả về vào TOPIC_LOCAL_LEARNER_ID trong .env rồi restart BE. Endpoint tạo hồ sơ chỉ nhận loopback. Không commit .env.
+
+
+## Planning kế tiếp — chưa triển khai
+
+Bộ [OpenSpec hoàn tất luồng học](../../openspec/changes/complete-topic-learning-flow/handoff.md) và [artifact dữ liệu mẫu](sample-data-plan.md) ghi thiết kế/task cho phần còn lại. Chúng chưa phải bằng chứng endpoint chạy được. Luật mới item ẩn dừng truy cập mọi trạng thái; việc áp dụng vào code và runtime aggregate vẫn thuộc task chưa làm.
