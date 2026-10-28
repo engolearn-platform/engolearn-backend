@@ -164,3 +164,9 @@ This refines §2. §2's 3–5 questions-per-type line is a publish-gate rule of 
 - a missing `Idempotency-Key` returns the framework's default 400 body without a `code` field — handoff §6.6 note / §7 item 6.
 
 Data blockers are recorded in handoff §12; Slice A fail-closes with 404 `CONTENT_UNAVAILABLE` rather than relaxing a rule.
+
+## Amendment B — authoritative item completion without infrastructure changes
+
+For Slice B, the implementation uses the existing owned item-attempt document as the authoritative completion boundary. This supersedes the requirement to introduce `topic_learner_runtime` before B in §3/A1. The final accepted answer, persisted first-try history, COMPLETED status, null position, completion timestamp, immutable result counts and replay receipt are committed in one version-checked document update. Official catalog/progress/next-item reads resolve that committed completed attempt; they must not depend on a later best-effort projection write. No replica-set conversion or cross-document transaction is introduced by this slice. Retry/session replacement atomicity remains a C design concern and is not claimed implemented by B.
+
+Existing Slice A attempts may already contain the final correct answer while still IN_PROGRESS. `POST /topic-attempts/{attemptId}/completion` with `{revision}` and Idempotency-Key explicitly recovers these attempts using their stored quiz history, returning AttemptDto. It cannot add a submission, reset history, accept unanswered quizzes or repair state during GET. Original Slice A answer receipts remain stable; FE confirms authoritative completed state/result after recovery and only then clears obsolete pending-answer state. Recovery and final-answer response loss must both be safely replayable. API source remains the sibling OpenAPI contract with CompleteAttemptRequestDto, not this illustrative prose.
