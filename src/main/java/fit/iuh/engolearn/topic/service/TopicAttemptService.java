@@ -4,6 +4,7 @@ import fit.iuh.engolearn.topic.dto.request.*;
 import fit.iuh.engolearn.topic.dto.response.*;
 import fit.iuh.engolearn.topic.exception.TopicRequestException;
 import fit.iuh.engolearn.topic.mapper.TopicAttemptContentMapper;
+import fit.iuh.engolearn.topic.mapper.TopicQuizMapper;
 import fit.iuh.engolearn.topic.model.*;
 import fit.iuh.engolearn.topic.model.enums.*;
 import fit.iuh.engolearn.topic.model.vo.*;
@@ -32,12 +33,17 @@ public class TopicAttemptService {
     private final MongoTemplate mongo;
     private final TopicItemRepository topicItems;
     private final TopicLearningService learning;
+    private final TopicQuizMapper quizMapper;
+    private final TopicRepository topics;
+    private final TopicVersionRepository releases;
 
     public TopicAttemptService(LocalLearnerProvider learner, TopicLearnerCatalogService catalog,
             UserTopicItemAttemptRepository attempts, TopicItemVersionRepository versions, MongoTemplate mongo,
-            TopicItemRepository topicItems, TopicLearningService learning) {
+            TopicItemRepository topicItems, TopicLearningService learning, TopicQuizMapper quizMapper,
+            TopicRepository topics, TopicVersionRepository releases) {
         this.learner = learner; this.catalog = catalog; this.attempts = attempts; this.versions = versions; this.mongo = mongo;
-        this.topicItems = topicItems; this.learning = learning;
+        this.topicItems = topicItems; this.learning = learning; this.quizMapper = quizMapper;
+        this.topics = topics; this.releases = releases;
     }
 
     @PostConstruct
@@ -89,6 +95,16 @@ public class TopicAttemptService {
         return TopicAttemptContentMapper.content(version(owned(id)));
     }
 
+    public CurrentQuizResponse getCurrentQuiz(String id) {
+        UserTopicItemAttempt attempt = owned(id);
+        TopicItemVersion pinned = version(attempt);
+        if (attempt.getStatus() != AttemptStatus.IN_PROGRESS) return new CurrentQuizResponse(describe(attempt), null);
+        requireItemVisible(attempt, pinned);
+        List<TopicQuizMapper.QuizEntry> sequence = quizMapper.sequence(pinned);
+        Optional<TopicQuizMapper.QuizEntry> current = firstUnanswered(sequence, attempt.getQuizProgress());
+        return new CurrentQuizResponse(describe(attempt), current.map(quizMapper::toDto).orElse(null));
+    }
+
     public TopicAttemptResponse advance(String id, AdvanceTopicContentRequest body, String key) {
         UserTopicItemAttempt attempt = owned(id);
         String fingerprint = "advance|" + body.revision() + "|" + body.stage() + "|" + body.itemIndex();
@@ -125,6 +141,119 @@ public class TopicAttemptService {
             throw problem(409, "STATE_CHANGED", "Another request changed the position");
         }
         return describe(result);
+    }
+
+    public QuizAnswerResponse answerQuiz(String id, String quizId, AnswerQuizRequest body, String key) {
+        UserTopicItemAttempt attempt = owned(id);
+        if (key == null || key.isBlank() || key.length() > 128) throw problem(400, "INVALID_REQUEST", "Idempotency-Key is required");
+        String fingerprint = "answer|" + body.revision() + "|" + quizId + "|" + body.optionId();
+        ContentMutationReceiptVo replay = receipt(attempt, key, fingerprint);
+        if (replay != null) return replayedAnswer(attempt, quizId, body, replay);
+        TopicItemVersion pinned = version(attempt);
+        if (attempt.getStatus() != AttemptStatus.IN_PROGRESS) throw problem(409, "STATE_CHANGED", "Reload the saved position before answering");
+        requireItemVisible(attempt, pinned);
+        List<TopicQuizMapper.QuizEntry> sequence = quizMapper.sequence(pinned);
+        TopicQuizMapper.QuizEntry entry = quizMapper.find(sequence, quizId)
+                .orElseThrow(() -> problem(404, "CONTENT_UNAVAILABLE", "Unknown quiz"));
+        TopicQuizMapper.QuizEntry current = firstUnanswered(sequence, attempt.getQuizProgress())
+                .orElseThrow(() -> problem(409, "STATE_CHANGED", "Reload before answering"));
+        if (!current.quizId().equals(entry.quizId())) throw problem(409, "STATE_CHANGED", "Reload before answering");
+        if (!Objects.equals(revision(attempt), body.revision())) throw problem(409, "STATE_CHANGED", "Reload before answering");
+        requireOptionOf(entry, body.optionId());
+        boolean correct = body.optionId().equals(quizMapper.correctOptionId(entry));
+        QuizFeedbackResponse feedback = correct ? quizMapper.feedback(entry) : null;
+        Instant now = Instant.now().truncatedTo(java.time.temporal.ChronoUnit.MILLIS);
+        long newRevision = revision(attempt) + 1;
+        List<QuizProgressVo> progress = answeredQuizProgress(attempt.getQuizProgress(), quizId, body.optionId(), correct, now);
+        FurthestReachedVo advanced = correct ? nextFrontier(entry, sequence) : null;
+        FurthestReachedVo frontier = attempt.getFurthestReached();
+        ContentMutationReceiptVo saved = new ContentMutationReceiptVo(key, fingerprint,
+                advanced != null ? advanced.getStage() : frontier == null ? LearningStage.CONTEXT : frontier.getStage(),
+                advanced != null ? advanced.getItemIndex() : frontier == null ? 0 : frontier.getItemIndex(),
+                newRevision, now);
+        Update update = new Update()
+                .set("quiz_progress", progress)
+                .set("version", newRevision)
+                .set("last_accessed_at", now)
+                .push("mutation_receipts", saved);
+        if (advanced != null) update.set("furthest_reached", advanced);
+        UserTopicItemAttempt result = mongo.findAndModify(cas(attempt), update,
+                FindAndModifyOptions.options().returnNew(true), UserTopicItemAttempt.class);
+        if (result == null) {
+            UserTopicItemAttempt latest = owned(id);
+            ContentMutationReceiptVo concurrentReplay = receipt(latest, key, fingerprint);
+            if (concurrentReplay != null) return replayedAnswer(latest, quizId, body, concurrentReplay);
+            throw problem(409, "STATE_CHANGED", "Another request changed the attempt while answering");
+        }
+        return new QuizAnswerResponse(quizId, correct, feedback, describe(result));
+    }
+
+    private QuizAnswerResponse replayedAnswer(UserTopicItemAttempt attempt, String quizId, AnswerQuizRequest body,
+            ContentMutationReceiptVo replay) {
+        TopicItemVersion pinned = version(attempt);
+        TopicQuizMapper.QuizEntry entry = quizMapper.find(quizMapper.sequence(pinned), quizId)
+                .orElseThrow(() -> problem(404, "CONTENT_UNAVAILABLE", "Unknown quiz"));
+        QuizSubmissionVo matched = null;
+        if (attempt.getQuizProgress() != null) for (QuizProgressVo state : attempt.getQuizProgress()) {
+            if (state == null || !quizId.equals(state.getQuizId()) || state.getSubmissions() == null) continue;
+            List<QuizSubmissionVo> submissions = state.getSubmissions();
+            for (int i = submissions.size() - 1; i >= 0 && matched == null; i--) {
+                QuizSubmissionVo submission = submissions.get(i);
+                if (submission != null && body.optionId().equals(String.valueOf(submission.getAnswer()))) matched = submission;
+            }
+            if (matched != null) break;
+        }
+        if (matched == null) throw problem(409, "STATE_CHANGED", "Reload the saved position before answering");
+        boolean correct = Boolean.TRUE.equals(matched.getIsCorrect());
+        TopicAttemptResponse attemptDto = replay.stage() == null ? describe(attempt)
+                : describe(attempt, replay.stage(), replay.itemIndex(), replay.revision(), replay.accessedAt());
+        return new QuizAnswerResponse(quizId, correct, correct ? quizMapper.feedback(entry) : null, attemptDto);
+    }
+
+    private void requireOptionOf(TopicQuizMapper.QuizEntry entry, String optionId) {
+        String prefix = entry.quizId() + ":option:";
+        String suffix = optionId == null || !optionId.startsWith(prefix) ? null : optionId.substring(prefix.length());
+        int position = -1;
+        if (suffix != null && !suffix.isEmpty() && suffix.chars().allMatch(Character::isDigit)) {
+            try { position = Integer.parseInt(suffix); } catch (NumberFormatException overflow) { position = -1; }
+        }
+        List<QuizOptionVo> options = entry.question().getOptions();
+        if (position < 0 || options == null || position >= options.size())
+            throw problem(400, "INVALID_REQUEST", "optionId does not belong to the current quiz");
+    }
+
+    private FurthestReachedVo nextFrontier(TopicQuizMapper.QuizEntry entry, List<TopicQuizMapper.QuizEntry> sequence) {
+        if (entry.indexInType() + 1 < entry.totalInType()) {
+            return FurthestReachedVo.builder()
+                    .stage(entry.type() == QuizType.FILL_BLANK ? LearningStage.FILL_BLANK : LearningStage.SITUATIONAL_CHOICE)
+                    .itemIndex(entry.indexInType() + 1).build();
+        }
+        if (entry.type() == QuizType.FILL_BLANK && sequence.stream()
+                .anyMatch(other -> other != null && other.type() == QuizType.SITUATIONAL_CHOICE)) {
+            return FurthestReachedVo.builder().stage(LearningStage.SITUATIONAL_CHOICE).itemIndex(0).build();
+        }
+        return null;
+    }
+
+    private List<QuizProgressVo> answeredQuizProgress(List<QuizProgressVo> current, String quizId, String optionId,
+            boolean correct, Instant now) {
+        List<QuizProgressVo> copy = new ArrayList<>();
+        if (current != null) for (QuizProgressVo state : current) {
+            if (state == null) { copy.add(null); continue; }
+            List<QuizSubmissionVo> submissions = state.getSubmissions() == null
+                    ? new ArrayList<QuizSubmissionVo>() : new ArrayList<>(state.getSubmissions());
+            copy.add(QuizProgressVo.builder().quizId(state.getQuizId()).completedAt(state.getCompletedAt())
+                    .submissions(submissions).build());
+        }
+        QuizProgressVo state = copy.stream().filter(entry -> entry != null && quizId.equals(entry.getQuizId()))
+                .findFirst().orElse(null);
+        if (state == null) {
+            state = QuizProgressVo.builder().quizId(quizId).submissions(new ArrayList<QuizSubmissionVo>()).build();
+            copy.add(state);
+        }
+        state.getSubmissions().add(QuizSubmissionVo.builder().answer(optionId).isCorrect(correct).submittedAt(now).build());
+        if (correct && state.getCompletedAt() == null) state.setCompletedAt(now);
+        return copy;
     }
 
     public Map<String, Instant> access(String id, String key) {
@@ -215,6 +344,27 @@ public class TopicAttemptService {
                 .mapToInt(module -> module.getQuestions() == null ? 0 : module.getQuestions().size()).sum();
     }
 
+    static Optional<TopicQuizMapper.QuizEntry> firstUnanswered(List<TopicQuizMapper.QuizEntry> sequence,
+            List<QuizProgressVo> progress) {
+        if (sequence == null) return Optional.empty();
+        for (TopicQuizMapper.QuizEntry entry : sequence) {
+            if (entry == null || entry.quizId() == null) continue;
+            if (!answeredCorrectly(entry, progress)) return Optional.of(entry);
+        }
+        return Optional.empty();
+    }
+
+    private static boolean answeredCorrectly(TopicQuizMapper.QuizEntry entry, List<QuizProgressVo> progress) {
+        if (progress == null) return false;
+        for (QuizProgressVo state : progress) {
+            if (state == null || !entry.quizId().equals(state.getQuizId()) || state.getSubmissions() == null) continue;
+            for (QuizSubmissionVo submission : state.getSubmissions()) {
+                if (submission != null && Boolean.TRUE.equals(submission.getIsCorrect())) return true;
+            }
+        }
+        return false;
+    }
+
     private Query cas(UserTopicItemAttempt attempt) {
         return new Query(Criteria.where("_id").is(attempt.getId()).and("user_id").is(attempt.getUserId()).and("version").is(attempt.getVersion()));
     }
@@ -239,6 +389,21 @@ public class TopicAttemptService {
 
     private TopicItemVersion version(UserTopicItemAttempt attempt) {
         return versions.findById(attempt.getTopicItemVersionId()).orElseThrow(() -> problem(404, "CONTENT_UNAVAILABLE", "Saved content version not found"));
+    }
+
+    private void requireItemVisible(UserTopicItemAttempt attempt, TopicItemVersion pinned) {
+        if (pinned.getStatus() == ContentStatus.HIDDEN) throw problem(410, "ITEM_HIDDEN", "The item is no longer available");
+        Topic topic = topics.findById(attempt.getTopicId()).orElseThrow(() -> problem(410, "ITEM_HIDDEN", "The item is no longer available"));
+        String latest = topic.getLatestPublishedVersion();
+        if (latest == null || latest.isBlank()) throw problem(410, "ITEM_HIDDEN", "The item is no longer available");
+        TopicVersion release = releases.findById(latest).orElseThrow(() -> problem(410, "ITEM_HIDDEN", "The item is no longer available"));
+        if (release.getStatus() != ContentStatus.PUBLISHED) throw problem(410, "ITEM_HIDDEN", "The item is no longer available");
+        List<String> itemVersionIds = release.getItemVersionIds();
+        if (itemVersionIds == null || itemVersionIds.isEmpty()) throw problem(410, "ITEM_HIDDEN", "The item is no longer available");
+        boolean stillPublished = versions.findAllById(new ArrayList<>(new LinkedHashSet<>(itemVersionIds))).stream()
+                .anyMatch(itemVersion -> pinned.getTopicItemId().equals(itemVersion.getTopicItemId())
+                        && itemVersion.getStatus() != ContentStatus.HIDDEN);
+        if (!stillPublished) throw problem(410, "ITEM_HIDDEN", "The item is no longer available");
     }
 
     private String userId() {

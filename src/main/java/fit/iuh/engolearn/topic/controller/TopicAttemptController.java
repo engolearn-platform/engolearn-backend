@@ -44,4 +44,16 @@ public class TopicAttemptController {
             @NotBlank @Size(max = 128) @RequestHeader("Idempotency-Key") String key) {
         return ApiResponse.ok(attempts.access(attemptId, key));
     }
+
+    @GetMapping("/topic-attempts/{attemptId}/quiz")
+    public ApiResponse<CurrentQuizResponse> currentQuiz(@PathVariable String attemptId) {
+        return ApiResponse.ok(attempts.getCurrentQuiz(attemptId));
+    }
+
+    @PostMapping("/topic-attempts/{attemptId}/quizzes/{quizId}/answers")
+    public ApiResponse<QuizAnswerResponse> answerQuiz(@PathVariable String attemptId, @PathVariable String quizId,
+            @Valid @RequestBody AnswerQuizRequest body,
+            @NotBlank @Size(max = 128) @RequestHeader("Idempotency-Key") String key) {
+        return ApiResponse.ok(attempts.answerQuiz(attemptId, quizId, body, key));
+    }
 }
