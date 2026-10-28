@@ -268,6 +268,28 @@ class TopicQuizMapperTest {
     }
 
     @Test
+    void fillBlankDtoExposesExactlyTheContractKeys() {
+        TopicItemVersion version = version(
+                module(QuizType.FILL_BLANK, 0, "Fill blank",
+                        fillBlankQuestion("I would like to reserve a ticket today.", "I want a ticket.")));
+
+        QuizFillBlankResponse dto = (QuizFillBlankResponse) mapper.toDto(mapper.sequence(version).get(0));
+        Map<?, ?> node = json.convertValue(dto, Map.class);
+        List<?> options = (List<?>) node.get("options");
+
+        Set<Object> keys = new HashSet<>(node.keySet());
+        assertThat(keys).containsExactlyInAnyOrder(
+                "quizId", "title", "index", "totalInType", "situationVi", "imageUrl",
+                "tips", "promptAudioUrl", "type", "sentenceBefore", "sentenceAfter", "options");
+        assertThat(options).hasSize(4);
+        for (Object option : options) {
+            assertThat(new HashSet<Object>(((Map<?, ?>) option).keySet()))
+                    .containsExactlyInAnyOrder("optionId", "text");
+        }
+        assertThat(dto.type()).isEqualTo("FILL_BLANK");
+    }
+
+    @Test
     void serializedQuizDtosNeverExposeAnswers() throws Exception {
         TopicItemVersion version = version(
                 module(QuizType.FILL_BLANK, 0, "Fill blank",

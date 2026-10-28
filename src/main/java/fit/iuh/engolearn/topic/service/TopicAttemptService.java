@@ -100,6 +100,7 @@ public class TopicAttemptService {
         TopicItemVersion pinned = version(attempt);
         if (attempt.getStatus() != AttemptStatus.IN_PROGRESS) return new CurrentQuizResponse(describe(attempt), null);
         requireItemVisible(attempt, pinned);
+        requireQuizFrontier(attempt);
         List<TopicQuizMapper.QuizEntry> sequence = quizMapper.sequence(pinned);
         Optional<TopicQuizMapper.QuizEntry> current = firstUnanswered(sequence, attempt.getQuizProgress());
         return new CurrentQuizResponse(describe(attempt), current.map(quizMapper::toDto).orElse(null));
@@ -152,6 +153,7 @@ public class TopicAttemptService {
         TopicItemVersion pinned = version(attempt);
         if (attempt.getStatus() != AttemptStatus.IN_PROGRESS) throw problem(409, "STATE_CHANGED", "Reload the saved position before answering");
         requireItemVisible(attempt, pinned);
+        requireQuizFrontier(attempt);
         List<TopicQuizMapper.QuizEntry> sequence = quizMapper.sequence(pinned);
         TopicQuizMapper.QuizEntry entry = quizMapper.find(sequence, quizId)
                 .orElseThrow(() -> problem(404, "CONTENT_UNAVAILABLE", "Unknown quiz"));
@@ -389,6 +391,13 @@ public class TopicAttemptService {
 
     private TopicItemVersion version(UserTopicItemAttempt attempt) {
         return versions.findById(attempt.getTopicItemVersionId()).orElseThrow(() -> problem(404, "CONTENT_UNAVAILABLE", "Saved content version not found"));
+    }
+
+    private void requireQuizFrontier(UserTopicItemAttempt attempt) {
+        FurthestReachedVo frontier = attempt.getFurthestReached();
+        boolean reachedQuiz = frontier != null && (frontier.getStage() == LearningStage.FILL_BLANK
+                || frontier.getStage() == LearningStage.SITUATIONAL_CHOICE);
+        if (!reachedQuiz) throw problem(409, "STATE_CHANGED", "Finish the item content before the quiz");
     }
 
     private void requireItemVisible(UserTopicItemAttempt attempt, TopicItemVersion pinned) {

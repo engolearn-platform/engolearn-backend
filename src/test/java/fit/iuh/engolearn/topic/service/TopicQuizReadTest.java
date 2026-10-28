@@ -2,6 +2,7 @@ package fit.iuh.engolearn.topic.service;
 
 import fit.iuh.engolearn.topic.dto.response.CurrentQuizResponse;
 import fit.iuh.engolearn.topic.dto.response.QuizFillBlankResponse;
+import fit.iuh.engolearn.topic.dto.response.QuizSituationalChoiceResponse;
 import fit.iuh.engolearn.topic.exception.TopicRequestException;
 import fit.iuh.engolearn.topic.mapper.TopicQuizMapper;
 import fit.iuh.engolearn.topic.mapper.TopicQuizMapper.QuizEntry;
@@ -226,7 +227,7 @@ class TopicQuizReadTest {
         assertThat(response.attempt().position()).isNull();
         assertThat(response.quiz()).isNull();
         verify(quizMapper, never()).sequence(any());
-        verifyNoInteractions(mongo, catalog, learning, topicItems);
+        verifyNoInteractions(topics, releases, mongo, catalog, learning, topicItems);
     }
 
     @Test
@@ -266,6 +267,85 @@ class TopicQuizReadTest {
         QuizFillBlankResponse quiz = (QuizFillBlankResponse) response.quiz();
         assertThat(quiz.quizId()).isEqualTo("iv1:quiz:0:1");
         assertThat(quiz.index()).isEqualTo(1);
+        assertThat(quiz.totalInType()).isEqualTo(2);
+        assertThat(response.attempt().status()).isEqualTo("IN_PROGRESS");
+        verifyNoInteractions(mongo, catalog, learning, topicItems);
+    }
+
+    @Test
+    void quizReadBeforeQuizFrontierIs409AtContext() {
+        givenAttempt(attemptAt(AttemptStatus.IN_PROGRESS, LearningStage.CONTEXT, 0, List.of()));
+        when(versions.findById("iv1")).thenReturn(Optional.of(itemVersion(fillBlankModule(0))));
+        visibleItemInLatestRelease();
+
+        TopicRequestException error = catchThrowableOfType(
+                () -> service.getCurrentQuiz(ATTEMPT_ID), TopicRequestException.class);
+
+        assertThat(error.getStatus()).isEqualTo(409);
+        assertThat(error.getCode()).isEqualTo("STATE_CHANGED");
+        verify(quizMapper, never()).sequence(any());
+        verifyNoInteractions(mongo, catalog, learning, topicItems);
+    }
+
+    @Test
+    void quizReadBeforeQuizFrontierIs409AtVocab() {
+        givenAttempt(attemptAt(AttemptStatus.IN_PROGRESS, LearningStage.VOCAB, 2, List.of()));
+        when(versions.findById("iv1")).thenReturn(Optional.of(itemVersion(fillBlankModule(0))));
+        visibleItemInLatestRelease();
+
+        TopicRequestException error = catchThrowableOfType(
+                () -> service.getCurrentQuiz(ATTEMPT_ID), TopicRequestException.class);
+
+        assertThat(error.getStatus()).isEqualTo(409);
+        assertThat(error.getCode()).isEqualTo("STATE_CHANGED");
+        verify(quizMapper, never()).sequence(any());
+        verifyNoInteractions(mongo, catalog, learning, topicItems);
+    }
+
+    @Test
+    void quizReadBeforeQuizFrontierIs409AtExpressions() {
+        givenAttempt(attemptAt(AttemptStatus.IN_PROGRESS, LearningStage.EXPRESSIONS, 0, List.of()));
+        when(versions.findById("iv1")).thenReturn(Optional.of(itemVersion(fillBlankModule(0))));
+        visibleItemInLatestRelease();
+
+        TopicRequestException error = catchThrowableOfType(
+                () -> service.getCurrentQuiz(ATTEMPT_ID), TopicRequestException.class);
+
+        assertThat(error.getStatus()).isEqualTo(409);
+        assertThat(error.getCode()).isEqualTo("STATE_CHANGED");
+        verify(quizMapper, never()).sequence(any());
+        verifyNoInteractions(mongo, catalog, learning, topicItems);
+    }
+
+    @Test
+    void quizReadWithMissingFurthestReachedIs409() {
+        givenAttempt(attemptAt(AttemptStatus.IN_PROGRESS, null, 0, List.of()));
+        when(versions.findById("iv1")).thenReturn(Optional.of(itemVersion(fillBlankModule(0))));
+        visibleItemInLatestRelease();
+
+        TopicRequestException error = catchThrowableOfType(
+                () -> service.getCurrentQuiz(ATTEMPT_ID), TopicRequestException.class);
+
+        assertThat(error.getStatus()).isEqualTo(409);
+        assertThat(error.getCode()).isEqualTo("STATE_CHANGED");
+        verify(quizMapper, never()).sequence(any());
+        verifyNoInteractions(mongo, catalog, learning, topicItems);
+    }
+
+    @Test
+    void quizReadAtSituationalChoiceFrontierServesTheFirstUnansweredSituationalQuestion() {
+        givenAttempt(attemptAt(AttemptStatus.IN_PROGRESS, LearningStage.SITUATIONAL_CHOICE, 0, List.of(
+                progress("iv1:quiz:0:0", true),
+                progress("iv1:quiz:0:1", true))));
+        when(versions.findById("iv1")).thenReturn(Optional.of(itemVersion(fillBlankModule(0), situationalModule(1))));
+        visibleItemInLatestRelease();
+
+        CurrentQuizResponse response = service.getCurrentQuiz(ATTEMPT_ID);
+
+        assertThat(response.quiz()).isInstanceOf(QuizSituationalChoiceResponse.class);
+        QuizSituationalChoiceResponse quiz = (QuizSituationalChoiceResponse) response.quiz();
+        assertThat(quiz.quizId()).isEqualTo("iv1:quiz:1:0");
+        assertThat(quiz.index()).isZero();
         assertThat(quiz.totalInType()).isEqualTo(2);
         assertThat(response.attempt().status()).isEqualTo("IN_PROGRESS");
         verifyNoInteractions(mongo, catalog, learning, topicItems);
@@ -467,6 +547,19 @@ class TopicQuizReadTest {
                 .version(3L)
                 .startedAt(SUBMITTED_AT).lastAccessedAt(SUBMITTED_AT)
                 .build();
+    }
+
+    private static UserTopicItemAttempt attemptAt(AttemptStatus status, LearningStage stage, int index,
+            List<QuizProgressVo> quizProgress) {
+        UserTopicItemAttempt attempt = attempt(status, quizProgress);
+        attempt.setFurthestReached(stage == null ? null
+                : FurthestReachedVo.builder().stage(stage).itemIndex(index).build());
+        return attempt;
+    }
+
+    private void givenAttempt(UserTopicItemAttempt attempt) {
+        when(learner.getCurrentUserId()).thenReturn(USER_ID);
+        when(attempts.findById(ATTEMPT_ID)).thenReturn(Optional.of(attempt));
     }
 
     private static TopicItemVersion itemVersion(QuizModuleVo... modules) {

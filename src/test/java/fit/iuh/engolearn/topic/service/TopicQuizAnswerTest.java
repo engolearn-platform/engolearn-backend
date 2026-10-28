@@ -294,6 +294,49 @@ class TopicQuizAnswerTest {
     }
 
     @Test
+    void answerBeforeQuizFrontierIs409WithoutAnyWrite() {
+        givenAttempt(attempt(AttemptStatus.IN_PROGRESS, LearningStage.CONTEXT, 0, List.of()));
+        when(versions.findById("iv1")).thenReturn(Optional.of(pinned()));
+        givenVisibleItem();
+
+        TopicRequestException error = catchThrowableOfType(
+                () -> service.answerQuiz(ATTEMPT_ID, FIRST, body(3L, FIRST_CORRECT), KEY), TopicRequestException.class);
+
+        assertThat(error.getStatus()).isEqualTo(409);
+        assertThat(error.getCode()).isEqualTo("STATE_CHANGED");
+        verify(quizMapper, never()).sequence(any());
+        assertNoWrite();
+    }
+
+    @Test
+    void replayBeforeQuizFrontierStillReturnsTheCommittedAnswer() {
+        UserTopicItemAttempt attempt = attempt(AttemptStatus.IN_PROGRESS, LearningStage.CONTEXT, 0,
+                new ArrayList<>(List.of(QuizProgressVo.builder().quizId(FIRST)
+                        .submissions(new ArrayList<>(List.of(submission(FIRST_CORRECT, true))))
+                        .completedAt(SAVED_AT).build())));
+        attempt.setVersion(5L);
+        attempt.setLastAccessedAt(SAVED_AT);
+        attempt.setMutationReceipts(new ArrayList<>(List.of(
+                new ContentMutationReceiptVo(KEY, answerFingerprint(3L), LearningStage.FILL_BLANK, 1, 4L, SAVED_AT))));
+        givenAttempt(attempt);
+        when(versions.findById("iv1")).thenReturn(Optional.of(pinned()));
+
+        QuizAnswerResponse response = service.answerQuiz(ATTEMPT_ID, FIRST, body(3L, FIRST_CORRECT), KEY);
+
+        assertThat(response.quizId()).isEqualTo(FIRST);
+        assertThat(response.isCorrect()).isTrue();
+        assertThat(response.feedback()).isNotNull();
+        assertThat(response.attempt().revision()).isEqualTo(4L);
+        assertThat(response.attempt().position()).isEqualTo(new TopicCatalogPolicy.Position("FILL_BLANK", 1));
+
+        verify(mongo, never()).findAndModify(any(Query.class), any(Update.class), any(FindAndModifyOptions.class),
+                eq(UserTopicItemAttempt.class));
+        verifyNoInteractions(topics, releases);
+        assertNoRepositoryWrite();
+        assertThat(attempt.getMutationReceipts()).hasSize(1);
+    }
+
+    @Test
     void replaySameKeyAndFingerprintSkipsRevisionAndVisibilityChecks() {
         UserTopicItemAttempt attempt = attempt(AttemptStatus.IN_PROGRESS, LearningStage.FILL_BLANK, 0,
                 new ArrayList<>(List.of(QuizProgressVo.builder().quizId(FIRST)
