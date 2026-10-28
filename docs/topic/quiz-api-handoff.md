@@ -19,8 +19,8 @@ Nguồn sự thật: `.artifacts/complete-topic-learning-quiz-slice/facts-be.md`
 
 | # | Method | Path | Target (OpenAPI) | BE hiện tại | Ghi chú FE |
 |---|---|---|---|---|---|
-| 1 | GET | `/topic-attempts/{attemptId}/quiz` | `getCurrentQuiz` (`SPEC:760-763`) | **Chưa có** — không match `quiz` trong `*Controller.java` (facts-be.md:B.5) | FE gọi khi ở quiz frontier. |
-| 2 | POST | `/topic-attempts/{attemptId}/quizzes/{quizId}/answers` | `answerQuiz` (`SPEC:890-893`) | **Chưa có** | FE gửi `{revision, optionId}` + `Idempotency-Key`. |
+| 1 | GET | `/topic-attempts/{attemptId}/quiz` | `getCurrentQuiz` (`SPEC:760-763`) | **Có** (commit `b8c89a4`) — `TopicAttemptController.currentQuiz` (`:48-51`) | FE gọi khi ở quiz frontier. `410 ITEM_HIDDEN` là delta chưa sync OpenAPI. |
+| 2 | POST | `/topic-attempts/{attemptId}/quizzes/{quizId}/answers` | `answerQuiz` (`SPEC:890-893`) | **Có** (commit `b8c89a4`) — `TopicAttemptController.answerQuiz` (`:53-58`) | FE gửi `{revision, optionId}` + `Idempotency-Key`. `410 ITEM_HIDDEN` là delta chưa sync OpenAPI. |
 | 3 | GET | `/topic-attempts/{attemptId}` | `getAttempt` (`SPEC:516-519`) | Có — `TopicAttemptController.get` (`TopicAttemptController.java:26-29`) | Lấy attempt + revision hiện tại. |
 | 4 | GET | `/topic-attempts/{attemptId}/content` | `getAttemptContent` (`SPEC:579-582`) | Có — `TopicAttemptController.content` (`:31-34`) | Nội dung pinned, chỉ đọc. |
 | 5 | POST | `/topic-attempts/{attemptId}/advance` | `advanceContent` (`SPEC:642-645`) | Có — `TopicAttemptController.advance` (`:36-40`) | Không dùng cho quiz stage. |
@@ -64,7 +64,7 @@ Nguồn sự thật: `.artifacts/complete-topic-learning-quiz-slice/facts-be.md`
 
 `QuizOptionDto` — `SPEC:2913-2928`: `optionId` (string, required), `text` (string, required). `optionId = "<quizId>:option:<optionPosition>"` (vị trí gốc trong `QuizQuestionVo.options`, không phụ label/text/hiển thị); `text` = `text_en`. BE model chỉ có `label`/`text_en`/`is_correct` (`QuizOptionVo.java`), KHÔNG có `optionId` → BE phải sinh `optionId` deterministic.
 
-**AttemptDto** (dùng chung) — `SPEC:1759-1855`, required `SPEC:1762-1777`: `attemptId, topicId, topicItemId, topicItemVersionId, version, mode, status, revision, position, progress, retrySessionId, startedAt, lastAccessedAt, completedAt`. `revision` `SPEC:1809-1812` (integer min 0) lấy từ `UserTopicItemAttempt.getVersion()` (`TopicAttemptService.java:249`). `status` enum `IN_PROGRESS|COMPLETED` (`SPEC:1802-1808`); `mode` enum `LEARN|RETRY` (`SPEC:1795-1801`).
+**AttemptDto** (dùng chung) — `SPEC:1759-1855`, required `SPEC:1762-1777`: `attemptId, topicId, topicItemId, topicItemVersionId, version, mode, status, revision, position, progress, retrySessionId, startedAt, lastAccessedAt, completedAt`. `revision` `SPEC:1809-1812` (integer min 0) lấy từ `UserTopicItemAttempt.getVersion()` qua `TopicAttemptService.revision(...)`. `status` enum `IN_PROGRESS|COMPLETED` (`SPEC:1802-1808`); `mode` enum `LEARN|RETRY` (`SPEC:1795-1801`).
 
 `PositionDto` — `SPEC:1632-1648`: `stage` (`LearningStageDto` `SPEC:1497-1506`: `CONTEXT, VOCAB, EXPRESSIONS, FILL_BLANK, SITUATIONAL_CHOICE`), `itemIndex` integer min 0.
 `AttemptProgressDto` — `SPEC:1715-1758`: `completedStepCount, totalStepCount, percent, learnedVocabularyCount, learnedExpressionCount, completedQuizCount, totalQuizCount`.
@@ -90,18 +90,18 @@ Tất cả field contract của mục 3 đã có nguồn dữ liệu thật + c�
 
 ## 4. Ma trận lỗi
 
-Mỗi lỗi trả `ProblemDetail` media type `application/problem+json` (`SPEC:3585`), `ProblemDto` required `type, title, status, detail, code` (`SPEC:3537-3566`). Envelope thành công `{data, timestamp}` không dùng cho lỗi. Thứ tự kiểm tra bắt buộc: **replay Idempotency-Key KIỂM TRA TRƯỚC revision check** (`backend-handoff.md:113`, `SPEC:894`). Cùng key + payload giống → trả nguyên phản hồi đã ghi, không tăng revision, không thêm submission. Cùng key khác payload → 409 `IDEMPOTENCY_KEY_REUSED`. Revision cũ + key mới → 409 `STATE_CHANGED`, không chấm.
+Mỗi lỗi trả `ProblemDetail` media type `application/problem+json` (`SPEC:3585`), `ProblemDto` required `type, title, status, detail, code` (`SPEC:3537-3566`). Envelope thành công `{data, timestamp}` không dùng cho lỗi. Thứ tự kiểm tra bắt buộc: **replay Idempotency-Key KIỂM TRA TRƯỚC revision check** (`backend-handoff.md:113`, `SPEC:894`). Cùng key + payload giống → trả nguyên phản hồi đã ghi, không tăng revision, không thêm submission. Cùng key khác payload → 409 `IDEMPOTENCY_KEY_REUSED`. Revision cũ + key mới → 409 `STATE_CHANGED`, không chấm. Thứ tự thực tế của POST (`TopicAttemptService.answerQuiz`): `owned` 404 → key 400 → replay/reuse → `version` 404 → status 409 → `requireItemVisible` 410 → **`requireQuizFrontier` 409** → quiz 404 → current-quiz 409 → revision 409 → `requireOptionOf` 400.
 
 ### GET quiz
 
 | Status | `code` | Khi nào | Nguồn code BE / ghi chú |
 |---|---|---|---|
-| 400 | `INVALID_REQUEST` | validation header/path thất bại | `INVALID_REQUEST` — `TopicAttemptService.java:54` |
-| 401 | `SIGN_IN_REQUIRED` | `userId` null (chưa chọn hồ sơ local) | `TopicAttemptService.java:246` |
-| 404 | `CONTENT_UNAVAILABLE` | attempt không tồn tại / không sở hữu / quizId không thuộc attempt / version không tìm thấy | `CONTENT_UNAVAILABLE` — `TopicAttemptService.java:62,65,68,235,236,241` |
+| 400 | `INVALID_REQUEST` | path/validation thất bại (route GET không có header/body, nên trên thực tế không xảy ra) | helper `TopicAttemptService.problem(...)` |
+| 401 | `SIGN_IN_REQUIRED` | `userId` null (chưa chọn hồ sơ local) | `TopicAttemptService.userId()` |
+| 404 | `CONTENT_UNAVAILABLE` | attempt không tồn tại / không sở hữu; version pin không tìm thấy; nội dung không dựng được DTO | `TopicAttemptService.owned` / `version` + `TopicQuizMapper` |
 | 200 | — | attempt `COMPLETED` → `quiz:null`; hoặc hết quiz chưa đúng (câu cuối đúng, Slice B chưa completion) → `quiz:null`, status `IN_PROGRESS`, `completedAt = null`, không tạo result, reload không hiện lại câu đã đúng | Quyết định 2; **không phải 409** |
-| 410 | `ITEM_HIDDEN` | item của attempt bị ẩn (`TopicItemVersion.status == HIDDEN` / release không `PUBLISHED`) | **Delta:** chưa có trong BE; chưa có trong contract FE status list (`SPEC:1045-1062` chỉ 400/401/404/409/422/503) → FE phải sync OpenAPI. |
-| 409 | `STATE_CHANGED` | revision cũ, frontier đã đổi | `STATE_CHANGED` — `TopicAttemptService.java:99,125,139` |
+| 410 | `ITEM_HIDDEN` | item của attempt bị ẩn (`TopicItemVersion.status == HIDDEN` / release không `PUBLISHED`) | **Delta:** chưa có trong contract FE status list (`SPEC:1045-1062` chỉ 400/401/404/409/422/503) → FE phải sync OpenAPI. Code: `TopicAttemptService.requireItemVisible` |
+| 409 | `STATE_CHANGED` | **chưa tới quiz frontier** — `furthestReached` null hoặc `stage` còn `CONTEXT`/`VOCAB`/`EXPRESSIONS` | `TopicAttemptService.requireQuizFrontier` — `specs/topic-quiz/spec.md:10-12`, `design.md:32`, `SPEC:764` |
 | 422 | `LEVEL_TOO_LOW` / `PREDECESSOR_INCOMPLETE` | không áp quiz slice | — |
 | 503 | `SERVICE_UNAVAILABLE` | persistence thực sự không sẵn sàng | `SPEC:3650-3666` |
 
@@ -109,12 +109,13 @@ Mỗi lỗi trả `ProblemDetail` media type `application/problem+json` (`SPEC:3
 
 | Status | `code` | Khi nào | Nguồn code BE / ghi chú |
 |---|---|---|---|
-| 400 | `INVALID_REQUEST` | body sai schema (`revision` thiếu/<0, `optionId` blank), Idempotency-Key thiếu/blank/>128, **`optionId` không thuộc quiz hiện tại (invalid option)** | `INVALID_REQUEST` — `TopicAttemptService.java:54`; `design.md:50` quy định 400 invalid option (không phải 404) |
-| 401 | `SIGN_IN_REQUIRED` | `userId` null | `TopicAttemptService.java:246` |
-| 404 | `CONTENT_UNAVAILABLE` | attempt không tồn tại/không sở hữu; `quizId` **không tồn tại** trong version đã pin; version không tìm thấy | `CONTENT_UNAVAILABLE` — `TopicAttemptService.java` |
-| 409 | `STATE_CHANGED` | `revision` cũ, frontier đã đổi, hoặc attempt đã `COMPLETED`, **hoặc `quizId` có thật nhưng không phải câu hiện tại** (đã đúng rồi / nhảy cóc). Không tính là một lần sai, không ghi submission. | `STATE_CHANGED` — `TopicAttemptService.java:99,125,139` + nhánh `answerQuiz` |
-| 409 | `IDEMPOTENCY_KEY_REUSED` | cùng key nhưng payload/fingerprint khác request trước | `IDEMPOTENCY_KEY_REUSED` — `TopicAttemptService.java:59,79,223,226` |
-| 410 | `ITEM_HIDDEN` | item bị ẩn trước khi chấm | **Delta:** như GET quiz. |
+| 400 | `INVALID_REQUEST` | body sai schema (`revision` thiếu/<0, `optionId` blank), Idempotency-Key thiếu/blank/>128, **`optionId` không thuộc quiz hiện tại (invalid option)** | `TopicAttemptService.answerQuiz` (key) + `requireOptionOf` (invalid option), `AnswerQuizRequest` (schema); `design.md:50` quy định 400 invalid option (không phải 404) |
+| 401 | `SIGN_IN_REQUIRED` | `userId` null | `TopicAttemptService.userId()` |
+| 404 | `CONTENT_UNAVAILABLE` | attempt không tồn tại/không sở hữu; `quizId` **không tồn tại** trong version đã pin; version không tìm thấy | `TopicAttemptService.owned` / `version` + `TopicQuizMapper.find` |
+| 409 | `STATE_CHANGED` | `revision` cũ, frontier đã đổi, hoặc attempt đã `COMPLETED`, **hoặc `quizId` có thật nhưng không phải câu hiện tại** (đã đúng rồi / nhảy cóc). Không tính là một lần sai, không ghi submission. | `TopicAttemptService.answerQuiz` (status/current quiz/revision) + nhánh thua CAS |
+| 409 | `STATE_CHANGED` | **chưa tới quiz frontier** — `furthestReached` null hoặc `stage` còn `CONTEXT`/`VOCAB`/`EXPRESSIONS`. Kiểm **sau replay, trước khi đọc quiz sequence**. **Replay cùng key/payload vẫn 200** (trả kết quả đã ghi) kể cả khi chưa tới frontier, và không ghi gì. | `TopicAttemptService.requireQuizFrontier` — `specs/topic-quiz/spec.md:10-12`, `design.md:32`, `SPEC:764`; test `answerBeforeQuizFrontierIs409WithoutAnyWrite`, `replayBeforeQuizFrontierStillReturnsTheCommittedAnswer` |
+| 409 | `IDEMPOTENCY_KEY_REUSED` | cùng key nhưng payload/fingerprint khác request trước | `TopicAttemptService.receipt(...)` |
+| 410 | `ITEM_HIDDEN` | item bị ẩn trước khi chấm | **Delta:** như GET quiz. Code: `TopicAttemptService.requireItemVisible` |
 | 422 | `LEVEL_TOO_LOW`... | không áp quiz slice | — |
 | 503 | `SERVICE_UNAVAILABLE` | persistence thất bại | `SPEC:3650-3666` |
 
@@ -125,9 +126,9 @@ Mỗi mục: cái gì / vì sao / ai sửa / chặn gì.
 1. **Contract FE cần sync — thêm `410 ITEM_HIDDEN`.** Contract FE cho 2 endpoint quiz chỉ khai 400/401/404/409/422/503 (`SPEC:1045-1062`), không có `410`. OpenSpec BE và spec `topic-quiz` yêu cầu `ITEM_HIDDEN (410)` (`design.md:45`, `specs/topic-quiz/spec.md:58-63`). → **FE sửa** OpenAPI/thêm status 410. Chặn: nếu BE trả 410 mà FE không xử lý, FE sẽ coi như lỗi không xác định.
 2. **BE `ProblemDetail.title` bị đặt bằng `code`** (`TopicRequestExceptionHandler.java:16-17`, facts-be.md:462), ví dụ `title: "STATE_CHANGED"`; contract example muốn `title: "Learning state changed"` + `code: "STATE_CHANGED"` (`SPEC:3625-3628`). → **BE chốt** (không phải Slice A): `title` từ message dễ đọc, `code` riêng. Chặn: FE ánh xạ theo `code`, không theo `title`, nhưng contract example không khớp.
 3. **Các advice khác thiếu trường `code`.** `TopicLearningExceptionHandler`, `TopicBrowseExceptionHandler`, `SecurityExceptionHandler` không set property `code` (`facts-be.md:B.5`), còn `ProblemDto.required` có `code` (`SPEC:3540-3546`). → **BE chốt** (không phải Slice A): thêm `code` cho các advice liên quan, hoặc chốt FE chấp nhận thiếu `code`. Chặn: response quiz (dùng `TopicRequestExceptionHandler` có `code`) thì OK, nhưng các lỗi 404/401 từ advice khác nếu tái dùng sẽ thiếu `code`.
-4. **`501 CONTENT_UNAVAILABLE` cho `mode=RETRY`** (`TopicAttemptService.java:53`) không trong danh sách status contract (`SPEC:495-512`). Slice A chỉ làm LEARN. → **BE chốt:** giữ 501 (vi phạm tinh thần `backend-handoff.md:154`) hay trả 400/409. Khuyên: Slice A trả 400 `INVALID_REQUEST` nếu FE gửi mode RETRY (không xảy ra vì quiz chỉ LEARN).
-5. **Replay `start` luôn trả `revision = 0`** (`TopicAttemptService.java:60`) không phản ánh trạng thái thật (`backend-handoff.md:113`). → **BE chốt:** replay trả state hiện tại hay snapshot lúc start. Slice A không thay đổi `start`, nhưng quy tắc replay áp cho quiz answer.
-6. **Không có DTO quiz, không có mapper quiz, không có controller quiz.** → **BE tạo** (mục D3 bước b).
+4. **`501 CONTENT_UNAVAILABLE` cho `mode=RETRY`** (`TopicAttemptService.start`) không trong danh sách status contract (`SPEC:495-512`). Slice A chỉ làm LEARN. → **BE chốt:** giữ 501 (vi phạm tinh thần `backend-handoff.md:154`) hay trả 400/409. Khuyên: Slice A trả 400 `INVALID_REQUEST` nếu FE gửi mode RETRY (không xảy ra vì quiz chỉ LEARN).
+5. **Replay `start` luôn trả `revision = 0`** (nhánh replay của `TopicAttemptService.start`) không phản ánh trạng thái thật (`backend-handoff.md:113`). → **BE chốt:** replay trả state hiện tại hay snapshot lúc start. Slice A không thay đổi `start`, nhưng quy tắc replay áp cho quiz answer.
+6. ~~**Không có DTO quiz, không có mapper quiz, không có controller quiz.**~~ **Đã có ở `b8c89a4`:** 6 DTO `Quiz*`/`CurrentQuizResponse`/`AnswerQuizRequest`, `TopicQuizMapper`, và 2 route `TopicAttemptController.currentQuiz`/`answerQuiz` (xem §2, §3). Khi gate frontier thêm sau đó, hành vi 409 được ghi ở §4.
 7. **Quiz identity (`quizId`/`optionId`) chưa có nguồn.** Model chỉ có `label`/`text_en`/`is_correct`, `QuizModuleVo.quiz_id` (`facts-be.md:B.8`). → **BE thiết toán ID deterministic** (mục 3, công thức đã chốt).
 8. **Field quiz hợp đồng (`sentenceBefore/sentenceAfter/situationVi/questionVi/imageUrl/tips/promptAudioUrl/questionVi`) thiếu trực tiếp trong `QuizQuestionVo`.** → **BE chốt nguồn field + quy tắc tách câu** (mục 3 đã chốt: `sentenceBefore/After` tách `sentence.text_en` tại vị trí option đúng, xuất hiện đúng 1 lần, nếu không → `CONTENT_UNAVAILABLE`; `explanationVi` lấy `explanation`, thiếu thì `CONTENT_UNAVAILABLE`; `situationVi` lấy `quiz_data.scenario_vi`, FILL_BLANK null hợp lệ).
 9. **Visibility HIDDEN đã chốt kiểm tra cho 2 endpoint quiz (quyết định 3).** → **BE thêm** hidden enforcement tại `getCurrentQuiz`/`answerQuiz` (410 `ITEM_HIDDEN`), không bật lộ ẩn/hiện cho attempt không sở hữu (luôn 404).
@@ -374,7 +375,7 @@ Tài liệu này đã được cập nhật ở bước bàn giao: response TH�
 
 Cả hai phải tính trên **danh sách đã lọc visible**. Sửa một chỗ vẫn kẹt.
 
-**Thêm:** attempt `IN_PROGRESS` của item ẩn đang giữ unique partial index `one_running_learning_item_per_topic` (`TopicAttemptService.java:45-48`), khiến `start` item kế trả `409 OTHER_ITEM_IN_PROGRESS` (`:81-82`). Phải giải phóng slot bằng reconciliation mutation trước khi coi là xong Slice B.
+**Thêm:** attempt `IN_PROGRESS` của item ẩn đang giữ unique partial index `one_running_learning_item_per_topic` (`TopicAttemptService.indexes()`), khiến `start` item kế trả `409 OTHER_ITEM_IN_PROGRESS` (nhánh `DuplicateKeyException` của `TopicAttemptService.start`). Phải giải phóng slot bằng reconciliation mutation trước khi coi là xong Slice B.
 
 **Test bắt buộc cho Slice B:** (a) xong 5, 6 visible → next 6; (b) ẩn 6 → xong 5 → next 7, vào được, không `PREDECESSOR_INCOMPLETE`; (c) đang IN_PROGRESS ở 6, 6 bị ẩn → mutation kế tiếp đóng attempt `ABANDONED` + giải phóng index, next 7; (d) đã COMPLETED 6, 6 bị ẩn → result/review bị chặn, 6 rơi khỏi mẫu số, history còn, topic không quay về Khám phá; (e) mọi GET không ghi gì.
 
@@ -388,18 +389,22 @@ Môi trường: 2026-10-28, app port **8099**, DB clone **`engolearn_quiz_verify
 |---|---|
 | `./mvnw.cmd verify` | **FAIL, exit 1** — `Tests run: 246, Failures: 3, Errors: 47, Skipped: 0` |
 | Chứng minh đỏ sẵn ở HEAD `e258e67` | worktree tách rời của HEAD, chạy lại đúng 9 class fail: **73 test, 3F/47E** — trùng khớp 100% ⇒ Slice A **không thêm fail nào** |
-| `TopicQuizMapperTest` | **31/31** pass |
-| `TopicQuizAnswerTest` | **18/18** pass |
-| `TopicQuizReadTest` | **25/25** pass |
+| `TopicQuizMapperTest` | **32/32** pass (31 trước review, +1 test key-set cho `FillBlankQuizDto` ở F6) |
+| `TopicQuizAnswerTest` | **20/20** pass (18 trước review, +2 test gate frontier) |
+| `TopicQuizReadTest` | **30/30** pass (25 trước review, +5 test gate frontier) |
 | `ArchitectureTest` | **9/9** pass |
-| HTTP e2e bước a–n trên clone | **PASS 14/14** |
+| HTTP e2e bước a–n trên clone | **PASS 16/16** — 16 dòng trong bảng `verification.md` §3.2 (a–l = 12, `m` = 3 dòng, `n` = 1), đếm bằng `Select-String "^\| [a-n] \|"` → 16 |
+| Smoke gate frontier (sau review) | **PASS** — `verification.md` §6: GET `/quiz` của attempt đang ở quiz → 200, `quiz` non-null; GET + POST khi frontier `CONTEXT` → **409 `STATE_CHANGED`** (`/quizzes/nope:…` cũng 409, chứng minh gate đứng trước bước tra quiz); `version`/`receipts`/`quiz_progress` không đổi; 8080 vẫn sống |
 | GET không ghi | version **6**, `mutation_receipts` **19**, `lastAccessedAt` `2026-10-28T03:26:56.690Z` — **không đổi** qua 2 lần GET liên tiếp |
 | Replay cùng key/payload không ghi | version **8**, receipts **21**, submissions **2** (giống trước replay) |
 | 410 `ITEM_HIDDEN` (GET + POST) không ghi | receipts **21**, submissions vẫn **2** |
 | Grep body GET (a, b, d, f, m5) các token `isCorrect`, `is_correct`, `correct`, `answerData`, `answer_data`, `explanation` | **0 hit / 5 body** |
-| `./mvnw.cmd -DskipTests package` | exit 0 — `target\engolearn-0.0.1-SNAPSHOT.jar`, 33,680,217 bytes |
+| `./mvnw.cmd -DskipTests package` | exit 0 — `target\engolearn-0.0.1-SNAPSHOT.jar`, 33,680,217 bytes (bản dùng cho e2e a–n); bản rebuild cho smoke sau review (11:23:29): 33,680,357 bytes |
+| Grep body GET ở smoke §6 | GET 200 (bước a) chỉ có `quiz`/`options`, không có token `isCorrect`/`correct`/`explanation`; 2 body 409 chỉ có `detail/instance/status/title/code` |
 
-Chi tiết từng bước HTTP (a–n) và log: `.artifacts/complete-topic-learning-quiz-slice/verification.md` (mục 1–3) + `evidence/`.
+Chi tiết từng bước HTTP (a–n), log và smoke sau review: `.artifacts/complete-topic-learning-quiz-slice/verification.md` (mục 1–3 và **mục 6**) + `evidence/`.
+
+**Thứ tự thời gian (quan trọng khi đọc bảng):** bộ e2e a–n chạy **trước** khi gate "chưa tới quiz frontier" được thêm vào code — lúc đó `b8c89a4` chỉ có `owned` → `version` → `requireItemVisible`. Gate hiện được chứng minh bằng 7 unit test mới trong `TopicQuizReadTest`/`TopicQuizAnswerTest` (bảng trên) và **smoke HTTP §6** của `verification.md`; chưa có e2e nào chạy lại toàn bộ a–n sau khi thêm gate.
 
 ## 12. Blocker dữ liệu (thật, chưa sửa)
 
