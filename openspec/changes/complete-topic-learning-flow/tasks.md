@@ -1,24 +1,24 @@
-## Status — Slice A BE (2026-10-28)
+## Status — Slice B coordination (2026-10-28)
 
 | Task | Status |
 |---|---|
 | 1.1 | partial |
 | 1.2 | partial (quiz 410 done; retry recovery deferred to C) |
-| 1.3 | not started |
+| 1.3 | B authority implemented per Amendment B; C aggregate/session design open |
 | 1.4a | done |
 | 1.4b | not started |
 | 1.5 | not started |
 | 2.1a | done |
-| 2.1b | pending live verification |
+| 2.1b | done |
 | 2.1c | not started |
 | 2.2 | done |
 | 2.3 | partial (FE implemented; acceptance incomplete) |
 | 2.4 | partial (FE implemented; solved-quiz URL acceptance open) |
 | 2.5 | partial (learner exercised quizzes; final completion pending B) |
-| 3.1 | not started |
-| 3.2 | not started |
-| 3.3 | not started |
-| 3.4 | not started |
+| 3.1 | done (single authoritative item CAS, Amendment B) |
+| 3.2 | done |
+| 3.3 | done |
+| 3.4 | done; network fault injection remains untested |
 | 4.1 | not started |
 | 4.2 | not started |
 | 4.3 | not started |
@@ -32,6 +32,8 @@
 
 ## 1. Contract and compatible persistence foundation
 
+Latest B evidence supersedes historical missing-endpoint notes below: BE implementation `4b9cfea`, FE completion contract `ecd5be3` plus corrected200 example removal, and sibling FE `docs/features/topic/learner/13-slice-b-live-verification.md`. Main attempt698a351bd05b76d98012c535 is now COMPLETED/revision19, result3/6=50%, original12 submissions preserved. FE3000/BE8080 remain the main runtime. Temporary clone8099/FE3001 supplied full-topic and browser acceptance. No C work or full-repository green verification is claimed.
+
 - [ ] 1.1 BE/FE: read proposal/specs/design, current live-integration report and FE plan; record actual running BE/proxy URLs and route availability once. Verify viewer is the selected DB profile and report missing endpoints instead of starting a mock preview. FE3000 -> BE8080 with the selected DB learner was verified by the FE agent. Quiz routes were initially 404 and subsequently became available; the user exercised both types. Final observed GET quiz returns 200 with quiz:null/IN_PROGRESS, while GET result is 404. Complete acceptance evidence remains open; historical FE evidence is in the sibling `docs/features/topic/learner/09-live-integration.md` and `11-quiz-slice-a.md`.
 - [ ] 1.2 FE: sync OpenAPI hidden errors and explicit retry recovery fields defined in design, regenerate topic-api.types.ts, adapt client signatures only if needed. Quiz GET/POST 410 is already declared in FE commit `82d2201`; generator and topic:types:check passed (51 schemas, DTO shapes unchanged). Full hidden coverage and retry recovery fields remain deferred to their consumer scope, with retry recovery in C. Do not mark the whole task done or repeat the completed quiz delta.
 - [ ] 1.3 BE: implement topic-owned runtime aggregate/result storage with unique owner/topic index and compatibility reader; verify a legacy standalone LEARN and existing completed reference retain IDs, pinned version, revision and position without DB reset. Deliberately NOT built in Slice A; quiz mutations use single-document CAS on `UserTopicItemAttempt` instead — see `design.md` Amendment A1. Remaining scope moves with Slice B.
@@ -42,7 +44,7 @@
 ## 2. Slice A — current quiz and persisted answers
 
 - [x] 2.1a BE: normalize pinned module/questions/options with stable IDs and redact correctness/explanation from the current-quiz response. Verified on one real FILL_BLANK response with no answer/explanation leak (handoff §3.1, §11).
-- [ ] 2.1b BE: verify one real SITUATIONAL_CHOICE response with no leaked answer fields. No such body was captured in the BE evidence set (all five GET samples are FILL_BLANK). The reported 90/105 missing scenario fields affect data coverage; they do not prove all real SITUATIONAL questions are blocked. Select an existing valid item for this check; do not require repair of the full dataset or mutate pinned content to manufacture a pass.
+- [x] 2.1b BE: real clone HTTP run exercised SITUATIONAL_CHOICE and FILL_BLANK, checked current-quiz response shape and forbidden answer/explanation keys. Both types passed wrong/reload/correct and replay. Fresh clone browser also exercised the final SITUATIONAL_CHOICE. Historical initial BE evidence only covered FILL_BLANK; see the later B live report.
 - [ ] 2.1c BE: redact correctness/explanation from the content response and reject ambiguous legacy answers (`answer_data` / `correct`). Not implemented or unverified: content redaction was never exercised against real persistence, and `TopicQuizMapper` reads only `is_correct`, so legacy ambiguity is neither detected nor rejected. Open decision for Slice B, not a verified behaviour.
 - [x] 2.2 BE: implement current-quiz and answer routes with revision/current-question validation, persisted first-try failure and atomic frontier/receipt update. Verify wrong -> reload -> correct retains first-try failure; same-key replay adds no submission; stale different-key request returns409. Done — evidence: wrong -> reload -> correct keeps the first-try failure through `TopicQuizAnswerTest.wrongThenCorrectAppendsSecondSubmissionWithoutTouchingTheLoadedAttempt`; same-key replay adds no submission (handoff §11); stale revision returns 409 (handoff §6.6 real table); hidden item returns 410 and adds no submission (handoff §6.6, §11); pre-frontier requests return 409 (handoff §4, §11 smoke).
 - [ ] 2.3 FE: add quiz state and two quiz renderers to TopicLessonView/useTopicLesson; use existing mutation journal and busy selection lock. Implemented in FE `b841354`: both renderers, exact pending request/key across reload, busy lock and transient feedback. User reports quizzes are playable; recorded acceptance for wrong/reload/correct, uncertain-response replay and audio remains incomplete. Final-answer contract mismatch currently retains a pending request; distinguish this from a network error as part of B.
@@ -51,12 +53,12 @@
 
 ## 3. Slice B — final correctness and completion
 
-- [ ] 3.1 BE: prepare immutable final result and publish via one runtime CAS including final accepted answer/result pointer/session cursor/receipt. Materialize legacy projections only afterward. Verify interruption after prepare and after CAS returns uncommitted-safe or fully committed state, with no lost result/duplicate finish.
+- [x] 3.1 BE: per Design Amendment B, final accepted answer, immutable embedded result counts, completed state/null frontier/time and receipt publish in one item-attempt CAS. Catalog/result do not depend on a projection write. No runtime aggregate or prepare/publish split is introduced in B; session publication stays C. Genuine HTTP final-answer replay and explicit recovery replay passed; concurrent quiz mutations returned200/409 with a single revision advance. Network/process-crash fault injection was not performed.
   Compatibility acceptance: preserve existing Slice A attempts whose final correct submission is already stored but whose status is still IN_PROGRESS (observed attempt `698a351bd05b76d98012c535`, revision18, quiz:null). Recover through an explicit, idempotent mutation using stored answers; do not reset progress, demand another answer, invent scores, or write on GET. Specify how old pending answer receipts resolve without repeating completion.
-- [ ] 3.2 BE: implement item/topic result and official-current-result resolution across catalog/progress/actions, visible-item counts, next-item permissions and aggregate accuracy. Verify final correct unlocks next item and last visible item moves topic to COMPLETED; aggregate count ratios before rounding.
-- [ ] 3.3 FE: add item result and topic result views using actual DTO fields, connect final feedback Continue/reload and legal next-item/detail actions. Verify no score is calculated from local selections and My Topics/detail refetch after completion.
+- [x] 3.2 BE: item/topic result and official-current-result resolution across catalog/progress/actions implemented in4b9cfea. Real clone run completed5 items/30 quizzes, unlocked each next item, and returned topic27/30=90%; completed topic appeared in Mine and stayed out of Discover. User main next-item button opened CONTEXT/0. Hidden lifecycle and retry acceptance remain C.
+- [x] 3.3 FE: item/topic result routes and server fractions/percentages implemented. Browser main legacy recovery showed3/6=50%, reload retained result, and next action started the allowed item. Clone browser showed topic27/30=90%; fresh final answer held feedback at100% until Continue opened6/6=100% result. Mobile390x844 result layout checked. Review/retry only use existing allowed action entries; their full lifecycle is not implemented here.
   Remove the misleading endless retry path for a confirmed completion-contract mismatch. Do not accept IN_PROGRESS + quiz:null as completed or navigate to an invented result; use the BE recovery contract for the already-stuck attempt.
-- [ ] 3.4 Integration: run one item end-to-end using the valid real data pack and inspect result/progress/next-item responses. Verify replay of final answer is stable, commit coherent BE/FE changes and record limitations; do not run the whole topic repeatedly just for screenshots.
+- [x] 3.4 Integration: real existing clone full-topic flow passed184 HTTP requests; final completion/result/replay/next permissions and aggregate counts matched OpenAPI. Main stuck attempt recovered without new submissions; old answer receipt retained revision18/91%, new completion receipt retained revision19/100%. Latest build additionally passed concurrent quiz requests and fresh browser final correctness. No fixture/fake completion or DB reset; raw evidence is ignored under `.artifacts/topic-slice-b/`, tracked outcomes are in the sibling FE13 live report. No network response-loss injection or C acceptance claimed.
 
 ## 4. Slice C — review, retry and current visibility
 
