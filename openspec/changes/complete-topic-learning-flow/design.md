@@ -124,20 +124,20 @@ Amendment A supersedes only the lines named below, and only for Slice A (quiz sl
 
 ### A1 Storage
 
-`topic_learner_runtime` (§3, line 64) and Migration Plan step 2 were not built in Slice A. Quiz answers commit as one single-document CAS on `UserTopicItemAttempt` (`@Version` + `mutation_receipts`). Trade-off, stated plainly: there is no cross-document atomicity, so a runtime aggregate is still required before Slice B result/publication work, and §3 stays the target for that. The deviation was approved by the user (handoff §9 decision 1).
+`topic_learner_runtime` (§3, line 64) and Migration Plan step 2 were not built in Slice A. Quiz answers commit as one single-document CAS on `UserTopicItemAttempt` (`@Version` + `mutation_receipts`). There is no cross-document atomicity, so a runtime aggregate is still required before Slice B result/publication work, and §3 stays the target for that. The deviation was approved by the user (handoff §9 decision 1).
 
 ### A2 Routes implemented
 
-Only the two quiz routes exist: GET `/topic-attempts/{id}/quiz` and POST `/topic-attempts/{id}/quizzes/{quizId}/answers`. Effective behavior: GET returns `quiz:null` when no quiz applies and 409 before the quiz frontier; POST returns feedback only when correct, a wrong answer stays retryable and is persisted, and a correct answer advances the frontier in the same write. Two behaviors differ from §1/§5:
+Of the change's route table, only these two are implemented in BE: GET `/topic-attempts/{id}/quiz` and POST `/topic-attempts/{id}/quizzes/{quizId}/answers`. Effective behavior: GET returns `quiz:null` when no quiz applies and 409 before the quiz frontier; POST returns feedback only when correct, a wrong answer stays retryable and is persisted, and a correct answer advances the frontier in the same write. Two behaviours differ from §1/§4/§5:
 
-- replay is answered from the stored receipt before the 404/409/410 checks, so a same-key replay returns the committed response even after the frontier moved or the item was hidden;
-- a correct final answer leaves the attempt `IN_PROGRESS` with no result until Slice B.
+- replay is answered from the stored receipt before the version/status/visibility/frontier checks, after the ownership 404 and the missing-key 400 (handoff §4). For the same-key replay case this contradicts the §4 rule that a committed hide denies subsequent requests; §4 is not amended beyond this bullet;
+- a correct final answer leaves the attempt `IN_PROGRESS` with no result until Slice B (§5 assumes a final Continue to result; see A5).
 
-Reference handoff §3 (shapes), §4 (check order), §9 (decisions).
+Reference handoff §2 (live routes), §3 (shapes), §4 (check order), §9 (decisions).
 
 ### A3 Visibility
 
-The implemented predicate is the five-condition AND recorded in `.artifacts/complete-topic-learning-quiz-slice/visibility-ruling.md` §1: pinned version not `HIDDEN` (V1), topic exists (V2), `latestPublishedVersion` present (V3), that release exists and is `PUBLISHED` (V4), and the release still contains the attempt's `topicItemId` with `status != HIDDEN` (V5). Check order: ownership/version 404 first, then hidden 410, then frontier 409 (full POST order in handoff §4). This supersedes the looser §4 statement; handoff §4 is the effective contract.
+The implemented predicate is a five-condition AND: pinned version not `HIDDEN` (V1), topic exists (V2), `latestPublishedVersion` present (V3), that release exists and is `PUBLISHED` (V4), and the release still contains the attempt's `topicItemId` with `status != HIDDEN` (V5). Check order: for GET, a `COMPLETED` attempt returns 200 with `quiz:null` before any visibility check; 410 applies to in-progress reads and to POST. POST follows handoff §4: ownership 404 → missing key 400 → replay/reuse → version 404 → status 409 → hidden 410 → frontier 409. This supersedes the looser §4 statement; handoff §4 is the effective contract.
 
 ### A4 Identity and mapping
 
@@ -154,7 +154,7 @@ This refines §2. §2's 3–5 questions-per-type line is a publish-gate rule of 
 ### A5 Deferred to Slice B
 
 - last correct answer without result: `IN_PROGRESS`, `quiz:null`, no result (handoff §9 decision 2);
-- `completedQuizCount` one lower than actual until completion exists (slice artifacts; same missing result as above);
+- `completedQuizCount` is one lower than the number answered after the last correct answer: the frontier stays at the final index, so the running attempt reports a count one below the answers given until Slice B publishes the result;
 - the partial unique index `one_running_learning_item_per_topic` still held by a hidden in-progress attempt;
 - hidden-item-mid-progress reconciliation — explicitly deferred by the user (handoff §10).
 

@@ -1,6 +1,6 @@
 # Handoff — complete-topic-learning-flow
 
-Status: planning artifacts were the state at `fdf28d3`. BE Slice A (tasks 1.4a, 2.1a, 2.2) is now implemented, reviewed and committed locally as `b8c89a4` (quiz routes + tests) and `12e96de` (frontier gate fix), `ed90ee1`, `7169bf3`, `50346f1` (docs). `2.1b` and `1.2` are blocked on real data and the FE contract; Slices B/C are untouched. The change is NOT complete and must NOT be archived. Read proposal -> five delta specs -> design -> tasks before changing code.
+Status: planning artifacts were the state at `fdf28d3`. BE Slice A (tasks 1.4a, 2.1a, 2.2) is now implemented, reviewed and committed locally as `b8c89a4` (quiz routes + tests) and `12e96de` (frontier gate fix), `ed90ee1`, `7169bf3`, `50346f1` (docs). `1.2` is not started: the FE contract still lacks `410 ITEM_HIDDEN`. `2.1b` is blocked: no real SITUATIONAL_CHOICE response was captured, and reaching a complete one needs data work because 90/105 SITUATIONAL questions lack `quiz_data.scenario_vi` (handoff §12 item 3). Slices B/C are untouched. The change is NOT complete and must NOT be archived. Read proposal -> five delta specs -> design -> tasks before changing code.
 FE-facing API truth: `docs/topic/quiz-api-handoff.md`. Design deviations: `design.md` Amendment A.
 
 ## Required context

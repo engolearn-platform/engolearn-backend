@@ -3,13 +3,14 @@
 | Task | Status |
 |---|---|
 | 1.1 | partial |
-| 1.2 | blocked |
+| 1.2 | not started |
 | 1.3 | not started |
 | 1.4a | done |
 | 1.4b | not started |
 | 1.5 | not started |
 | 2.1a | done |
 | 2.1b | blocked |
+| 2.1c | not started |
 | 2.2 | done |
 | 2.3 | not started |
 | 2.4 | not started |
@@ -32,17 +33,18 @@
 ## 1. Contract and compatible persistence foundation
 
 - [ ] 1.1 BE/FE: read proposal/specs/design, current live-integration report and FE plan; record actual running BE/proxy URLs and route availability once. Verify viewer is the selected DB profile and report missing endpoints instead of starting a mock preview. BE route-availability part is recorded in `docs/topic/quiz-api-handoff.md` §1; the FE proxy confirmation is still open.
-- [ ] 1.2 FE: sync OpenAPI hidden errors and explicit retry recovery fields defined in design, regenerate topic-api.types.ts, adapt client signatures only if needed. Verify topic:types:check and JSON parse; record the contract commit for BE. NOT done — FE contract still lacks `410 ITEM_HIDDEN` (handoff §5/§7).
+- [ ] 1.2 FE: sync OpenAPI hidden errors and explicit retry recovery fields defined in design, regenerate topic-api.types.ts, adapt client signatures only if needed. Verify topic:types:check and JSON parse; record the contract commit for BE. Not started — FE contract still lacks `410 ITEM_HIDDEN` (handoff §5/§7).
 - [ ] 1.3 BE: implement topic-owned runtime aggregate/result storage with unique owner/topic index and compatibility reader; verify a legacy standalone LEARN and existing completed reference retain IDs, pinned version, revision and position without DB reset. Deliberately NOT built in Slice A; quiz mutations use single-document CAS on `UserTopicItemAttempt` instead — see `design.md` Amendment A1. Remaining scope moves with Slice B.
-- [x] 1.4a BE: quiz answer mutations go through attempt CAS with request fingerprint/replay receipts. Evidence: handoff §9/§11 — replay adds no submission, stale revision 409.
+- [x] 1.4a BE: quiz answer mutations go through attempt CAS with request fingerprint/replay receipts. Evidence: handoff §9 decision 1 (CAS + receipts), §11 (replay adds no submission), §4/§6.6 (stale revision 409).
 - [ ] 1.4b BE: route explicit start/advance/access/retry mutations through aggregate CAS with request fingerprint/replay receipts, migrating on mutation only. Not migrated: start/content/advance/access still use the existing per-attempt path. Verify GET is read-only, replay does not advance twice and stale revision does not mutate.
 - [ ] 1.5 Data author: deliver the isolated sample pack specified in docs/topic/sample-data-plan.md; verify dry-run and rerun behavior against a separately selected local DB. Do not import into the user's DB automatically; hand over the command and manifest. Sample pack not delivered; user-owned sample files untouched.
 
 ## 2. Slice A — current quiz and persisted answers
 
-- [x] 2.1a BE: normalize pinned module/questions/options with stable IDs; reject ambiguous legacy answers and redact all correctness/explanation from current-quiz/content. Verified on one real FILL_BLANK response with no answer/explanation leak — handoff §3.1, §11; §10 records the hidden-item state left deferred.
-- [ ] 2.1b BE: verify one real SITUATIONAL_CHOICE response with no leaked answer fields. NOT done: no real response was captured, and 90/105 SITUATIONAL questions lack `quiz_data.scenario_vi` (handoff §12) — blocked on data.
-- [x] 2.2 BE: implement current-quiz and answer routes with revision/current-question validation, persisted first-try failure and atomic frontier/receipt update. Verify wrong -> reload -> correct retains first-try failure; same-key replay adds no submission; stale different-key request returns409. Done — evidence handoff §11 (real persistence on DB clone): same-key replay adds no submission, stale revision and pre-frontier requests return 409, hidden item 410 adds no submission; `TopicQuizAnswerTest.wrongThenCorrectAppendsSecondSubmissionWithoutTouchingTheLoadedAttempt` keeps the first-try failure after reload.
+- [x] 2.1a BE: normalize pinned module/questions/options with stable IDs and redact correctness/explanation from the current-quiz response. Verified on one real FILL_BLANK response with no answer/explanation leak (handoff §3.1, §11).
+- [ ] 2.1b BE: verify one real SITUATIONAL_CHOICE response with no leaked answer fields. NOT done: no real SITUATIONAL_CHOICE response was captured, and reaching a complete one needs data work because 90/105 SITUATIONAL questions lack `quiz_data.scenario_vi` (handoff §12 item 3).
+- [ ] 2.1c BE: redact correctness/explanation from the content response and reject ambiguous legacy answers (`answer_data` / `correct`). Not implemented or unverified: content redaction was never exercised against real persistence, and `TopicQuizMapper` reads only `is_correct`, so legacy ambiguity is neither detected nor rejected. Open decision for Slice B, not a verified behaviour.
+- [x] 2.2 BE: implement current-quiz and answer routes with revision/current-question validation, persisted first-try failure and atomic frontier/receipt update. Verify wrong -> reload -> correct retains first-try failure; same-key replay adds no submission; stale different-key request returns409. Done — evidence: wrong -> reload -> correct keeps the first-try failure through `TopicQuizAnswerTest.wrongThenCorrectAppendsSecondSubmissionWithoutTouchingTheLoadedAttempt`; same-key replay adds no submission (handoff §11); stale revision returns 409 (handoff §6.6 real table); hidden item returns 410 and adds no submission (handoff §6.6, §11); pre-frontier requests return 409 (handoff §4, §11 smoke).
 - [ ] 2.3 FE: add quiz state and two quiz renderers to TopicLessonView/useTopicLesson; use existing mutation journal and busy selection lock. Verify one real choice reaches BE/DB, wrong permits retry, network uncertainty retains key, correct shows returned explanation/audio without auto-next.
 - [ ] 2.4 FE: enforce running-quiz frontier in topic-lesson helpers/nav/URL, flatten EXPRESSIONS purposes without group UI, keep collapsible part navigation and header progress. Verify content review/return preserves quiz frontier and solved quiz URLs cannot reopen a question.
 - [ ] 2.5 Integration: demonstrate real FE proxy -> BE -> DB for both types, reload after wrong and after correct-before-Continue. Record requests/results once, commit code in each changed repo; do not mark later result/retry work done.
