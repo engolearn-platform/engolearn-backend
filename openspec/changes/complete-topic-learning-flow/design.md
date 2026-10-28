@@ -117,3 +117,50 @@ Client/server state: useFetch + abort for reads, existing mutation journal for u
 3. Deliver quiz, completion, review/retry in task slices. Each slice must show a real FE proxy -> BE -> DB path; a missing endpoint is a blocker to report, not an invitation for fixtures.
 4. Keep old item-content/position routes 410. Update live evidence only for observed flows; no archive until implementation/verification actually finish.
 5. Rollback application changes only before new runtime mutations are enabled. After live migration, old writers cannot safely be re-enabled against projection data: disable learning writes and forward-fix/reconcile from aggregate; no automatic DB downgrade or deletion. Any destructive restoration needs a separate explicit decision.
+
+## Amendment A — Slice A implementation deviations (2026-10-28)
+
+Amendment A supersedes only the lines named below, and only for Slice A (quiz slice). The original text stays in place as the target for later slices: nothing in Decisions 1–5 or the Migration Plan is withdrawn for Slice B/C.
+
+### A1 Storage
+
+`topic_learner_runtime` (§3, line 64) and Migration Plan step 2 were not built in Slice A. Quiz answers commit as one single-document CAS on `UserTopicItemAttempt` (`@Version` + `mutation_receipts`). Trade-off, stated plainly: there is no cross-document atomicity, so a runtime aggregate is still required before Slice B result/publication work, and §3 stays the target for that. The deviation was approved by the user (handoff §9 decision 1).
+
+### A2 Routes implemented
+
+Only the two quiz routes exist: GET `/topic-attempts/{id}/quiz` and POST `/topic-attempts/{id}/quizzes/{quizId}/answers`. Effective behavior: GET returns `quiz:null` when no quiz applies and 409 before the quiz frontier; POST returns feedback only when correct, a wrong answer stays retryable and is persisted, and a correct answer advances the frontier in the same write. Two behaviors differ from §1/§5:
+
+- replay is answered from the stored receipt before the 404/409/410 checks, so a same-key replay returns the committed response even after the frontier moved or the item was hidden;
+- a correct final answer leaves the attempt `IN_PROGRESS` with no result until Slice B.
+
+Reference handoff §3 (shapes), §4 (check order), §9 (decisions).
+
+### A3 Visibility
+
+The implemented predicate is the five-condition AND recorded in `.artifacts/complete-topic-learning-quiz-slice/visibility-ruling.md` §1: pinned version not `HIDDEN` (V1), topic exists (V2), `latestPublishedVersion` present (V3), that release exists and is `PUBLISHED` (V4), and the release still contains the attempt's `topicItemId` with `status != HIDDEN` (V5). Check order: ownership/version 404 first, then hidden 410, then frontier 409 (full POST order in handoff §4). This supersedes the looser §4 statement; handoff §4 is the effective contract.
+
+### A4 Identity and mapping
+
+- `quizId = <topicItemVersionId>:quiz:<moduleKey>:<questionIndex>`
+- `optionId = <quizId>:option:<originalPosition>`
+- `moduleKey` = `orderIndex` when present, else the module's array position
+- `index` and `totalInType` are counted per quiz type across the whole item, not per module
+- unsupported quiz types are skipped
+- FILL_BLANK requires 4–6 options; SITUATIONAL_CHOICE exactly 4 with exactly one correct option
+- missing non-nullable field -> `CONTENT_UNAVAILABLE` 404; nullable field -> null
+
+This refines §2. §2's 3–5 questions-per-type line is a publish-gate rule of the data pack, not a mapper rule; the mapper does not enforce it.
+
+### A5 Deferred to Slice B
+
+- last correct answer without result: `IN_PROGRESS`, `quiz:null`, no result (handoff §9 decision 2);
+- `completedQuizCount` one lower than actual until completion exists (slice artifacts; same missing result as above);
+- the partial unique index `one_running_learning_item_per_topic` still held by a hidden in-progress attempt;
+- hidden-item-mid-progress reconciliation — explicitly deferred by the user (handoff §10).
+
+### A6 Known deltas
+
+- `410 ITEM_HIDDEN` is missing from the FE contract — handoff §7 item 1;
+- a missing `Idempotency-Key` returns the framework's default 400 body without a `code` field — handoff §6.6 note / §7 item 6.
+
+Data blockers are recorded in handoff §12; Slice A fail-closes with 404 `CONTENT_UNAVAILABLE` rather than relaxing a rule.

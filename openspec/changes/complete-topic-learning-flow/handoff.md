@@ -1,6 +1,7 @@
 # Handoff — complete-topic-learning-flow
 
-Status: planning artifacts only. All implementation checkboxes remain unchecked. Read proposal -> five delta specs -> design -> tasks before changing code. Do not archive or treat planning status as implemented functionality.
+Status: planning artifacts were the state at `fdf28d3`. BE Slice A (tasks 1.4a, 2.1a, 2.2) is now implemented, reviewed and committed locally as `b8c89a4` (quiz routes + tests) and `12e96de` (frontier gate fix), `ed90ee1`, `7169bf3`, `50346f1` (docs). `2.1b` and `1.2` are blocked on real data and the FE contract; Slices B/C are untouched. The change is NOT complete and must NOT be archived. Read proposal -> five delta specs -> design -> tasks before changing code.
+FE-facing API truth: `docs/topic/quiz-api-handoff.md`. Design deviations: `design.md` Amendment A.
 
 ## Required context
 

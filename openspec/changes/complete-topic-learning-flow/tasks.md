@@ -1,15 +1,48 @@
+## Status — Slice A BE (2026-10-28)
+
+| Task | Status |
+|---|---|
+| 1.1 | partial |
+| 1.2 | blocked |
+| 1.3 | not started |
+| 1.4a | done |
+| 1.4b | not started |
+| 1.5 | not started |
+| 2.1a | done |
+| 2.1b | blocked |
+| 2.2 | done |
+| 2.3 | not started |
+| 2.4 | not started |
+| 2.5 | not started |
+| 3.1 | not started |
+| 3.2 | not started |
+| 3.3 | not started |
+| 3.4 | not started |
+| 4.1 | not started |
+| 4.2 | not started |
+| 4.3 | not started |
+| 4.4 | not started |
+| 4.5 | not started |
+| 4.6 | not started |
+| 5.1 | partial |
+| 5.2 | not started |
+| 5.3 | partial |
+| 5.4 | partial |
+
 ## 1. Contract and compatible persistence foundation
 
-- [ ] 1.1 BE/FE: read proposal/specs/design, current live-integration report and FE plan; record actual running BE/proxy URLs and route availability once. Verify viewer is the selected DB profile and report missing endpoints instead of starting a mock preview.
-- [ ] 1.2 FE: sync OpenAPI hidden errors and explicit retry recovery fields defined in design, regenerate topic-api.types.ts, adapt client signatures only if needed. Verify topic:types:check and JSON parse; record the contract commit for BE.
-- [ ] 1.3 BE: implement topic-owned runtime aggregate/result storage with unique owner/topic index and compatibility reader; verify a legacy standalone LEARN and existing completed reference retain IDs, pinned version, revision and position without DB reset.
-- [ ] 1.4 BE: route explicit start/advance/access/retry mutations through aggregate CAS with request fingerprint/replay receipts, migrating on mutation only. Verify GET is read-only, replay does not advance twice and stale revision does not mutate.
-- [ ] 1.5 Data author: deliver the isolated sample pack specified in docs/topic/sample-data-plan.md; verify dry-run and rerun behavior against a separately selected local DB. Do not import into the user's DB automatically; hand over the command and manifest.
+- [ ] 1.1 BE/FE: read proposal/specs/design, current live-integration report and FE plan; record actual running BE/proxy URLs and route availability once. Verify viewer is the selected DB profile and report missing endpoints instead of starting a mock preview. BE route-availability part is recorded in `docs/topic/quiz-api-handoff.md` §1; the FE proxy confirmation is still open.
+- [ ] 1.2 FE: sync OpenAPI hidden errors and explicit retry recovery fields defined in design, regenerate topic-api.types.ts, adapt client signatures only if needed. Verify topic:types:check and JSON parse; record the contract commit for BE. NOT done — FE contract still lacks `410 ITEM_HIDDEN` (handoff §5/§7).
+- [ ] 1.3 BE: implement topic-owned runtime aggregate/result storage with unique owner/topic index and compatibility reader; verify a legacy standalone LEARN and existing completed reference retain IDs, pinned version, revision and position without DB reset. Deliberately NOT built in Slice A; quiz mutations use single-document CAS on `UserTopicItemAttempt` instead — see `design.md` Amendment A1. Remaining scope moves with Slice B.
+- [x] 1.4a BE: quiz answer mutations go through attempt CAS with request fingerprint/replay receipts. Evidence: handoff §9/§11 — replay adds no submission, stale revision 409.
+- [ ] 1.4b BE: route explicit start/advance/access/retry mutations through aggregate CAS with request fingerprint/replay receipts, migrating on mutation only. Not migrated: start/content/advance/access still use the existing per-attempt path. Verify GET is read-only, replay does not advance twice and stale revision does not mutate.
+- [ ] 1.5 Data author: deliver the isolated sample pack specified in docs/topic/sample-data-plan.md; verify dry-run and rerun behavior against a separately selected local DB. Do not import into the user's DB automatically; hand over the command and manifest. Sample pack not delivered; user-owned sample files untouched.
 
 ## 2. Slice A — current quiz and persisted answers
 
-- [ ] 2.1 BE: normalize pinned module/questions/options with stable IDs; reject ambiguous legacy answers and redact all correctness/explanation from current-quiz/content. Verify one real FILL_BLANK and one real SITUATIONAL_CHOICE response with no leaked answer fields.
-- [ ] 2.2 BE: implement current-quiz and answer routes with revision/current-question validation, persisted first-try failure and atomic frontier/receipt update. Verify wrong -> reload -> correct retains first-try failure; same-key replay adds no submission; stale different-key request returns409.
+- [x] 2.1a BE: normalize pinned module/questions/options with stable IDs; reject ambiguous legacy answers and redact all correctness/explanation from current-quiz/content. Verified on one real FILL_BLANK response with no answer/explanation leak — handoff §3.1, §11; §10 records the hidden-item state left deferred.
+- [ ] 2.1b BE: verify one real SITUATIONAL_CHOICE response with no leaked answer fields. NOT done: no real response was captured, and 90/105 SITUATIONAL questions lack `quiz_data.scenario_vi` (handoff §12) — blocked on data.
+- [x] 2.2 BE: implement current-quiz and answer routes with revision/current-question validation, persisted first-try failure and atomic frontier/receipt update. Verify wrong -> reload -> correct retains first-try failure; same-key replay adds no submission; stale different-key request returns409. Done — evidence handoff §11 (real persistence on DB clone): same-key replay adds no submission, stale revision and pre-frontier requests return 409, hidden item 410 adds no submission; `TopicQuizAnswerTest.wrongThenCorrectAppendsSecondSubmissionWithoutTouchingTheLoadedAttempt` keeps the first-try failure after reload.
 - [ ] 2.3 FE: add quiz state and two quiz renderers to TopicLessonView/useTopicLesson; use existing mutation journal and busy selection lock. Verify one real choice reaches BE/DB, wrong permits retry, network uncertainty retains key, correct shows returned explanation/audio without auto-next.
 - [ ] 2.4 FE: enforce running-quiz frontier in topic-lesson helpers/nav/URL, flatten EXPRESSIONS purposes without group UI, keep collapsible part navigation and header progress. Verify content review/return preserves quiz frontier and solved quiz URLs cannot reopen a question.
 - [ ] 2.5 Integration: demonstrate real FE proxy -> BE -> DB for both types, reload after wrong and after correct-before-Continue. Record requests/results once, commit code in each changed repo; do not mark later result/retry work done.
@@ -32,7 +65,7 @@
 
 ## 5. Verification and handoff
 
-- [ ] 5.1 BE: run targeted real-persistence critical checks once after related changes, then applicable architecture/build checks. For application changes follow repo DoD; if full mvnw verify would require mocked suites forbidden by the user, disclose it as unrun rather than weakening checks or claiming full verification.
+- [ ] 5.1 BE: run targeted real-persistence critical checks once after related changes, then applicable architecture/build checks. For application changes follow repo DoD; if full mvnw verify would require mocked suites forbidden by the user, disclose it as unrun rather than weakening checks or claiming full verification. BE targeted checks done: `TopicQuizMapperTest` 32/32, `TopicQuizAnswerTest` 20/20, `TopicQuizReadTest` 30/30, `ArchitectureTest` 9/9; pre-existing red `mvnw verify` baseline `246 run, 3 failures, 47 errors` unchanged (handoff §11). FE checks and full DoD still open.
 - [ ] 5.2 FE: run build, lint and generated-type drift check after final related changes. Verify keyboard focus, busy/error states and one mobile layout on real screens. Do not add fixture/mock tests or run a repeated browser matrix without a new failure/question.
-- [ ] 5.3 Documentation: update live evidence with exact paths/statuses/IDs and checks actually observed, link data pack manifest and its import state. Verify docs links, OpenSpec strict validation and git diff --check; leave unobserved scenarios explicitly unverified.
-- [ ] 5.4 Git: stage only task-owned files and commit each coherent slice in each touched repo using docs/feat/fix/test as appropriate. Verify git status after commits; preserve unrelated untracked files. Do not push, merge or archive this change without a separate request.
+- [ ] 5.3 Documentation: update live evidence with exact paths/statuses/IDs and checks actually observed, link data pack manifest and its import state. Verify docs links, OpenSpec strict validation and git diff --check; leave unobserved scenarios explicitly unverified. BE-side evidence updated in `docs/topic/quiz-api-handoff.md`; data-pack manifest/import state not available yet.
+- [ ] 5.4 Git: stage only task-owned files and commit each coherent slice in each touched repo using docs/feat/fix/test as appropriate. Verify git status after commits; preserve unrelated untracked files. Do not push, merge or archive this change without a separate request. BE Slice A committed as `b8c89a4` (quiz routes + tests), `12e96de` (frontier gate fix), `ed90ee1`, `7169bf3`, `50346f1` (docs); FE not touched; nothing pushed.
