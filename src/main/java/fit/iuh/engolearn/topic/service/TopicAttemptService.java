@@ -139,9 +139,7 @@ public class TopicAttemptService {
         TopicCatalogPolicy.Position next;
         if (index + 1 < positions.size()) next = positions.get(index + 1);
         else {
-            TopicItemVersion version = version(attempt);
-            LearningStage quizStage = quizCount(version, QuizType.FILL_BLANK) > 0 ? LearningStage.FILL_BLANK :
-                    quizCount(version, QuizType.SITUATIONAL_CHOICE) > 0 ? LearningStage.SITUATIONAL_CHOICE : null;
+            LearningStage quizStage = firstQuizStage(version(attempt));
             if (quizStage == null) throw problem(422, "CONTENT_UNAVAILABLE", "This item has no published supported exercise");
             next = new TopicCatalogPolicy.Position(quizStage.name(), 0);
         }
@@ -417,7 +415,6 @@ public class TopicAttemptService {
     public Map<String, Instant> access(String id, String key) {
         if (isRetry(id)) return retries.access(id, key);
         UserTopicItemAttempt attempt = owned(id);
-        if (attempt.getStatus() == AttemptStatus.COMPLETED) itemResult(id);
         requireItemVisible(attempt, version(attempt));
         if (attempt.getStatus() == AttemptStatus.ABANDONED) throw problem(409, "STATE_CHANGED", "This attempt is no longer active");
         ContentMutationReceiptVo replay = receipt(attempt, key, "access");
@@ -523,7 +520,12 @@ public class TopicAttemptService {
         return content.getExpressions().stream().flatMap(group -> group.getPurposes().stream()).toList();
     }
 
-    public int quizCount(TopicItemVersion version, QuizType type) {
+    static LearningStage firstQuizStage(TopicItemVersion version) {
+        return quizCount(version, QuizType.FILL_BLANK) > 0 ? LearningStage.FILL_BLANK
+                : quizCount(version, QuizType.SITUATIONAL_CHOICE) > 0 ? LearningStage.SITUATIONAL_CHOICE : null;
+    }
+
+    public static int quizCount(TopicItemVersion version, QuizType type) {
         return version.getQuizzes() == null ? 0 : version.getQuizzes().stream().filter(module -> module.getQuizType() == type)
                 .mapToInt(module -> module.getQuestions() == null ? 0 : module.getQuestions().size()).sum();
     }

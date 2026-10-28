@@ -95,10 +95,7 @@ public class TopicRetryService {
             if(!owner().equals(replay.getUserId()) || !fingerprint.equals(replay.getFingerprint())) throw reused();
             TopicRetryRuntime current=runtime(topicId);
             if(current==null || !sessionId.equals(current.getSessionId())) throw changed();
-            return new TopicRetrySessionResponse(replay.getId(),replay.getTopicId(),replay.getScope(),"IN_PROGRESS",
-                    replay.getItemsSnapshot().stream().map(AttemptItemSnapshotVo::getTopicItemId).toList(),replay.getInitialAttemptId(),
-                    replay.getStartedAt(),null,List.of(),replay.getItemsSnapshot().stream().map(v->new TopicRetrySessionResponse.Snapshot(
-                            v.getTopicItemId(),v.getTopicItemVersionId(),v.getOrderIndex())).toList(),replay.getItemsSnapshot().get(0).getTopicItemId());
+            return session(current);
         }
         TopicDetailResponse detail=catalog.detail(topicId);
         if(!"COMPLETED".equals(detail.getProgress().status()) || detail.getItems().isEmpty())
@@ -131,10 +128,16 @@ public class TopicRetryService {
         requireRunning(state,attempt,body.revision());
         var source=attempt.getFurthestReached();
         if(source.getStage()!=body.stage() || source.getItemIndex()!=body.itemIndex()) throw stateChanged();
-        var content=TopicAttemptContentMapper.content(version(attempt));var positions=presenter.positions(content);
+        var pinned=version(attempt);var content=TopicAttemptContentMapper.content(pinned);var positions=presenter.positions(content);
         int index=positions.indexOf(new TopicCatalogPolicy.Position(body.stage().name(),body.itemIndex()));
         if(index<0) throw problem(409,"INVALID_STAGE","Only content can be advanced");
-        var next=index+1<positions.size()?positions.get(index+1):new TopicCatalogPolicy.Position("FILL_BLANK",0);
+        TopicCatalogPolicy.Position next;
+        if(index+1<positions.size()) next=positions.get(index+1);
+        else {
+            LearningStage quizStage=TopicAttemptService.firstQuizStage(pinned);
+            if(quizStage==null) throw problem(422,"CONTENT_UNAVAILABLE","This item has no published supported exercise");
+            next=new TopicCatalogPolicy.Position(quizStage.name(),0);
+        }
         Long before=state.getVersion();Instant now=now();
         attempt.setFurthestReached(FurthestReachedVo.builder().stage(LearningStage.valueOf(next.stage())).itemIndex(next.itemIndex()).build());
         record(attempt,key,fingerprint,now,true);commit(state,before);return presenter.describe(attempt);
@@ -221,8 +224,9 @@ public class TopicRetryService {
         if(!owner().equals(value.getUserId()) || !fingerprint.equals(value.getFingerprint()))throw reused();
         TopicRetryRuntime current=runtime(value.getTopicId());
         if(current==null || !value.getSessionId().equals(current.getSessionId()))throw changed();
-        if(find(current,value.getId())==null)throw stateChanged();
-        return presenter.describe(value.getInitialAttempt());
+        UserTopicItemAttempt live=find(current,value.getId());
+        if(live==null)throw stateChanged();
+        return presenter.describe(live);
     }
     private void requireReplacement(TopicRetryRuntime state,String observed) {
         boolean active=state!=null && "IN_PROGRESS".equals(state.getStatus());
