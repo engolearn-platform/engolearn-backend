@@ -16,6 +16,8 @@ import java.util.*;
 
 @Service
 public class TopicLearnerCatalogService {
+    @org.springframework.beans.factory.annotation.Autowired
+    private TopicRetryRuntimeRepository retryRuntimes;
     private final TopicBrowseService browse;
     private final LocalLearnerProvider learner;
     private final UserTopicProgressRepository topics;
@@ -99,6 +101,8 @@ public class TopicLearnerCatalogService {
         detail.setHasNewContent(hasNew(visible, state));
         boolean previousDone = true;
         boolean anotherRunning = state.running().values().stream().anyMatch(a -> topicId.equals(a.getTopicId()) && visible.containsKey(a.getTopicItemId()));
+        TopicRetryRuntime retry = state.retries().get(topicId);
+        boolean retryActive = retry != null && "IN_PROGRESS".equals(retry.getStatus());
         for (TopicItemSummaryResponse item : detail.getItems()) {
             UserTopicItemProgress stored = state.items().get(item.getTopicItemId());
             UserTopicItemAttempt running = state.running().get(item.getTopicItemId());
@@ -116,12 +120,26 @@ public class TopicLearnerCatalogService {
             TopicCatalogPolicy.Availability start = new TopicCatalogPolicy.Availability(reason == null, reason);
             TopicCatalogPolicy.Availability resume = new TopicCatalogPolicy.Availability(running != null,
                     running == null ? "NO_RUNNING_ATTEMPT" : null);
-            TopicCatalogPolicy.Availability unavailable = new TopicCatalogPolicy.Availability(false, "CONTENT_UNAVAILABLE");
-            item.setActions(new TopicCatalogPolicy.ItemActions(start, resume, unavailable, unavailable, unavailable, unavailable));
+            boolean retryHere = retryActive && retry.getCurrentAttempt() != null && item.getTopicItemId().equals(retry.getCurrentAttempt().getTopicItemId());
+            if (retryHere) {
+                var activeRetry = retry.getCurrentAttempt();
+                item.setRetryAttempt(new TopicCatalogPolicy.AttemptReference(activeRetry.getId(), new TopicCatalogPolicy.Position(
+                        activeRetry.getFurthestReached().getStage().name(), activeRetry.getFurthestReached().getItemIndex())));
+            }
+            boolean retryAllowed = completed && levelAllowed(detail.getCefrLevel());
+            TopicCatalogPolicy.Availability review = new TopicCatalogPolicy.Availability(completed, completed ? null : "NOT_COMPLETED");
+            TopicCatalogPolicy.Availability retryStart = new TopicCatalogPolicy.Availability(retryAllowed, !completed ? "NOT_COMPLETED" : retryAllowed ? null : "LEVEL_TOO_LOW");
+            TopicCatalogPolicy.Availability retryResume = new TopicCatalogPolicy.Availability(retryHere, retryHere ? null : "NO_RUNNING_ATTEMPT");
+            TopicCatalogPolicy.Availability retryRestart = new TopicCatalogPolicy.Availability(retryAllowed && retryActive,
+                    !retryActive ? "NO_RUNNING_ATTEMPT" : retryStart.reason());
+            item.setActions(new TopicCatalogPolicy.ItemActions(start, resume, review, retryStart, retryResume, retryRestart));
             previousDone &= completed;
         }
-        detail.setRetryAvailability(new TopicCatalogPolicy.Availability(false,
-                detail.getProgress().status().equals("COMPLETED") ? "CONTENT_UNAVAILABLE" : "NOT_COMPLETED"));
+        boolean topicComplete = detail.getProgress().status().equals("COMPLETED");
+        boolean topicRetry = topicComplete && levelAllowed(detail.getCefrLevel());
+        detail.setRetryAvailability(new TopicCatalogPolicy.Availability(topicRetry,
+                !topicComplete ? "NOT_COMPLETED" : topicRetry ? null : "LEVEL_TOO_LOW"));
+        detail.setRetrySession(retryActive ? TopicRetryService.session(retry) : null);
         return detail;
     }
 
@@ -142,7 +160,13 @@ public class TopicLearnerCatalogService {
         topics.findByUserId(userId).forEach(row -> owned.put(row.getTopicId(), row));
         Map<String, UserTopicItemProgress> progress = new HashMap<>();
         items.findByUserId(userId).forEach(row -> progress.put(row.getTopicItemId(), row));
-        List<UserTopicItemAttempt> saved = attempts.findByUserId(userId);
+        List<UserTopicItemAttempt> saved = new ArrayList<>(attempts.findByUserId(userId));
+        Map<String, TopicRetryRuntime> retryStates = new HashMap<>();
+        if (retryRuntimes != null) for (TopicRetryRuntime runtime : retryRuntimes.findByUserId(userId)) {
+            retryStates.put(runtime.getTopicId(), runtime);
+            saved.addAll(runtime.getOfficialResults().values());
+            if (runtime.getCurrentAttempt() != null) saved.add(runtime.getCurrentAttempt());
+        }
         TopicCompletedResults.overlay(progress, saved);
         List<UserTopicItemAttempt> active = saved.stream().filter(row -> row.getStatus() == AttemptStatus.IN_PROGRESS).toList();
         Set<String> learning = new HashSet<>();
@@ -157,7 +181,7 @@ public class TopicLearnerCatalogService {
             if (attempt.getLastAccessedAt() != null) recency.merge(attempt.getTopicId(), attempt.getLastAccessedAt(),
                     (left, right) -> left.isAfter(right) ? left : right);
         }
-        return new State(owned, progress, running, started, recency);
+        return new State(owned, progress, running, started, recency, retryStates);
     }
 
     private void enrich(TopicSummaryResponse row, State state) {
@@ -219,5 +243,6 @@ public class TopicLearnerCatalogService {
         return TopicCursorCodec.encode(sort, fingerprint, sort == TopicSortOrder.DURATION ? row.getDurationMinutes() : row.getSortOrderIndex(), row.getTopicId());
     }
     private record State(Map<String, UserTopicProgress> owned, Map<String, UserTopicItemProgress> items,
-                         Map<String, UserTopicItemAttempt> running, Set<String> started, Map<String, Instant> recency) {}
+                         Map<String, UserTopicItemAttempt> running, Set<String> started, Map<String, Instant> recency,
+                         Map<String, TopicRetryRuntime> retries) {}
 }

@@ -73,4 +73,9 @@ public class TopicAttemptController {
     public ApiResponse<TopicResultResponse> topicResult(@PathVariable String topicId) {
         return ApiResponse.ok(attempts.topicResult(topicId));
     }
+
+    @GetMapping("/topic-attempts/{attemptId}/review")
+    public ApiResponse<TopicItemReviewResponse> review(@PathVariable String attemptId) {
+        return ApiResponse.ok(attempts.review(attemptId));
+    }
 }

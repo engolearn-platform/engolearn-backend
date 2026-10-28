@@ -29,5 +29,5 @@ public class TopicDetailResponse {
     private boolean hasNewContent;
     private TopicCatalogPolicy.ProgressSummary progress;
     private TopicCatalogPolicy.Availability retryAvailability;
-    private TopicCatalogPolicy.RetrySession retrySession;
+    private TopicRetrySessionResponse retrySession;
 }

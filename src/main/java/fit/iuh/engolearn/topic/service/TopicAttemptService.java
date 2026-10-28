@@ -26,6 +26,10 @@ import java.nio.charset.StandardCharsets;
 
 @Service
 public class TopicAttemptService {
+    @org.springframework.beans.factory.annotation.Autowired
+    private TopicRetryService retries;
+    @org.springframework.beans.factory.annotation.Autowired
+    private TopicAttemptPresenter retryPresenter;
     private final LocalLearnerProvider learner;
     private final TopicLearnerCatalogService catalog;
     private final UserTopicItemAttemptRepository attempts;
@@ -56,7 +60,7 @@ public class TopicAttemptService {
 
     public TopicAttemptResponse start(String itemId, StartTopicAttemptRequest body, String key) {
         String userId = userId();
-        if (!"LEARN".equals(body.mode())) throw problem(501, "CONTENT_UNAVAILABLE", "Retry is not implemented in this slice");
+        if ("RETRY".equals(body.mode())) return retries.startItem(itemId, body, key);
         if (body.retrySessionId() != null || body.replaceRetrySessionId() != null) throw problem(400, "INVALID_REQUEST", "LEARN cannot attach a retry session");
         String signature = "start|" + itemId + "|" + body.mode();
         String id = hash(userId + "|" + key).substring(0, 24);
@@ -118,6 +122,7 @@ public class TopicAttemptService {
     }
 
     public TopicAttemptResponse advance(String id, AdvanceTopicContentRequest body, String key) {
+        if (isRetry(id)) return retries.advance(id, body, key);
         UserTopicItemAttempt attempt = owned(id);
         String fingerprint = "advance|" + body.revision() + "|" + body.stage() + "|" + body.itemIndex();
         ContentMutationReceiptVo replay = receipt(attempt, key, fingerprint);
@@ -157,6 +162,7 @@ public class TopicAttemptService {
     }
 
     public QuizAnswerResponse answerQuiz(String id, String quizId, AnswerQuizRequest body, String key) {
+        if (isRetry(id)) return retries.answer(id, quizId, body, key);
         UserTopicItemAttempt attempt = owned(id);
         if (key == null || key.isBlank() || key.length() > 128) throw problem(400, "INVALID_REQUEST", "Idempotency-Key is required");
         String fingerprint = "answer|" + body.revision() + "|" + quizId + "|" + body.optionId();
@@ -206,6 +212,7 @@ public class TopicAttemptService {
     }
 
     public TopicAttemptResponse complete(String id, CompleteTopicAttemptRequest body, String key) {
+        if (isRetry(id)) throw problem(409, "STATE_CHANGED", "Retry completion is committed with the final answer");
         UserTopicItemAttempt attempt = owned(id);
         String fingerprint = "complete|" + body.revision();
         ContentMutationReceiptVo replay = receipt(attempt, key, fingerprint);
@@ -248,7 +255,7 @@ public class TopicAttemptService {
     }
 
     public TopicItemResultResponse itemResult(String id) {
-        UserTopicItemAttempt attempt = owned(id);
+        UserTopicItemAttempt attempt = isRetry(id) ? retries.owned(id, true) : owned(id);
         requireItemVisible(attempt, version(attempt));
         if (attempt.getStatus() != AttemptStatus.COMPLETED) throw problem(409, "ATTEMPT_NOT_COMPLETED", "This attempt has not completed");
         TopicDetailResponse detail = catalog.detail(attempt.getTopicId());
@@ -260,9 +267,42 @@ public class TopicAttemptService {
         TopicItemSummaryResponse next = index + 1 < detail.getItems().size() ? detail.getItems().get(index + 1) : null;
         TopicCatalogPolicy.Availability availability = next == null ? new TopicCatalogPolicy.Availability(false, "CONTENT_UNAVAILABLE")
                 : next.getActions().continueAction().allowed() ? next.getActions().continueAction() : next.getActions().start();
+        TopicRetrySessionResponse retrySession = null;
+        if (attempt.getAttemptType() == AttemptType.RETRY) {
+            TopicRetryRuntime runtime = retries.runtime(attempt.getTopicId());
+            next = null;
+            availability = new TopicCatalogPolicy.Availability(false, "CONTENT_UNAVAILABLE");
+            if (runtime != null && Objects.equals(runtime.getSessionId(), attempt.getUserTopicAttemptId())) {
+                retrySession = TopicRetryService.session(runtime);
+                String nextId = retrySession.nextTopicItemId();
+                next = nextId == null ? null : detail.getItems().stream().filter(item -> nextId.equals(item.getTopicItemId())).findFirst().orElse(null);
+                boolean allowed = next != null && "IN_PROGRESS".equals(runtime.getStatus());
+                availability = new TopicCatalogPolicy.Availability(allowed, allowed ? null : "CONTENT_UNAVAILABLE");
+            }
+        }
         return new TopicItemResultResponse(id, attempt.getTopicId(), attempt.getTopicItemId(), result.title(),
                 result.firstTryCorrectCount(), result.totalQuizCount(), accuracy(result), attempt.getCompletedAt(),
-                next == null ? null : next.getTopicItemId(), availability, null);
+                next == null ? null : next.getTopicItemId(), availability, retrySession);
+    }
+
+    public TopicItemReviewResponse review(String id) {
+        UserTopicItemAttempt attempt = isRetry(id) ? retries.owned(id, true) : owned(id);
+        TopicItemVersion pinned = version(attempt);
+        requireItemVisible(attempt, pinned);
+        if (attempt.getStatus() != AttemptStatus.COMPLETED) throw problem(409, "ATTEMPT_NOT_COMPLETED", "Complete this attempt before review");
+        TopicDetailResponse detail = catalog.detail(attempt.getTopicId());
+        if (detail.getItems().stream().noneMatch(item -> attempt.getTopicItemId().equals(item.getTopicItemId()) && id.equals(item.getCompletedAttemptId())))
+            throw problem(409, "RESULT_CHANGED", "Open the current completed result");
+        List<TopicItemReviewResponse.ReviewedQuiz> reviewed = new ArrayList<>();
+        for (var entry : quizMapper.sequence(pinned)) {
+            QuizProgressVo saved = attempt.getQuizProgress() == null ? null : attempt.getQuizProgress().stream()
+                    .filter(value -> value != null && entry.quizId().equals(value.getQuizId())).findFirst().orElse(null);
+            if (saved == null || saved.getSubmissions() == null || saved.getSubmissions().isEmpty())
+                throw problem(404, "CONTENT_UNAVAILABLE", "Stored quiz history is unavailable for review");
+            reviewed.add(new TopicItemReviewResponse.ReviewedQuiz(quizMapper.toDto(entry), quizMapper.feedback(entry),
+                    Boolean.TRUE.equals(saved.getSubmissions().get(0).getIsCorrect())));
+        }
+        return new TopicItemReviewResponse(describe(attempt), TopicAttemptContentMapper.content(pinned), reviewed);
     }
 
     public TopicResultResponse topicResult(String topicId) {
@@ -375,7 +415,9 @@ public class TopicAttemptService {
     }
 
     public Map<String, Instant> access(String id, String key) {
+        if (isRetry(id)) return retries.access(id, key);
         UserTopicItemAttempt attempt = owned(id);
+        if (attempt.getStatus() == AttemptStatus.COMPLETED) itemResult(id);
         requireItemVisible(attempt, version(attempt));
         if (attempt.getStatus() == AttemptStatus.ABANDONED) throw problem(409, "STATE_CHANGED", "This attempt is no longer active");
         ContentMutationReceiptVo replay = receipt(attempt, key, "access");
@@ -390,6 +432,7 @@ public class TopicAttemptService {
     }
 
     public TopicAttemptResponse describe(UserTopicItemAttempt attempt) {
+        if (attempt.getAttemptType() == AttemptType.RETRY) return retryPresenter.describe(attempt);
         FurthestReachedVo position = attempt.getFurthestReached();
         return describe(attempt, position == null ? null : position.getStage(), position == null ? 0 : position.getItemIndex(), revision(attempt), attempt.getLastAccessedAt());
     }
@@ -432,7 +475,9 @@ public class TopicAttemptService {
         TopicProgressResponse response = TopicProgressResponse.builder().topicId(topicId)
                 .status(ItemProgressStatus.valueOf(summary.status())).completedItemCount(summary.completedItemCount())
                 .totalItemCount(summary.totalItemCount()).items(new ArrayList<>()).build();
-        List<UserTopicItemAttempt> saved = attempts.findByUserIdAndTopicId(userId(), topicId);
+        List<UserTopicItemAttempt> saved = new ArrayList<>(attempts.findByUserIdAndTopicId(userId(), topicId));
+        TopicRetryRuntime retryState = retries == null ? null : retries.runtime(topicId);
+        if (retryState != null) saved.addAll(retryState.getOfficialResults().values());
         int totalWords = 0, totalExpressions = 0, totalQuiz = 0, learnedWords = 0, learnedExpressions = 0, doneQuiz = 0;
         Instant accessed = saved.stream().map(UserTopicItemAttempt::getLastAccessedAt).filter(Objects::nonNull).max(Comparator.naturalOrder()).orElse(null);
         for (TopicItemSummaryResponse item : detail.getItems()) {
@@ -520,11 +565,14 @@ public class TopicAttemptService {
     }
 
     private UserTopicItemAttempt owned(String id) {
+        if (isRetry(id)) return retries.owned(id, false);
         String owner = userId();
         UserTopicItemAttempt attempt = attempts.findById(id).orElseThrow(() -> problem(404, "CONTENT_UNAVAILABLE", "Attempt not found"));
         if (!owner.equals(attempt.getUserId())) throw problem(404, "CONTENT_UNAVAILABLE", "Attempt not found");
         return attempt;
     }
+
+    private boolean isRetry(String id) { return retries != null && retries.isRetry(id); }
 
     private TopicItemVersion version(UserTopicItemAttempt attempt) {
         return versions.findById(attempt.getTopicItemVersionId()).orElseThrow(() -> problem(404, "CONTENT_UNAVAILABLE", "Saved content version not found"));
