@@ -66,6 +66,7 @@ public class TopicAttemptService {
             return describe(previous, LearningStage.CONTEXT, 0, 0, previous.getStartedAt());
         }
         TopicItem storedItem = topicItems.findById(itemId).orElseThrow(() -> problem(404, "CONTENT_UNAVAILABLE", "Topic item not found"));
+        reconcileHiddenRunning(userId, storedItem.getTopicId());
         TopicDetailResponse detail = catalog.detail(storedItem.getTopicId());
         TopicItemSummaryResponse item = detail.getItems().stream().filter(row -> row.getTopicItemId().equals(itemId)).findFirst()
                 .orElseThrow(() -> problem(404, "CONTENT_UNAVAILABLE", "Topic item is not published"));
@@ -89,17 +90,27 @@ public class TopicAttemptService {
         }
     }
 
-    public TopicAttemptResponse get(String id) { return describe(owned(id)); }
+    public TopicAttemptResponse get(String id) {
+        UserTopicItemAttempt attempt = owned(id);
+        requireItemVisible(attempt, version(attempt));
+        if (attempt.getStatus() == AttemptStatus.ABANDONED) throw problem(409, "STATE_CHANGED", "This attempt is no longer active");
+        return describe(attempt);
+    }
 
     public TopicItemContentResponse content(String id) {
-        return TopicAttemptContentMapper.content(version(owned(id)));
+        UserTopicItemAttempt attempt = owned(id);
+        TopicItemVersion pinned = version(attempt);
+        requireItemVisible(attempt, pinned);
+        if (attempt.getStatus() != AttemptStatus.IN_PROGRESS) throw problem(409, "STATE_CHANGED", "Completed content is available through review");
+        return TopicAttemptContentMapper.content(pinned);
     }
 
     public CurrentQuizResponse getCurrentQuiz(String id) {
         UserTopicItemAttempt attempt = owned(id);
         TopicItemVersion pinned = version(attempt);
-        if (attempt.getStatus() != AttemptStatus.IN_PROGRESS) return new CurrentQuizResponse(describe(attempt), null);
         requireItemVisible(attempt, pinned);
+        if (attempt.getStatus() == AttemptStatus.COMPLETED) return new CurrentQuizResponse(describe(attempt), null);
+        if (attempt.getStatus() != AttemptStatus.IN_PROGRESS) throw problem(409, "STATE_CHANGED", "This attempt is no longer active");
         requireQuizFrontier(attempt);
         List<TopicQuizMapper.QuizEntry> sequence = quizMapper.sequence(pinned);
         Optional<TopicQuizMapper.QuizEntry> current = firstUnanswered(sequence, attempt.getQuizProgress());
@@ -110,7 +121,8 @@ public class TopicAttemptService {
         UserTopicItemAttempt attempt = owned(id);
         String fingerprint = "advance|" + body.revision() + "|" + body.stage() + "|" + body.itemIndex();
         ContentMutationReceiptVo replay = receipt(attempt, key, fingerprint);
-        if (replay != null) return describe(attempt, replay.stage(), replay.itemIndex(), replay.revision(), replay.accessedAt());
+        if (replay != null) return describeReceipt(attempt, replay);
+        requireItemVisible(attempt, version(attempt));
         if (attempt.getStatus() != AttemptStatus.IN_PROGRESS || revision(attempt) != body.revision() ||
                 attempt.getFurthestReached().getStage() != body.stage() || !Objects.equals(attempt.getFurthestReached().getItemIndex(), body.itemIndex())) {
             throw problem(409, "STATE_CHANGED", "Reload the saved position before continuing");
@@ -130,7 +142,7 @@ public class TopicAttemptService {
         }
         Instant now = Instant.now().truncatedTo(java.time.temporal.ChronoUnit.MILLIS);
         long revision = revision(attempt) + 1;
-        ContentMutationReceiptVo saved = new ContentMutationReceiptVo(key, fingerprint, LearningStage.valueOf(next.stage()), next.itemIndex(), revision, now);
+        ContentMutationReceiptVo saved = new ContentMutationReceiptVo(key, fingerprint, LearningStage.valueOf(next.stage()), next.itemIndex(), revision, now, true);
         Query query = cas(attempt);
         Update update = new Update().set("furthest_reached", FurthestReachedVo.builder().stage(saved.stage()).itemIndex(saved.itemIndex()).build())
                 .set("version", revision).set("last_accessed_at", now).push("mutation_receipts", saved);
@@ -138,7 +150,7 @@ public class TopicAttemptService {
         if (result == null) {
             UserTopicItemAttempt latest = owned(id);
             ContentMutationReceiptVo concurrentReplay = receipt(latest, key, fingerprint);
-            if (concurrentReplay != null) return describe(latest, concurrentReplay.stage(), concurrentReplay.itemIndex(), concurrentReplay.revision(), concurrentReplay.accessedAt());
+            if (concurrentReplay != null) return describeReceipt(latest, concurrentReplay);
             throw problem(409, "STATE_CHANGED", "Another request changed the position");
         }
         return describe(result);
@@ -168,17 +180,20 @@ public class TopicAttemptService {
         long newRevision = revision(attempt) + 1;
         List<QuizProgressVo> progress = answeredQuizProgress(attempt.getQuizProgress(), quizId, body.optionId(), correct, now);
         FurthestReachedVo advanced = correct ? nextFrontier(entry, sequence) : null;
+        boolean completed = correct && firstUnanswered(sequence, progress).isEmpty();
         FurthestReachedVo frontier = attempt.getFurthestReached();
         ContentMutationReceiptVo saved = new ContentMutationReceiptVo(key, fingerprint,
-                advanced != null ? advanced.getStage() : frontier == null ? LearningStage.CONTEXT : frontier.getStage(),
+                completed ? null : advanced != null ? advanced.getStage() : frontier == null ? LearningStage.CONTEXT : frontier.getStage(),
                 advanced != null ? advanced.getItemIndex() : frontier == null ? 0 : frontier.getItemIndex(),
-                newRevision, now);
+                newRevision, now, true);
         Update update = new Update()
                 .set("quiz_progress", progress)
                 .set("version", newRevision)
                 .set("last_accessed_at", now)
                 .push("mutation_receipts", saved);
         if (advanced != null) update.set("furthest_reached", advanced);
+        if (completed) update.set("status", AttemptStatus.COMPLETED).set("furthest_reached", null)
+                .set("completed_at", now).set("completion_result", completionResult(pinned, sequence, progress));
         UserTopicItemAttempt result = mongo.findAndModify(cas(attempt), update,
                 FindAndModifyOptions.options().returnNew(true), UserTopicItemAttempt.class);
         if (result == null) {
@@ -188,6 +203,108 @@ public class TopicAttemptService {
             throw problem(409, "STATE_CHANGED", "Another request changed the attempt while answering");
         }
         return new QuizAnswerResponse(quizId, correct, feedback, describe(result));
+    }
+
+    public TopicAttemptResponse complete(String id, CompleteTopicAttemptRequest body, String key) {
+        UserTopicItemAttempt attempt = owned(id);
+        String fingerprint = "complete|" + body.revision();
+        ContentMutationReceiptVo replay = receipt(attempt, key, fingerprint);
+        if (replay != null) return describeReceipt(attempt, replay);
+        TopicItemVersion pinned = version(attempt);
+        requireItemVisible(attempt, pinned);
+        if (revision(attempt) != body.revision() || attempt.getStatus() == AttemptStatus.ABANDONED)
+            throw problem(409, "STATE_CHANGED", "Reload the saved attempt before completing");
+        if (attempt.getStatus() == AttemptStatus.COMPLETED) throw problem(409, "STATE_CHANGED", "This attempt is already completed; reload its result");
+        requireQuizFrontier(attempt);
+        List<TopicQuizMapper.QuizEntry> sequence = quizMapper.sequence(pinned);
+        if (sequence.isEmpty() || firstUnanswered(sequence, attempt.getQuizProgress()).isPresent())
+            throw problem(409, "ATTEMPT_NOT_COMPLETED", "Answer every quiz correctly before completing");
+        Instant now = Instant.now().truncatedTo(java.time.temporal.ChronoUnit.MILLIS);
+        ContentMutationReceiptVo saved = new ContentMutationReceiptVo(key, fingerprint, null, 0, revision(attempt) + 1, now, true);
+        UserTopicItemAttempt result = mongo.findAndModify(cas(attempt), new Update()
+                .set("status", AttemptStatus.COMPLETED).set("furthest_reached", null).set("completed_at", now)
+                .set("completion_result", completionResult(pinned, sequence, attempt.getQuizProgress()))
+                .set("version", saved.revision()).set("last_accessed_at", now).push("mutation_receipts", saved),
+                FindAndModifyOptions.options().returnNew(true), UserTopicItemAttempt.class);
+        if (result == null) {
+            UserTopicItemAttempt latest = owned(id);
+            ContentMutationReceiptVo concurrentReplay = receipt(latest, key, fingerprint);
+            if (concurrentReplay != null) return describeReceipt(latest, concurrentReplay);
+            throw problem(409, "STATE_CHANGED", "Another request changed this attempt");
+        }
+        return describe(result);
+    }
+
+    private CompletionResultVo completionResult(TopicItemVersion pinned, List<TopicQuizMapper.QuizEntry> sequence,
+            List<QuizProgressVo> progress) {
+        if (sequence.isEmpty() || firstUnanswered(sequence, progress).isPresent())
+            throw problem(409, "ATTEMPT_NOT_COMPLETED", "Quiz results are incomplete");
+        int firstTry = 0;
+        for (TopicQuizMapper.QuizEntry quiz : sequence) {
+            QuizProgressVo saved = progress.stream().filter(value -> value != null && quiz.quizId().equals(value.getQuizId())).findFirst().orElseThrow();
+            if (saved.getSubmissions() != null && !saved.getSubmissions().isEmpty() && Boolean.TRUE.equals(saved.getSubmissions().get(0).getIsCorrect())) firstTry++;
+        }
+        return new CompletionResultVo(pinned.getTitle(), firstTry, sequence.size());
+    }
+
+    public TopicItemResultResponse itemResult(String id) {
+        UserTopicItemAttempt attempt = owned(id);
+        requireItemVisible(attempt, version(attempt));
+        if (attempt.getStatus() != AttemptStatus.COMPLETED) throw problem(409, "ATTEMPT_NOT_COMPLETED", "This attempt has not completed");
+        TopicDetailResponse detail = catalog.detail(attempt.getTopicId());
+        int index = -1;
+        for (int i = 0; i < detail.getItems().size(); i++) if (attempt.getTopicItemId().equals(detail.getItems().get(i).getTopicItemId())) index = i;
+        if (index < 0) throw problem(410, "ITEM_HIDDEN", "The item is no longer available");
+        if (!id.equals(detail.getItems().get(index).getCompletedAttemptId())) throw problem(409, "RESULT_CHANGED", "Open the current result from the topic");
+        CompletionResultVo result = resultData(attempt);
+        TopicItemSummaryResponse next = index + 1 < detail.getItems().size() ? detail.getItems().get(index + 1) : null;
+        TopicCatalogPolicy.Availability availability = next == null ? new TopicCatalogPolicy.Availability(false, "CONTENT_UNAVAILABLE")
+                : next.getActions().continueAction().allowed() ? next.getActions().continueAction() : next.getActions().start();
+        return new TopicItemResultResponse(id, attempt.getTopicId(), attempt.getTopicItemId(), result.title(),
+                result.firstTryCorrectCount(), result.totalQuizCount(), accuracy(result), attempt.getCompletedAt(),
+                next == null ? null : next.getTopicItemId(), availability, null);
+    }
+
+    public TopicResultResponse topicResult(String topicId) {
+        userId();
+        TopicDetailResponse detail = catalog.detail(topicId);
+        if (!"COMPLETED".equals(detail.getProgress().status()) || detail.getItems().isEmpty())
+            throw problem(409, "TOPIC_NOT_COMPLETED", "Complete every visible item before opening the topic result");
+        List<TopicResultResponse.Item> results = new ArrayList<>();
+        int firstTry = 0, total = 0;
+        for (TopicItemSummaryResponse item : detail.getItems()) {
+            UserTopicItemAttempt attempt = owned(item.getCompletedAttemptId());
+            requireItemVisible(attempt, version(attempt));
+            CompletionResultVo result = resultData(attempt);
+            firstTry += result.firstTryCorrectCount(); total += result.totalQuizCount();
+            results.add(new TopicResultResponse.Item(item.getTopicItemId(), item.getTitle(), attempt.getId(),
+                    result.firstTryCorrectCount(), result.totalQuizCount(), accuracy(result), item.isHasNewContent(), item.getActions()));
+        }
+        return new TopicResultResponse(topicId, detail.getTitleVi(), firstTry, total, (int)Math.round(100.0 * firstTry / total), results, detail.getRetryAvailability());
+    }
+
+    private CompletionResultVo resultData(UserTopicItemAttempt attempt) {
+        if (attempt.getStatus() != AttemptStatus.COMPLETED) throw problem(409, "RESULT_CHANGED", "The completed result is unavailable");
+        if (attempt.getCompletionResult() != null) return attempt.getCompletionResult();
+        UserTopicItemProgress legacy = mongo.findOne(new Query(Criteria.where("user_id").is(attempt.getUserId())
+                .and("topic_item_id").is(attempt.getTopicItemId()).and("last_completed_attempt_id").is(attempt.getId())), UserTopicItemProgress.class);
+        if (legacy == null || legacy.getFirstTryCorrectCount() == null || legacy.getTotalQuizCount() == null || legacy.getTotalQuizCount() < 1)
+            throw problem(409, "RESULT_CHANGED", "Stored result counts are unavailable");
+        return new CompletionResultVo(version(attempt).getTitle(), legacy.getFirstTryCorrectCount(), legacy.getTotalQuizCount());
+    }
+
+    private int accuracy(CompletionResultVo result) { return (int)Math.round(100.0 * result.firstTryCorrectCount() / result.totalQuizCount()); }
+
+    private void reconcileHiddenRunning(String userId, String topicId) {
+        for (UserTopicItemAttempt attempt : attempts.findByUserIdAndTopicId(userId, topicId)) {
+            if (attempt.getStatus() != AttemptStatus.IN_PROGRESS) continue;
+            try { requireItemVisible(attempt, version(attempt)); }
+            catch (TopicRequestException unavailable) {
+                if (unavailable.getStatus() != 410) throw unavailable;
+                mongo.findAndModify(cas(attempt), new Update().set("status", AttemptStatus.ABANDONED)
+                        .set("abandoned_reason", "ITEM_HIDDEN").set("version", revision(attempt) + 1), UserTopicItemAttempt.class);
+            }
+        }
     }
 
     private QuizAnswerResponse replayedAnswer(UserTopicItemAttempt attempt, String quizId, AnswerQuizRequest body,
@@ -207,8 +324,7 @@ public class TopicAttemptService {
         }
         if (matched == null) throw problem(409, "STATE_CHANGED", "Reload the saved position before answering");
         boolean correct = Boolean.TRUE.equals(matched.getIsCorrect());
-        TopicAttemptResponse attemptDto = replay.stage() == null ? describe(attempt)
-                : describe(attempt, replay.stage(), replay.itemIndex(), replay.revision(), replay.accessedAt());
+        TopicAttemptResponse attemptDto = describeReceipt(attempt, replay);
         return new QuizAnswerResponse(quizId, correct, correct ? quizMapper.feedback(entry) : null, attemptDto);
     }
 
@@ -260,10 +376,12 @@ public class TopicAttemptService {
 
     public Map<String, Instant> access(String id, String key) {
         UserTopicItemAttempt attempt = owned(id);
+        requireItemVisible(attempt, version(attempt));
+        if (attempt.getStatus() == AttemptStatus.ABANDONED) throw problem(409, "STATE_CHANGED", "This attempt is no longer active");
         ContentMutationReceiptVo replay = receipt(attempt, key, "access");
         if (replay != null) return Map.of("lastAccessedAt", replay.accessedAt());
         Instant now = Instant.now().truncatedTo(java.time.temporal.ChronoUnit.MILLIS);
-        ContentMutationReceiptVo saved = new ContentMutationReceiptVo(key, "access", null, 0, revision(attempt), now);
+        ContentMutationReceiptVo saved = new ContentMutationReceiptVo(key, "access", null, 0, revision(attempt), now, true);
         UserTopicItemAttempt result = mongo.findAndModify(cas(attempt),
                 new Update().set("version", attempt.getVersion()).set("last_accessed_at", now).push("mutation_receipts", saved),
                 FindAndModifyOptions.options().returnNew(true), UserTopicItemAttempt.class);
@@ -277,11 +395,19 @@ public class TopicAttemptService {
     }
 
     private TopicAttemptResponse describe(UserTopicItemAttempt attempt, LearningStage stage, int index, long revision, Instant accessed) {
+        return describe(attempt, stage, index, revision, accessed, true);
+    }
+
+    private TopicAttemptResponse describeReceipt(UserTopicItemAttempt attempt, ContentMutationReceiptVo receipt) {
+        return describe(attempt, receipt.stage(), receipt.itemIndex(), receipt.revision(), receipt.accessedAt(), Boolean.TRUE.equals(receipt.roundedProgress()));
+    }
+
+    private TopicAttemptResponse describe(UserTopicItemAttempt attempt, LearningStage stage, int index, long revision, Instant accessed, boolean rounded) {
         TopicItemVersion version = version(attempt);
         TopicItemContentResponse content = TopicAttemptContentMapper.content(version);
         List<TopicCatalogPolicy.Position> positions = contentPositions(content);
         int totalQuiz = quizCount(version, QuizType.FILL_BLANK) + quizCount(version, QuizType.SITUATIONAL_CHOICE);
-        int completed = stage == null ? positions.size() + totalQuiz : positions.indexOf(new TopicCatalogPolicy.Position(stage.name(), index));
+        int completed = stage == null && attempt.getStatus() == AttemptStatus.COMPLETED ? positions.size() + totalQuiz : positions.indexOf(new TopicCatalogPolicy.Position(stage == null ? "CONTEXT" : stage.name(), index));
         if (completed < 0) completed = positions.size() + (stage == LearningStage.SITUATIONAL_CHOICE ? quizCount(version, QuizType.FILL_BLANK) : 0) + index;
         int learnedWords = 0, learnedExpressions = 0;
         for (int i = 0; i < Math.min(completed, positions.size()); i++) {
@@ -291,23 +417,30 @@ public class TopicAttemptService {
         }
         int total = positions.size() + totalQuiz;
         int doneQuiz = Math.max(0, completed - positions.size());
-        TopicAttemptResponse.Progress progress = new TopicAttemptResponse.Progress(completed, total, total == 0 ? 0 : (int)(100L * completed / total),
+        int percent = total == 0 ? 0 : rounded ? (int)Math.round(100.0 * completed / total) : (int)(100L * completed / total);
+        TopicAttemptResponse.Progress progress = new TopicAttemptResponse.Progress(completed, total, percent,
                 learnedWords, learnedExpressions, doneQuiz, totalQuiz);
         return new TopicAttemptResponse(attempt.getId(), attempt.getTopicId(), attempt.getTopicItemId(), attempt.getTopicItemVersionId(),
                 version.getVersion(), "LEARN", stage == null ? attempt.getStatus().name() : "IN_PROGRESS", revision,
-                stage == null ? null : new TopicCatalogPolicy.Position(stage.name(), index), progress, null, attempt.getStartedAt(), accessed, attempt.getCompletedAt());
+                stage == null ? null : new TopicCatalogPolicy.Position(stage.name(), index), progress, null, attempt.getStartedAt(), accessed, stage == null ? attempt.getCompletedAt() : null);
     }
 
     public TopicProgressResponse topicProgress(String topicId) {
-        TopicProgressResponse response = learning.getTopicProgress(GetTopicProgressRequest.builder().topicId(topicId).build());
+        userId();
         TopicDetailResponse detail = catalog.detail(topicId);
+        TopicCatalogPolicy.ProgressSummary summary = detail.getProgress();
+        TopicProgressResponse response = TopicProgressResponse.builder().topicId(topicId)
+                .status(ItemProgressStatus.valueOf(summary.status())).completedItemCount(summary.completedItemCount())
+                .totalItemCount(summary.totalItemCount()).items(new ArrayList<>()).build();
         List<UserTopicItemAttempt> saved = attempts.findByUserIdAndTopicId(userId(), topicId);
         int totalWords = 0, totalExpressions = 0, totalQuiz = 0, learnedWords = 0, learnedExpressions = 0, doneQuiz = 0;
-        Instant accessed = response.getLastAccessedAt();
+        Instant accessed = saved.stream().map(UserTopicItemAttempt::getLastAccessedAt).filter(Objects::nonNull).max(Comparator.naturalOrder()).orElse(null);
         for (TopicItemSummaryResponse item : detail.getItems()) {
             UserTopicItemAttempt active = saved.stream().filter(a -> a.getStatus() == AttemptStatus.IN_PROGRESS &&
                     a.getAttemptType() == AttemptType.LEARNING && item.getTopicItemId().equals(a.getTopicItemId())).findFirst().orElse(null);
-            TopicItemVersion pinned = versions.findById(active == null ? item.getPublishedVersionId() : active.getTopicItemVersionId()).orElseThrow(
+            UserTopicItemAttempt completedAttempt = saved.stream().filter(a -> a.getId().equals(item.getCompletedAttemptId())).findFirst().orElse(null);
+            String effectiveVersion = active != null ? active.getTopicItemVersionId() : completedAttempt != null ? completedAttempt.getTopicItemVersionId() : item.getPublishedVersionId();
+            TopicItemVersion pinned = versions.findById(effectiveVersion).orElseThrow(
                     () -> problem(404, "CONTENT_UNAVAILABLE", "Content version not found"));
             TopicItemContentResponse content = TopicAttemptContentMapper.content(pinned);
             int words = content.getVocabularies().size();
@@ -320,6 +453,10 @@ public class TopicAttemptService {
                 TopicAttemptResponse.Progress progress = describe(active).progress();
                 learnedWords += progress.learnedVocabularyCount(); learnedExpressions += progress.learnedExpressionCount(); doneQuiz += progress.completedQuizCount();
             }
+            response.getItems().add(TopicItemProgressResponse.builder().topicItemId(item.getTopicItemId())
+                    .status(ItemProgressStatus.valueOf(item.getLearningStatus())).completedAt(completedAttempt == null ? null : completedAttempt.getCompletedAt())
+                    .firstTryCorrectCount(completedAttempt == null || completedAttempt.getCompletionResult() == null ? null : completedAttempt.getCompletionResult().firstTryCorrectCount())
+                    .totalQuizCount(completedAttempt == null || completedAttempt.getCompletionResult() == null ? null : completedAttempt.getCompletionResult().totalQuizCount()).build());
             if (active != null && active.getLastAccessedAt() != null && (accessed == null || active.getLastAccessedAt().isAfter(accessed))) accessed = active.getLastAccessedAt();
         }
         response.setPercent(response.getTotalItemCount() == 0 ? 0 : (int)Math.round(100.0 * response.getCompletedItemCount() / response.getTotalItemCount()));

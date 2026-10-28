@@ -56,4 +56,21 @@ public class TopicAttemptController {
             @NotBlank @Size(max = 128) @RequestHeader("Idempotency-Key") String key) {
         return ApiResponse.ok(attempts.answerQuiz(attemptId, quizId, body, key));
     }
+
+    @PostMapping("/topic-attempts/{attemptId}/completion")
+    public ApiResponse<TopicAttemptResponse> complete(@PathVariable String attemptId,
+            @Valid @RequestBody CompleteTopicAttemptRequest body,
+            @NotBlank @Size(max = 128) @RequestHeader("Idempotency-Key") String key) {
+        return ApiResponse.ok(attempts.complete(attemptId, body, key));
+    }
+
+    @GetMapping("/topic-attempts/{attemptId}/result")
+    public ApiResponse<TopicItemResultResponse> itemResult(@PathVariable String attemptId) {
+        return ApiResponse.ok(attempts.itemResult(attemptId));
+    }
+
+    @GetMapping("/topics/{topicId}/result")
+    public ApiResponse<TopicResultResponse> topicResult(@PathVariable String topicId) {
+        return ApiResponse.ok(attempts.topicResult(topicId));
+    }
 }

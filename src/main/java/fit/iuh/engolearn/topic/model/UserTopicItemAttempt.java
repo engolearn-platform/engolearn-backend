@@ -68,6 +68,12 @@ public class UserTopicItemAttempt extends BaseDocument {
     @Field("completed_at")
     private Instant completedAt;
 
+    @Field("completion_result")
+    private fit.iuh.engolearn.topic.model.vo.CompletionResultVo completionResult;
+
+    @Field("abandoned_reason")
+    private String abandonedReason;
+
     @Version
     private Long version;
 }

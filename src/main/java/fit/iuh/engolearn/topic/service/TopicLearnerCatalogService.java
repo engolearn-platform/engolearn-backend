@@ -98,7 +98,7 @@ public class TopicLearnerCatalogService {
         detail.setProgress(progress(topicId, visible, state));
         detail.setHasNewContent(hasNew(visible, state));
         boolean previousDone = true;
-        boolean anotherRunning = state.running().values().stream().anyMatch(a -> topicId.equals(a.getTopicId()));
+        boolean anotherRunning = state.running().values().stream().anyMatch(a -> topicId.equals(a.getTopicId()) && visible.containsKey(a.getTopicItemId()));
         for (TopicItemSummaryResponse item : detail.getItems()) {
             UserTopicItemProgress stored = state.items().get(item.getTopicItemId());
             UserTopicItemAttempt running = state.running().get(item.getTopicItemId());
@@ -142,13 +142,22 @@ public class TopicLearnerCatalogService {
         topics.findByUserId(userId).forEach(row -> owned.put(row.getTopicId(), row));
         Map<String, UserTopicItemProgress> progress = new HashMap<>();
         items.findByUserId(userId).forEach(row -> progress.put(row.getTopicItemId(), row));
-        List<UserTopicItemAttempt> active = attempts.findByUserId(userId).stream().filter(row -> row.getStatus() == AttemptStatus.IN_PROGRESS).toList();
+        List<UserTopicItemAttempt> saved = attempts.findByUserId(userId);
+        TopicCompletedResults.overlay(progress, saved);
+        List<UserTopicItemAttempt> active = saved.stream().filter(row -> row.getStatus() == AttemptStatus.IN_PROGRESS).toList();
         Set<String> learning = new HashSet<>();
         sessions.findAllById(active.stream().map(UserTopicItemAttempt::getUserTopicAttemptId).filter(Objects::nonNull).distinct().toList())
                 .forEach(row -> { if (row.getAttemptType() == AttemptType.LEARNING) learning.add(row.getId()); });
         Map<String, UserTopicItemAttempt> running = new HashMap<>();
         active.stream().filter(row -> row.getAttemptType() == AttemptType.LEARNING || learning.contains(row.getUserTopicAttemptId())).forEach(row -> running.put(row.getTopicItemId(), row));
-        return new State(owned, progress, running);
+        Set<String> started = new HashSet<>();
+        Map<String, Instant> recency = new HashMap<>();
+        for (UserTopicItemAttempt attempt : saved) {
+            started.add(attempt.getTopicId());
+            if (attempt.getLastAccessedAt() != null) recency.merge(attempt.getTopicId(), attempt.getLastAccessedAt(),
+                    (left, right) -> left.isAfter(right) ? left : right);
+        }
+        return new State(owned, progress, running, started, recency);
     }
 
     private void enrich(TopicSummaryResponse row, State state) {
@@ -156,6 +165,8 @@ public class TopicLearnerCatalogService {
         row.setHasNewContent(hasNew(row.getVisibleItemVersions(), state));
         UserTopicProgress owned = state.owned().get(row.getTopicId());
         Instant accessed = owned == null ? null : owned.getLastAccessedAt();
+        Instant attemptAccessed = state.recency().get(row.getTopicId());
+        if (attemptAccessed != null && (accessed == null || attemptAccessed.isAfter(accessed))) accessed = attemptAccessed;
         for (UserTopicItemAttempt attempt : state.running().values()) {
             if (row.getTopicId().equals(attempt.getTopicId()) && attempt.getLastAccessedAt() != null &&
                     (accessed == null || attempt.getLastAccessedAt().isAfter(accessed))) accessed = attempt.getLastAccessedAt();
@@ -167,7 +178,7 @@ public class TopicLearnerCatalogService {
 
     private TopicCatalogPolicy.ProgressSummary progress(String topicId, Map<String, String> visible, State state) {
         int complete = 0;
-        boolean started = state.owned().containsKey(topicId) || state.running().values().stream().anyMatch(a -> topicId.equals(a.getTopicId()));
+        boolean started = state.owned().containsKey(topicId) || state.started().contains(topicId);
         for (String id : visible.keySet()) {
             UserTopicItemProgress p = state.items().get(id);
             if (p != null && p.getStatus() == ItemProgressStatus.COMPLETED) complete++;
@@ -208,5 +219,5 @@ public class TopicLearnerCatalogService {
         return TopicCursorCodec.encode(sort, fingerprint, sort == TopicSortOrder.DURATION ? row.getDurationMinutes() : row.getSortOrderIndex(), row.getTopicId());
     }
     private record State(Map<String, UserTopicProgress> owned, Map<String, UserTopicItemProgress> items,
-                         Map<String, UserTopicItemAttempt> running) {}
+                         Map<String, UserTopicItemAttempt> running, Set<String> started, Map<String, Instant> recency) {}
 }
