@@ -160,7 +160,7 @@ This refines §2. §2's 3–5 questions-per-type line is a publish-gate rule of 
 
 ### A6 Known deltas
 
-- `410 ITEM_HIDDEN` is missing from the FE contract — handoff §7 item 1;
+- Quiz GET/POST `410 ITEM_HIDDEN` was added to the FE contract in `82d2201`; full hidden coverage/retry recovery remain in their later consumer scope — handoff §7 item 1;
 - a missing `Idempotency-Key` returns the framework's default 400 body without a `code` field — handoff §6.6 note / §7 item 6.
 
 Data blockers are recorded in handoff §12; Slice A fail-closes with 404 `CONTENT_UNAVAILABLE` rather than relaxing a rule.

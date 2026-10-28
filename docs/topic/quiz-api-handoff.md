@@ -1,5 +1,11 @@
 # Bàn giao API quiz — Slice A (GET current quiz + POST answer)
 
+## Coordination update (2026-10-28)
+
+BE work now continues on `feat/complete-topic-learning-flow` from `b14eff0`; prior Slice A commits are preserved. FE commit `82d2201` already declares 410 for both quiz endpoints, and `b841354` implements the quiz consumer. Historical statements below saying this quiz delta is not synchronized are superseded by this update. Full hidden coverage and retry recovery remain open for later consumers (retry recovery in C).
+
+Slice A is implemented but not fully accepted end-to-end: the stored BE HTTP samples only cover FILL_BLANK, while the user reports both types playable through FE. Final correctness/completion/result are still B work. The instruction to open a summary for `IN_PROGRESS + quiz:null` is withdrawn: no result exists yet, so FE must not invent one. The current FE validator retains the final request on this mismatch, causing an endless retry message; B must distinguish that case and recover the already-stored final answer without reset or a GET write. Remaining checks are in OpenSpec tasks 2.1b/2.1c/2.3-2.5 and 3.1-3.4.
+
 ## 1. Baseline
 
 | Thành viên | Commit thực tế (HEAD) | Commit ghi trong design.md | Ghi chú |
@@ -19,8 +25,8 @@ Nguồn sự thật: `.artifacts/complete-topic-learning-quiz-slice/facts-be.md`
 
 | # | Method | Path | Target (OpenAPI) | BE hiện tại | Ghi chú FE |
 |---|---|---|---|---|---|
-| 1 | GET | `/topic-attempts/{attemptId}/quiz` | `getCurrentQuiz` (`SPEC:760-763`) | **Có** (commit `b8c89a4`) — `TopicAttemptController.currentQuiz` (`:48-51`) | FE gọi khi ở quiz frontier. `410 ITEM_HIDDEN` là delta chưa sync OpenAPI. |
-| 2 | POST | `/topic-attempts/{attemptId}/quizzes/{quizId}/answers` | `answerQuiz` (`SPEC:890-893`) | **Có** (commit `b8c89a4`) — `TopicAttemptController.answerQuiz` (`:53-58`) | FE gửi `{revision, optionId}` + `Idempotency-Key`. `410 ITEM_HIDDEN` là delta chưa sync OpenAPI. |
+| 1 | GET | `/topic-attempts/{attemptId}/quiz` | `getCurrentQuiz` (`SPEC:760-763`) | **Có** (commit `b8c89a4`) — `TopicAttemptController.currentQuiz` (`:48-51`) | FE calls at quiz frontier. 410 declared in FE `82d2201`. |
+| 2 | POST | `/topic-attempts/{attemptId}/quizzes/{quizId}/answers` | `answerQuiz` (`SPEC:890-893`) | **Có** (commit `b8c89a4`) — `TopicAttemptController.answerQuiz` (`:53-58`) | FE sends `{revision, optionId}` + `Idempotency-Key`. 410 declared in FE `82d2201`. |
 | 3 | GET | `/topic-attempts/{attemptId}` | `getAttempt` (`SPEC:516-519`) | Có — `TopicAttemptController.get` (`TopicAttemptController.java:26-29`) | Lấy attempt + revision hiện tại. |
 | 4 | GET | `/topic-attempts/{attemptId}/content` | `getAttemptContent` (`SPEC:579-582`) | Có — `TopicAttemptController.content` (`:31-34`) | Nội dung pinned, chỉ đọc. |
 | 5 | POST | `/topic-attempts/{attemptId}/advance` | `advanceContent` (`SPEC:642-645`) | Có — `TopicAttemptController.advance` (`:36-40`) | Không dùng cho quiz stage. |
@@ -100,7 +106,7 @@ Mỗi lỗi trả `ProblemDetail` media type `application/problem+json` (`SPEC:3
 | 401 | `SIGN_IN_REQUIRED` | `userId` null (chưa chọn hồ sơ local) | `TopicAttemptService.userId()` |
 | 404 | `CONTENT_UNAVAILABLE` | attempt không tồn tại / không sở hữu; version pin không tìm thấy; nội dung không dựng được DTO | `TopicAttemptService.owned` / `version` + `TopicQuizMapper` |
 | 200 | — | attempt `COMPLETED` → `quiz:null`; hoặc hết quiz chưa đúng (câu cuối đúng, Slice B chưa completion) → `quiz:null`, status `IN_PROGRESS`, `completedAt = null`, không tạo result, reload không hiện lại câu đã đúng | Quyết định 2; **không phải 409** |
-| 410 | `ITEM_HIDDEN` | item của attempt bị ẩn (`TopicItemVersion.status == HIDDEN` / release không `PUBLISHED`) | **Delta:** chưa có trong contract FE status list (`SPEC:1045-1062` chỉ 400/401/404/409/422/503) → FE phải sync OpenAPI. Code: `TopicAttemptService.requireItemVisible` |
+| 410 | `ITEM_HIDDEN` | item của attempt bị ẩn (`TopicItemVersion.status == HIDDEN` / release không `PUBLISHED`) | Declared in FE `82d2201`. Code: `TopicAttemptService.requireItemVisible` |
 | 409 | `STATE_CHANGED` | **chưa tới quiz frontier** — `furthestReached` null hoặc `stage` còn `CONTEXT`/`VOCAB`/`EXPRESSIONS` | `TopicAttemptService.requireQuizFrontier` — `specs/topic-quiz/spec.md:10-12`, `design.md:32`, `SPEC:764` |
 | 422 | `LEVEL_TOO_LOW` / `PREDECESSOR_INCOMPLETE` | không áp quiz slice | — |
 | 503 | `SERVICE_UNAVAILABLE` | persistence thực sự không sẵn sàng | `SPEC:3650-3666` |
@@ -123,7 +129,7 @@ Mỗi lỗi trả `ProblemDetail` media type `application/problem+json` (`SPEC:3
 
 Mỗi mục: cái gì / vì sao / ai sửa / chặn gì.
 
-1. **Contract FE cần sync — thêm `410 ITEM_HIDDEN`.** Contract FE cho 2 endpoint quiz chỉ khai 400/401/404/409/422/503 (`SPEC:1045-1062`), không có `410`. OpenSpec BE và spec `topic-quiz` yêu cầu `ITEM_HIDDEN (410)` (`design.md:45`, `specs/topic-quiz/spec.md:58-63`). → **FE sửa** OpenAPI/thêm status 410. Chặn: nếu BE trả 410 mà FE không xử lý, FE sẽ coi như lỗi không xác định.
+1. **Quiz 410 contract delta completed.** FE `82d2201` adds `410 ITEM_HIDDEN` to both quiz endpoints; consumer `b841354` handles the code/status. Live hidden acceptance remains open; this is no longer a missing-schema blocker.
 2. **BE `ProblemDetail.title` bị đặt bằng `code`** (`TopicRequestExceptionHandler.java:14-15`, facts-be.md:462), ví dụ `title: "STATE_CHANGED"`; contract example muốn `title: "Learning state changed"` + `code: "STATE_CHANGED"` (`SPEC:3625-3628`). → **BE chốt** (không phải Slice A): `title` từ message dễ đọc, `code` riêng. Chặn: FE ánh xạ theo `code`, không theo `title`, nhưng contract example không khớp.
 3. **Các advice khác thiếu trường `code`.** `TopicLearningExceptionHandler`, `TopicBrowseExceptionHandler`, `SecurityExceptionHandler` không set property `code` (`facts-be.md:B.5`), còn `ProblemDto.required` có `code` (`SPEC:3540-3546`). → **BE chốt** (không phải Slice A): thêm `code` cho các advice liên quan, hoặc chốt FE chấp nhận thiếu `code`. Chặn: response quiz (dùng `TopicRequestExceptionHandler` có `code`) thì OK, nhưng các lỗi 404/401 từ advice khác nếu tái dùng sẽ thiếu `code`.
 4. **`501 CONTENT_UNAVAILABLE` cho `mode=RETRY`** (`TopicAttemptService.start`) không trong danh sách status contract (`SPEC:495-512`). Slice A chỉ làm LEARN. → **BE chốt:** giữ 501 (vi phạm tinh thần `backend-handoff.md:154`) hay trả 400/409. Khuyên: Slice A trả 400 `INVALID_REQUEST` nếu FE gửi mode RETRY (không xảy ra vì quiz chỉ LEARN).
@@ -337,9 +343,9 @@ Idempotency-Key: key-abc-002
 
 ## 7. Việc FE phải làm / contract cần chỉnh
 
-1. Thêm status `410` + `code: ITEM_HIDDEN` vào OpenAPI cho 2 endpoint quiz (hiện contract không khai, facts-be.md:A.4).
+1. Completed for the two quiz endpoints in FE `82d2201`: status `410` / `ITEM_HIDDEN` is declared; generator and type drift passed. Full hidden coverage/retry recovery are separate pending tasks.
 2. Đồng bộ `ProblemDto` dùng cả `title` (human-readable) và `code`; ánh xạ UI theo `code`, không theo `title`.
-3. Xử lý `quiz:null` khi attempt `IN_PROGRESS` nhưng hết quiz chưa đúng (edge case câu cuối, chưa COMPLETED) — FE về tổng kết item (chờ Slice B completion).
+3. `IN_PROGRESS + quiz:null` after the last correct answer is a temporary BE limitation, not a completion response. Do not navigate to a nonexistent summary or calculate completion in FE. B must publish a committed result and recover old already-answered attempts; FE must stop labeling this known contract mismatch as an uncertain network response.
 4. Giữ `Idempotency-Key` + `revision` qua reload; không tự tạo key mới mỗi lần thử lại mạng (`backend-handoff.md:112-113`).
 5. Không gửi `isCorrect/score/completed` trong body (`SPEC:894`); không hiển thị đáp án/giải thích trước khi đúng.
 6. 400 khi thiếu/sai `Idempotency-Key` trả body mặc định Spring **không có `code`** → FE map theo HTTP status 400; nếu cần `code` đồng nhất phải sửa handler (ngoài phạm vi slice).
@@ -351,8 +357,8 @@ Tài liệu này đã được cập nhật ở bước bàn giao: response TH�
 ## 9. Quyết định thiết kế đã chốt (5 quyết định, KHÔNG bàn lại)
 
 1. **Cơ chế lưu: Phương án A** — `UserTopicItemAttempt` single-document CAS (`@Version` + `mutation_receipts`), KHÔNG dựng `topic_learner_runtime` ở Slice A. Hệ quả FE: BE ghi 1 document, không collection mới, FE không cần điều chỉnh do lưu trữ.
-2. **Câu quiz cuối đúng mà Slice B chưa có:** `quiz:null`, status `IN_PROGRESS`, `completedAt = null`, không tạo result, reload không hiện lại câu đã đúng. Hệ quả FE: FE về tổng kết item (chờ Slice B completion), không coi là lỗi hay hết attempt.
-3. **Item bị ẩn:** trả `410 ITEM_HIDDEN` (`design.md:45`). Hệ quả FE: **delta contract** — OpenAPI FE chỉ khai 400/401/404/409/422/503, FE phải thêm 410 trước khi BE trả 410, nếu không FE coi như lỗi không xác định.
+2. **Câu quiz cuối đúng mà Slice B chưa có:** `quiz:null`, status `IN_PROGRESS`, `completedAt = null`, không tạo result, reload không hiện lại câu đã đúng. This describes the Slice A limitation only; it does not replace the target completion contract. FE summary navigation is not valid until B supplies completion/result; recover existing stored final answers as part of B.
+3. **Item bị ẩn:** trả `410 ITEM_HIDDEN` (`design.md:45`). FE quiz delta is already synchronized in `82d2201`; verify the real hidden behavior without repeating this contract change. Replay-vs-hidden exception remains documented in §4.
 4. **Data pack do agent khác nạp sau** → bỏ bước tạo script sample-data. Nếu dữ liệu thật thiếu field contract → báo blocker thật, không bịa, không hạ test. Hệ quả FE: FE không tự dựng mock data khi BE thiếu endpoint (`specs/topic-learn-item/spec.md:94-96`).
 5. **Replica set 1 node:** hoãn sang trước Slice C, không thuộc Slice A. Hệ quả FE: app dev vẫn standalone, FE không ảnh hưởng.
 
