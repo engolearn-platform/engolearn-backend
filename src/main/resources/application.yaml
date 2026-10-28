@@ -24,3 +24,6 @@ engolearn:
     dev-auth:
       enabled: false
 
+
+  topic:
+    local-learner-id: ${TOPIC_LOCAL_LEARNER_ID:}

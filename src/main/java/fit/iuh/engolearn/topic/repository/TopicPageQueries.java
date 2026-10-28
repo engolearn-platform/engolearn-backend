@@ -7,6 +7,8 @@ import org.springframework.lang.Nullable;
 import java.util.List;
 
 interface TopicPageQueries {
+    List<Topic> findPublishedCandidates(@Nullable CefrLevel cefrLevel, @Nullable String keyword);
+
     List<Topic> findPublishedPage(@Nullable CefrLevel cefrLevel,
                                  @Nullable String keyword,
                                  TopicRepository.SortKey sortKey,

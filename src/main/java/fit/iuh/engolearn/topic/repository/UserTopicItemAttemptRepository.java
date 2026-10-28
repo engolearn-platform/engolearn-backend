@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Optional;
 
 public interface UserTopicItemAttemptRepository extends MongoRepository<UserTopicItemAttempt, String> {
+    List<UserTopicItemAttempt> findByUserId(String userId);
 
     Optional<UserTopicItemAttempt> findByUserTopicAttemptIdAndTopicItemId(String userTopicAttemptId,
                                                                            String topicItemId);

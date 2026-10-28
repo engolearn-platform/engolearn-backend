@@ -62,6 +62,17 @@ class TopicPageQueriesImpl implements TopicPageQueries {
         return mongoTemplate.find(query, Topic.class);
     }
 
+    @Override
+    public List<Topic> findPublishedCandidates(@Nullable CefrLevel cefrLevel, @Nullable String keyword) {
+        List<Criteria> filters = new ArrayList<>();
+        filters.add(Criteria.where(PUBLISHED_POINTER).ne(null));
+        if (cefrLevel != null) filters.add(Criteria.where(LEVEL_FIELD).is(cefrLevel));
+        if (keyword != null && !keyword.isBlank()) filters.add(titleCriteria(keyword));
+        Query query = new Query(new Criteria().andOperator(filters.toArray(Criteria[]::new)));
+        query.fields().include(ID_FIELD).include(PUBLISHED_POINTER);
+        return mongoTemplate.find(query, Topic.class);
+    }
+
     private static Criteria titleCriteria(String keyword) {
         Pattern pattern = Pattern.compile(Pattern.quote(keyword.trim()),
                 Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE);

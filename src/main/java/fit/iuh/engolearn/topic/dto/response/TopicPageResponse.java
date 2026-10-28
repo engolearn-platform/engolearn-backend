@@ -15,4 +15,5 @@ public class TopicPageResponse {
     private List<TopicSummaryResponse> items;
     private String nextCursor;
     private boolean hasMore;
+    private long total;
 }

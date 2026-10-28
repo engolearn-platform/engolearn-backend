@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Optional;
 
 public interface UserTopicItemProgressRepository extends MongoRepository<UserTopicItemProgress, String> {
+    List<UserTopicItemProgress> findByUserId(String userId);
 
     Optional<UserTopicItemProgress> findByUserIdAndTopicItemId(String userId, String topicItemId);
 
