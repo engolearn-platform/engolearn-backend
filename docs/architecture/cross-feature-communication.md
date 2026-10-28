@@ -45,6 +45,7 @@ A new dependency needs an explicit reason and approval. Keep this table in sync 
 | `dictionary` | None |
 | `topic` | `dictionary` |
 | `user` | `topic` |
+| `speaking` | `topic` |
 
 `ArchitectureTest` checks that cross-feature code dependencies target a contract and that dependency cycles do not exist. It does **not** currently enforce this table as an exact allow-list, so reviewers must check that new dependencies are listed and approved.
 

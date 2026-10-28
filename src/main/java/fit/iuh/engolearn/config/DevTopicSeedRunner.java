@@ -34,6 +34,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.context.annotation.Profile;
+import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
@@ -67,6 +68,7 @@ import java.util.Map;
  */
 @Component
 @Profile("dev")
+@Order(0)
 public class DevTopicSeedRunner implements ApplicationRunner {
 
     private static final Logger log = LoggerFactory.getLogger(DevTopicSeedRunner.class);

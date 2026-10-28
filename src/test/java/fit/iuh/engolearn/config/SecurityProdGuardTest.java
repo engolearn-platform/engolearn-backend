@@ -2,6 +2,10 @@ package fit.iuh.engolearn.config;
 
 import fit.iuh.engolearn.learningpath.controller.LearningPathController;
 import fit.iuh.engolearn.learningpath.service.LearningPathService;
+import fit.iuh.engolearn.learningpath.service.LearningPathRecommendationService;
+import fit.iuh.engolearn.learningpath.service.LearningPathCreationService;
+import fit.iuh.engolearn.learningpath.service.LearningPathDayPracticeService;
+import fit.iuh.engolearn.learningpath.service.LearningPathAnswerDraftService;
 import fit.iuh.engolearn.shared.security.dev.DevAuthFilter;
 import fit.iuh.engolearn.shared.security.impl.SecurityContextCurrentUserProvider;
 import fit.iuh.engolearn.topic.controller.TopicBrowseController;
@@ -46,6 +50,11 @@ class SecurityProdGuardTest {
 
     @MockitoBean
     private LearningPathService learningPathService;
+
+    @MockitoBean private LearningPathRecommendationService recommendationService;
+    @MockitoBean private LearningPathCreationService creationService;
+    @MockitoBean private LearningPathDayPracticeService dayPracticeService;
+    @MockitoBean private LearningPathAnswerDraftService answerDraftService;
 
     @Test
     void theDevAuthFilterIsNotRegisteredInProd() {
