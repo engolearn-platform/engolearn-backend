@@ -2,6 +2,8 @@
 
 Cho phép làm lại item hoặc topic đã hoàn thành trong phiên riêng, tiếp tục được sau khi thoát, giữ kết quả cũ đến khi từng item hoàn thành và kiểm soát thay thế lượt đang dở.
 
+Delivery scope: hide/unhide during an active flow is deferred by the user. This slice assumes stable visibility and does not implement skip, blocking or recovery policy for those changes; existing410 denial remains. No MAJOR-version visibility policy is decided here.
+
 ## ADDED Requirements
 
 ### Requirement: Bắt đầu và tiếp tục lượt làm lại
@@ -19,15 +21,15 @@ Bắt đầu retry khác khi còn lượt dở SHALL yêu cầu xác nhận bỏ
 - **THEN** trả RETRY_SESSION_CHANGED, giữ B và yêu cầu FE tải lại
 
 ### Requirement: Chốt version và thứ tự retry topic
-Retry item SHALL chốt version mới nhất lúc bắt đầu. Retry topic SHALL chốt release, tập item hiển thị, version và thứ tự lúc xác nhận; item thêm sau không được nhập lượt. Item bị ẩn SHALL bị bỏ qua ngay, kể cả item đang làm, không tự hoàn thành hoặc xoá lịch sử. Bắt đầu item tiếp theo SHALL là thao tác ghi rõ ràng, không phát sinh qua GET.
+Retry item SHALL chốt version mới nhất lúc bắt đầu. Retry topic SHALL chốt release, tập item hiển thị, version và thứ tự lúc xác nhận; item thêm sau không được nhập lượt. Bắt đầu item tiếp theo SHALL là thao tác ghi rõ ràng, không phát sinh qua GET. Hidden/unhidden changes to this frozen sequence are outside this delivery and MUST NOT be presented as supported skip or recovery behavior.
 
 #### Scenario: MAJOR xuất hiện giữa lượt
 - **WHEN** release mới được publish sau khi đã chốt retry
 - **THEN** item còn khả dụng tiếp tục dùng version đã chốt; cờ nội dung mới vẫn còn nếu hoàn thành ở version cũ hơn
 
-#### Scenario: Item đang retry bị ẩn
-- **WHEN** người học tiếp tục phiên sau khi item bị ẩn
-- **THEN** item đó không được đọc/ghi; phiên xác định mục kế còn hiển thị hoặc kết thúc nếu không còn; GET không tự tạo attempt kế
+#### Scenario: Read between completed items
+- **WHEN** the previous frozen item has completed and the learner reloads before starting the next
+- **THEN** GET returns currentAttemptId:null and the next frozen item ID without creating an attempt; the learner explicitly starts that item with retrySessionId
 
 ### Requirement: Thay kết quả theo item đã hoàn thành
 Retry SHALL thay kết quả hiện hành bằng lần gần nhất ngay khi từng item hoàn thành; không lấy điểm tốt nhất. Item chưa xong SHALL giữ kết quả cũ. Abandon session SHALL không rollback kết quả của item đã hoàn thành lượt mới. Topic progress SHALL không tụt chỉ vì retry; item mới được thêm vẫn làm topic về IN_PROGRESS.

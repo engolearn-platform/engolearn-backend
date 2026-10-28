@@ -62,12 +62,14 @@ Latest B evidence supersedes historical missing-endpoint notes below: BE impleme
 
 ## 4. Slice C — review, retry and current visibility
 
+User scope override: only review/retry/resume/replacement are delivered now.4.3 and the mid-session hidden lifecycle part of4.5 are deferred, not blockers for this delivery and not checked as completed. Existing410 handling is retained. No admin integration, automatic skip, or hide-as-MAJOR rule is introduced. Verification is limited to one meaningful real persistence scenario for the complex state transitions, plus build/type/lint/architecture checks as applicable; no broad historical suites or repeated browser matrix.
+
 - [ ] 4.1 BE: implement read-only item review from current completed reference, include solved quiz feedback/first-try flags and MINOR content; verify unfinished retry leaves old review intact, superseded result returns RESULT_CHANGED and GET writes nothing.
 - [ ] 4.2 BE: implement ITEM/TOPIC retry sessions with frozen versions/release/items, observed-session replacement and resume. Verify a stale replacement cannot abandon another session; completed retry replaces the previous score even if lower, abandoned unfinished item leaves old score intact.
-- [ ] 4.3 BE: apply shared effective-visibility policy to all learner reads/writes and explicit hidden-session reconciliation; verify hidden active attempts cannot block next visible item, hidden retries are skipped without fake results and no GET creates the next attempt.
+- [ ] 4.3 DEFERRED: hide/unhide mid-session policy, hidden-session reconciliation and admin-to-learner acceptance. Do not auto-skip or invent a blocking rule; retain previously implemented denial only.
 - [ ] 4.4 FE: reuse lesson/quiz presentation in review with all inputs read-only, wire confirmation/resume/restart actions and frozen topic retry progression. Verify normal running mode still cannot reopen solved quizzes and result reference changes cause a safe reload.
-- [ ] 4.5 FE: handle ITEM_HIDDEN during content/quiz/feedback/result/review, stop audio/selection, notify then return to detail and refresh progress/mine. Verify one actual admin hide is honored by BE after the next request; no mock responses or polling loop.
-- [ ] 4.6 Integration: demonstrate retry resume, lower-score replacement, one stale-session conflict, level denied only for new starts and hidden-item rejection. Use stored local profiles (A1/A2/B1 as needed), do not fabricate identities or seed completed results to claim a learning flow passed.
+- [ ] 4.5 FE: preserve existing ITEM_HIDDEN denial cleanup/notification. Mid-session hide/unhide and admin integration acceptance are deferred; no polling or new skip/recovery UI.
+- [ ] 4.6 Integration: one targeted real scenario covering review read-only, retry resume, unchanged official score while retry is running, lower-score replacement and stale-session/late-generation rejection. Do not repeat full topic/browser matrices, test deferred hide behavior or seed completed results. Use existing completed clone data and real normal API actions.
 
 ## 5. Verification and handoff
 

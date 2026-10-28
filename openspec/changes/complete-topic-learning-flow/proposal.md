@@ -1,5 +1,7 @@
 ## Why
 
+Slice C scope override (user decision, 2026-10-28): implement review and ITEM/TOPIC retry only. Hide/unhide during an active learning/retry flow is assumed not to occur in this delivery; skip/block/reconciliation and unhide recovery are deferred. Retain existing ITEM_HIDDEN410 denial, but do not claim the admin-to-learner hidden lifecycle is handled. Treating visibility changes as MAJOR is only a future discussion, not an approved rule. UI/UX redesign is also deferred.
+
 FE đã đọc catalog và học nội dung qua BE/MongoDB thật, nhưng dừng trước quiz. Cần hoàn tất quiz, kết quả và xem lại/làm lại trên cùng luồng thật; đồng thời thay các luật OpenSpec cũ đã trái quyết định nghiệp vụ.
 
 ## What Changes
