@@ -62,3 +62,23 @@ db.topics.findOne({ tags: "sample-a1-cafe-v1" }, { _id: 1, title_en: 1 })
 Start/learn/quiz checks depend on which learning endpoints are actually implemented in the checked-out branch; do not count a missing endpoint as a sample-data failure.
 
 To clean up this **sample only**, do not drop a whole collection. First ask for a separate cleanup plan that targets this pack's exact IDs and confirms no attempts reference them.
+
+
+## CEFR A1–C2 multi-topic sample pack
+
+The six-level pack is separate from the original A1 café sample. Its namespace is `engolearn-all-cefr-samples-v2`.
+
+- `all-cefr-topic-samples-v2.json`: 6 topics (A1–C2), 30 items/item versions, 90 vocabulary entries and 180 quiz questions.
+- `all-cefr-validation-report.json`: validation report for the 12 required content/schema rules.
+- `import-all-cefr-samples.ps1`: Windows PowerShell 5.1 wrapper. It reads local Compose MongoDB root credentials from `.env`, starts the local MongoDB service, mounts the repository at `/workspace`, and runs read-only preflight first.
+- `import-all-cefr-samples.mongosh.js`: local-only importer; it writes only when called by the wrapper after the exact `IMPORT` confirmation.
+- `test-import-all-cefr-samples.cjs`: in-memory mock regression test. This validates dry-run, insert/verification, and idempotent rerun; it is not a real MongoDB integration test.
+
+From the backend repository root:
+
+```powershell
+node tools/topic-sample-data/test-import-all-cefr-samples.cjs
+.\tools\topic-sample-data\import-all-cefr-samples.ps1 -DryRun
+```
+
+Omit `-DryRun` only when ready to proceed to the explicit `IMPORT` confirmation. The pack is for local UI/API preview only: 90 vocabulary entries lack UK/US audio, so audio fields stay `null`. Do not treat these local `PUBLISHED` records as approval for production publication. The importer refuses collisions and never drops collections, deletes documents, or overwrites existing records.
