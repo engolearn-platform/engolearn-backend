@@ -84,13 +84,18 @@ class LearningPathCreationStandaloneIntegrationTest {
                 assertThat(repeated.pathId()).isEqualTo(first.pathId());
                 LearningPath saved = template.findById(new ObjectId(first.pathId()), LearningPath.class);
                 assertThat(saved).isNotNull();
+                Document persisted = template.getCollection("learning_paths")
+                        .find(new Document("_id", new ObjectId(first.pathId()))).first();
+                assertThat(persisted).isNotNull();
+                assertThat(persisted.get("_id")).isInstanceOf(ObjectId.class);
+                assertThat(persisted.getDate("created_at").toInstant()).isEqualTo(saved.getCreatedAt());
                 assertThat(saved.getWeeks()).hasSize(3);
                 assertThat(saved.getWeeks()).allSatisfy(week -> {
                     assertThat(week.getDays()).hasSize(1);
                     assertThat(week.getDays().getFirst().getItems()).hasSize(10);
                 });
                 assertThat(template.getCollection("learning_path_questions")
-                        .countDocuments(new Document("path_id", saved.getId()))).isEqualTo(30L);
+                        .countDocuments(new Document("path_id", new ObjectId(saved.getId())))).isEqualTo(30L);
             } finally {
                 template.getDb().drop();
             }
