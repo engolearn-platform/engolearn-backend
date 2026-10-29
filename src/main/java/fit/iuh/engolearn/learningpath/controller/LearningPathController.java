@@ -20,6 +20,8 @@ import fit.iuh.engolearn.learningpath.dto.response.CreateLearningPathResponse;
 import fit.iuh.engolearn.learningpath.dto.response.LearningPathRecommendationResponse;
 import fit.iuh.engolearn.learningpath.dto.response.SaveLearningPathAnswerDraftResponse;
 import fit.iuh.engolearn.learningpath.dto.response.StartLearningPathDayResponse;
+import fit.iuh.engolearn.learningpath.dto.response.SubmitLearningPathDayResponse;
+import fit.iuh.engolearn.learningpath.service.LearningPathDaySubmissionService;
 import fit.iuh.engolearn.learningpath.service.LearningPathCreationService;
 import fit.iuh.engolearn.learningpath.service.LearningPathAnswerDraftService;
 import fit.iuh.engolearn.learningpath.service.LearningPathDayPracticeService;
@@ -43,17 +45,20 @@ public class LearningPathController {
     private final LearningPathCreationService creationService;
     private final LearningPathDayPracticeService dayPracticeService;
     private final LearningPathAnswerDraftService answerDraftService;
+    private final LearningPathDaySubmissionService submissionService;
 
     public LearningPathController(LearningPathService learningPathService,
                                   LearningPathRecommendationService recommendationService,
                                   LearningPathCreationService creationService,
                                   LearningPathDayPracticeService dayPracticeService,
-                                  LearningPathAnswerDraftService answerDraftService) {
+                                  LearningPathAnswerDraftService answerDraftService,
+                                  LearningPathDaySubmissionService submissionService) {
         this.learningPathService = learningPathService;
         this.recommendationService = recommendationService;
         this.creationService = creationService;
         this.dayPracticeService = dayPracticeService;
         this.answerDraftService = answerDraftService;
+        this.submissionService = submissionService;
     }
 
     @GetMapping("/recommendation")
@@ -128,5 +133,15 @@ public class LearningPathController {
     ) {
         return ApiResponse.ok(answerDraftService.save(pathId, weekNo, dayNo,
                 questionId, userId, request));
+    }
+
+    @PostMapping("/{pathId}/weeks/{weekNo}/days/{dayNo}/submit")
+    public ApiResponse<SubmitLearningPathDayResponse> submitDay(
+            @Pattern(regexp = OBJECT_ID_PATTERN, message = "pathId không hợp lệ") @PathVariable String pathId,
+            @Min(1) @Max(3) @PathVariable int weekNo,
+            @Min(1) @Max(5) @PathVariable int dayNo,
+            @Pattern(regexp = OBJECT_ID_PATTERN, message = "userId không hợp lệ") @RequestParam String userId
+    ) {
+        return ApiResponse.ok(submissionService.submit(pathId, weekNo, dayNo, userId));
     }
 }

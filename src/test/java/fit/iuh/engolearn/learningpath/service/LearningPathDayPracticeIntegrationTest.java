@@ -7,6 +7,7 @@ import fit.iuh.engolearn.learningpath.dto.request.SaveLearningPathAnswerDraftReq
 import fit.iuh.engolearn.learningpath.repository.LearningPathPracticeRepository;
 import fit.iuh.engolearn.learningpath.repository.LearningPathQuestionRepository;
 import fit.iuh.engolearn.learningpath.repository.LearningPathRepository;
+import fit.iuh.engolearn.learningpath.repository.LearningPathLifecycleRepository;
 import org.bson.Document;
 import org.bson.types.ObjectId;
 import org.junit.jupiter.api.AfterAll;
@@ -25,10 +26,12 @@ import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -138,6 +141,116 @@ class LearningPathDayPracticeIntegrationTest {
                 assertThat(item.get("draft", Document.class).getString("selected_option_id"))
                         .isEqualTo("B");
                 assertThat(item.get("answer")).isNull();
+            } finally {
+                template.getDb().drop();
+            }
+        }
+    }
+
+    @Test
+    void submissionFinalizesSavedDraftsAndRejectsFurtherChanges() {
+        try (MongoClient client = MongoClients.create(mongoUri)) {
+            MongoTemplate template = new MongoTemplate(client, "learning_path_submit_" + UUID.randomUUID().toString().replace("-", ""));
+            try {
+                ObjectId pathId = new ObjectId();
+                ObjectId userId = new ObjectId();
+                insertPath(template, pathId, userId);
+                insertSnapshots(template, pathId, userId);
+                LearningPathRepository paths = mock(LearningPathRepository.class);
+                when(paths.findByIdAndUserId(pathId, userId)).thenAnswer(invocation ->
+                        Optional.ofNullable(template.findOne(Query.query(Criteria.where("_id").is(pathId)
+                                .and("user_id").is(userId)), LearningPath.class)));
+                LearningPathPracticeRepository practice = new LearningPathPracticeRepository(template);
+                LearningPathQuestionRepository questions = new LearningPathQuestionRepository(template);
+                Clock clock = Clock.fixed(STARTED_AT, ZoneOffset.UTC);
+                new LearningPathDayPracticeService(paths, practice, questions, clock)
+                        .start(pathId.toHexString(), 1, 1, userId.toHexString());
+                LearningPathAnswerDraftService drafts = new LearningPathAnswerDraftService(paths, practice, questions, clock);
+                drafts.save(pathId.toHexString(), 1, 1, "q-1", userId.toHexString(), new SaveLearningPathAnswerDraftRequest("A"));
+                drafts.save(pathId.toHexString(), 1, 1, "q-2", userId.toHexString(), new SaveLearningPathAnswerDraftRequest("B"));
+                var submission = new LearningPathDaySubmissionService(paths, practice, questions, clock)
+                        .submit(pathId.toHexString(), 1, 1, userId.toHexString());
+                assertThat(submission.status()).isEqualTo("CLOSED");
+                assertThat(submission.answered()).isEqualTo(2);
+                assertThat(submission.correct()).isEqualTo(1);
+                assertThat(submission.wrong()).isEqualTo(1);
+                assertThat(submission.completionRate()).isEqualTo(20.0);
+                assertThat(submission.practiceScore()).isEqualTo(50.0);
+                Document persisted = template.getCollection("learning_paths").find(new Document("_id", pathId)).first();
+                Document day = persisted.getList("weeks", Document.class).getFirst().getList("days", Document.class).getFirst();
+                assertThat(day.getString("close_reason")).isEqualTo("SUBMITTED");
+                assertThat(day.getList("items", Document.class).getFirst().get("draft")).isNull();
+                assertThat(day.getList("items", Document.class).getFirst().get("answer", Document.class).getBoolean("is_correct")).isTrue();
+                assertThatThrownBy(() -> drafts.save(pathId.toHexString(), 1, 1, "q-1", userId.toHexString(),
+                        new SaveLearningPathAnswerDraftRequest("B"))).isInstanceOf(org.springframework.web.server.ResponseStatusException.class);
+                assertThatThrownBy(() -> new LearningPathDaySubmissionService(paths, practice, questions, clock)
+                        .submit(pathId.toHexString(), 1, 1, userId.toHexString())).isInstanceOf(org.springframework.web.server.ResponseStatusException.class);
+            } finally {
+                template.getDb().drop();
+            }
+        }
+    }
+
+    @Test
+    void staleRevisionCannotSubmitAfterAConcurrentDraft() {
+        try (MongoClient client = MongoClients.create(mongoUri)) {
+            MongoTemplate template = new MongoTemplate(client, "learning_path_race_" + UUID.randomUUID().toString().replace("-", ""));
+            try {
+                ObjectId pathId = new ObjectId();
+                ObjectId userId = new ObjectId();
+                insertPath(template, pathId, userId);
+                LearningPathPracticeRepository practice = new LearningPathPracticeRepository(template);
+                Date weekClose = Date.from(Instant.parse("2026-10-15T17:00:00Z"));
+                assertThat(practice.startDay(pathId, userId, 1, 1, "NOT_STARTED", null, weekClose,
+                        Date.from(STARTED_AT), "2026-10-09", AUTO_CLOSE_AT, AUTO_CLOSE_AT)).isTrue();
+                var draft = new fit.iuh.engolearn.learningpath.model.vo.LearningPathDraft();
+                draft.setSelectedOptionId("A");
+                draft.setSavedAt(Date.from(STARTED_AT));
+                assertThat(practice.saveDraft(pathId, userId, 1, 1, "q-1", 1L, AUTO_CLOSE_AT,
+                        Date.from(STARTED_AT), draft, "2026-10-09", Date.from(Instant.parse("2026-10-23T17:00:00Z")), AUTO_CLOSE_AT)).isTrue();
+                assertThat(practice.submit(pathId, userId, 1, 1, 1L, Date.from(STARTED_AT), Map.of("status", "CANCELLED"))).isFalse();
+                assertThat(new LearningPathLifecycleRepository(template).apply(pathId, "IN_PROGRESS", AUTO_CLOSE_AT,
+                        null, 1L, Map.of("status", "CANCELLED"))).isFalse();
+            } finally {
+                template.getDb().drop();
+            }
+        }
+    }
+
+    @Test
+    void completeSubmissionAndDeadlineAreEnforced() {
+        try (MongoClient client = MongoClients.create(mongoUri)) {
+            MongoTemplate template = new MongoTemplate(client, "learning_path_full_" + UUID.randomUUID().toString().replace("-", ""));
+            try {
+                ObjectId pathId = new ObjectId();
+                ObjectId userId = new ObjectId();
+                insertPath(template, pathId, userId);
+                insertSnapshots(template, pathId, userId);
+                LearningPathRepository paths = mock(LearningPathRepository.class);
+                when(paths.findByIdAndUserId(pathId, userId)).thenAnswer(invocation ->
+                        Optional.ofNullable(template.findOne(Query.query(Criteria.where("_id").is(pathId)
+                                .and("user_id").is(userId)), LearningPath.class)));
+                LearningPathPracticeRepository practice = new LearningPathPracticeRepository(template);
+                LearningPathQuestionRepository questions = new LearningPathQuestionRepository(template);
+                Clock clock = Clock.fixed(STARTED_AT, ZoneOffset.UTC);
+                new LearningPathDayPracticeService(paths, practice, questions, clock)
+                        .start(pathId.toHexString(), 1, 1, userId.toHexString());
+                LearningPathAnswerDraftService drafts = new LearningPathAnswerDraftService(paths, practice, questions, clock);
+                for (int index = 1; index <= 10; index++) {
+                    drafts.save(pathId.toHexString(), 1, 1, "q-" + index, userId.toHexString(), new SaveLearningPathAnswerDraftRequest("A"));
+                }
+                LearningPathDaySubmissionService expired = new LearningPathDaySubmissionService(paths, practice, questions,
+                        Clock.fixed(AUTO_CLOSE_AT.toInstant(), ZoneOffset.UTC));
+                assertThatThrownBy(() -> expired.submit(pathId.toHexString(), 1, 1, userId.toHexString()))
+                        .isInstanceOf(org.springframework.web.server.ResponseStatusException.class);
+                var result = new LearningPathDaySubmissionService(paths, practice, questions, clock)
+                        .submit(pathId.toHexString(), 1, 1, userId.toHexString());
+                assertThat(result.status()).isEqualTo("COMPLETED");
+                assertThat(result.answered()).isEqualTo(10);
+                assertThat(result.correct()).isEqualTo(10);
+                assertThat(result.practiceScore()).isEqualTo(100.0);
+                Document saved = template.getCollection("learning_paths").find(new Document("_id", pathId)).first();
+                assertThat(saved.getDate("next_run_at")).isEqualTo(AUTO_CLOSE_AT);
             } finally {
                 template.getDb().drop();
             }

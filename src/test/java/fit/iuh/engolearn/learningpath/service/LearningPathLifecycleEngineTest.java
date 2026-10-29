@@ -37,6 +37,56 @@ class LearningPathLifecycleEngineTest {
     private final LearningPathLifecycleEngine engine = new LearningPathLifecycleEngine();
 
     @Test
+    void submittingAnEmptyDayClosesItAndKeepsPracticeScoreEmpty() {
+        LearningPath path = path("2026-10-09", "2026-10-09");
+        startFirstDay(path, "2026-10-09", 0, 0);
+        Instant now = Instant.parse("2026-10-09T03:00:00Z");
+        engine.submit(path, 0, 0, now, Map.of());
+        LearningPathDay day = path.getWeeks().getFirst().getDays().getFirst();
+        assertThat(day.getStatus()).isEqualTo(LearningPathDayStatus.CLOSED);
+        assertThat(day.getCloseReason().name()).isEqualTo("SUBMITTED");
+        assertThat(day.getResult().getPracticeScore()).isNull();
+        assertThat(day.getResult().getCompletionRate()).isZero();
+        assertThat(path.getNextRunAt()).isNotNull();
+        assertThat(path.getWeeks().getFirst().getStatus()).isEqualTo(LearningPathWeekStatus.OPEN);
+    }
+
+    @Test
+    void submittingAllAnswersCompletesTheDayButWaitsForMidnight() {
+        LearningPath path = path("2026-10-09", "2026-10-09");
+        startFirstDay(path, "2026-10-09", 10, 8);
+        var changes = engine.submit(path, 0, 0, Instant.parse("2026-10-09T03:00:00Z"), Map.of());
+        LearningPathDay day = path.getWeeks().getFirst().getDays().getFirst();
+        assertThat(day.getStatus()).isEqualTo(LearningPathDayStatus.COMPLETED);
+        assertThat(day.getCloseReason().name()).isEqualTo("ALL_ANSWERED");
+        assertThat(day.getResult().getPracticeScore()).isEqualTo(80.0);
+        assertThat(changes.get("next_run_at")).isEqualTo(Date.from(midnight("2026-10-10")));
+        assertThat(path.getWeeks().get(1).getStatus()).isEqualTo(LearningPathWeekStatus.LOCKED);
+    }
+
+    @Test
+    void submittingLastFullyAnsweredDayCompletesWeekThreeImmediately() {
+        LearningPath path = path("2026-10-01", "2026-10-07");
+        engine.advance(path, midnight("2026-10-08"));
+        engine.advance(path, midnight("2026-10-15"));
+        path.setStatus(LearningPathStatus.IN_PROGRESS);
+        LearningPathDay day = path.getWeeks().get(2).getDays().getFirst();
+        day.setStatus(LearningPathDayStatus.IN_PROGRESS);
+        day.setAutoCloseAt(Date.from(midnight("2026-10-16")));
+        for (LearningPathDayItem item : day.getItems()) {
+            LearningPathAnswer answer = new LearningPathAnswer();
+            answer.setCorrect(true);
+            item.setAnswer(answer);
+        }
+        Instant now = Instant.parse("2026-10-15T03:00:00Z");
+        engine.submit(path, 2, 0, now, Map.of());
+        assertThat(path.getStatus()).isEqualTo(LearningPathStatus.COMPLETED);
+        assertThat(path.getWeeks().get(2).getCloseReason().name()).isEqualTo("ALL_ANSWERED");
+        assertThat(path.getEndedAt()).isEqualTo(Date.from(now));
+        assertThat(path.getSummary()).isNotNull();
+    }
+
+    @Test
     void closesUnstartedDayAndOpensNextWeekWithoutStartingPath() {
         LearningPath path = path("2026-10-01", "2026-10-01");
 
@@ -285,7 +335,7 @@ class LearningPathLifecycleEngineTest {
 
         @Override
         public boolean apply(ObjectId id, String expectedStatus, Date expectedNextRunAt,
-                             Integer expectedAnswered, Map<String, Object> fields) {
+                             Integer expectedAnswered, Long revision, Map<String, Object> fields) {
             transitions++;
             path.setNextRunAt((Date) fields.get("next_run_at"));
             return true;

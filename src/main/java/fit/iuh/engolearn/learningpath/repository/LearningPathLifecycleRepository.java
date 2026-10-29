@@ -54,14 +54,16 @@ public class LearningPathLifecycleRepository {
     }
 
     public boolean apply(ObjectId id, String expectedStatus, Date expectedNextRunAt,
-                         Integer expectedAnswered, Map<String, Object> fields) {
+                         Integer expectedAnswered, Long revision, Map<String, Object> fields) {
         Criteria criteria = Criteria.where("_id").is(id)
                 .and("is_active").is(true)
                 .and("status").is(expectedStatus)
+                .and("revision").is(revision)
                 .and("next_run_at").is(expectedNextRunAt)
                 .and("progress.answered").is(expectedAnswered);
         Update update = new Update();
         fields.forEach(update::set);
+        update.inc("revision", 1);
         UpdateResult result = mongoTemplate.updateFirst(new Query(criteria), update, LearningPath.class);
         return result.getModifiedCount() == 1;
     }

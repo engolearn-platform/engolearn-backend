@@ -46,5 +46,21 @@ returns 404, invalid option returns 400, and a closed or expired state returns
 409. The atomic update also checks the saved deadline and item state to guard
 against concurrent closure.
 
-Submitting and viewing the detailed day result need separate APIs.
-The frontend practice screen is still a local preview until it is connected.
+## Submit a practice day
+
+`POST /api/learning-paths/{pathId}/weeks/{weekNo}/days/{dayNo}/submit?userId={userId}`
+requires no request body. The path must belong to the user, the week must be open,
+and the day must already be in progress and before its deadline. The server
+finalizes and grades the saved drafts atomically. Blank questions remain unanswered;
+a fully answered day becomes `COMPLETED`, otherwise it becomes `CLOSED` with
+close reason `SUBMITTED`. The response envelope contains `pathId`, `weekNo`,
+`dayNo`, `status`, `closedAt`, `assigned`, `answered`, `correct`, `wrong`,
+`completionRate`, and `practiceScore` (null when no answers were saved).
+
+The endpoint returns 404 for an unknown path, week, or day and 409 when the
+day cannot be submitted, including a repeat submission or an elapsed deadline.
+Weeks 1 and 2 wait until midnight before closing; if all questions in week 3
+have been answered, the final submission closes the week and path immediately.
+Submission, draft saves and the lifecycle job use a path revision to detect
+concurrent writes; older documents without a revision are supported. Detailed
+question review still requires a separate result API.

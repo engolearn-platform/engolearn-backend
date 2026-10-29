@@ -56,7 +56,7 @@ class LearningPathAnswerDraftServiceTest {
         when(questions.findSnapshots(eq(pathId), eq(userId), anyList()))
                 .thenReturn(List.of(snapshot()));
         when(practice.saveDraft(any(), any(), eq(1), eq(1), eq("q-1"),
-                any(), any(), any(), any(), any(), any())).thenReturn(true);
+                any(), any(), any(), any(), any(), any(), any())).thenReturn(true);
 
         var result = service.save(pathId.toHexString(), 1, 1, "q-1", userId.toHexString(),
                 new SaveLearningPathAnswerDraftRequest("B"));
@@ -67,7 +67,7 @@ class LearningPathAnswerDraftServiceTest {
                 .getAnswer()).isNull();
         ArgumentCaptor<LearningPathDraft> draft = ArgumentCaptor.forClass(LearningPathDraft.class);
         verify(practice).saveDraft(eq(pathId), eq(userId), eq(1), eq(1), eq("q-1"),
-                eq(MIDNIGHT), eq(Date.from(NOW)), draft.capture(), eq("2026-10-09"),
+                eq(path.getRevision()), eq(MIDNIGHT), eq(Date.from(NOW)), draft.capture(), eq("2026-10-09"),
                 eq(Date.from(Instant.parse("2026-10-23T17:00:00Z"))), eq(MIDNIGHT));
         assertThat(draft.getValue().getSelectedOptionId()).isEqualTo("B");
     }
@@ -83,7 +83,7 @@ class LearningPathAnswerDraftServiceTest {
                 .isInstanceOfSatisfying(ResponseStatusException.class,
                         error -> assertThat(error.getStatusCode()).isEqualTo(HttpStatus.CONFLICT));
         verify(practice, never()).saveDraft(any(), any(), any(Integer.class),
-                any(Integer.class), any(), any(), any(), any(), any(), any(), any());
+                any(Integer.class), any(), any(), any(), any(), any(), any(), any(), any());
     }
 
     @Test

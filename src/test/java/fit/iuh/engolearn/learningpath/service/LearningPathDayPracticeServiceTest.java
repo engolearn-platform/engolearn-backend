@@ -57,7 +57,7 @@ class LearningPathDayPracticeServiceTest {
         when(paths.findByIdAndUserId(pathId, userId)).thenReturn(Optional.of(path));
         when(questions.findSnapshots(any(), any(), anyList())).thenReturn(snapshots());
         when(practice.startDay(any(), any(), anyInt(), anyInt(),
-                any(), any(), any(), any(), any(), any())).thenReturn(true);
+                any(), any(), any(), any(), any(), any(), any())).thenReturn(true);
 
         var response = service.start(pathId.toHexString(), 1, 1, userId.toHexString());
 
@@ -71,7 +71,7 @@ class LearningPathDayPracticeServiceTest {
         assertThat(json).contains("audio", "optionId")
                 .doesNotContain("correctOptionId", "correct_option_id", "explanation", "transcript");
         verify(practice).startDay(pathId, userId, 1, 1, "NOT_STARTED",
-                path.getNextRunAt(), Date.from(NOW), "2026-10-09",
+                path.getRevision(), path.getNextRunAt(), Date.from(NOW), "2026-10-09",
                 Date.from(NEXT_MIDNIGHT), Date.from(NEXT_MIDNIGHT));
     }
 
@@ -95,7 +95,7 @@ class LearningPathDayPracticeServiceTest {
         assertThat(response.questions().getFirst().selectedOptionId()).isEqualTo("C");
         assertThat(response.questions().get(1).selectedOptionId()).isNull();
         verify(practice, never()).startDay(any(), any(), anyInt(), anyInt(),
-                any(), any(), any(), any(), any(), any());
+                any(), any(), any(), any(), any(), any(), any());
     }
 
     @Test
@@ -135,7 +135,7 @@ class LearningPathDayPracticeServiceTest {
         assertThatThrownBy(() -> service.start(pathId.toHexString(), 1, 1, userId.toHexString()))
                 .isInstanceOf(IllegalStateException.class);
         verify(practice, never()).startDay(any(), any(), anyInt(), anyInt(),
-                any(), any(), any(), any(), any(), any());
+                any(), any(), any(), any(), any(), any(), any());
     }
 
     @Test
@@ -148,7 +148,7 @@ class LearningPathDayPracticeServiceTest {
         assertThatThrownBy(() -> service.start(pathId.toHexString(), 1, 1, userId.toHexString()))
                 .isInstanceOf(IllegalStateException.class);
         verify(practice, never()).startDay(any(), any(), anyInt(), anyInt(),
-                any(), any(), any(), any(), any(), any());
+                any(), any(), any(), any(), any(), any(), any());
     }
 
     private LearningPath path(String status) {
