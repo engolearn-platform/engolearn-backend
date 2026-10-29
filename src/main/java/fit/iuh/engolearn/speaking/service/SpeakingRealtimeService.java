@@ -184,12 +184,14 @@ public class SpeakingRealtimeService {
                 Instant replyStarted = Instant.now();
                 try {
                     byte[] spoken = tts.synthesize(result.reply());
+                    if (spoken.length == 0) throw new IllegalStateException("Cartesia returned empty audio");
                     sessions.saveAudio(c.sessionId, turnId, SpeakingAudioAsset.Kind.AI_REPLY,
                             "mp3", "audio/mpeg", spoken);
                     sessions.recordUsage(c.sessionId, turnId, SpeakingUsageSegment.Kind.AI_REPLY,
                             replyStarted, Instant.now());
                     send(c, "AI_AUDIO_READY", turnId, Map.of());
                 } catch (Exception ex) {
+                    log.warn("AI audio failed for session {} turn {}", c.sessionId, turnId, ex);
                     send(c, "TTS_ERROR", turnId, Map.of("message", "AI audio is unavailable"));
                 }
             }

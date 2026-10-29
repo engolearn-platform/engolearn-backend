@@ -42,7 +42,7 @@ public class CartesiaSpeechSynthesis implements SpeechSynthesisPort {
         if (apiKey.isBlank()) throw new IllegalStateException("Cartesia API key is not configured");
         try {
             String body = mapper.writeValueAsString(Map.of("model_id", model, "transcript", text,
-                    "voice", Map.of("mode", "id", "id", voice), "language", "en", "output_format",
+                    "voice", voice, "language", "en", "output_format",
                     Map.of("container", "mp3", "sample_rate", 24000, "bit_rate", 128000)));
             HttpRequest request = HttpRequest.newBuilder().uri(URI.create(endpoint))
                     .timeout(Duration.ofSeconds(20)).header("Cartesia-Version", apiVersion)
