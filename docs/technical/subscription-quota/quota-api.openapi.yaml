@@ -1,15 +1,14 @@
 openapi: 3.1.0
 info:
-  title: Subscription and Quota UI Read API
-  version: 0.1.0
+  title: Subscription and Quota Learner API
+  version: 1.0.0
   description: |
-    DRAFT handoff for the Subscription package page and the quota-usage overview.
-    Review the paths against existing controllers before implementation; reuse an
-    existing endpoint if it already provides the same capability.
-
-    These are read-only UI APIs. Quota's consume/checkAvailability/recordUsage
+    Frozen M1/M2 learner contract. Every response uses Cache-Control: no-store.
+    Identity comes from the authenticated principal; no user selector is accepted.
+    All timestamps are UTC instants; calendar windows use Asia/Ho_Chi_Minh.
+    Quota's consume/checkAvailability/recordUsage
     operations are in-process backend contracts and are not exposed to the client.
-  x-review-status: DRAFT_FOR_BACKEND_AND_FE_REVIEW
+  x-review-status: IMPLEMENTATION_CONTRACT
 
 servers:
   - url: /
@@ -21,6 +20,51 @@ tags:
     description: Current quota usage overview for the authenticated user.
 
 paths:
+  /api/v1/subscription/me/trial:
+    post:
+      tags: [Subscription]
+      operationId: activateMyTrial
+      summary: Explicitly activate the one-time seven-day Trial
+      x-auth-requirement: authenticated-user
+      description: |
+        Accepted receipts are checked before current eligibility. Same active Trial
+        with a new key returns its original values and records that accepted intent.
+        Replay never extends the Trial and does not claim it remains active now.
+        Refetch subscription and quota reads after every accepted response.
+      parameters:
+        - in: header
+          name: Idempotency-Key
+          required: true
+          schema: {type: string, format: uuid}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {type: object, additionalProperties: false, maxProperties: 0}
+      responses:
+        '201':
+          description: Trial created.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/TrialActivationApiResponse'}
+        '200':
+          description: Accepted replay or the original already-active Trial.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/TrialActivationApiResponse'}
+        '400': {$ref: '#/components/responses/InvalidRequest'}
+        '401': {$ref: '#/components/responses/AuthenticationRequired'}
+        '403': {$ref: '#/components/responses/AccessDenied'}
+        '409':
+          description: IDEMPOTENCY_CONFLICT, TRIAL_ALREADY_USED or PREMIUM_ALREADY_ACTIVE.
+          content:
+            application/problem+json:
+              schema: {$ref: '#/components/schemas/ProblemDetail'}
+        '503':
+          description: SUBSCRIPTION_STATE_UNAVAILABLE; history/configuration or commit cannot be confirmed.
+          content:
+            application/problem+json:
+              schema: {$ref: '#/components/schemas/ProblemDetail'}
   /api/v1/subscription/plans:
     get:
       tags: [Subscription]
@@ -49,6 +93,7 @@ paths:
     get:
       tags: [Subscription]
       operationId: getMySubscriptionSummary
+      x-error-codes: [AUTHENTICATION_REQUIRED, ACCESS_DENIED, SUBSCRIPTION_STATE_UNAVAILABLE]
       summary: Get the current user's subscription summary
       description: |
         Requires an authenticated user. No user identifier is accepted from the
@@ -64,6 +109,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/MySubscriptionApiResponse'
+        '403': {$ref: '#/components/responses/AccessDenied'}
         '401':
           description: Authentication is required.
           content:
@@ -81,6 +127,7 @@ paths:
     get:
       tags: [Quota]
       operationId: getMyQuotaUsage
+      x-error-codes: [AUTHENTICATION_REQUIRED, ACCESS_DENIED, QUOTA_SUMMARY_UNAVAILABLE]
       summary: Get the current user's quota usage overview
       description: |
         Requires an authenticated user. Returns one item per quota applicable
@@ -99,6 +146,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/QuotaUsageApiResponse'
+        '403': {$ref: '#/components/responses/AccessDenied'}
         '401':
           description: Authentication is required.
           content:
@@ -113,7 +161,46 @@ paths:
                 $ref: '#/components/schemas/ProblemDetail'
 
 components:
+  responses:
+    InvalidRequest:
+      description: INVALID_REQUEST; request body or intent key is invalid.
+      content:
+        application/problem+json:
+          schema: {$ref: '#/components/schemas/ProblemDetail'}
+    AuthenticationRequired:
+      description: AUTHENTICATION_REQUIRED; missing or unsupported identity.
+      content:
+        application/problem+json:
+          schema: {$ref: '#/components/schemas/ProblemDetail'}
+    AccessDenied:
+      description: ACCESS_DENIED; authenticated principal denied by deployed security policy.
+      content:
+        application/problem+json:
+          schema: {$ref: '#/components/schemas/ProblemDetail'}
   schemas:
+    TrialActivationApiResponse:
+      type: object
+      required: [data, timestamp]
+      properties:
+        timestamp: {type: string, format: date-time}
+        data:
+          type: object
+          required: [trialPeriodId, periodStartAt, periodEndAt, policySnapshotId]
+          properties:
+            trialPeriodId: {type: string, minLength: 1}
+            periodStartAt: {type: string, format: date-time}
+            periodEndAt: {type: string, format: date-time}
+            policySnapshotId: {type: string, minLength: 1}
+    CurrentBenefits:
+      type: object
+      required: [planCode, displayName, policySnapshotId, benefits]
+      properties:
+        planCode: {type: string, enum: [FREE, PREMIUM]}
+        displayName: {type: string, minLength: 1}
+        policySnapshotId: {type: string, minLength: 1}
+        benefits:
+          type: array
+          items: {$ref: '#/components/schemas/PlanBenefit'}
     PlanListApiResponse:
       type: object
       required: [data, timestamp]
@@ -183,6 +270,7 @@ components:
         amount:
           type: integer
           minimum: 0
+          maximum: 9007199254740991
           description: |
             Price in the currency's minor unit. The client formats this value
             using currency; it must not infer price from planCode.
@@ -205,8 +293,13 @@ components:
 
     MySubscriptionSummary:
       type: object
-      required: [tier, status, trialEligible]
+      required: [tier, status, periodStartAt, periodEndAt, trialEligible, trialIneligibilityReason, currentBenefits]
       properties:
+        trialIneligibilityReason:
+          type: [string, 'null']
+          enum: [null, ALREADY_USED, ACTIVE_PREMIUM]
+        currentBenefits:
+          $ref: '#/components/schemas/CurrentBenefits'
         tier:
           type: string
           enum: [FREE, PREMIUM]
@@ -252,6 +345,7 @@ components:
         - period
         - windowStartAt
         - windowEndsAt
+        - allowanceStartAt
         - status
       properties:
         quotaType:
@@ -265,17 +359,21 @@ components:
         used:
           type: integer
           minimum: 0
+          maximum: 9007199254740991
           description: Actual recorded usage in the canonical unit; may exceed limit for post-action usage.
         limit:
           type: integer
           minimum: 0
+          maximum: 9007199254740991
         remaining:
           type: integer
           minimum: 0
+          maximum: 9007199254740991
           description: max(0, limit - used); never negative.
         overLimitAmount:
           type: integer
           minimum: 0
+          maximum: 9007199254740991
           description: Optional; present when used > limit and equals used - limit.
         unit:
           type: string
@@ -288,6 +386,10 @@ components:
           type: string
           format: date-time
           description: Start of the current calendar period, in UTC.
+        allowanceStartAt:
+          type: string
+          format: date-time
+          description: Counted allowance start; may be later than calendar start after a delivered Free policy activation.
         windowEndsAt:
           type: string
           format: date-time
@@ -299,8 +401,12 @@ components:
 
     ProblemDetail:
       type: object
+      required: [type, title, status, detail, instance, code]
       description: RFC 9457/ProblemDetail-style error response used by the backend.
       properties:
+        code:
+          type: string
+          description: Stable endpoint error code; storage errors and personal data are never exposed.
         type:
           type: string
           format: uri-reference
