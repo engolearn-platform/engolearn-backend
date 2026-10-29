@@ -1,6 +1,6 @@
 # Quota Engine — Technical Design (Draft)
 
-> Status: **Draft for review**. This document describes the proposed MVP design; it is not an implementation approval until the open items at the end are reviewed.
+> Status: **Implementation baseline — MVP decisions recorded**. The core Quota behavior and event-delivery trade-off below are agreed. REST path/shape validation against existing controllers and ledger retention remain review items; they do not block implementation of the Quota core.
 >
 > Scope: Subscription/Quota backend contracts, MongoDB usage data, event handling, consistency, and the narrow REST read APIs needed by the package/usage UI.
 
@@ -105,17 +105,17 @@ Use when the caller determines the actual amount only after its action (e.g. the
 Command fields:
 - `userId`, `quotaType`, positive `amount`, `unit` implied by the type
 - `sourceFeature`, stable `idempotencyKey` (or session + segment key), optional `sourceReference`
-- an occurrence/window reference sufficient to associate usage with the correct calendar window
+- optional `occurredAt` for audit context; it does not select the quota window
 
 Behavior:
-1. Validate the command shape and resolve the applicable policy/allowance.
+1. Validate the command shape and resolve the applicable policy plus the calendar window containing Quota's server-side `recordedAt` at the first successful acceptance. `occurredAt`, if supplied, is audit metadata only and does not backdate usage into an earlier window.
 2. Atomically increment the counter and append one ledger entry.
 3. Do **not** reject a truthful final usage report merely because it takes the counter above the limit. The action has already occurred; record the actual amount and report the over-limit state. Subsequent availability checks return unavailable until the next allowance.
-4. Deduplicate retries by the idempotency key; a duplicate with a different amount is a conflict rather than a second increment.
+4. Deduplicate retries by the idempotency key; a duplicate with a different amount is a conflict rather than a second increment. Once accepted, a retry after a calendar boundary returns the original outcome and never moves the ledger entry to another window.
 
 Quota does not define a permitted Speaking overrun (such as up to one minute). The Speaking feature owns its measuring/cutoff behavior; Quota records the amount provided and exposes the resulting count.
 
-**Speaking integration remains open:** the business rule assigns a session crossing midnight to each day's actual usage. If Speaking submits usage after the session ends, it must provide correctly allocated per-window segments (each with a stable distinct idempotency key) or another agreed time-allocation payload. Quota will not inspect audio or infer the allocation itself.
+**Speaking midnight rule (decided):** the whole amount in one `recordUsage` call belongs to the calendar window in which Quota first successfully accepts it, using `Asia/Ho_Chi_Minh`. For example, if `checkAvailability()` runs at 23:59 but `recordUsage()` is first accepted at 00:01, the whole amount is charged to the new day. Do not split one reported usage across windows or require Speaking to send per-day segments for this case. `occurredAt` is audit metadata, not the window selector.
 
 ## 4. Ownership and policy events
 
@@ -146,7 +146,7 @@ Emit/process it when a policy actually becomes effective, not merely when Admin 
 - Do not reset allowances for unrelated scopes or quota types.
 - A tier change alone is not a policy activation and does not reset usage.
 
-The exact event-processing code must keep the reset marker durable and recoverable. Section 7 and the ADR describe the MVP delivery/reconciliation choice.
+The activation receipt is durable for duplicate detection, but the MVP does not guarantee replay or recovery for an event that was never applied. Section 7 and the ADR describe this accepted limitation.
 
 ## 5. MongoDB model proposal
 
@@ -214,11 +214,11 @@ Suggested fields:
 
 The ledger preserves the policy and allowance context under which the usage was recorded. Policy/calendar resets never delete or rewrite old ledger entries. A future retention policy must be explicit; do not add a TTL index in the MVP.
 
-### 5.5 `quota_policy_activation_receipts` — idempotency and recovery
+### 5.5 `quota_policy_activation_receipts` — activation idempotency
 
-Track each activation and affected quota type with `activationId`, `policyScope`, `policyVersion`, `quotaType`, `effectiveAt`, processing state, and completion timestamp. Unique key: `(activationId, quotaType)`.
+Track each successfully applied activation and affected quota type with `activationId`, `policyScope`, `policyVersion`, `quotaType`, `effectiveAt`, processing state, and completion timestamp. Unique key: `(activationId, quotaType)`.
 
-This is a processing receipt, not an outbox. It lets Quota recognize already-applied resets and resume incomplete reset processing after restart. Reconciliation must process activations in effective/version order for a scope.
+This is a processing receipt, not an outbox, queue, or recovery log. It makes repeated delivery a no-op; it cannot recover an event that Quota never applied. For MVP, apply all affected quota types and write their receipts in one MongoDB transaction per activation, so a failed transaction cannot leave a partially applied activation marked complete. No startup replay/reconciliation is implemented.
 
 ### Indexes
 
@@ -228,7 +228,7 @@ This is a processing receipt, not an outbox. It lets Quota recognize already-app
 | `quota_entitlement_projection` | Unique `userId` | One effective quota entitlement per user |
 | `quota_usage_counters` | Unique `(userId, quotaType)` | One current aggregate per user/type |
 | `quota_usage_ledger` | Unique `(userId, sourceFeature, idempotencyKey)`; query index `(userId, quotaType, recordedAt)` | Idempotency and audit/history lookup |
-| `quota_policy_activation_receipts` | Unique `(activationId, quotaType)` | Idempotent reset and replay |
+| `quota_policy_activation_receipts` | Unique `(activationId, quotaType)` | Idempotent event handling |
 
 All updates to one usage operation's counter and ledger must occur in one MongoDB transaction. Indexes are required to make retry and concurrency behavior safe, not just faster.
 
@@ -268,15 +268,15 @@ Follow the existing backend response envelope (`ApiResponse`) and error pattern 
 
 - Calendar changes reset the current aggregate lazily on the first request in the new window. No midnight/monthly reset job is needed for ordinary window boundaries.
 - A policy activation is a separate reset cause, even when the calendar period has not ended.
-- The activation processor updates only existing current counters for users whose projected scope and quota type are affected; users without a counter are handled lazily. It writes a receipt per activation/type and must be replayable/idempotent.
+- The activation processor updates only existing current counters for users whose projected scope and quota type are affected; users without a counter are handled lazily. Apply all affected types and write their activation receipts in one MongoDB transaction per activation. A repeated event is idempotent; the receipt does not provide replay for an event that was never applied.
 - An entitlement/tier change never resets a counter. The applicable limit may change; if existing usage is equal to or above the new limit, future `consume` calls are rejected and availability returns zero remaining.
 - Policy activation and reset must be ordered per scope; a stale activation must never overwrite a newer snapshot/reset.
 
 ### Event delivery without Outbox
 
-MVP uses in-process events after the Subscription transaction commits. It does not promise durable in-process delivery. Subscription remains the source of truth for current entitlement/policy snapshots. Quota must reconcile its projections and activation receipts from that durable source on startup before serving quota decisions; if an activation handler fails while the application is running, the affected scope must be reconciled/retried before it can use stale policy state.
+MVP uses in-process events after the Subscription transaction commits. It does not promise durable delivery, retry, or recovery of events that were not applied. If the process fails after Subscription commits but before Quota commits the event-handler transaction, an `EntitlementChanged` projection update or `QuotaPolicyActivated` reset can be missed. This risk is explicitly accepted for MVP. No startup reconciliation is required or implemented, and Quota must not read Subscription collections directly. The activation receipt only guards duplicate event handling; it cannot detect an event Quota never applied. A missed event can leave Quota using a stale entitlement projection or allowance, with no guaranteed automatic repair.
 
-This is deliberately a limited same-application MVP choice, detailed in the separate ADR. It does not relax the transaction requirement for usage counter + ledger writes.
+This is a deliberately limited same-application MVP choice, detailed in the separate ADR. It does not relax the transaction requirement for usage counter + ledger writes.
 
 ## 8. Verification checklist for implementation
 
@@ -290,13 +290,11 @@ This is deliberately a limited same-application MVP choice, detailed in the sepa
 - [ ] Policy activation resets only the selected scope/types, including a lower limit; repeated/replayed activation does not reset twice.
 - [ ] Usage ledger remains intact across calendar/policy resets.
 - [ ] Daily, Monday-based weekly, and calendar-month windows use `Asia/Ho_Chi_Minh`.
-- [ ] Requests with missing/stale policy projection recover before quota is evaluated.
+- [ ] An unavailable policy projection is not treated as zero usage or fabricated default policy; quota returns an explicit unavailable result. A missed event may leave stale state under the accepted MVP delivery limitation.
 - [ ] REST usage summary returns all current quota items and does not turn unavailable data into zero.
 - [ ] Transaction/concurrency tests use a MongoDB replica-set test environment.
 
-## 9. Open items for design review (not assumptions for an agent to invent)
+## 9. Remaining review items (not blockers for the Quota core)
 
-1. **Speaking allocation payload:** confirm how Speaking reports actual usage for a session crossing midnight; the owning feature must supply the amount and time allocation.
-2. **Event/reconciliation contract:** confirm the smallest Subscription contract capability that returns authoritative current snapshots/entitlements and lets Quota reconcile missed in-process events.
-3. **REST path/shape review:** compare the target read APIs above with any existing controllers before FE freezes its handoff. The suggested paths are not a claim that these endpoints already exist.
-4. **Ledger retention:** no TTL/automatic deletion until a retention requirement is agreed.
+1. **REST path/shape review:** compare the target read APIs above with existing controllers before FE freezes its handoff. The suggested paths are not a claim that these endpoints already exist; reuse an existing endpoint when it provides the same capability.
+2. **Ledger retention:** no TTL/automatic deletion until a retention requirement is agreed.
