@@ -40,8 +40,8 @@ Build a generic Quota feature that accepts configured quota rules and usage amou
 | Field | Meaning |
 |---|---|
 | `quotaType` | Stable product-neutral identifier for a type of measured usage |
-| `unit` | Canonical unit for this quota type; the same type uses the same unit in every policy scope |
-| `period` | Calendar period: `DAILY`, `WEEKLY`, or `MONTHLY` |
+| `unit` | Canonical unit for this quota type; the same type uses the same unit in every tier/scope and version |
+| `period` | Calendar period: `DAILY`, `WEEKLY`, or `MONTHLY`; fixed per quota type across tiers/scopes and versions in MVP |
 | `policyScope` | Scope key selected by Subscription for the user's applicable quota policy, e.g. `FREE`, `TRIAL`, `PREMIUM` |
 | `policyVersion` / `policySnapshotId` | Identifies the rules effective for a scope or a user's subscription snapshot |
 | `allowanceId` | Identifies the current usage allowance. Changes at a calendar boundary or a distinct quota-policy activation reset; does **not** change merely because a user's tier changes |
@@ -55,7 +55,7 @@ Initial catalog based on the business rules currently known:
 | `SPEAKING_DURATION` | Thời lượng luyện nói với AI | `SECOND` | `DAILY` | The Speaking feature computes the final amount. A 60-minute Free limit is policy data (3,600 seconds), not a hard-coded engine rule. |
 | `PROFICIENCY_CHECK_ATTEMPT` | Lượt làm bài đánh giá trình độ | `ATTEMPT` | `MONTHLY` | Count a successful attempt start according to the Proficiency feature's business rule. The 21-day cooldown remains owned by Proficiency, not Quota. |
 
-These are the currently supported catalog entries, not a closed enum of every future business feature. Adding an ordinary count-based quota should require policy data and caller integration, not a new branch in the Quota engine. Validate that a `quotaType` always uses the same `unit` across policy scopes.
+These are the currently supported catalog entries, not a closed enum of every future business feature. Adding an ordinary count-based quota should require policy data and caller integration, not a new branch in the Quota engine. In MVP, a `quotaType` must always use the same `unit` **and** `period` across all tiers/scopes and versions. Reject configurations that violate either invariant; limits may differ.
 
 All calendar boundaries use `Asia/Ho_Chi_Minh` and fixed windows:
 - `DAILY`: 00:00 to the next local day at 00:00.
@@ -89,12 +89,14 @@ Behavior:
 
 The concurrency-safe check must be an atomic conditional update (with transaction/write-conflict retry as needed), not only a read followed by an unconditional increment.
 
+**Proficiency start transaction:** Proficiency owns one MongoDB transaction covering attempt creation, timer start, `consume` counter update, and ledger append. `quota.contract` joins the caller's transaction and must not commit independently. Quota denial or any failure rolls back all four effects; no official attempt content is released before commit. A retry of the same successful start returns the existing attempt without starting another timer or consuming again. Perform external/resource preparation before opening the transaction, then recheck mutable start preconditions inside it before accepting the start.
+
 ### 3.2 `checkAvailability(userId, quotaType)` — read-only, no reservation
 
 Use when the amount is not known yet, such as before a Speaking recording turn.
 
 - Returns the current policy limit, recorded usage, non-negative remaining amount, unit, and current window end.
-- Does not mutate the counter or ledger, and does not reserve quota.
+- Does not mutate usage counters or the ledger, and does not reserve quota. A conditional entitlement-projection refresh is allowed as described in section 4.
 - The result is a snapshot and may become stale before the caller records usage.
 - This operation checks **quota availability only**. The owning feature still checks feature-specific preconditions/permissions.
 
@@ -104,7 +106,7 @@ Use when the caller determines the actual amount only after its action (e.g. the
 
 Command fields:
 - `userId`, `quotaType`, positive `amount`, `unit` implied by the type
-- `sourceFeature`, stable `idempotencyKey` (or session + segment key), optional `sourceReference`
+- `sourceFeature`, stable `idempotencyKey` (Speaking: one stable key per audio turn), optional `sourceReference`
 - optional `occurredAt` for audit context; it does not select the quota window
 
 Behavior:
@@ -115,17 +117,19 @@ Behavior:
 
 Quota does not define a permitted Speaking overrun (such as up to one minute). The Speaking feature owns its measuring/cutoff behavior; Quota records the amount provided and exposes the resulting count.
 
-**Speaking midnight rule (decided):** the whole amount in one `recordUsage` call belongs to the calendar window in which Quota first successfully accepts it, using `Asia/Ho_Chi_Minh`. For example, if `checkAvailability()` runs at 23:59 but `recordUsage()` is first accepted at 00:01, the whole amount is charged to the new day. Do not split one reported usage across windows or require Speaking to send per-day segments for this case. `occurredAt` is audit metadata, not the window selector.
+**Speaking recording unit and midnight rule (decided):** Speaking calls `recordUsage` for each audio turn with that turn's stable idempotency key; do not accumulate usage until session end. The whole measured turn amount belongs to the calendar window containing the first accepted server-side `recordedAt`, using `Asia/Ho_Chi_Minh`. For example, if a turn starts at 23:59 but its `recordUsage()` is first accepted at 00:01, the whole turn is charged to the new day. Do not split a turn across days. Retries retain the original window and result. `occurredAt` is audit metadata, not the window selector. This changes recording granularity/window assignment only; Speaking's existing definition of measured usage remains unchanged.
 
 ## 4. Ownership and policy events
 
 Policy configuration is owned by Subscription. Quota maintains a local read projection only; it never reads Subscription collections directly.
 
+Quota depends on `subscription.contract` for an effective-entitlement lookup at the current server time. If the local projection is absent, initialize it from this contract; never assume Free. Time-limited entitlement results and events include `validUntil`. When `now >= validUntil`, resolve effective entitlement through the contract even if a status-update job has not run; Subscription resolves by effective times, not just stored lifecycle status. Conditional lookup may refresh the projection, including during `checkAvailability`, but availability checks never write usage counters or ledger. A failed lookup returns unavailable rather than a fabricated policy. This is on-demand entitlement resolution, not missed-event replay/reconciliation. Subscription publishes its own events and never calls Quota to resolve entitlement; the dependency direction is Quota -> Subscription contract, avoiding a cycle.
+
 Both event types are declared in `subscription.contract`, following the architecture rule that event types belong to the publisher.
 
 ### `EntitlementChanged`
 
-Minimum data: `userId`, monotonic `entitlementVersion`, effective `policyScope`, applicable `policySnapshotId`, and `effectiveAt`.
+Minimum data: `userId`, monotonic `entitlementVersion`, effective `policyScope`, applicable `policySnapshotId`, `effectiveAt`, and `validUntil` for time-limited entitlements.
 
 - Refresh the user's quota entitlement projection.
 - Do not reset or clear usage.
@@ -140,10 +144,11 @@ Minimum data: stable `activationId`, `policyScope`, activated `policySnapshotId`
 
 Emit/process it when a policy actually becomes effective, not merely when Admin saves a future-effective configuration.
 
-- Start a new allowance only for the affected scope and quota types whose effective rule changed, whether the limit increased or decreased.
+- Publishing a new Premium/Trial version affects only new periods; existing snapshot holders retain their snapshot and allowance. Starting a new period or changing tier preserves current-window usage.
+- For a scheduled Free-policy activation, Subscription publishes this event after the activation transaction commits. Start a new allowance only for currently Free users and the quota types whose effective rule changed, whether the limit increased or decreased.
 - Retain all prior usage ledger entries.
 - Apply each activation idempotently. Reprocessing an already-completed activation must not reset usage a second time.
-- Do not reset allowances for unrelated scopes or quota types.
+- Scope membership alone is insufficient to reset old snapshot holders. Do not reset existing Premium/Trial snapshots or unrelated quota types.
 - A tier change alone is not a policy activation and does not reset usage.
 
 The activation receipt is durable for duplicate detection, but the MVP does not guarantee replay or recovery for an event that was never applied. Section 7 and the ADR describe this accepted limitation.
@@ -174,7 +179,7 @@ One document per scope/version snapshot.
 }
 ```
 
-Illustrative values only. Snapshots are immutable; policy changes create a new version. Validate non-negative integer limits, supported periods, unique quota types within a snapshot, and canonical unit consistency across scopes. A snapshot/version is not the same as a per-user allowance.
+Illustrative values only. Snapshots are immutable; policy changes create a new version. Validate non-negative integer limits, supported periods, unique quota types within a snapshot, and canonical unit and period consistency across tiers/scopes and versions. Reject inconsistent configurations. A snapshot/version is not the same as a per-user allowance.
 
 ### 5.2 `quota_entitlement_projection` — current quota policy for a user
 
@@ -184,9 +189,10 @@ One document per user:
 - `policySnapshotId`
 - `entitlementVersion`
 - `effectiveAt`
+- `validUntil` for time-limited entitlement; absent only for entitlement without a time limit
 - `updatedAt`
 
-Only data needed to select the applicable quota policy belongs here. It is not a generalized entitlement/resource-permission store.
+Only data needed to select the applicable quota policy belongs here. Initialize an absent projection and resolve an expired one through `subscription.contract` as specified in section 4. It is not a generalized entitlement/resource-permission store.
 
 ### 5.3 `quota_usage_counters` — current aggregate
 
@@ -199,7 +205,7 @@ Suggested fields:
 - `lastAppliedPolicyActivationId` (or an equivalent durable reset marker)
 - `revision`, `updatedAt`
 
-The counter is not keyed by tier. An entitlement change updates the projection but leaves usage and `allowanceId` intact. At a calendar boundary, the first operation in the new window initializes a new allowance. At a policy activation reset, the affected active counters get a new `allowanceId` and `usedAmount = 0`; the ledger keeps the old details. A user without a counter has no prior recorded usage for that quota and can still be handled lazily.
+The counter is not keyed by tier. An entitlement change or new period updates the projection but leaves current-window usage and `allowanceId` intact. At a calendar boundary, the first usage write in the new window initializes a new allowance; reads only compute the current-window view. At a qualifying Free-policy activation reset, affected counters get a new `allowanceId` and `usedAmount = 0`; the ledger keeps the old details. A user without a counter has no prior recorded usage for that quota and can still be handled lazily.
 
 ### 5.4 `quota_usage_ledger` — append-only detailed history
 
@@ -266,15 +272,15 @@ Follow the existing backend response envelope (`ApiResponse`) and error pattern 
 
 ### Calendar and policy reset
 
-- Calendar changes reset the current aggregate lazily on the first request in the new window. No midnight/monthly reset job is needed for ordinary window boundaries.
-- A policy activation is a separate reset cause, even when the calendar period has not ended.
-- The activation processor updates only existing current counters for users whose projected scope and quota type are affected; users without a counter are handled lazily. Apply all affected types and write their activation receipts in one MongoDB transaction per activation. A repeated event is idempotent; the receipt does not provide replay for an event that was never applied.
-- An entitlement/tier change never resets a counter. The applicable limit may change; if existing usage is equal to or above the new limit, future `consume` calls are rejected and availability returns zero remaining.
+- Calendar changes initialize the current aggregate lazily on the first usage write in the new window. Availability reads report the current-window view without mutating counters/ledger. No midnight/monthly reset job is needed for ordinary window boundaries.
+- A Free-policy activation is a separate reset cause, even when the calendar period has not ended. Premium/Trial publication does not reset existing snapshot holders.
+- The activation processor updates only existing current counters for currently Free users and changed quota types whose effective rule is replaced by that activation; scope alone must not select old snapshot holders for reset. Users without a counter are handled lazily. Apply all affected types and write their activation receipts in one MongoDB transaction per activation. A repeated event is idempotent; the receipt does not provide replay for an event that was never applied.
+- An entitlement/tier change or new Subscription period never resets a counter. The applicable limit may change; if existing usage is equal to or above the new limit, future `consume` calls are rejected and availability returns zero remaining.
 - Policy activation and reset must be ordered per scope; a stale activation must never overwrite a newer snapshot/reset.
 
 ### Event delivery without Outbox
 
-MVP uses in-process events after the Subscription transaction commits. It does not promise durable delivery, retry, or recovery of events that were not applied. If the process fails after Subscription commits but before Quota commits the event-handler transaction, an `EntitlementChanged` projection update or `QuotaPolicyActivated` reset can be missed. This risk is explicitly accepted for MVP. No startup reconciliation is required or implemented, and Quota must not read Subscription collections directly. The activation receipt only guards duplicate event handling; it cannot detect an event Quota never applied. A missed event can leave Quota using a stale entitlement projection or allowance, with no guaranteed automatic repair.
+MVP uses in-process events after the Subscription transaction commits, including scheduled Free activation. It does not promise durable delivery, retry, or recovery of events that were not applied. If the process fails after Subscription commits but before Quota commits the event-handler transaction, an `EntitlementChanged` projection update or `QuotaPolicyActivated` reset can be missed. This risk is explicitly accepted for MVP. No Outbox, startup replay, or reconciliation is implemented, and Quota must not read Subscription collections directly. Conditional entitlement lookup on missing/expired projections is normal request-time resolution, not event recovery. In particular, a missed early refund event can leave an unexpired projection stale until its `validUntil`; a missed activation can leave an allowance unreset. Both risks remain accepted. Activation receipts guard duplicate handling and cannot detect an unapplied event.
 
 This is a deliberately limited same-application MVP choice, detailed in the separate ADR. It does not relax the transaction requirement for usage counter + ledger writes.
 
@@ -283,14 +289,19 @@ This is a deliberately limited same-application MVP choice, detailed in the sepa
 - [ ] `consume`: allowed amount increments once; over-limit attempt has no usage increment.
 - [ ] Concurrent `consume` requests cannot exceed the limit.
 - [ ] Retry with same key/same payload does not duplicate usage; same key/different payload is rejected.
-- [ ] `checkAvailability` has no mutation and makes no reservation.
+- [ ] `checkAvailability` never mutates usage counters/ledger or reserves quota; conditional projection refresh is allowed.
 - [ ] `recordUsage` records actual usage above the cap and the next availability check blocks.
 - [ ] Counter and ledger rollback together when a transaction fails.
+- [ ] Proficiency attempt, timer, quota counter and ledger commit/rollback in one caller-owned transaction; denial/failure leaves none committed; retry returns the existing attempt without double counting. External preparation precedes the transaction and mutable preconditions are rechecked inside it.
 - [ ] Free → Premium and Premium → Free changes scope without resetting current-window usage.
-- [ ] Policy activation resets only the selected scope/types, including a lower limit; duplicate activation delivery does not reset twice.
+- [ ] New Premium/Trial versions and new periods preserve existing current-window usage/snapshots as applicable; scope alone never resets old snapshot holders.
+- [ ] Scheduled Free activation publishes after commit and resets only changed types for currently Free users, including a lower limit; duplicate delivery does not reset twice.
+- [ ] Reject the same quota type with different units or periods across tiers/scopes or versions.
+- [ ] Speaking records per audio turn with a stable turn key; a midnight-spanning turn is charged wholly at first accepted `recordedAt`, and later retries never move or duplicate it.
 - [ ] Usage ledger remains intact across calendar/policy resets.
 - [ ] Daily, Monday-based weekly, and calendar-month windows use `Asia/Ho_Chi_Minh`.
-- [ ] An unavailable policy projection is not treated as zero usage or fabricated default policy; quota returns an explicit unavailable result. A missed event may leave stale state under the accepted MVP delivery limitation.
+- [ ] Missing projection uses the effective-entitlement contract, including active Premium/Trial; never assume Free. Expired `validUntil` triggers time-based contract resolution even with a delayed status job. Lookup failure returns unavailable.
+- [ ] Conditional lookup introduces no Subscription -> Quota dependency or event replay/reconciliation; missed early refund and missed reset remain documented accepted risks.
 - [ ] REST usage summary returns all current quota items and does not turn unavailable data into zero.
 - [ ] Transaction/concurrency tests use a MongoDB replica-set test environment.
 
