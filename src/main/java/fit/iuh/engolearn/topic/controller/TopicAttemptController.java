@@ -45,6 +45,11 @@ public class TopicAttemptController {
         return ApiResponse.ok(attempts.access(attemptId, key));
     }
 
+    @GetMapping("/topic-attempts/{attemptId}/quiz-navigation")
+    public ApiResponse<QuizNavigationResponse> quizNavigation(@PathVariable String attemptId) {
+        return ApiResponse.ok(attempts.quizNavigation(attemptId));
+    }
+
     @GetMapping("/topic-attempts/{attemptId}/quiz")
     public ApiResponse<CurrentQuizResponse> currentQuiz(@PathVariable String attemptId) {
         return ApiResponse.ok(attempts.getCurrentQuiz(attemptId));

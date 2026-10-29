@@ -16,6 +16,8 @@ import java.util.List;
 @Builder
 public class TopicDetailResponse {
     private String topicId;
+    private long generation;
+    private TopicCatalogPolicy.Availability resetAvailability;
     private String titleEn;
     private String titleVi;
     private CefrLevel cefrLevel;

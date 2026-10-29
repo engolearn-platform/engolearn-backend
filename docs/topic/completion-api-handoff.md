@@ -1,5 +1,11 @@
 # Topic completion — Slice B handoff
 
+## Current generation/reset contract (2026-10-29)
+
+Official completion remains the normal final-answer write or retry runtime CAS. A retry preserves the current official result until completion and may replace it with a lower score. There is no item restart/replacement operation.
+
+Topic detail adds `generation` and `resetAvailability`; topic result adds `resetAvailability`. The confirmed topic reset is a generation increment, including during an active retry. Catalog completion overlays, progress totals, recency and result/review selection use only the captured current generation. Old owned attempt/result/review references return `409 TOPIC_RESET`; they cannot restore completion after reset. Old data remains internal and is not a history API. See retry handoff for reset request/replay semantics.
+
 Date: 2026-10-28. BE branch: `feat/complete-topic-learning-flow`.
 Scope: LEARN final correctness, item/topic result, compatibility recovery, current progress/actions, and visible next-item selection. Review/retry/session behavior remains Slice C. Machine-readable contract is the sibling FE `docs/handout/topic-learning/api.openapi.yaml`; this document does not create a competing schema.
 

@@ -11,6 +11,8 @@ import java.util.List;
 @Document("topic_retry_locators")
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @SuperBuilder
 public class TopicRetryLocator extends BaseDocument {
+    private long generation;
+    private String startRequestKey;
     private String userId;
     private String topicId;
     private String sessionId;

@@ -13,6 +13,7 @@ import java.util.Map;
 @Document("topic_retry_runtime")
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @SuperBuilder
 public class TopicRetryRuntime extends BaseDocument {
+    private long generation;
     private String userId;
     private String topicId;
     @Version private Long version;

@@ -1,5 +1,17 @@
 # Slice C - review and retry handoff
 
+## Current contract update (2026-10-29)
+
+This section supersedes the older replacement and whole-topic retry behavior below.
+
+- ITEM retry resumes the same unfinished item, even with a fresh start key. Another item in that topic returns `409 ITEM_RETRY_IN_PROGRESS`; any `replaceRetrySessionId` returns `409 RETRY_RESTART_NOT_ALLOWED`. A mismatched session still returns `RETRY_SESSION_CHANGED`. Other topics have separate runtimes.
+- Catalog item actions expose resume or new retry exclusively. `restartRetry` remains in the wire shape but is always false. Existing official results remain readable until the current retry completes; its final answer atomically publishes the replacement score in the runtime CAS, including a lower score.
+- New POST `/topics/{topicId}/retry-sessions` returns `410 TOPIC_RETRY_RETIRED`. Current legacy session replays, GET and explicit next-item continuation remain supported; no new TOPIC sessions are created.
+- POST `/topics/{topicId}/reset` takes `Idempotency-Key` (nonblank, <=128) and `{generation: integer >= 0}`. It requires a completed visible topic and sufficient level, including while an item retry is active. Success returns `{topicId,generation}` with the incremented generation and creates no session/attempt.
+- Topic detail adds `generation` (legacy 0) and `resetAvailability`; topic result adds `resetAvailability`. Deprecated `retryAvailability` is retained for wire compatibility. Reset clears all effective progress, results and active retry state; the next operation is ordinary LEARN.
+- Reset receipts are saved with the generation CAS in one `topic_learner_state` document. Exact key/body replay returns its saved response before eligibility checks and never clears newer work; changed body returns `IDEMPOTENCY_KEY_REUSED`, changed observed generation returns `STATE_CHANGED`.
+- Old owned attempt/session/result/review/mutation/replay handles return `409 TOPIC_RESET`; foreign handles remain `404 CONTENT_UNAVAILABLE`. State is retained internally but filtered by generation before completion overlays, recency, progress and action decisions. Old writes retain their captured generation and cannot overwrite new generation documents.
+
 Date: 2026-10-28. Branch: `feat/complete-topic-learning-flow`. Scope follows the user's latest decision: hide/unhide during a session is unsupported and untested; no skip/reconciliation/MAJOR rule is added. Existing visibility denials remain. Parent owns final real-HTTP/browser acceptance and OpenSpec status.
 
 ## Authority and session replacement
