@@ -4,6 +4,18 @@
 >
 > Scope: Subscription/Quota backend contracts, MongoDB usage data, event handling, consistency, and the narrow REST read APIs needed by the package/usage UI.
 
+## Business-rule sources
+
+Treat the following business documents as the baseline for the policy behaviors in this design:
+
+- [Subscription module baseline and ownership boundaries](https://github.com/engolearn-platform/engolearn-business-docs-and-tools/blob/feat/subscription-quota-policy-reset/docs/usecase_spec/subscription/00-module.md)
+- [F2 — Usage-limit overview rules](https://github.com/engolearn-platform/engolearn-business-docs-and-tools/blob/feat/subscription-quota-policy-reset/docs/usecase_spec/subscription/f2-usage-limits/rules.md)
+- [F4 — Quota configuration rules](https://github.com/engolearn-platform/engolearn-business-docs-and-tools/blob/feat/subscription-quota-policy-reset/docs/usecase_spec/subscription/f4-quota-management/rules.md)
+- [Speaking session rules](https://github.com/engolearn-platform/engolearn-business-docs-and-tools/blob/feat/subscription-quota-policy-reset/docs/usecase_spec/speaking-with-AI/f01-speaking-session/rules.md)
+- [Proficiency assessment rules](https://github.com/engolearn-platform/engolearn-business-docs-and-tools/blob/feat/subscription-quota-policy-reset/docs/usecase_spec/proficiency-check/f01-lam-bai-danh-gia/rules.md)
+
+These references point to the current business-document working branch for review; they are not a claim that the branch has been merged.
+
 ## 1. Goals and boundaries
 
 Build a generic Quota feature that accepts configured quota rules and usage amounts without knowing what a product feature does.
