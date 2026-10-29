@@ -55,7 +55,7 @@ public class LearningPathRecommendationService {
 
         LearningPath existing = paths.findBySourceAttemptId(attemptId).orElse(null);
         if (existing != null) {
-            return response(State.ALREADY_CREATED, null, existing.getId().toHexString(),
+            return response(State.ALREADY_CREATED, null, existing.getId(),
                     test.level(), List.of());
         }
 

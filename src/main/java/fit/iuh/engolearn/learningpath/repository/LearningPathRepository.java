@@ -8,7 +8,7 @@ import fit.iuh.engolearn.learningpath.model.LearningPath;
 import java.util.List;
 import java.util.Optional;
 
-public interface LearningPathRepository extends MongoRepository<LearningPath, ObjectId> {
+public interface LearningPathRepository extends MongoRepository<LearningPath, String> {
 
     List<LearningPath> findByUserIdAndStatusInOrderByCreatedAtDesc(
             ObjectId userId,

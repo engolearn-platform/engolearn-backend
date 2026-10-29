@@ -91,7 +91,7 @@ public class LearningPathService {
                 )
         ));
 
-        Map<ObjectId, LearningPath> uniqueMatches = new LinkedHashMap<>();
+        Map<String, LearningPath> uniqueMatches = new LinkedHashMap<>();
         matches.forEach(path -> uniqueMatches.putIfAbsent(path.getId(), path));
 
         List<LearningPathListItemResponse> items = uniqueMatches.values().stream()
@@ -155,7 +155,7 @@ public class LearningPathService {
                 : path.getSource().getAttemptId().toHexString();
 
         return new LearningPathListItemResponse(
-                path.getId() == null ? null : path.getId().toHexString(),
+                path.getId(),
                 sourceAttemptId,
                 path.getCreatedDate(),
                 path.getLevel(),
@@ -236,7 +236,7 @@ public class LearningPathService {
                         : null;
 
         return new LearningPathDetailResponse(
-                path.getId() == null ? null : path.getId().toHexString(),
+                path.getId(),
                 path.getCreatedDate(),
                 path.getLevel(),
                 path.getK(),

@@ -43,10 +43,11 @@ public class LearningPathLifecycleService {
             List<LearningPath> due = repository.findDue(now, BATCH_SIZE, failedIds);
             if (due.isEmpty()) return;
             for (LearningPath path : due) {
+                ObjectId pathId = new ObjectId(path.getId());
                 try {
-                    processPath(path.getId(), now);
+                    processPath(pathId, now);
                 } catch (RuntimeException exception) {
-                    failedIds.add(path.getId());
+                    failedIds.add(pathId);
                     log.error("Cannot advance Learning Path {}", path.getId(), exception);
                 }
             }
@@ -85,7 +86,7 @@ public class LearningPathLifecycleService {
                 .toList();
         if (ids.isEmpty()) return Map.of();
         Map<String, String> keys = new HashMap<>();
-        for (Document snapshot : questions.findAnswerKeys(path.getId(), path.getUserId(), ids)) {
+        for (Document snapshot : questions.findAnswerKeys(new ObjectId(path.getId()), path.getUserId(), ids)) {
             String id = snapshot.getString("question_id");
             String key = snapshot.getString("correct_option_id");
             if (id == null || key == null || keys.putIfAbsent(id, key) != null) {

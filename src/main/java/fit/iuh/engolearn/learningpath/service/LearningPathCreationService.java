@@ -69,7 +69,7 @@ public class LearningPathCreationService {
                 throw new ResponseStatusException(HttpStatus.NOT_FOUND,
                         "Không tìm thấy bài kiểm tra định kì của người học");
             }
-            return new CreateLearningPathResponse(existing.getId().toHexString(), false);
+            return new CreateLearningPathResponse(existing.getId(), false);
         }
         try {
             return createPath(request, userId, attemptId);
@@ -80,7 +80,7 @@ public class LearningPathCreationService {
                     throw new ResponseStatusException(HttpStatus.NOT_FOUND,
                             "Không tìm thấy bài kiểm tra định kì của người học");
                 }
-                return new CreateLearningPathResponse(created.getId().toHexString(), false);
+                return new CreateLearningPathResponse(created.getId(), false);
             }
             throw new RecommendationChangedException(recommendations.recommend(userId, attemptId));
         }
@@ -126,9 +126,9 @@ public class LearningPathCreationService {
         Date createdAt = Date.from(Instant.now());
         LocalDate createdDate = createdAt.toInstant().atOffset(LEARNING_ZONE).toLocalDate();
         LearningPath path = buildPath(test, current, results, selected, createdAt, createdDate);
-        questionPool.insertSnapshots(path.getId(), userId, allQuestions, passages, createdAt);
+        questionPool.insertSnapshots(new ObjectId(path.getId()), userId, allQuestions, passages, createdAt);
         paths.save(path);
-        return new CreateLearningPathResponse(path.getId().toHexString(), true);
+        return new CreateLearningPathResponse(path.getId(), true);
     }
 
     private LearningPath buildPath(PeriodicTestSnapshot test,
@@ -140,14 +140,14 @@ public class LearningPathCreationService {
                 .map(LearningPathRecommendationResponse.MicroSkill::name)
                 .toList();
         LearningPath path = new LearningPath();
-        path.setId(new ObjectId());
+        path.setId(new ObjectId().toHexString());
         path.setUserId(test.userId());
         LearningPathSource source = new LearningPathSource();
         source.setAttemptId(test.attemptId());
         source.setTestSetId(test.testSetId());
         source.setTakenAt(test.takenAt());
         path.setSource(source);
-        path.setCreatedAt(createdAt);
+        path.setCreatedAt(createdAt.toInstant());
         path.setCreatedDate(createdDate.toString());
         path.setLevel(test.level());
         path.setK(skills.size());

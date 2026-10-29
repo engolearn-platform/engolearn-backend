@@ -153,7 +153,7 @@ class LearningPathDayPracticeServiceTest {
 
     private LearningPath path(String status) {
         LearningPath path = new LearningPath();
-        path.setId(pathId);
+        path.setId(pathId.toHexString());
         path.setUserId(userId);
         path.setStatus(LearningPathStatus.valueOf(status));
         path.setActive(true);

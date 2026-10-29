@@ -11,20 +11,17 @@ import fit.iuh.engolearn.learningpath.model.vo.LearningPathProgress;
 import fit.iuh.engolearn.learningpath.model.vo.LearningPathSource;
 import fit.iuh.engolearn.learningpath.model.vo.LearningPathSummary;
 import fit.iuh.engolearn.learningpath.model.vo.LearningPathWeek;
+import fit.iuh.engolearn.shared.BaseDocument;
 import java.util.Date;
 import java.util.List;
 import lombok.Setter;
 import org.bson.types.ObjectId;
-import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.mongodb.core.mapping.Field;
 
 @Document(collection = "learning_paths")
 @Setter
-public class LearningPath {
-
-    @Id
-    private ObjectId id;
+public class LearningPath extends BaseDocument {
 
     private Long revision;
 
@@ -32,9 +29,6 @@ public class LearningPath {
     private ObjectId userId;
 
     private LearningPathSource source;
-
-    @Field("created_at")
-    private Date createdAt;
 
     @Field("created_date")
     private String createdDate;
@@ -71,10 +65,6 @@ public class LearningPath {
     private LearningPathSummary summary;
     private LearningPathCancel cancel;
 
-    public ObjectId getId() {
-        return id;
-    }
-
     public Long getRevision() {
         return revision;
     }
@@ -85,10 +75,6 @@ public class LearningPath {
 
     public LearningPathSource getSource() {
         return source;
-    }
-
-    public Date getCreatedAt() {
-        return createdAt;
     }
 
     public String getCreatedDate() {
