@@ -150,7 +150,7 @@ The activation receipt is durable for duplicate detection, but the MVP does not 
 
 ## 5. MongoDB model proposal
 
-The collections below are logical Quota-owned storage. Policy snapshots and user entitlement are sourced from Subscription; Quota stores projections required for local evaluation.
+The collections below are logical Quota-owned storage. Policy snapshots and user entitlement are sourced from Subscription; Quota stores projections required for local evaluation. **MVP decision: retain all five collections below as separate responsibilities; they are part of the initial implementation, not an optional future-state model.**
 
 ### 5.1 `quota_policy_snapshots` — immutable policy projection
 
@@ -254,7 +254,7 @@ Actual usage may exceed the limit for post-action recording; in that case return
 
 Follow the existing backend response envelope (`ApiResponse`) and error pattern (`ProblemDetail`). Do not expose raw counter/ledger documents. No public endpoint lets FE call `consume` or `recordUsage`; those are in-process module contracts.
 
-## 7. Consistency, reset, and recovery
+## 7. Consistency, reset, and event-delivery risk
 
 ### Usage path
 
@@ -287,7 +287,7 @@ This is a deliberately limited same-application MVP choice, detailed in the sepa
 - [ ] `recordUsage` records actual usage above the cap and the next availability check blocks.
 - [ ] Counter and ledger rollback together when a transaction fails.
 - [ ] Free → Premium and Premium → Free changes scope without resetting current-window usage.
-- [ ] Policy activation resets only the selected scope/types, including a lower limit; repeated/replayed activation does not reset twice.
+- [ ] Policy activation resets only the selected scope/types, including a lower limit; duplicate activation delivery does not reset twice.
 - [ ] Usage ledger remains intact across calendar/policy resets.
 - [ ] Daily, Monday-based weekly, and calendar-month windows use `Asia/Ho_Chi_Minh`.
 - [ ] An unavailable policy projection is not treated as zero usage or fabricated default policy; quota returns an explicit unavailable result. A missed event may leave stale state under the accepted MVP delivery limitation.
