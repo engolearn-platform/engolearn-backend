@@ -17,18 +17,18 @@ The modules currently run in the same Spring Boot application. Durable asynchron
 
 1. Publish the event types from `subscription.contract`; handle them in-process after the Subscription transaction commits.
 2. Do **not** implement Transactional Outbox, Kafka, or a separate message broker in the MVP.
-3. Keep Subscription's effective policy snapshots and current entitlement state as the durable source of truth. Quota stores projection state and idempotent policy-activation receipts.
-4. Reconcile Quota projections and any missed effective policy activations from Subscription's current persisted state on application startup, before serving quota decisions. If an activation handler fails while the app is running, retry/reconcile the affected scope before allowing quota decisions against stale policy.
-5. Event consumers must be idempotent. A repeated `EntitlementChanged` must not reset usage; a repeated `QuotaPolicyActivated` must not create multiple allowance resets.
+3. Keep Subscription as the source of truth for effective policy snapshots and current entitlement state. Quota stores the local projection and policy-activation receipts; it does not read Subscription collections directly.
+4. Do **not** implement startup reconciliation or replay solely to recover missed in-process events in the MVP. If Subscription commits but Quota fails before committing the corresponding event-handler transaction, accept that an entitlement projection update or policy reset may be missed. This is an explicit MVP risk, not a condition that the implementation must self-heal.
+5. Event consumers must be idempotent. A repeated `EntitlementChanged` must not reset usage; a repeated `QuotaPolicyActivated` must not create multiple allowance resets. Apply all quota types for one activation and write their receipts in one MongoDB transaction; receipts protect against duplicate delivery, not missed delivery.
 6. This decision does **not** weaken the atomicity requirement for each usage operation: its counter update and ledger append remain in one MongoDB transaction.
 
 ## Consequences
 
 - Simpler MVP implementation, with no outbox collection, polling worker, or broker.
-- In-process events are not durable. A process failure can interrupt event handling; recovery relies on reconciling from Subscription's persisted state.
-- Policy/entitlement projections may be temporarily stale after a handler failure. The application must not silently continue quota decisions for an affected stale scope.
-- The reconciliation source/contract is part of the Quota design review; an agent must not invent a direct cross-feature collection read to implement it.
+- In-process events are not durable. A process failure can interrupt event handling and there is no guaranteed startup replay or automatic recovery.
+- Quota may continue using its last successfully applied projection/allowance after a missed event. A stale limit or missed policy reset is an accepted MVP risk.
+- Activation receipts only make duplicate delivery idempotent; they do not act as an event queue or detect missed events.
 
 ## Revisit when
 
-Revisit this ADR before extracting either module into a separate service, when persistent event delivery/retries become a requirement, or when the same-application reconciliation cannot keep policy state sufficiently correct.
+Revisit this ADR before extracting either module into a separate service, when durable delivery/retries become a requirement, or when the accepted risk of stale entitlement/allowance state is no longer acceptable.
