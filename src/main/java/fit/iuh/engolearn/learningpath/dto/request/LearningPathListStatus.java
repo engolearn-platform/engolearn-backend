@@ -1,4 +1,4 @@
-package fit.iuh.engolearn.learningpath.dto;
+package fit.iuh.engolearn.learningpath.dto.request;
 
 public enum LearningPathListStatus {
     ACTIVE,
