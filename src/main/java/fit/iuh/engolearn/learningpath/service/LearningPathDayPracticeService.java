@@ -1,10 +1,14 @@
 package fit.iuh.engolearn.learningpath.service;
 
+import fit.iuh.engolearn.learningpath.model.enums.LearningPathDayStatus;
+import fit.iuh.engolearn.learningpath.model.enums.LearningPathStatus;
+import fit.iuh.engolearn.learningpath.model.enums.LearningPathWeekStatus;
+
 import fit.iuh.engolearn.learningpath.dto.response.StartLearningPathDayResponse;
 import fit.iuh.engolearn.learningpath.model.LearningPath;
-import fit.iuh.engolearn.learningpath.model.LearningPathDay;
-import fit.iuh.engolearn.learningpath.model.LearningPathDayItem;
-import fit.iuh.engolearn.learningpath.model.LearningPathWeek;
+import fit.iuh.engolearn.learningpath.model.vo.LearningPathDay;
+import fit.iuh.engolearn.learningpath.model.vo.LearningPathDayItem;
+import fit.iuh.engolearn.learningpath.model.vo.LearningPathWeek;
 import fit.iuh.engolearn.learningpath.repository.LearningPathPracticeRepository;
 import fit.iuh.engolearn.learningpath.repository.LearningPathQuestionRepository;
 import fit.iuh.engolearn.learningpath.repository.LearningPathRepository;
@@ -85,14 +89,14 @@ public class LearningPathDayPracticeService {
                     .map(item -> question(item, snapshots.get(item.getQuestionId())))
                     .toList();
 
-            if ("NOT_STARTED".equals(day.getStatus())) {
+            if (LearningPathDayStatus.NOT_STARTED == day.getStatus()) {
                 LocalDate startedDate = LocalDate.ofInstant(now, ZONE);
                 Date startedAt = Date.from(now);
                 Date autoCloseAt = Date.from(startedDate.plusDays(1).atStartOfDay(ZONE).toInstant());
                 Date nextRunAt = path.getNextRunAt().before(autoCloseAt)
                         ? path.getNextRunAt() : autoCloseAt;
                 boolean started = practice.startDay(pathObjectId, userObjectId, weekNo, dayNo,
-                        path.getStatus(), path.getNextRunAt(), startedAt, startedDate.toString(),
+                        path.getStatus().name(), path.getNextRunAt(), startedAt, startedDate.toString(),
                         autoCloseAt, nextRunAt);
                 if (!started) continue;
                 return response(pathId, weekNo, dayNo, startedAt, autoCloseAt, questionInfos);
@@ -107,14 +111,14 @@ public class LearningPathDayPracticeService {
     private void ensureAvailable(LearningPath path, LearningPathWeek week,
                                  LearningPathDay day, Instant now) {
         if (!Boolean.TRUE.equals(path.getActive())
-                || !("NOT_STARTED".equals(path.getStatus()) || "IN_PROGRESS".equals(path.getStatus()))
+                || !(LearningPathStatus.NOT_STARTED == path.getStatus() || LearningPathStatus.IN_PROGRESS == path.getStatus())
                 || path.getNextRunAt() == null || !path.getNextRunAt().toInstant().isAfter(now)
                 || path.getInactivity() == null || path.getInactivity().getCancelAt() == null
                 || !path.getInactivity().getCancelAt().toInstant().isAfter(now)
-                || !"OPEN".equals(week.getStatus())
+                || LearningPathWeekStatus.OPEN != week.getStatus()
                 || week.getCloseAt() == null || !week.getCloseAt().toInstant().isAfter(now)
-                || !("NOT_STARTED".equals(day.getStatus()) || "IN_PROGRESS".equals(day.getStatus()))
-                || ("IN_PROGRESS".equals(day.getStatus())
+                || !(LearningPathDayStatus.NOT_STARTED == day.getStatus() || LearningPathDayStatus.IN_PROGRESS == day.getStatus())
+                || (LearningPathDayStatus.IN_PROGRESS == day.getStatus()
                 && (day.getAutoCloseAt() == null || !day.getAutoCloseAt().toInstant().isAfter(now)))) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
                     "Ngày luyện tập không còn khả dụng");

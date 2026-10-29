@@ -1,9 +1,11 @@
-package fit.iuh.engolearn.learningpath.model;
+package fit.iuh.engolearn.learningpath.model.vo;
+
+import fit.iuh.engolearn.shared.EmbeddedDocument;
 
 import lombok.Setter;
 
 @Setter
-public class LearningPathBaselineTotal {
+public class LearningPathBaselineTotal implements EmbeddedDocument {
 
     private Integer correct;
     private Integer total;

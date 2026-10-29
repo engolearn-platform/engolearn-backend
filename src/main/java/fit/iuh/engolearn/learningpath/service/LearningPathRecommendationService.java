@@ -4,7 +4,7 @@ import fit.iuh.engolearn.learningpath.dto.response.LearningPathRecommendationRes
 import fit.iuh.engolearn.learningpath.dto.response.LearningPathRecommendationResponse.State;
 import fit.iuh.engolearn.learningpath.dto.response.LearningPathRecommendationResponse;
 import fit.iuh.engolearn.learningpath.model.LearningPath;
-import fit.iuh.engolearn.learningpath.model.LearningPathMicroSkillSnapshot;
+import fit.iuh.engolearn.learningpath.model.vo.LearningPathMicroSkillSnapshot;
 import fit.iuh.engolearn.learningpath.model.PeriodicTestSnapshot;
 import fit.iuh.engolearn.learningpath.repository.LearningPathRepository;
 import fit.iuh.engolearn.learningpath.repository.PeriodicTestReadRepository;

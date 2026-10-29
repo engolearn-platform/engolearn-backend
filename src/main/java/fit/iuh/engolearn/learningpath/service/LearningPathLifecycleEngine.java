@@ -1,21 +1,29 @@
 package fit.iuh.engolearn.learningpath.service;
 
+import fit.iuh.engolearn.learningpath.model.enums.LearningPathCancelReason;
+import fit.iuh.engolearn.learningpath.model.enums.LearningPathComparisonType;
+import fit.iuh.engolearn.learningpath.model.enums.LearningPathDayCloseReason;
+import fit.iuh.engolearn.learningpath.model.enums.LearningPathDayStatus;
+import fit.iuh.engolearn.learningpath.model.enums.LearningPathStatus;
+import fit.iuh.engolearn.learningpath.model.enums.LearningPathWeekCloseReason;
+import fit.iuh.engolearn.learningpath.model.enums.LearningPathWeekStatus;
+
 import fit.iuh.engolearn.learningpath.model.LearningPath;
-import fit.iuh.engolearn.learningpath.model.LearningPathAnswer;
-import fit.iuh.engolearn.learningpath.model.LearningPathCancel;
-import fit.iuh.engolearn.learningpath.model.LearningPathComparedTo;
-import fit.iuh.engolearn.learningpath.model.LearningPathDay;
-import fit.iuh.engolearn.learningpath.model.LearningPathDayItem;
-import fit.iuh.engolearn.learningpath.model.LearningPathDayResult;
-import fit.iuh.engolearn.learningpath.model.LearningPathMicroSkillSnapshot;
-import fit.iuh.engolearn.learningpath.model.LearningPathMicroSkillWeekStats;
-import fit.iuh.engolearn.learningpath.model.LearningPathOverallWeekStats;
-import fit.iuh.engolearn.learningpath.model.LearningPathProgress;
-import fit.iuh.engolearn.learningpath.model.LearningPathSummary;
-import fit.iuh.engolearn.learningpath.model.LearningPathSummaryCompletion;
-import fit.iuh.engolearn.learningpath.model.LearningPathSummaryMicroSkill;
-import fit.iuh.engolearn.learningpath.model.LearningPathWeek;
-import fit.iuh.engolearn.learningpath.model.LearningPathWeekStats;
+import fit.iuh.engolearn.learningpath.model.vo.LearningPathAnswer;
+import fit.iuh.engolearn.learningpath.model.vo.LearningPathCancel;
+import fit.iuh.engolearn.learningpath.model.vo.LearningPathComparedTo;
+import fit.iuh.engolearn.learningpath.model.vo.LearningPathDay;
+import fit.iuh.engolearn.learningpath.model.vo.LearningPathDayItem;
+import fit.iuh.engolearn.learningpath.model.vo.LearningPathDayResult;
+import fit.iuh.engolearn.learningpath.model.vo.LearningPathMicroSkillSnapshot;
+import fit.iuh.engolearn.learningpath.model.vo.LearningPathMicroSkillWeekStats;
+import fit.iuh.engolearn.learningpath.model.vo.LearningPathOverallWeekStats;
+import fit.iuh.engolearn.learningpath.model.vo.LearningPathProgress;
+import fit.iuh.engolearn.learningpath.model.vo.LearningPathSummary;
+import fit.iuh.engolearn.learningpath.model.vo.LearningPathSummaryCompletion;
+import fit.iuh.engolearn.learningpath.model.vo.LearningPathSummaryMicroSkill;
+import fit.iuh.engolearn.learningpath.model.vo.LearningPathWeek;
+import fit.iuh.engolearn.learningpath.model.vo.LearningPathWeekStats;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
@@ -50,10 +58,10 @@ final class LearningPathLifecycleEngine {
         int weekIndex = path.getWeeks().indexOf(week);
         for (int dayIndex = 0; dayIndex < week.getDays().size(); dayIndex++) {
             LearningPathDay day = week.getDays().get(dayIndex);
-            if ("IN_PROGRESS".equals(day.getStatus()) && day.getAutoCloseAt() != null
+            if (LearningPathDayStatus.IN_PROGRESS == day.getStatus() && day.getAutoCloseAt() != null
                     && !day.getAutoCloseAt().toInstant().isAfter(eventAt)) {
                 closeDay(path, week, day, dayIndex, weekIndex,
-                        day.getAutoCloseAt().toInstant(), "MIDNIGHT", answerKeys, changes);
+                        day.getAutoCloseAt().toInstant(), LearningPathDayCloseReason.MIDNIGHT, answerKeys, changes);
             }
         }
 
@@ -67,9 +75,9 @@ final class LearningPathLifecycleEngine {
                 && !cancelAt.isAfter(eventAt)) {
             LearningPathCancel cancel = new LearningPathCancel();
             cancel.setAt(Date.from(cancelAt));
-            cancel.setReason("INACTIVITY");
+            cancel.setReason(LearningPathCancelReason.INACTIVITY);
             path.setCancel(cancel);
-            path.setStatus("CANCELLED");
+            path.setStatus(LearningPathStatus.CANCELLED);
             path.setActive(false);
             path.setEndedAt(Date.from(cancelAt));
             changes.put("cancel", cancel);
@@ -89,7 +97,7 @@ final class LearningPathLifecycleEngine {
             throw new IllegalStateException("Learning Path has no weeks: " + path.getId());
         }
         return path.getWeeks().stream()
-                .filter(week -> "OPEN".equals(week.getStatus()))
+                .filter(week -> LearningPathWeekStatus.OPEN == week.getStatus())
                 .findFirst()
                 .orElseThrow(() -> new IllegalStateException(
                         "Active Learning Path has no open week: " + path.getId()));
@@ -98,7 +106,7 @@ final class LearningPathLifecycleEngine {
     private Instant nextEvent(LearningPath path, LearningPathWeek week) {
         Instant next = weekDeadline(week);
         for (LearningPathDay day : week.getDays()) {
-            if ("IN_PROGRESS".equals(day.getStatus()) && day.getAutoCloseAt() != null) {
+            if (LearningPathDayStatus.IN_PROGRESS == day.getStatus() && day.getAutoCloseAt() != null) {
                 next = earlier(next, day.getAutoCloseAt().toInstant());
             }
         }
@@ -124,7 +132,7 @@ final class LearningPathLifecycleEngine {
     }
 
     private boolean isTerminalDay(LearningPathDay day) {
-        return "COMPLETED".equals(day.getStatus()) || "CLOSED".equals(day.getStatus());
+        return LearningPathDayStatus.COMPLETED == day.getStatus() || LearningPathDayStatus.CLOSED == day.getStatus();
     }
 
     private Instant midnightAtOrAfter(Instant instant) {
@@ -152,7 +160,7 @@ final class LearningPathLifecycleEngine {
     }
 
     private void closeDay(LearningPath path, LearningPathWeek week, LearningPathDay day,
-                          int dayIndex, int weekIndex, Instant at, String reason,
+                          int dayIndex, int weekIndex, Instant at, LearningPathDayCloseReason reason,
                           Map<String, String> answerKeys, Map<String, Object> changes) {
         String prefix = "weeks." + weekIndex + ".days." + dayIndex + ".";
         if (day.getItems() != null) {
@@ -176,13 +184,13 @@ final class LearningPathLifecycleEngine {
         }
         syncProgress(path, week, day, weekIndex, prefix, changes);
         LearningPathDayResult result = dayResult(day);
-        day.setStatus("CLOSED");
+        day.setStatus(LearningPathDayStatus.CLOSED);
         day.setClosedAt(Date.from(at));
         day.setCloseReason(reason);
         day.setResult(result);
         changes.put(prefix + "status", "CLOSED");
         changes.put(prefix + "closed_at", Date.from(at));
-        changes.put(prefix + "close_reason", reason);
+        changes.put(prefix + "close_reason", reason.name());
         changes.put(prefix + "result", result);
     }
 
@@ -231,16 +239,17 @@ final class LearningPathLifecycleEngine {
             LearningPathDay day = week.getDays().get(dayIndex);
             if (!isTerminalDay(day)) {
                 closeDay(path, week, day, dayIndex, weekIndex, at,
-                        "NOT_STARTED".equals(day.getStatus()) ? "WEEK_CLOSED" : "MIDNIGHT",
+                        LearningPathDayStatus.NOT_STARTED == day.getStatus()
+                                ? LearningPathDayCloseReason.WEEK_CLOSED : LearningPathDayCloseReason.MIDNIGHT,
                         answerKeys, changes);
             }
         }
 
         String prefix = "weeks." + weekIndex + ".";
-        String reason = week.getCloseAt() != null && !week.getCloseAt().toInstant().isAfter(at)
-                ? "TIME_UP" : "ALL_DAYS_DONE";
+        LearningPathWeekCloseReason reason = week.getCloseAt() != null && !week.getCloseAt().toInstant().isAfter(at)
+                ? LearningPathWeekCloseReason.TIME_UP : LearningPathWeekCloseReason.ALL_DAYS_DONE;
         LearningPathWeekStats stats = weekStats(path, week, weekIndex);
-        week.setStatus("CLOSED");
+        week.setStatus(LearningPathWeekStatus.CLOSED);
         week.setClosedAt(Date.from(at));
         week.setCloseAt(Date.from(at));
         week.setCloseReason(reason);
@@ -248,13 +257,13 @@ final class LearningPathLifecycleEngine {
         changes.put(prefix + "status", "CLOSED");
         changes.put(prefix + "closed_at", Date.from(at));
         changes.put(prefix + "close_at", Date.from(at));
-        changes.put(prefix + "close_reason", reason);
+        changes.put(prefix + "close_reason", reason.name());
         changes.put(prefix + "stats", stats);
 
         if (week.getWeekNo() == 3) {
             LearningPathSummary summary = summary(path, at);
             path.setSummary(summary);
-            path.setStatus("COMPLETED");
+            path.setStatus(LearningPathStatus.COMPLETED);
             path.setActive(false);
             path.setEndedAt(Date.from(at));
             changes.put("summary", summary);
@@ -267,7 +276,7 @@ final class LearningPathLifecycleEngine {
         LearningPathWeek next = path.getWeeks().get(weekIndex + 1);
         Instant nextClose = at.atZone(ZONE).toLocalDate().plusDays(7)
                 .atStartOfDay(ZONE).toInstant();
-        next.setStatus("OPEN");
+        next.setStatus(LearningPathWeekStatus.OPEN);
         next.setOpenedAt(Date.from(at));
         next.setCloseAt(Date.from(nextClose));
         path.setCurrentWeekNo(next.getWeekNo());
@@ -320,7 +329,8 @@ final class LearningPathLifecycleEngine {
 
     private LearningPathComparedTo comparison(int weekIndex, Double percent) {
         LearningPathComparedTo comparedTo = new LearningPathComparedTo();
-        comparedTo.setType(weekIndex == 0 ? "SOURCE_TEST" : "PREVIOUS_WEEK");
+        comparedTo.setType(weekIndex == 0
+                ? LearningPathComparisonType.SOURCE_TEST : LearningPathComparisonType.PREVIOUS_WEEK);
         comparedTo.setWeekNo(weekIndex == 0 ? null : weekIndex);
         comparedTo.setPercent(percent);
         return comparedTo;

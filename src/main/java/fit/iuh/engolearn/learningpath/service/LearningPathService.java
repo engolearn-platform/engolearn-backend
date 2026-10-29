@@ -1,25 +1,28 @@
 
 package fit.iuh.engolearn.learningpath.service;
 
+import fit.iuh.engolearn.learningpath.model.enums.LearningPathStatus;
+import fit.iuh.engolearn.learningpath.model.enums.LearningPathWeekStatus;
+
 import fit.iuh.engolearn.learningpath.dto.LearningPathDetailResponse;
 import fit.iuh.engolearn.learningpath.dto.LearningPathListItemResponse;
 import fit.iuh.engolearn.learningpath.dto.LearningPathListResponse;
 import fit.iuh.engolearn.learningpath.dto.LearningPathListStatus;
 import fit.iuh.engolearn.learningpath.model.LearningPath;
-import fit.iuh.engolearn.learningpath.model.LearningPathComparedTo;
-import fit.iuh.engolearn.learningpath.model.LearningPathConfig;
-import fit.iuh.engolearn.learningpath.model.LearningPathDay;
-import fit.iuh.engolearn.learningpath.model.LearningPathDayItem;
-import fit.iuh.engolearn.learningpath.model.LearningPathDayResult;
-import fit.iuh.engolearn.learningpath.model.LearningPathMicroSkillSnapshot;
-import fit.iuh.engolearn.learningpath.model.LearningPathMicroSkillWeekStats;
-import fit.iuh.engolearn.learningpath.model.LearningPathOverallWeekStats;
-import fit.iuh.engolearn.learningpath.model.LearningPathProgress;
-import fit.iuh.engolearn.learningpath.model.LearningPathSummary;
-import fit.iuh.engolearn.learningpath.model.LearningPathSummaryCompletion;
-import fit.iuh.engolearn.learningpath.model.LearningPathSummaryMicroSkill;
-import fit.iuh.engolearn.learningpath.model.LearningPathWeek;
-import fit.iuh.engolearn.learningpath.model.LearningPathWeekStats;
+import fit.iuh.engolearn.learningpath.model.vo.LearningPathComparedTo;
+import fit.iuh.engolearn.learningpath.model.vo.LearningPathConfig;
+import fit.iuh.engolearn.learningpath.model.vo.LearningPathDay;
+import fit.iuh.engolearn.learningpath.model.vo.LearningPathDayItem;
+import fit.iuh.engolearn.learningpath.model.vo.LearningPathDayResult;
+import fit.iuh.engolearn.learningpath.model.vo.LearningPathMicroSkillSnapshot;
+import fit.iuh.engolearn.learningpath.model.vo.LearningPathMicroSkillWeekStats;
+import fit.iuh.engolearn.learningpath.model.vo.LearningPathOverallWeekStats;
+import fit.iuh.engolearn.learningpath.model.vo.LearningPathProgress;
+import fit.iuh.engolearn.learningpath.model.vo.LearningPathSummary;
+import fit.iuh.engolearn.learningpath.model.vo.LearningPathSummaryCompletion;
+import fit.iuh.engolearn.learningpath.model.vo.LearningPathSummaryMicroSkill;
+import fit.iuh.engolearn.learningpath.model.vo.LearningPathWeek;
+import fit.iuh.engolearn.learningpath.model.vo.LearningPathWeekStats;
 import fit.iuh.engolearn.learningpath.repository.LearningPathRepository;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
@@ -158,7 +161,7 @@ public class LearningPathService {
                 path.getLevel(),
                 path.getK(),
                 skills,
-                path.getStatus(),
+                path.getStatus().name(),
                 path.getCurrentWeekNo(),
                 progress
         );
@@ -174,7 +177,7 @@ public class LearningPathService {
                         "Không tìm thấy Learning Path"
                 ));
 
-        if ("CANCELLED".equals(path.getStatus())) {
+        if (LearningPathStatus.CANCELLED == path.getStatus()) {
             throw new ResponseStatusException(
                     HttpStatus.CONFLICT,
                     "Learning Path đã bị hủy và không thể mở"
@@ -228,7 +231,7 @@ public class LearningPathService {
                         .toList();
 
         LearningPathDetailResponse.SummaryInfo summary =
-                "COMPLETED".equals(path.getStatus()) && path.getSummary() != null
+                LearningPathStatus.COMPLETED == path.getStatus() && path.getSummary() != null
                         ? toSummaryInfo(path.getSummary())
                         : null;
 
@@ -237,7 +240,7 @@ public class LearningPathService {
                 path.getCreatedDate(),
                 path.getLevel(),
                 path.getK(),
-                path.getStatus(),
+                path.getStatus().name(),
                 path.getCurrentWeekNo(),
                 configInfo,
                 microSkills,
@@ -252,7 +255,7 @@ public class LearningPathService {
             LearningPathWeek week
     ) {
         List<LearningPathDetailResponse.DayInfo> days =
-                "LOCKED".equals(week.getStatus())
+                LearningPathWeekStatus.LOCKED == week.getStatus()
                         ? List.of()
                         : (week.getDays() == null
                         ? Collections.<LearningPathDay>emptyList()
@@ -262,13 +265,13 @@ public class LearningPathService {
                         .toList();
 
         LearningPathDetailResponse.WeekStatsInfo stats =
-                "CLOSED".equals(week.getStatus()) && week.getStats() != null
+                LearningPathWeekStatus.CLOSED == week.getStatus() && week.getStats() != null
                         ? toWeekStatsInfo(week.getStats())
                         : null;
 
         return new LearningPathDetailResponse.WeekInfo(
                 week.getWeekNo(),
-                week.getStatus(),
+                week.getStatus().name(),
                 week.getOpenedAt(),
                 week.getCloseAt(),
                 week.getClosedAt(),
@@ -294,7 +297,7 @@ public class LearningPathService {
 
         return new LearningPathDetailResponse.DayInfo(
                 day.getDayNo(),
-                day.getStatus(),
+                day.getStatus().name(),
                 day.getStartedDate(),
                 day.getAutoCloseAt(),
                 day.getClosedAt(),
@@ -385,7 +388,7 @@ public class LearningPathService {
         }
 
         return new LearningPathDetailResponse.ComparedToInfo(
-                comparedTo.getType(),
+                comparedTo.getType().name(),
                 comparedTo.getWeekNo(),
                 comparedTo.getPercent()
         );

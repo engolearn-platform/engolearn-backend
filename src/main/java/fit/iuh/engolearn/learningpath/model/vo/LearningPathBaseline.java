@@ -1,11 +1,13 @@
-package fit.iuh.engolearn.learningpath.model;
+package fit.iuh.engolearn.learningpath.model.vo;
+
+import fit.iuh.engolearn.shared.EmbeddedDocument;
 
 import lombok.Setter;
 import org.bson.types.ObjectId;
 import org.springframework.data.mongodb.core.mapping.Field;
 
 @Setter
-public class LearningPathBaseline {
+public class LearningPathBaseline implements EmbeddedDocument {
 
     private Integer correct;
     private Integer total;

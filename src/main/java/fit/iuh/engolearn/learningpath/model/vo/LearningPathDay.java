@@ -1,17 +1,21 @@
-package fit.iuh.engolearn.learningpath.model;
+package fit.iuh.engolearn.learningpath.model.vo;
 
+import fit.iuh.engolearn.shared.EmbeddedDocument;
+
+import fit.iuh.engolearn.learningpath.model.enums.LearningPathDayCloseReason;
+import fit.iuh.engolearn.learningpath.model.enums.LearningPathDayStatus;
 import java.util.Date;
 import java.util.List;
 import lombok.Setter;
 import org.springframework.data.mongodb.core.mapping.Field;
 
 @Setter
-public class LearningPathDay {
+public class LearningPathDay implements EmbeddedDocument {
 
     @Field("day_no")
     private Integer dayNo;
 
-    private String status;
+    private LearningPathDayStatus status;
 
     @Field("started_at")
     private Date startedAt;
@@ -26,7 +30,7 @@ public class LearningPathDay {
     private Date closedAt;
 
     @Field("close_reason")
-    private String closeReason;
+    private LearningPathDayCloseReason closeReason;
 
     private LearningPathProgress progress;
     private LearningPathDayResult result;
@@ -36,7 +40,7 @@ public class LearningPathDay {
         return dayNo;
     }
 
-    public String getStatus() {
+    public LearningPathDayStatus getStatus() {
         return status;
     }
 
@@ -56,7 +60,7 @@ public class LearningPathDay {
         return closedAt;
     }
 
-    public String getCloseReason() {
+    public LearningPathDayCloseReason getCloseReason() {
         return closeReason;
     }
 

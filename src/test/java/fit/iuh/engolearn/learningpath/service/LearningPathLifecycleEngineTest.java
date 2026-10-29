@@ -1,16 +1,20 @@
 package fit.iuh.engolearn.learningpath.service;
 
+import fit.iuh.engolearn.learningpath.model.enums.LearningPathStatus;
+import fit.iuh.engolearn.learningpath.model.enums.LearningPathWeekStatus;
+import fit.iuh.engolearn.learningpath.model.enums.LearningPathDayStatus;
+
 import fit.iuh.engolearn.learningpath.model.LearningPath;
-import fit.iuh.engolearn.learningpath.model.LearningPathAnswer;
-import fit.iuh.engolearn.learningpath.model.LearningPathBaseline;
-import fit.iuh.engolearn.learningpath.model.LearningPathBaselineTotal;
-import fit.iuh.engolearn.learningpath.model.LearningPathDay;
-import fit.iuh.engolearn.learningpath.model.LearningPathDayItem;
-import fit.iuh.engolearn.learningpath.model.LearningPathDraft;
-import fit.iuh.engolearn.learningpath.model.LearningPathInactivity;
-import fit.iuh.engolearn.learningpath.model.LearningPathMicroSkillSnapshot;
-import fit.iuh.engolearn.learningpath.model.LearningPathProgress;
-import fit.iuh.engolearn.learningpath.model.LearningPathWeek;
+import fit.iuh.engolearn.learningpath.model.vo.LearningPathAnswer;
+import fit.iuh.engolearn.learningpath.model.vo.LearningPathBaseline;
+import fit.iuh.engolearn.learningpath.model.vo.LearningPathBaselineTotal;
+import fit.iuh.engolearn.learningpath.model.vo.LearningPathDay;
+import fit.iuh.engolearn.learningpath.model.vo.LearningPathDayItem;
+import fit.iuh.engolearn.learningpath.model.vo.LearningPathDraft;
+import fit.iuh.engolearn.learningpath.model.vo.LearningPathInactivity;
+import fit.iuh.engolearn.learningpath.model.vo.LearningPathMicroSkillSnapshot;
+import fit.iuh.engolearn.learningpath.model.vo.LearningPathProgress;
+import fit.iuh.engolearn.learningpath.model.vo.LearningPathWeek;
 import fit.iuh.engolearn.learningpath.repository.LearningPathLifecycleRepository;
 import fit.iuh.engolearn.learningpath.repository.LearningPathQuestionRepository;
 import java.time.Instant;
@@ -38,15 +42,15 @@ class LearningPathLifecycleEngineTest {
 
         engine.advance(path, midnight("2026-10-08"));
 
-        assertThat(path.getWeeks().get(0).getDays().get(0).getStatus()).isEqualTo("CLOSED");
-        assertThat(path.getWeeks().get(0).getDays().get(0).getCloseReason())
+        assertThat(path.getWeeks().get(0).getDays().get(0).getStatus().name()).isEqualTo("CLOSED");
+        assertThat(path.getWeeks().get(0).getDays().get(0).getCloseReason().name())
                 .isEqualTo("WEEK_CLOSED");
         assertThat(path.getWeeks().get(0).getDays().get(0).getResult().getPracticeScore())
                 .isNull();
         assertThat(path.getWeeks().get(0).getStats().getOverall().getCompletionRate())
                 .isZero();
-        assertThat(path.getWeeks().get(1).getStatus()).isEqualTo("OPEN");
-        assertThat(path.getStatus()).isEqualTo("NOT_STARTED");
+        assertThat(path.getWeeks().get(1).getStatus().name()).isEqualTo("OPEN");
+        assertThat(path.getStatus().name()).isEqualTo("NOT_STARTED");
     }
 
     @Test
@@ -57,7 +61,7 @@ class LearningPathLifecycleEngineTest {
         engine.advance(path, midnight("2026-10-08"));
 
         LearningPathDay day = path.getWeeks().get(0).getDays().get(0);
-        assertThat(day.getStatus()).isEqualTo("CLOSED");
+        assertThat(day.getStatus().name()).isEqualTo("CLOSED");
         assertThat(day.getResult().getWrong()).isEqualTo(2);
         assertThat(day.getResult().getCompletionRate()).isEqualTo(60.0);
         assertThat(day.getResult().getPracticeScore()).isCloseTo(66.6666666667,
@@ -99,17 +103,17 @@ class LearningPathLifecycleEngineTest {
         LearningPath path = path("2026-10-09", "2026-10-09");
         startFirstDay(path, "2026-10-09", 10, 8);
         LearningPathDay day = path.getWeeks().get(0).getDays().get(0);
-        day.setStatus("COMPLETED");
+        day.setStatus(LearningPathDayStatus.COMPLETED);
         day.setClosedAt(Date.from(Instant.parse("2026-10-09T03:00:00Z")));
 
         var beforeMidnight = engine.advance(path, Instant.parse("2026-10-09T16:59:59Z"));
         assertThat(beforeMidnight.get("next_run_at"))
                 .isEqualTo(Date.from(midnight("2026-10-10")));
-        assertThat(path.getWeeks().get(0).getStatus()).isEqualTo("OPEN");
+        assertThat(path.getWeeks().get(0).getStatus().name()).isEqualTo("OPEN");
 
         engine.advance(path, midnight("2026-10-10"));
-        assertThat(path.getWeeks().get(0).getCloseReason()).isEqualTo("ALL_DAYS_DONE");
-        assertThat(path.getWeeks().get(1).getStatus()).isEqualTo("OPEN");
+        assertThat(path.getWeeks().get(0).getCloseReason().name()).isEqualTo("ALL_DAYS_DONE");
+        assertThat(path.getWeeks().get(1).getStatus().name()).isEqualTo("OPEN");
     }
 
     @Test
@@ -121,9 +125,9 @@ class LearningPathLifecycleEngineTest {
         engine.advance(path, recoveredAt);
         engine.advance(path, recoveredAt);
 
-        assertThat(path.getStatus()).isEqualTo("CANCELLED");
+        assertThat(path.getStatus().name()).isEqualTo("CANCELLED");
         assertThat(path.getCancel().getAt()).isEqualTo(Date.from(midnight("2026-10-16")));
-        assertThat(path.getWeeks().get(2).getStatus()).isEqualTo("OPEN");
+        assertThat(path.getWeeks().get(2).getStatus().name()).isEqualTo("OPEN");
         assertThat(path.getSummary()).isNull();
     }
 
@@ -137,7 +141,7 @@ class LearningPathLifecycleEngineTest {
         engine.advance(path, recoveredAt);
         engine.advance(path, recoveredAt);
 
-        assertThat(path.getStatus()).isEqualTo("COMPLETED");
+        assertThat(path.getStatus().name()).isEqualTo("COMPLETED");
         assertThat(path.getCancel()).isNull();
         assertThat(path.getSummary()).isNotNull();
         assertThat(path.getSummary().getCompletion().getAnswered()).isEqualTo(1);
@@ -153,7 +157,7 @@ class LearningPathLifecycleEngineTest {
         new LearningPathLifecycleService(repository, mock(LearningPathQuestionRepository.class))
                 .processDue(recoveredAt);
 
-        assertThat(path.getStatus()).isEqualTo("CANCELLED");
+        assertThat(path.getStatus().name()).isEqualTo("CANCELLED");
         assertThat(repository.transitions).isEqualTo(3);
     }
 
@@ -186,7 +190,7 @@ class LearningPathLifecycleEngineTest {
     private LearningPath path(String createdDate, String anchorDate) {
         LearningPath path = new LearningPath();
         path.setCreatedDate(createdDate);
-        path.setStatus("NOT_STARTED");
+        path.setStatus(LearningPathStatus.NOT_STARTED);
         path.setActive(true);
         path.setCurrentWeekNo(1);
         LearningPathProgress progress = new LearningPathProgress();
@@ -213,7 +217,7 @@ class LearningPathLifecycleEngineTest {
         for (int number = 1; number <= 3; number++) {
             LearningPathWeek week = new LearningPathWeek();
             week.setWeekNo(number);
-            week.setStatus(number == 1 ? "OPEN" : "LOCKED");
+            week.setStatus(number == 1 ? LearningPathWeekStatus.OPEN : LearningPathWeekStatus.LOCKED);
             if (number == 1) {
                 week.setOpenedAt(Date.from(midnight(createdDate)));
                 week.setCloseAt(Date.from(LocalDate.parse(createdDate).plusDays(7)
@@ -221,7 +225,7 @@ class LearningPathLifecycleEngineTest {
             }
             LearningPathDay day = new LearningPathDay();
             day.setDayNo(1);
-            day.setStatus("NOT_STARTED");
+            day.setStatus(LearningPathDayStatus.NOT_STARTED);
             day.setItems(new ArrayList<>());
             for (int order = 1; order <= 10; order++) {
                 LearningPathDayItem item = new LearningPathDayItem();
@@ -238,9 +242,9 @@ class LearningPathLifecycleEngineTest {
     }
 
     private void startFirstDay(LearningPath path, String date, int answered, int correct) {
-        path.setStatus("IN_PROGRESS");
+        path.setStatus(LearningPathStatus.IN_PROGRESS);
         LearningPathDay day = path.getWeeks().get(0).getDays().get(0);
-        day.setStatus("IN_PROGRESS");
+        day.setStatus(LearningPathDayStatus.IN_PROGRESS);
         day.setStartedDate(date);
         day.setAutoCloseAt(Date.from(LocalDate.parse(date).plusDays(1)
                 .atStartOfDay(LearningPathLifecycleEngine.ZONE).toInstant()));

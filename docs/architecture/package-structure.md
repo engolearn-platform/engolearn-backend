@@ -4,7 +4,7 @@ The application is a single Maven module. Organize production code by **feature 
 
 ```text
 fit.iuh.engolearn
-├── <feature>                 current features: topic, dictionary, user
+├── <feature>                 current features: topic, dictionary, user, learningpath
 │   ├── contract              public capability interfaces and contract types
 │   │   └── dto               DTOs shared through that contract
 │   ├── controller            frontend HTTP endpoints
@@ -15,6 +15,8 @@ fit.iuh.engolearn
 │   ├── repository            persistence access
 │   ├── mapper                feature-local DTO/VO mapping helpers
 │   ├── model                 feature-owned entities/documents and domain types
+│   │   ├── enums             feature-owned persisted states and classifications, when needed
+│   │   └── vo                embedded document types, when needed
 │   ├── exception             optional; only for feature-local exceptions
 │   └── utils                 optional; feature-local helpers and their abstractions
 ├── shared                    cross-cutting types with no feature knowledge

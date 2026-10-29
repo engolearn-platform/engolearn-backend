@@ -1,18 +1,20 @@
 package fit.iuh.engolearn.learningpath.service;
 
+import fit.iuh.engolearn.learningpath.model.enums.LearningPathStatus;
+
 import fit.iuh.engolearn.learningpath.dto.request.CreateLearningPathRequest;
 import fit.iuh.engolearn.learningpath.dto.response.CreateLearningPathResponse;
 import fit.iuh.engolearn.learningpath.dto.response.LearningPathRecommendationResponse;
 import fit.iuh.engolearn.learningpath.exception.RecommendationChangedException;
 import fit.iuh.engolearn.learningpath.model.LearningPath;
-import fit.iuh.engolearn.learningpath.model.LearningPathBaseline;
-import fit.iuh.engolearn.learningpath.model.LearningPathBaselineTotal;
-import fit.iuh.engolearn.learningpath.model.LearningPathConfig;
-import fit.iuh.engolearn.learningpath.model.LearningPathInactivity;
-import fit.iuh.engolearn.learningpath.model.LearningPathMicroSkillSnapshot;
-import fit.iuh.engolearn.learningpath.model.LearningPathProgress;
-import fit.iuh.engolearn.learningpath.model.LearningPathSource;
-import fit.iuh.engolearn.learningpath.model.LearningPathWeek;
+import fit.iuh.engolearn.learningpath.model.vo.LearningPathBaseline;
+import fit.iuh.engolearn.learningpath.model.vo.LearningPathBaselineTotal;
+import fit.iuh.engolearn.learningpath.model.vo.LearningPathConfig;
+import fit.iuh.engolearn.learningpath.model.vo.LearningPathInactivity;
+import fit.iuh.engolearn.learningpath.model.vo.LearningPathMicroSkillSnapshot;
+import fit.iuh.engolearn.learningpath.model.vo.LearningPathProgress;
+import fit.iuh.engolearn.learningpath.model.vo.LearningPathSource;
+import fit.iuh.engolearn.learningpath.model.vo.LearningPathWeek;
 import fit.iuh.engolearn.learningpath.model.PeriodicTestSnapshot;
 import fit.iuh.engolearn.learningpath.repository.LearningPathRepository;
 import fit.iuh.engolearn.learningpath.repository.PeriodicTestReadRepository;
@@ -149,7 +151,7 @@ public class LearningPathCreationService {
         path.setCreatedDate(createdDate.toString());
         path.setLevel(test.level());
         path.setK(skills.size());
-        path.setStatus("NOT_STARTED");
+        path.setStatus(LearningPathStatus.NOT_STARTED);
         path.setActive(true);
         path.setCurrentWeekNo(1);
 

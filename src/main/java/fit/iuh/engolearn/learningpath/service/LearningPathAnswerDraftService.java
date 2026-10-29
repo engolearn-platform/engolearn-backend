@@ -1,12 +1,16 @@
 package fit.iuh.engolearn.learningpath.service;
 
+import fit.iuh.engolearn.learningpath.model.enums.LearningPathDayStatus;
+import fit.iuh.engolearn.learningpath.model.enums.LearningPathStatus;
+import fit.iuh.engolearn.learningpath.model.enums.LearningPathWeekStatus;
+
 import fit.iuh.engolearn.learningpath.dto.request.SaveLearningPathAnswerDraftRequest;
 import fit.iuh.engolearn.learningpath.dto.response.SaveLearningPathAnswerDraftResponse;
 import fit.iuh.engolearn.learningpath.model.LearningPath;
-import fit.iuh.engolearn.learningpath.model.LearningPathDay;
-import fit.iuh.engolearn.learningpath.model.LearningPathDayItem;
-import fit.iuh.engolearn.learningpath.model.LearningPathDraft;
-import fit.iuh.engolearn.learningpath.model.LearningPathWeek;
+import fit.iuh.engolearn.learningpath.model.vo.LearningPathDay;
+import fit.iuh.engolearn.learningpath.model.vo.LearningPathDayItem;
+import fit.iuh.engolearn.learningpath.model.vo.LearningPathDraft;
+import fit.iuh.engolearn.learningpath.model.vo.LearningPathWeek;
 import fit.iuh.engolearn.learningpath.repository.LearningPathPracticeRepository;
 import fit.iuh.engolearn.learningpath.repository.LearningPathQuestionRepository;
 import fit.iuh.engolearn.learningpath.repository.LearningPathRepository;
@@ -77,7 +81,7 @@ public class LearningPathAnswerDraftService {
             Date cancelAt = Date.from(activityDate.plusDays(15).atStartOfDay(ZONE).toInstant());
             Date nextRunAt = earlier(week.getCloseAt(), cancelAt);
             for (LearningPathDay scheduledDay : week.getDays()) {
-                if ("IN_PROGRESS".equals(scheduledDay.getStatus())
+                if (LearningPathDayStatus.IN_PROGRESS == scheduledDay.getStatus()
                         && scheduledDay.getAutoCloseAt() != null) {
                     nextRunAt = earlier(nextRunAt, scheduledDay.getAutoCloseAt());
                 }
@@ -98,13 +102,13 @@ public class LearningPathAnswerDraftService {
 
     private void ensureEditable(LearningPath path, LearningPathWeek week,
                                 LearningPathDay day, LearningPathDayItem item, Instant now) {
-        if (!Boolean.TRUE.equals(path.getActive()) || !"IN_PROGRESS".equals(path.getStatus())
+        if (!Boolean.TRUE.equals(path.getActive()) || LearningPathStatus.IN_PROGRESS != path.getStatus()
                 || path.getNextRunAt() == null || !path.getNextRunAt().toInstant().isAfter(now)
                 || path.getInactivity() == null || path.getInactivity().getCancelAt() == null
                 || !path.getInactivity().getCancelAt().toInstant().isAfter(now)
-                || !"OPEN".equals(week.getStatus())
+                || LearningPathWeekStatus.OPEN != week.getStatus()
                 || week.getCloseAt() == null || !week.getCloseAt().toInstant().isAfter(now)
-                || !"IN_PROGRESS".equals(day.getStatus())
+                || LearningPathDayStatus.IN_PROGRESS != day.getStatus()
                 || day.getAutoCloseAt() == null || !day.getAutoCloseAt().toInstant().isAfter(now)
                 || item.getAnswer() != null) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,

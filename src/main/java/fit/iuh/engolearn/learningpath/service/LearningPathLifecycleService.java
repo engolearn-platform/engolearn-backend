@@ -1,8 +1,11 @@
 package fit.iuh.engolearn.learningpath.service;
 
+import fit.iuh.engolearn.learningpath.model.enums.LearningPathDayStatus;
+import fit.iuh.engolearn.learningpath.model.enums.LearningPathWeekStatus;
+
 import fit.iuh.engolearn.learningpath.model.LearningPath;
-import fit.iuh.engolearn.learningpath.model.LearningPathDay;
-import fit.iuh.engolearn.learningpath.model.LearningPathDayItem;
+import fit.iuh.engolearn.learningpath.model.vo.LearningPathDay;
+import fit.iuh.engolearn.learningpath.model.vo.LearningPathDayItem;
 import fit.iuh.engolearn.learningpath.repository.LearningPathLifecycleRepository;
 import fit.iuh.engolearn.learningpath.repository.LearningPathQuestionRepository;
 import java.time.Instant;
@@ -58,7 +61,7 @@ public class LearningPathLifecycleService {
                     || path.getNextRunAt().toInstant().isAfter(now)) {
                 return;
             }
-            String expectedStatus = path.getStatus();
+            String expectedStatus = path.getStatus().name();
             Date expectedNextRunAt = path.getNextRunAt();
             Integer expectedAnswered = path.getProgress() == null
                     ? null : path.getProgress().getAnswered();
@@ -73,9 +76,9 @@ public class LearningPathLifecycleService {
 
     private Map<String, String> answerKeys(LearningPath path) {
         List<String> ids = path.getWeeks().stream()
-                .filter(week -> "OPEN".equals(week.getStatus()))
+                .filter(week -> LearningPathWeekStatus.OPEN == week.getStatus())
                 .flatMap(week -> week.getDays().stream())
-                .filter(day -> "IN_PROGRESS".equals(day.getStatus()))
+                .filter(day -> LearningPathDayStatus.IN_PROGRESS == day.getStatus())
                 .flatMap(day -> day.getItems().stream())
                 .filter(item -> item.getDraft() != null && item.getAnswer() == null)
                 .map(LearningPathDayItem::getQuestionId)

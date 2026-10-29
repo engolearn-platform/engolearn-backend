@@ -1,6 +1,16 @@
 
 package fit.iuh.engolearn.learningpath.model;
 
+import fit.iuh.engolearn.learningpath.model.enums.LearningPathStatus;
+import fit.iuh.engolearn.learningpath.model.vo.LearningPathBaselineTotal;
+import fit.iuh.engolearn.learningpath.model.vo.LearningPathCancel;
+import fit.iuh.engolearn.learningpath.model.vo.LearningPathConfig;
+import fit.iuh.engolearn.learningpath.model.vo.LearningPathInactivity;
+import fit.iuh.engolearn.learningpath.model.vo.LearningPathMicroSkillSnapshot;
+import fit.iuh.engolearn.learningpath.model.vo.LearningPathProgress;
+import fit.iuh.engolearn.learningpath.model.vo.LearningPathSource;
+import fit.iuh.engolearn.learningpath.model.vo.LearningPathSummary;
+import fit.iuh.engolearn.learningpath.model.vo.LearningPathWeek;
 import java.util.Date;
 import java.util.List;
 import lombok.Setter;
@@ -32,7 +42,7 @@ public class LearningPath {
 
     private String level;
     private Integer k;
-    private String status;
+    private LearningPathStatus status;
 
     @Field("is_active")
     private Boolean active;
@@ -91,7 +101,7 @@ public class LearningPath {
         return k;
     }
 
-    public String getStatus() {
+    public LearningPathStatus getStatus() {
         return status;
     }
 
