@@ -30,7 +30,7 @@ class ArchitectureTest {
     private static final String BASE = ROOT_PACKAGE + ".";
     private static final Set<String> INFRA = Set.of("shared", "config");
     private static final Set<String> TOP_LEVEL_PACKAGES = Set.of(
-        "topic", "dictionary", "user", "learningpath", "shared", "config"
+        "topic", "dictionary", "user", "learningpath", "subscription", "quota", "shared", "config"
     );
     private static final Set<String> FEATURE_LAYERS = Set.of(
         "contract", "controller", "dto", "service", "repository", "model", "exception", "utils", "mapper"

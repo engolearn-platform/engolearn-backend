@@ -1,0 +1,13 @@
+spring:
+  mongodb:
+    uri: mongodb://localhost:27018/engolearn_subscription_local?replicaSet=subscription-rs&directConnection=true
+    database: engolearn_subscription_local
+    username: ""
+    password: ""
+engolearn:
+  mongodb:
+    transactions:
+      enabled: true
+  security:
+    dev-auth:
+      enabled: true
