@@ -1,10 +1,13 @@
 package fit.iuh.engolearn.learningpath.service;
 
+import fit.iuh.engolearn.learningpath.model.enums.LearningPathDayStatus;
+import fit.iuh.engolearn.learningpath.model.enums.LearningPathWeekStatus;
+
 import fit.iuh.engolearn.learningpath.model.LearningPath;
-import fit.iuh.engolearn.learningpath.model.LearningPathDay;
-import fit.iuh.engolearn.learningpath.model.LearningPathDayItem;
-import fit.iuh.engolearn.learningpath.model.LearningPathProgress;
-import fit.iuh.engolearn.learningpath.model.LearningPathWeek;
+import fit.iuh.engolearn.learningpath.model.vo.LearningPathDay;
+import fit.iuh.engolearn.learningpath.model.vo.LearningPathDayItem;
+import fit.iuh.engolearn.learningpath.model.vo.LearningPathProgress;
+import fit.iuh.engolearn.learningpath.model.vo.LearningPathWeek;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
@@ -82,7 +85,7 @@ public class LearningPlanGenerator {
                 }
                 LearningPathDay day = new LearningPathDay();
                 day.setDayNo(dayIndex + 1);
-                day.setStatus("NOT_STARTED");
+                day.setStatus(LearningPathDayStatus.NOT_STARTED);
                 day.setProgress(progress(10));
                 day.setItems(items);
                 days.add(day);
@@ -90,7 +93,7 @@ public class LearningPlanGenerator {
 
             LearningPathWeek week = new LearningPathWeek();
             week.setWeekNo(weekIndex + 1);
-            week.setStatus(weekIndex == 0 ? "OPEN" : "LOCKED");
+            week.setStatus(weekIndex == 0 ? LearningPathWeekStatus.OPEN : LearningPathWeekStatus.LOCKED);
             if (weekIndex == 0) {
                 week.setOpenedAt(createdAt);
                 week.setCloseAt(Date.from(createdDate.plusDays(7)

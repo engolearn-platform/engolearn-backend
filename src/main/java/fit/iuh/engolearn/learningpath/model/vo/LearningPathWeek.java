@@ -1,17 +1,21 @@
-package fit.iuh.engolearn.learningpath.model;
+package fit.iuh.engolearn.learningpath.model.vo;
 
+import fit.iuh.engolearn.shared.EmbeddedDocument;
+
+import fit.iuh.engolearn.learningpath.model.enums.LearningPathWeekCloseReason;
+import fit.iuh.engolearn.learningpath.model.enums.LearningPathWeekStatus;
 import java.util.Date;
 import java.util.List;
 import lombok.Setter;
 import org.springframework.data.mongodb.core.mapping.Field;
 
 @Setter
-public class LearningPathWeek {
+public class LearningPathWeek implements EmbeddedDocument {
 
     @Field("week_no")
     private Integer weekNo;
 
-    private String status;
+    private LearningPathWeekStatus status;
 
     @Field("opened_at")
     private Date openedAt;
@@ -23,7 +27,7 @@ public class LearningPathWeek {
     private Date closedAt;
 
     @Field("close_reason")
-    private String closeReason;
+    private LearningPathWeekCloseReason closeReason;
 
     private LearningPathProgress progress;
     private LearningPathWeekStats stats;
@@ -33,7 +37,7 @@ public class LearningPathWeek {
         return weekNo;
     }
 
-    public String getStatus() {
+    public LearningPathWeekStatus getStatus() {
         return status;
     }
 
@@ -49,7 +53,7 @@ public class LearningPathWeek {
         return closedAt;
     }
 
-    public String getCloseReason() {
+    public LearningPathWeekCloseReason getCloseReason() {
         return closeReason;
     }
 

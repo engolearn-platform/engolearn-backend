@@ -1,12 +1,16 @@
 package fit.iuh.engolearn.learningpath.service;
 
+import fit.iuh.engolearn.learningpath.model.enums.LearningPathStatus;
+import fit.iuh.engolearn.learningpath.model.enums.LearningPathWeekStatus;
+import fit.iuh.engolearn.learningpath.model.enums.LearningPathDayStatus;
+
 import fit.iuh.engolearn.learningpath.model.LearningPath;
-import fit.iuh.engolearn.learningpath.model.LearningPathConfig;
-import fit.iuh.engolearn.learningpath.model.LearningPathDay;
-import fit.iuh.engolearn.learningpath.model.LearningPathDayItem;
-import fit.iuh.engolearn.learningpath.model.LearningPathDraft;
-import fit.iuh.engolearn.learningpath.model.LearningPathInactivity;
-import fit.iuh.engolearn.learningpath.model.LearningPathWeek;
+import fit.iuh.engolearn.learningpath.model.vo.LearningPathConfig;
+import fit.iuh.engolearn.learningpath.model.vo.LearningPathDay;
+import fit.iuh.engolearn.learningpath.model.vo.LearningPathDayItem;
+import fit.iuh.engolearn.learningpath.model.vo.LearningPathDraft;
+import fit.iuh.engolearn.learningpath.model.vo.LearningPathInactivity;
+import fit.iuh.engolearn.learningpath.model.vo.LearningPathWeek;
 import fit.iuh.engolearn.learningpath.repository.LearningPathPracticeRepository;
 import fit.iuh.engolearn.learningpath.repository.LearningPathQuestionRepository;
 import fit.iuh.engolearn.learningpath.repository.LearningPathRepository;
@@ -75,7 +79,7 @@ class LearningPathDayPracticeServiceTest {
     void reopeningStartedDayKeepsOriginalDeadline() {
         LearningPath path = path("IN_PROGRESS");
         LearningPathDay day = path.getWeeks().getFirst().getDays().getFirst();
-        day.setStatus("IN_PROGRESS");
+        day.setStatus(LearningPathDayStatus.IN_PROGRESS);
         day.setStartedAt(Date.from(NOW.minusSeconds(1800)));
         day.setAutoCloseAt(Date.from(NEXT_MIDNIGHT));
         LearningPathDraft draft = new LearningPathDraft();
@@ -108,15 +112,15 @@ class LearningPathDayPracticeServiceTest {
     void rejectsLockedWeekAndExpiredDay() {
         LearningPath path = path("IN_PROGRESS");
         LearningPathWeek week = path.getWeeks().getFirst();
-        week.setStatus("LOCKED");
+        week.setStatus(LearningPathWeekStatus.LOCKED);
         when(paths.findByIdAndUserId(pathId, userId)).thenReturn(Optional.of(path));
 
         assertThatThrownBy(() -> service.start(pathId.toHexString(), 1, 1, userId.toHexString()))
                 .isInstanceOfSatisfying(ResponseStatusException.class,
                         error -> assertThat(error.getStatusCode()).isEqualTo(HttpStatus.CONFLICT));
 
-        week.setStatus("OPEN");
-        week.getDays().getFirst().setStatus("IN_PROGRESS");
+        week.setStatus(LearningPathWeekStatus.OPEN);
+        week.getDays().getFirst().setStatus(LearningPathDayStatus.IN_PROGRESS);
         week.getDays().getFirst().setAutoCloseAt(Date.from(NOW));
         assertThatThrownBy(() -> service.start(pathId.toHexString(), 1, 1, userId.toHexString()))
                 .isInstanceOfSatisfying(ResponseStatusException.class,
@@ -151,7 +155,7 @@ class LearningPathDayPracticeServiceTest {
         LearningPath path = new LearningPath();
         path.setId(pathId);
         path.setUserId(userId);
-        path.setStatus(status);
+        path.setStatus(LearningPathStatus.valueOf(status));
         path.setActive(true);
         path.setNextRunAt(Date.from(Instant.parse("2026-10-15T17:00:00Z")));
         LearningPathConfig config = new LearningPathConfig();
@@ -170,11 +174,11 @@ class LearningPathDayPracticeServiceTest {
         }
         LearningPathDay day = new LearningPathDay();
         day.setDayNo(1);
-        day.setStatus("NOT_STARTED");
+        day.setStatus(LearningPathDayStatus.NOT_STARTED);
         day.setItems(items);
         LearningPathWeek week = new LearningPathWeek();
         week.setWeekNo(1);
-        week.setStatus("OPEN");
+        week.setStatus(LearningPathWeekStatus.OPEN);
         week.setCloseAt(Date.from(Instant.parse("2026-10-15T17:00:00Z")));
         week.setDays(List.of(day));
         path.setWeeks(List.of(week));

@@ -1,7 +1,7 @@
 package fit.iuh.engolearn.learningpath.repository;
 
 import fit.iuh.engolearn.learningpath.model.LearningPath;
-import fit.iuh.engolearn.learningpath.model.LearningPathDraft;
+import fit.iuh.engolearn.learningpath.model.vo.LearningPathDraft;
 import java.util.Date;
 import org.bson.types.ObjectId;
 import org.springframework.data.mongodb.core.MongoTemplate;

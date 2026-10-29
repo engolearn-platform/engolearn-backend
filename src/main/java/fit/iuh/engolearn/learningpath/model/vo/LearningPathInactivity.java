@@ -1,11 +1,13 @@
-package fit.iuh.engolearn.learningpath.model;
+package fit.iuh.engolearn.learningpath.model.vo;
+
+import fit.iuh.engolearn.shared.EmbeddedDocument;
 
 import java.util.Date;
 import lombok.Setter;
 import org.springframework.data.mongodb.core.mapping.Field;
 
 @Setter
-public class LearningPathInactivity {
+public class LearningPathInactivity implements EmbeddedDocument {
 
     @Field("anchor_date")
     private String anchorDate;

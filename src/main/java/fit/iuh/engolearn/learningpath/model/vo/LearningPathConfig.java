@@ -1,10 +1,12 @@
-package fit.iuh.engolearn.learningpath.model;
+package fit.iuh.engolearn.learningpath.model.vo;
+
+import fit.iuh.engolearn.shared.EmbeddedDocument;
 
 import lombok.Setter;
 import org.springframework.data.mongodb.core.mapping.Field;
 
 @Setter
-public class LearningPathConfig {
+public class LearningPathConfig implements EmbeddedDocument {
 
     @Field("duration_weeks")
     private Integer durationWeeks;

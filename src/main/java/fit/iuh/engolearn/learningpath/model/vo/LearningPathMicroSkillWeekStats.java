@@ -1,10 +1,15 @@
-package fit.iuh.engolearn.learningpath.model;
+package fit.iuh.engolearn.learningpath.model.vo;
+
+import fit.iuh.engolearn.shared.EmbeddedDocument;
 
 import lombok.Setter;
 import org.springframework.data.mongodb.core.mapping.Field;
 
 @Setter
-public class LearningPathOverallWeekStats {
+public class LearningPathMicroSkillWeekStats implements EmbeddedDocument {
+
+    @Field("micro_skill")
+    private String microSkill;
 
     private Integer assigned;
     private Integer answered;
@@ -21,6 +26,10 @@ public class LearningPathOverallWeekStats {
 
     @Field("improvement_pp")
     private Double improvementPp;
+
+    public String getMicroSkill() {
+        return microSkill;
+    }
 
     public Integer getAssigned() {
         return assigned;
