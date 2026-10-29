@@ -4,10 +4,10 @@ package fit.iuh.engolearn.learningpath.service;
 import fit.iuh.engolearn.learningpath.model.enums.LearningPathStatus;
 import fit.iuh.engolearn.learningpath.model.enums.LearningPathWeekStatus;
 
-import fit.iuh.engolearn.learningpath.dto.LearningPathDetailResponse;
-import fit.iuh.engolearn.learningpath.dto.LearningPathListItemResponse;
-import fit.iuh.engolearn.learningpath.dto.LearningPathListResponse;
-import fit.iuh.engolearn.learningpath.dto.LearningPathListStatus;
+import fit.iuh.engolearn.learningpath.dto.response.LearningPathDetailResponse;
+import fit.iuh.engolearn.learningpath.dto.response.LearningPathListItemResponse;
+import fit.iuh.engolearn.learningpath.dto.response.LearningPathListResponse;
+import fit.iuh.engolearn.learningpath.dto.request.LearningPathListStatus;
 import fit.iuh.engolearn.learningpath.model.LearningPath;
 import fit.iuh.engolearn.learningpath.model.vo.LearningPathComparedTo;
 import fit.iuh.engolearn.learningpath.model.vo.LearningPathConfig;

@@ -1,4 +1,4 @@
-package fit.iuh.engolearn.learningpath.dto;
+package fit.iuh.engolearn.learningpath.dto.response;
 
 import java.util.List;
 

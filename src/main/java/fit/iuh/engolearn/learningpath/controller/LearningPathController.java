@@ -11,9 +11,9 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import fit.iuh.engolearn.shared.web.ApiResponse;
-import fit.iuh.engolearn.learningpath.dto.LearningPathDetailResponse;
-import fit.iuh.engolearn.learningpath.dto.LearningPathListResponse;
-import fit.iuh.engolearn.learningpath.dto.LearningPathListStatus;
+import fit.iuh.engolearn.learningpath.dto.response.LearningPathDetailResponse;
+import fit.iuh.engolearn.learningpath.dto.response.LearningPathListResponse;
+import fit.iuh.engolearn.learningpath.dto.request.LearningPathListStatus;
 import fit.iuh.engolearn.learningpath.dto.request.CreateLearningPathRequest;
 import fit.iuh.engolearn.learningpath.dto.request.SaveLearningPathAnswerDraftRequest;
 import fit.iuh.engolearn.learningpath.dto.response.CreateLearningPathResponse;
