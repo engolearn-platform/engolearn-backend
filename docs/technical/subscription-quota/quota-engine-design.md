@@ -222,17 +222,17 @@ All updates to one usage operation's counter and ledger must occur in one MongoD
 
 ## 6. User-facing REST API boundary
 
-These are target read contracts for the UI, separate from `quota.contract`. Before implementation, reuse an existing endpoint if the repository already has the same capability; do not create duplicates just to match these proposed paths.
+These are target read contracts for the UI, separate from `quota.contract`. These proposed paths follow the repo's common `/api/v1` convention. Before implementation, reuse an existing endpoint if the repository already has the same capability; do not create duplicates just to match these proposed paths.
 
-### `GET /api/subscription/plans`
+### `GET /api/v1/subscription/plans`
 
 For the plan/package information page. Return the plans currently published for selection and display-ready benefit metadata; prices and benefits come from Subscription configuration, not FE hardcoding.
 
-### `GET /api/subscription/me`
+### `GET /api/v1/subscription/me`
 
 For current plan/trial state and the plan page's eligible CTA. Return current tier/status, applicable period start/end when present, and trial eligibility if available. Do not include a generic `hasLifetimeContentAccess` flag; that policy belongs to Topic Learning.
 
-### `GET /api/quota/me/usage`
+### `GET /api/v1/quota/me/usage`
 
 For F2's single usage overview request. Return one item per quota currently applicable to the signed-in user, with:
 - `quotaType`, localized/display name, `used`, `limit`, non-negative `remaining`, `unit`, `period`
