@@ -96,7 +96,7 @@ public class LearningPathDayPracticeService {
                 Date nextRunAt = path.getNextRunAt().before(autoCloseAt)
                         ? path.getNextRunAt() : autoCloseAt;
                 boolean started = practice.startDay(pathObjectId, userObjectId, weekNo, dayNo,
-                        path.getStatus().name(), path.getNextRunAt(), startedAt, startedDate.toString(),
+                        path.getStatus().name(), path.getRevision(), path.getNextRunAt(), startedAt, startedDate.toString(),
                         autoCloseAt, nextRunAt);
                 if (!started) continue;
                 return response(pathId, weekNo, dayNo, startedAt, autoCloseAt, questionInfos);

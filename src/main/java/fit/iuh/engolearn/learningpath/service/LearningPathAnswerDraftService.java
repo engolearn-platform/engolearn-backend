@@ -90,7 +90,7 @@ public class LearningPathAnswerDraftService {
             draft.setSelectedOptionId(request.selectedOptionId());
             draft.setSavedAt(savedAt);
             if (practice.saveDraft(pathObjectId, userObjectId, weekNo, dayNo,
-                    questionId, path.getNextRunAt(), savedAt, draft,
+                    questionId, path.getRevision(), path.getNextRunAt(), savedAt, draft,
                     activityDate.toString(), cancelAt, nextRunAt)) {
                 return new SaveLearningPathAnswerDraftResponse(
                         questionId, request.selectedOptionId(), savedAt);

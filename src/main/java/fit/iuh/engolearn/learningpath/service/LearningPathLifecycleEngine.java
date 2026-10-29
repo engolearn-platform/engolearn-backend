@@ -42,6 +42,29 @@ final class LearningPathLifecycleEngine {
         return advance(path, now, Map.of());
     }
 
+    Map<String, Object> submit(LearningPath path, int weekIndex, int dayIndex,
+                               Instant now, Map<String, String> answerKeys) {
+        Map<String, Object> changes = new LinkedHashMap<>();
+        LearningPathWeek week = path.getWeeks().get(weekIndex);
+        LearningPathDay day = week.getDays().get(dayIndex);
+        boolean complete = day.getItems().stream().allMatch(item -> item.getDraft() != null || item.getAnswer() != null);
+        closeDay(path, week, day, dayIndex, weekIndex, now,
+                complete ? LearningPathDayCloseReason.ALL_ANSWERED : LearningPathDayCloseReason.SUBMITTED,
+                answerKeys, changes);
+        if (complete) {
+            day.setStatus(LearningPathDayStatus.COMPLETED);
+            changes.put("weeks." + weekIndex + ".days." + dayIndex + ".status", "COMPLETED");
+        }
+        if (week.getWeekNo() == 3 && week.getDays().stream().allMatch(d ->
+                d.getItems() != null && !d.getItems().isEmpty()
+                        && d.getItems().stream().allMatch(item -> item.getAnswer() != null))) {
+            closeWeek(path, week, weekIndex, now, answerKeys, changes, LearningPathWeekCloseReason.ALL_ANSWERED);
+        }
+        Instant next = Boolean.TRUE.equals(path.getActive()) ? nextEvent(path, openWeek(path)) : null;
+        changes.put("next_run_at", next == null ? null : Date.from(next));
+        return changes;
+    }
+
     Map<String, Object> advance(LearningPath path, Instant now,
                                 Map<String, String> answerKeys) {
         Map<String, Object> changes = new LinkedHashMap<>();
@@ -235,6 +258,12 @@ final class LearningPathLifecycleEngine {
     private void closeWeek(LearningPath path, LearningPathWeek week, int weekIndex,
                            Instant at, Map<String, String> answerKeys,
                            Map<String, Object> changes) {
+        closeWeek(path, week, weekIndex, at, answerKeys, changes, null);
+    }
+
+    private void closeWeek(LearningPath path, LearningPathWeek week, int weekIndex,
+                           Instant at, Map<String, String> answerKeys,
+                           Map<String, Object> changes, LearningPathWeekCloseReason forcedReason) {
         for (int dayIndex = 0; dayIndex < week.getDays().size(); dayIndex++) {
             LearningPathDay day = week.getDays().get(dayIndex);
             if (!isTerminalDay(day)) {
@@ -246,7 +275,7 @@ final class LearningPathLifecycleEngine {
         }
 
         String prefix = "weeks." + weekIndex + ".";
-        LearningPathWeekCloseReason reason = week.getCloseAt() != null && !week.getCloseAt().toInstant().isAfter(at)
+        LearningPathWeekCloseReason reason = forcedReason != null ? forcedReason : week.getCloseAt() != null && !week.getCloseAt().toInstant().isAfter(at)
                 ? LearningPathWeekCloseReason.TIME_UP : LearningPathWeekCloseReason.ALL_DAYS_DONE;
         LearningPathWeekStats stats = weekStats(path, week, weekIndex);
         week.setStatus(LearningPathWeekStatus.CLOSED);

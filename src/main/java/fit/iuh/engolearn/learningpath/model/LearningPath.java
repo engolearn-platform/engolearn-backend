@@ -26,6 +26,8 @@ public class LearningPath {
     @Id
     private ObjectId id;
 
+    private Long revision;
+
     @Field("user_id")
     private ObjectId userId;
 
@@ -71,6 +73,10 @@ public class LearningPath {
 
     public ObjectId getId() {
         return id;
+    }
+
+    public Long getRevision() {
+        return revision;
     }
 
     public ObjectId getUserId() {

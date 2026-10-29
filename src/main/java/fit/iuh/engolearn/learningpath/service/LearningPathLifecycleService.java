@@ -69,7 +69,7 @@ public class LearningPathLifecycleService {
             if (changes.size() == 1 && expectedNextRunAt.equals(changes.get("next_run_at"))) {
                 throw new IllegalStateException("Learning Path deadline did not advance: " + id);
             }
-            repository.apply(id, expectedStatus, expectedNextRunAt, expectedAnswered, changes);
+            repository.apply(id, expectedStatus, expectedNextRunAt, expectedAnswered, path.getRevision(), changes);
         }
         throw new IllegalStateException("Learning Path exceeded transition limit: " + id);
     }
