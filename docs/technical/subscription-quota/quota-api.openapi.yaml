@@ -1,0 +1,315 @@
+openapi: 3.1.0
+info:
+  title: Subscription and Quota UI Read API
+  version: 0.1.0
+  description: |
+    DRAFT handoff for the Subscription package page and the quota-usage overview.
+    Review the paths against existing controllers before implementation; reuse an
+    existing endpoint if it already provides the same capability.
+
+    These are read-only UI APIs. Quota's consume/checkAvailability/recordUsage
+    operations are in-process backend contracts and are not exposed to the client.
+  x-review-status: DRAFT_FOR_BACKEND_AND_FE_REVIEW
+
+servers:
+  - url: /
+
+tags:
+  - name: Subscription
+    description: Published plan information and the current user's subscription state.
+  - name: Quota
+    description: Current quota usage overview for the authenticated user.
+
+paths:
+  /api/v1/subscription/plans:
+    get:
+      tags: [Subscription]
+      operationId: listPublishedPlans
+      summary: List plans available for display
+      description: |
+        Returns the currently published plan cards and display-ready benefit
+        metadata. Prices and benefits come from Subscription configuration, not
+        hard-coded frontend constants. This read endpoint does not start a trial
+        or create a payment request.
+      responses:
+        '200':
+          description: Published plans loaded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlanListApiResponse'
+        '503':
+          description: Plan configuration is temporarily unavailable.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+
+  /api/v1/subscription/me:
+    get:
+      tags: [Subscription]
+      operationId: getMySubscriptionSummary
+      summary: Get the current user's subscription summary
+      description: |
+        Requires an authenticated user. No user identifier is accepted from the
+        caller. Used to display the current tier/status and whether the Trial CTA
+        is available. This response intentionally does not expose a generic
+        lifetime-content-access flag: resource access policy belongs to the
+        module that owns that resource.
+      x-auth-requirement: authenticated-user
+      responses:
+        '200':
+          description: Current subscription summary loaded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MySubscriptionApiResponse'
+        '401':
+          description: Authentication is required.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+        '503':
+          description: Subscription state is temporarily unavailable.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+
+  /api/v1/quota/me/usage:
+    get:
+      tags: [Quota]
+      operationId: getMyQuotaUsage
+      summary: Get the current user's quota usage overview
+      description: |
+        Requires an authenticated user. Returns one item per quota applicable
+        to the user's current quota entitlement, in one request. Values use
+        each quota type's canonical unit; timestamps are instants in UTC and
+        represent boundaries computed in Asia/Ho_Chi_Minh.
+        
+        Do not fabricate usage as zero if the policy or counter state cannot be
+        confirmed. Return an unavailable error so the UI can show an explicit
+        unavailable state instead of displaying misleading figures.
+      x-auth-requirement: authenticated-user
+      responses:
+        '200':
+          description: Quota usage overview loaded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QuotaUsageApiResponse'
+        '401':
+          description: Authentication is required.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+        '503':
+          description: Current policy or usage data cannot be confirmed.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
+
+components:
+  schemas:
+    PlanListApiResponse:
+      type: object
+      required: [data, timestamp]
+      properties:
+        data:
+          type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/PlanCard'
+        timestamp:
+          type: string
+          format: date-time
+
+    PlanCard:
+      type: object
+      required: [planCode, displayName, benefits, billingOptions]
+      properties:
+        planCode:
+          type: string
+          description: Stable plan identifier (initial values include FREE and PREMIUM).
+          examples: [PREMIUM]
+        displayName:
+          type: string
+          description: User-facing plan name for the current locale.
+          examples: [Premium]
+        description:
+          type: [string, 'null']
+          description: Short display description; may be absent.
+        benefits:
+          type: array
+          items:
+            $ref: '#/components/schemas/PlanBenefit'
+        billingOptions:
+          type: array
+          description: Empty for a non-purchasable/free plan.
+          items:
+            $ref: '#/components/schemas/PlanBillingOption'
+
+    PlanBenefit:
+      type: object
+      required: [code, title, description, sortOrder]
+      properties:
+        code:
+          type: string
+          description: Stable benefit key, suitable for analytics and UI mapping.
+        title:
+          type: string
+        description:
+          type: string
+        displayValue:
+          type: [string, 'null']
+          description: Optional display value, such as a packaged feature summary.
+        sortOrder:
+          type: integer
+          minimum: 0
+
+    PlanBillingOption:
+      type: object
+      required: [billingPeriod, amount, currency]
+      properties:
+        billingPeriod:
+          type: string
+          enum: [MONTHLY, ANNUAL]
+        amount:
+          type: integer
+          minimum: 0
+          description: |
+            Price in the currency's minor unit. The client formats this value
+            using currency; it must not infer price from planCode.
+        currency:
+          type: string
+          minLength: 3
+          maxLength: 3
+          description: ISO 4217 currency code.
+          examples: [VND]
+
+    MySubscriptionApiResponse:
+      type: object
+      required: [data, timestamp]
+      properties:
+        data:
+          $ref: '#/components/schemas/MySubscriptionSummary'
+        timestamp:
+          type: string
+          format: date-time
+
+    MySubscriptionSummary:
+      type: object
+      required: [tier, status, trialEligible]
+      properties:
+        tier:
+          type: string
+          enum: [FREE, PREMIUM]
+        status:
+          type: string
+          enum: [FREE, TRIAL, ACTIVE, EXPIRED, REFUNDED]
+          description: Current subscription presentation state; EXPIRED/REFUNDED users may currently fall back to the FREE tier.
+        periodStartAt:
+          type: [string, 'null']
+          format: date-time
+        periodEndAt:
+          type: [string, 'null']
+          format: date-time
+        trialEligible:
+          type: boolean
+          description: Whether the user is currently eligible to activate the one-time Trial under Subscription rules.
+
+    QuotaUsageApiResponse:
+      type: object
+      required: [data, timestamp]
+      properties:
+        data:
+          type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/QuotaUsageItem'
+        timestamp:
+          type: string
+          format: date-time
+
+    QuotaUsageItem:
+      type: object
+      required:
+        - quotaType
+        - displayName
+        - used
+        - limit
+        - remaining
+        - unit
+        - period
+        - windowStartAt
+        - windowEndsAt
+        - status
+      properties:
+        quotaType:
+          type: string
+          description: Stable, extensible quota identifier; clients must not assume the catalog is closed.
+          examples: [SPEAKING_DURATION]
+        displayName:
+          type: string
+          description: User-facing display name resolved for the current locale.
+          examples: [Thời lượng luyện nói với AI]
+        used:
+          type: integer
+          minimum: 0
+          description: Actual recorded usage in the canonical unit; may exceed limit for post-action usage.
+        limit:
+          type: integer
+          minimum: 0
+        remaining:
+          type: integer
+          minimum: 0
+          description: max(0, limit - used); never negative.
+        overLimitAmount:
+          type: integer
+          minimum: 0
+          description: Optional; present when used > limit and equals used - limit.
+        unit:
+          type: string
+          description: Canonical unit for quotaType; initial values include SECOND and ATTEMPT.
+          examples: [SECOND]
+        period:
+          type: string
+          enum: [DAILY, WEEKLY, MONTHLY]
+        windowStartAt:
+          type: string
+          format: date-time
+          description: Start of the current calendar period, in UTC.
+        windowEndsAt:
+          type: string
+          format: date-time
+          description: End of the current calendar period, in UTC; it does not imply policy activation cannot reset allowance earlier.
+        status:
+          type: string
+          enum: [AVAILABLE, EXHAUSTED, OVER_LIMIT]
+          description: AVAILABLE when remaining > 0; EXHAUSTED when used = limit; OVER_LIMIT when used > limit.
+
+    ProblemDetail:
+      type: object
+      description: RFC 9457/ProblemDetail-style error response used by the backend.
+      properties:
+        type:
+          type: string
+          format: uri-reference
+        title:
+          type: string
+        status:
+          type: integer
+        detail:
+          type: string
+        instance:
+          type: string
+          format: uri-reference
