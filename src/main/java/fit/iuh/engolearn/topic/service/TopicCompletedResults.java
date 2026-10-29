@@ -18,7 +18,7 @@ final class TopicCompletedResults {
                     UserTopicItemProgress previous = progress.get(attempt.getTopicItemId());
                     if (previous != null && previous.getCompletedAt() != null && previous.getCompletedAt().isAfter(attempt.getCompletedAt())) return;
                     progress.put(attempt.getTopicItemId(), UserTopicItemProgress.builder()
-                            .userId(attempt.getUserId()).topicId(attempt.getTopicId()).topicItemId(attempt.getTopicItemId())
+                            .generation(attempt.getGeneration()).userId(attempt.getUserId()).topicId(attempt.getTopicId()).topicItemId(attempt.getTopicItemId())
                             .status(ItemProgressStatus.COMPLETED).lastCompletedAttemptId(attempt.getId())
                             .completedTopicItemVersionId(attempt.getTopicItemVersionId()).completedAt(attempt.getCompletedAt())
                             .lastAccessedAt(attempt.getLastAccessedAt())

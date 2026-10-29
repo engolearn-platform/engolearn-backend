@@ -1,5 +1,15 @@
 # Live integration — public catalog slice
 
+## Current implementation and required rollout (2026-10-29)
+
+Source adds generation reset, reached-question navigation and mandatory item-retry resume. Earlier live evidence below applies to its recorded older service revisions and does not verify these changes. No service has been restarted by this implementation task.
+
+Startup performs an idempotent migration on `user_topic_item_attempts`: normalize missing/null `generation` to 0, inspect `one_running_learning_item_per_topic`, drop only its old definition lacking generation, then create the unique partial index on `(user_id,topic_id,attempt_type,generation)` for IN_PROGRESS LEARNING attempts. Generation-0 identities and documents remain readable. No other collection is purged or broadly migrated. Run the updated backend once with the old process stopped before accepting new traffic; do not run mixed old/new writers across this index transition.
+
+All learner/topic write paths stamp their captured generation; reset's authoritative change and receipt append are a single document CAS, requiring no Mongo replica set/transaction manager. Progress and runtime identities after generation 0 are qualified by generation. Previous rows/archives/locators remain stored but cannot participate in current effective state.
+
+Verification budget: at most three focused invocations (including environment failures) and one final verify. Required existing test suites may contain mocks/fixtures; they are never real integration proof. The one shared live acceptance batch requires matching user-reloaded BE/FE revisions and coordinates mutations on one user-authorized default-learner test topic, preserving other topics as isolation evidence. Exact current outcomes and pending cases are recorded in `.artifacts/engolearn-fe-ux/be-report.md` in the parent workspace.
+
 No fixtures, DB resets or seeded data. Existing MongoDB data and existing browse/detail services remain the source.
 New GET /api/v1/topic-learning/viewer reports GUEST because the application has no authentication module. It does not use MockCurrentUserProvider or MockLearnerLevelProvider.
 Browse responses add total and visible totalItemCount. Detail adds actual totals/cover metadata. Personalized progress is null; start/retry actions require sign-in. Existing learning endpoints using the legacy fixed learner are outside this slice and are not exercised by the FE.

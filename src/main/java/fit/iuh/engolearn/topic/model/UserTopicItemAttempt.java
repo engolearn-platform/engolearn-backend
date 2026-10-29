@@ -26,6 +26,7 @@ import java.util.List;
 @SuperBuilder
 @EqualsAndHashCode(callSuper = true)
 public class UserTopicItemAttempt extends BaseDocument {
+    private long generation;
     @Field("attempt_type")
     private fit.iuh.engolearn.topic.model.enums.AttemptType attemptType;
     @Field("start_request_key")

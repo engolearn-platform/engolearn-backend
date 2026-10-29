@@ -52,6 +52,8 @@ import java.util.Optional;
 
 @Service
 public class TopicLearningServiceImpl implements TopicLearningService {
+    @org.springframework.beans.factory.annotation.Autowired
+    private TopicGenerationService generations;
 
     private static final Comparator<TopicItemVersion> ITEM_ORDER =
             Comparator.comparing(TopicItemVersion::getOrder, Comparator.nullsLast(Comparator.naturalOrder()))
@@ -102,7 +104,7 @@ public class TopicLearningServiceImpl implements TopicLearningService {
         String userId = requireUserId();
         String topicItemId = request.getTopicItemId();
         ItemContext item = resolvePublishedItem(topicItemId);
-        UserTopicItemAttempt itemAttempt = findActiveItemAttempt(userId, topicItemId);
+        UserTopicItemAttempt itemAttempt = findActiveItemAttempt(userId, topicItemId, item.generation());
         TopicItemVersion version = resolveLearningVersion(item, itemAttempt);
         return TopicItemMapper.toContentResponse(topicItemId, version);
     }
@@ -114,8 +116,8 @@ public class TopicLearningServiceImpl implements TopicLearningService {
         String userId = requireUserId();
         String topicItemId = request.getTopicItemId();
         ItemContext item = resolvePublishedItem(topicItemId);
-        UserTopicItemAttempt itemAttempt = findActiveItemAttempt(userId, topicItemId);
-        UserTopicItemProgress progress = findItemProgress(userId, topicItemId);
+        UserTopicItemAttempt itemAttempt = findActiveItemAttempt(userId, topicItemId, item.generation());
+        UserTopicItemProgress progress = findItemProgress(userId, topicItemId, item.generation());
         TopicItemVersion version = resolveLearningVersion(item, itemAttempt);
         FurthestReachedVo furthest = itemAttempt == null ? null : itemAttempt.getFurthestReached();
         return TopicItemPositionResponse.builder()
@@ -145,8 +147,8 @@ public class TopicLearningServiceImpl implements TopicLearningService {
         int itemIndex = request.getItemIndex();
 
         ItemContext item = resolvePublishedItem(topicItemId);
-        UserTopicItemProgress progress = findItemProgress(userId, topicItemId);
-        UserTopicItemAttempt itemAttempt = findActiveItemAttempt(userId, topicItemId);
+        UserTopicItemProgress progress = findItemProgress(userId, topicItemId, item.generation());
+        UserTopicItemAttempt itemAttempt = findActiveItemAttempt(userId, topicItemId, item.generation());
 
         if (progress != null && progress.getStatus() == ItemProgressStatus.COMPLETED) {
             throw new LearningPreconditionFailedException(
@@ -165,8 +167,9 @@ public class TopicLearningServiceImpl implements TopicLearningService {
         TopicItemVersion version = resolveVersionForItemAttempt(item, topicItemId, attempt, itemAttempt);
         UserTopicItemAttempt savedItemAttempt = upsertItemAttempt(userId, attempt, topicItemId, version,
                 stage, itemIndex, now);
-        upsertItemProgress(userId, item.topic().getId(), topicItemId, now);
-        upsertTopicProgress(userId, item.topic().getId(), topicItemId, now);
+        upsertItemProgress(userId, item.topic().getId(), topicItemId, now, item.generation());
+        upsertTopicProgress(userId, item.topic().getId(), topicItemId, now, item.generation());
+        if (generations != null) generations.require(userId, item.topic().getId(), item.generation());
 
         FurthestReachedVo furthest = savedItemAttempt.getFurthestReached();
         return TopicItemPositionResponse.builder()
@@ -185,13 +188,14 @@ public class TopicLearningServiceImpl implements TopicLearningService {
     public TopicProgressResponse getTopicProgress(GetTopicProgressRequest request) {
         String userId = requireUserId();
         String topicId = request.getTopicId();
+        long generation = generation(userId, topicId);
         Topic topic = topicRepository.findById(topicId)
                 .orElseThrow(() -> new TopicNotFoundException("Topic " + topicId + " was not found"));
         TopicVersion release = resolvePublishedRelease(topic);
         List<TopicItemVersion> visibleItems = visibleItems(release);
 
-        Map<String, UserTopicItemProgress> progressByItem = itemProgressByItem(userId, topicId);
-        Map<String, UserTopicItemAttempt> attemptsByItem = activeItemAttemptsByItem(userId, topicId);
+        Map<String, UserTopicItemProgress> progressByItem = itemProgressByItem(userId, topicId, generation);
+        Map<String, UserTopicItemAttempt> attemptsByItem = activeItemAttemptsByItem(userId, topicId, generation);
 
         List<TopicItemProgressResponse> items = new ArrayList<>();
         int completedItemCount = 0;
@@ -226,8 +230,7 @@ public class TopicLearningServiceImpl implements TopicLearningService {
             status = ItemProgressStatus.NOT_STARTED;
         }
 
-        UserTopicProgress topicProgress = userTopicProgressRepository.findByUserIdAndTopicId(userId, topicId)
-                .orElse(null);
+        UserTopicProgress topicProgress = findTopicProgress(userId, topicId, generation);
         return TopicProgressResponse.builder()
                 .topicId(topicId)
                 .status(status)
@@ -264,7 +267,7 @@ public class TopicLearningServiceImpl implements TopicLearningService {
                 .findFirst()
                 .orElseThrow(() -> new TopicItemNotFoundException(
                         "Topic item " + topicItemId + " was not found"));
-        return new ItemContext(topic, release, published, items);
+        return new ItemContext(topic, release, published, items, generation(requireUserId(), topic.getId()));
     }
 
     private TopicVersion resolvePublishedRelease(Topic topic) {
@@ -357,7 +360,7 @@ public class TopicLearningServiceImpl implements TopicLearningService {
 
     /** A topic holds at most one item being learned, so a new item cannot start beside it. */
     private void requireNoOtherItemInProgress(String userId, ItemContext item, String topicItemId) {
-        for (UserTopicItemProgress progress : itemProgressByItem(userId, item.topic().getId()).values()) {
+        for (UserTopicItemProgress progress : itemProgressByItem(userId, item.topic().getId(), item.generation()).values()) {
             if (progress.getStatus() == ItemProgressStatus.IN_PROGRESS
                     && !topicItemId.equals(progress.getTopicItemId())) {
                 throw new LearningPreconditionFailedException(
@@ -368,7 +371,7 @@ public class TopicLearningServiceImpl implements TopicLearningService {
 
     /** Items before the current one in the topic must be completed; hidden ones do not count. */
     private void requirePredecessorsCompleted(String userId, ItemContext item, String topicItemId) {
-        Map<String, UserTopicItemProgress> progressByItem = itemProgressByItem(userId, item.topic().getId());
+        Map<String, UserTopicItemProgress> progressByItem = itemProgressByItem(userId, item.topic().getId(), item.generation());
         for (TopicItemVersion candidate : item.visibleItems()) {
             if (topicItemId.equals(candidate.getTopicItemId())) {
                 return;
@@ -392,12 +395,13 @@ public class TopicLearningServiceImpl implements TopicLearningService {
         List<UserTopicAttempt> running = userTopicAttemptRepository
                 .findByUserIdAndTopicIdAndAttemptTypeAndStatus(userId, item.topic().getId(),
                         AttemptType.LEARNING, AttemptStatus.IN_PROGRESS);
-        UserTopicAttempt attempt = running.stream()
+        UserTopicAttempt attempt = running.stream().filter(row -> row.getGeneration() == item.generation())
                 .max(Comparator.comparing(UserTopicAttempt::getStartedAt,
                         Comparator.nullsFirst(Comparator.naturalOrder())))
                 .orElse(null);
         if (attempt == null) {
             return userTopicAttemptRepository.save(UserTopicAttempt.builder()
+                    .generation(item.generation())
                     .userId(userId)
                     .topicId(item.topic().getId())
                     .attemptType(AttemptType.LEARNING)
@@ -430,6 +434,7 @@ public class TopicLearningServiceImpl implements TopicLearningService {
                 .findByUserTopicAttemptIdAndTopicItemId(attempt.getId(), topicItemId);
         UserTopicItemAttempt itemAttempt = existing.orElseGet(() -> UserTopicItemAttempt.builder()
                 .userTopicAttemptId(attempt.getId())
+                .generation(attempt.getGeneration())
                 .userId(userId)
                 .topicId(attempt.getTopicId())
                 .topicItemId(topicItemId)
@@ -445,10 +450,12 @@ public class TopicLearningServiceImpl implements TopicLearningService {
     }
 
     private UserTopicItemProgress upsertItemProgress(String userId, String topicId, String topicItemId,
-                                                     Instant now) {
-        UserTopicItemProgress progress = findItemProgress(userId, topicItemId);
+                                                     Instant now, long generation) {
+        UserTopicItemProgress progress = findItemProgress(userId, topicItemId, generation);
         if (progress == null) {
             return userTopicItemProgressRepository.save(UserTopicItemProgress.builder()
+                    .id(progressId(userId, topicId, "item-progress|" + topicItemId, generation))
+                    .generation(generation)
                     .userId(userId)
                     .topicId(topicId)
                     .topicItemId(topicItemId)
@@ -464,12 +471,11 @@ public class TopicLearningServiceImpl implements TopicLearningService {
     }
 
     private UserTopicProgress upsertTopicProgress(String userId, String topicId, String topicItemId,
-                                                   Instant now) {
-        UserTopicProgress topicProgress = userTopicProgressRepository.findByUserIdAndTopicId(userId, topicId)
-                .orElseGet(() -> UserTopicProgress.builder()
-                        .userId(userId)
-                        .topicId(topicId)
-                        .build());
+                                                   Instant now, long generation) {
+        UserTopicProgress topicProgress = findTopicProgress(userId, topicId, generation);
+        if (topicProgress == null) topicProgress = UserTopicProgress.builder()
+                .id(progressId(userId, topicId, "topic-progress", generation))
+                .generation(generation).userId(userId).topicId(topicId).build();
         topicProgress.setLastTopicItemId(topicItemId);
         topicProgress.setLastAccessedAt(now);
         return userTopicProgressRepository.save(topicProgress);
@@ -477,22 +483,24 @@ public class TopicLearningServiceImpl implements TopicLearningService {
 
     // --- lookups -----------------------------------------------------------------------
 
-    private UserTopicItemProgress findItemProgress(String userId, String topicItemId) {
-        return userTopicItemProgressRepository.findByUserIdAndTopicItemId(userId, topicItemId).orElse(null);
+    private UserTopicItemProgress findItemProgress(String userId, String topicItemId, long generation) {
+        if (generations == null) return userTopicItemProgressRepository.findByUserIdAndTopicItemId(userId, topicItemId).orElse(null);
+        return userTopicItemProgressRepository.findByUserId(userId).stream()
+                .filter(row -> topicItemId.equals(row.getTopicItemId()) && row.getGeneration() == generation).findFirst().orElse(null);
     }
 
-    private Map<String, UserTopicItemProgress> itemProgressByItem(String userId, String topicId) {
+    private Map<String, UserTopicItemProgress> itemProgressByItem(String userId, String topicId, long generation) {
         Map<String, UserTopicItemProgress> byItem = new HashMap<>();
         for (UserTopicItemProgress progress : userTopicItemProgressRepository.findByUserIdAndTopicId(userId, topicId)) {
-            byItem.put(progress.getTopicItemId(), progress);
+            if (progress.getGeneration() == generation) byItem.put(progress.getTopicItemId(), progress);
         }
         return byItem;
     }
 
-    private Map<String, UserTopicItemAttempt> activeItemAttemptsByItem(String userId, String topicId) {
+    private Map<String, UserTopicItemAttempt> activeItemAttemptsByItem(String userId, String topicId, long generation) {
         Map<String, UserTopicItemAttempt> byItem = new HashMap<>();
         for (UserTopicItemAttempt attempt : userTopicItemAttemptRepository.findByUserIdAndTopicId(userId, topicId)) {
-            if (attempt.getStatus() != AttemptStatus.IN_PROGRESS) {
+            if (attempt.getGeneration() != generation || attempt.getStatus() != AttemptStatus.IN_PROGRESS) {
                 continue;
             }
             UserTopicItemAttempt known = byItem.get(attempt.getTopicItemId());
@@ -504,16 +512,26 @@ public class TopicLearningServiceImpl implements TopicLearningService {
     }
 
     /** The running item attempt of an item, the source of truth for the position. */
-    private UserTopicItemAttempt findActiveItemAttempt(String userId, String topicItemId) {
+    private UserTopicItemAttempt findActiveItemAttempt(String userId, String topicItemId, long generation) {
         List<UserTopicItemAttempt> attempts = userTopicItemAttemptRepository
                 .findByUserIdAndTopicItemId(userId, topicItemId);
         if (attempts == null || attempts.isEmpty()) {
             return null;
         }
         return attempts.stream()
-                .filter(attempt -> attempt.getStatus() == AttemptStatus.IN_PROGRESS)
+                .filter(attempt -> attempt.getGeneration() == generation && attempt.getStatus() == AttemptStatus.IN_PROGRESS)
                 .max(LAST_ACCESSED)
                 .orElse(null);
+    }
+
+    private long generation(String userId, String topicId) { return generations == null ? 0 : generations.current(userId, topicId); }
+    private String progressId(String userId, String topicId, String kind, long generation) {
+        return generation == 0 || generations == null ? null : generations.id(userId, topicId + "|" + kind + "|" + generation);
+    }
+    private UserTopicProgress findTopicProgress(String userId, String topicId, long generation) {
+        if (generations == null) return userTopicProgressRepository.findByUserIdAndTopicId(userId, topicId).orElse(null);
+        return userTopicProgressRepository.findByUserId(userId).stream()
+                .filter(row -> topicId.equals(row.getTopicId()) && row.getGeneration() == generation).findFirst().orElse(null);
     }
 
     // --- guards ------------------------------------------------------------------------
@@ -560,6 +578,6 @@ public class TopicLearningServiceImpl implements TopicLearningService {
     private record ItemContext(Topic topic,
                                 TopicVersion release,
                                 TopicItemVersion publishedVersion,
-                                List<TopicItemVersion> visibleItems) {
+                                List<TopicItemVersion> visibleItems, long generation) {
     }
 }

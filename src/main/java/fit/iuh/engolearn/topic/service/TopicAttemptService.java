@@ -27,6 +27,8 @@ import java.nio.charset.StandardCharsets;
 @Service
 public class TopicAttemptService {
     @org.springframework.beans.factory.annotation.Autowired
+    private TopicGenerationService generations;
+    @org.springframework.beans.factory.annotation.Autowired
     private TopicRetryService retries;
     @org.springframework.beans.factory.annotation.Autowired
     private TopicAttemptPresenter retryPresenter;
@@ -52,8 +54,19 @@ public class TopicAttemptService {
 
     @PostConstruct
     void indexes() {
+        mongo.execute(UserTopicItemAttempt.class, collection -> {
+            collection.updateMany(Filters.eq("generation", null), new Document("$set", new Document("generation", 0L)));
+            for (Document index : collection.listIndexes()) {
+                if ("one_running_learning_item_per_topic".equals(index.getString("name")) &&
+                        !index.get("key", Document.class).containsKey("generation")) {
+                    collection.dropIndex("one_running_learning_item_per_topic");
+                    break;
+                }
+            }
+            return null;
+        });
         mongo.execute(UserTopicItemAttempt.class, collection -> collection.createIndex(
-                Indexes.compoundIndex(Indexes.ascending("user_id"), Indexes.ascending("topic_id"), Indexes.ascending("attempt_type")),
+                Indexes.compoundIndex(Indexes.ascending("user_id"), Indexes.ascending("topic_id"), Indexes.ascending("attempt_type"), Indexes.ascending("generation")),
                 new IndexOptions().name("one_running_learning_item_per_topic").unique(true).partialFilterExpression(
                         Filters.and(Filters.eq("status", "IN_PROGRESS"), Filters.eq("attempt_type", "LEARNING")))));
     }
@@ -63,13 +76,17 @@ public class TopicAttemptService {
         if ("RETRY".equals(body.mode())) return retries.startItem(itemId, body, key);
         if (body.retrySessionId() != null || body.replaceRetrySessionId() != null) throw problem(400, "INVALID_REQUEST", "LEARN cannot attach a retry session");
         String signature = "start|" + itemId + "|" + body.mode();
-        String id = hash(userId + "|" + key).substring(0, 24);
+        TopicItem storedItem = topicItems.findById(itemId).orElseThrow(() -> problem(404, "CONTENT_UNAVAILABLE", "Topic item not found"));
+        long generation = generations == null ? 0 : generations.current(userId, storedItem.getTopicId());
+        String id = hash(userId + "|" + key + (generation == 0 ? "" : "|" + storedItem.getTopicId() + "|generation|" + generation)).substring(0, 24);
         UserTopicItemAttempt previous = attempts.findById(id).orElse(null);
         if (previous != null) {
             if (!userId.equals(previous.getUserId()) || !signature.equals(previous.getStartFingerprint())) throw problem(409, "IDEMPOTENCY_KEY_REUSED", "Key already used for another action");
+            requireGeneration(previous);
             return describe(previous, LearningStage.CONTEXT, 0, 0, previous.getStartedAt());
         }
-        TopicItem storedItem = topicItems.findById(itemId).orElseThrow(() -> problem(404, "CONTENT_UNAVAILABLE", "Topic item not found"));
+        UserTopicItemAttempt oldKey = mongo.findOne(new Query(Criteria.where("user_id").is(userId).and("topic_id").is(storedItem.getTopicId()).and("start_request_key").is(key)), UserTopicItemAttempt.class);
+        if (oldKey != null && userId.equals(oldKey.getUserId())) requireGeneration(oldKey);
         reconcileHiddenRunning(userId, storedItem.getTopicId());
         TopicDetailResponse detail = catalog.detail(storedItem.getTopicId());
         TopicItemSummaryResponse item = detail.getItems().stream().filter(row -> row.getTopicItemId().equals(itemId)).findFirst()
@@ -79,7 +96,7 @@ public class TopicAttemptService {
         TopicItemVersion pinned = versions.findById(item.getPublishedVersionId()).orElseThrow(() -> problem(404, "CONTENT_UNAVAILABLE", "Published version not found"));
         TopicAttemptContentMapper.content(pinned);
         Instant now = Instant.now().truncatedTo(java.time.temporal.ChronoUnit.MILLIS);
-        UserTopicItemAttempt created = UserTopicItemAttempt.builder().id(id).userId(userId).topicId(detail.getTopicId()).topicItemId(itemId)
+        UserTopicItemAttempt created = UserTopicItemAttempt.builder().id(id).generation(generation).userId(userId).topicId(detail.getTopicId()).topicItemId(itemId)
                 .topicItemVersionId(pinned.getId()).attemptType(AttemptType.LEARNING).startRequestKey(key).startFingerprint(signature)
                 .mutationReceipts(new ArrayList<>()).status(AttemptStatus.IN_PROGRESS)
                 .furthestReached(FurthestReachedVo.builder().stage(LearningStage.CONTEXT).itemIndex(0).build())
@@ -89,7 +106,7 @@ public class TopicAttemptService {
             UserTopicItemAttempt keyed = attempts.findById(id).orElse(null);
             if (keyed != null && !signature.equals(keyed.getStartFingerprint())) throw problem(409, "IDEMPOTENCY_KEY_REUSED", "Key already used for another action");
             return attempts.findByUserIdAndTopicId(userId, detail.getTopicId()).stream()
-                    .filter(a -> a.getStatus() == AttemptStatus.IN_PROGRESS && a.getAttemptType() == AttemptType.LEARNING && itemId.equals(a.getTopicItemId()))
+                    .filter(a -> a.getGeneration() == generation && a.getStatus() == AttemptStatus.IN_PROGRESS && a.getAttemptType() == AttemptType.LEARNING && itemId.equals(a.getTopicItemId()))
                     .findFirst().map(this::describe).orElseThrow(() -> problem(409, "OTHER_ITEM_IN_PROGRESS", "Another item was started"));
         }
     }
@@ -119,6 +136,30 @@ public class TopicAttemptService {
         List<TopicQuizMapper.QuizEntry> sequence = quizMapper.sequence(pinned);
         Optional<TopicQuizMapper.QuizEntry> current = firstUnanswered(sequence, attempt.getQuizProgress());
         return new CurrentQuizResponse(describe(attempt), current.map(quizMapper::toDto).orElse(null));
+    }
+
+    public QuizNavigationResponse quizNavigation(String id) {
+        UserTopicItemAttempt attempt = owned(id);
+        TopicItemVersion pinned = version(attempt);
+        requireItemVisible(attempt, pinned);
+        if (attempt.getStatus() != AttemptStatus.IN_PROGRESS) throw problem(409, "STATE_CHANGED", "Open completed exercises through review");
+        var sequence = quizMapper.sequence(pinned);
+        var frontier = attempt.getFurthestReached();
+        boolean reached = frontier != null && (frontier.getStage() == LearningStage.FILL_BLANK || frontier.getStage() == LearningStage.SITUATIONAL_CHOICE);
+        String current = reached ? firstUnanswered(sequence, attempt.getQuizProgress()).map(TopicQuizMapper.QuizEntry::quizId).orElse(null) : null;
+        List<QuizNavigationResponse.Entry> entries = new ArrayList<>();
+        for (var entry : sequence) {
+            QuizProgressVo progress = attempt.getQuizProgress() == null ? null : attempt.getQuizProgress().stream()
+                    .filter(value -> value != null && entry.quizId().equals(value.getQuizId())).findFirst().orElse(null);
+            boolean completed = reached && answeredCorrectly(entry, attempt.getQuizProgress());
+            boolean selected = entry.quizId().equals(current);
+            entries.add(new QuizNavigationResponse.Entry(entry.quizId(), entry.type(), entry.indexInType(),
+                    completed ? "COMPLETED" : selected ? "CURRENT" : "LOCKED",
+                    completed || selected ? quizMapper.toDto(entry) : null,
+                    completed ? quizMapper.feedback(entry) : null,
+                    completed ? Boolean.TRUE.equals(progress.getSubmissions().get(0).getIsCorrect()) : null));
+        }
+        return new QuizNavigationResponse(describe(attempt), entries);
     }
 
     public TopicAttemptResponse advance(String id, AdvanceTopicContentRequest body, String key) {
@@ -210,7 +251,10 @@ public class TopicAttemptService {
     }
 
     public TopicAttemptResponse complete(String id, CompleteTopicAttemptRequest body, String key) {
-        if (isRetry(id)) throw problem(409, "STATE_CHANGED", "Retry completion is committed with the final answer");
+        if (isRetry(id)) {
+            retries.owned(id, false);
+            throw problem(409, "STATE_CHANGED", "Retry completion is committed with the final answer");
+        }
         UserTopicItemAttempt attempt = owned(id);
         String fingerprint = "complete|" + body.revision();
         ContentMutationReceiptVo replay = receipt(attempt, key, fingerprint);
@@ -318,7 +362,7 @@ public class TopicAttemptService {
             results.add(new TopicResultResponse.Item(item.getTopicItemId(), item.getTitle(), attempt.getId(),
                     result.firstTryCorrectCount(), result.totalQuizCount(), accuracy(result), item.isHasNewContent(), item.getActions()));
         }
-        return new TopicResultResponse(topicId, detail.getTitleVi(), firstTry, total, (int)Math.round(100.0 * firstTry / total), results, detail.getRetryAvailability());
+        return new TopicResultResponse(topicId, detail.getTitleVi(), firstTry, total, (int)Math.round(100.0 * firstTry / total), results, detail.getRetryAvailability(), detail.getResetAvailability());
     }
 
     private CompletionResultVo resultData(UserTopicItemAttempt attempt) {
@@ -425,10 +469,12 @@ public class TopicAttemptService {
                 new Update().set("version", attempt.getVersion()).set("last_accessed_at", now).push("mutation_receipts", saved),
                 FindAndModifyOptions.options().returnNew(true), UserTopicItemAttempt.class);
         if (result == null) throw problem(409, "STATE_CHANGED", "Attempt changed while recording access");
+        requireGeneration(result);
         return Map.of("lastAccessedAt", now);
     }
 
     public TopicAttemptResponse describe(UserTopicItemAttempt attempt) {
+        requireGeneration(attempt);
         if (attempt.getAttemptType() == AttemptType.RETRY) return retryPresenter.describe(attempt);
         FurthestReachedVo position = attempt.getFurthestReached();
         return describe(attempt, position == null ? null : position.getStage(), position == null ? 0 : position.getItemIndex(), revision(attempt), attempt.getLastAccessedAt());
@@ -443,6 +489,7 @@ public class TopicAttemptService {
     }
 
     private TopicAttemptResponse describe(UserTopicItemAttempt attempt, LearningStage stage, int index, long revision, Instant accessed, boolean rounded) {
+        requireGeneration(attempt);
         TopicItemVersion version = version(attempt);
         TopicItemContentResponse content = TopicAttemptContentMapper.content(version);
         List<TopicCatalogPolicy.Position> positions = contentPositions(content);
@@ -472,8 +519,9 @@ public class TopicAttemptService {
         TopicProgressResponse response = TopicProgressResponse.builder().topicId(topicId)
                 .status(ItemProgressStatus.valueOf(summary.status())).completedItemCount(summary.completedItemCount())
                 .totalItemCount(summary.totalItemCount()).items(new ArrayList<>()).build();
-        List<UserTopicItemAttempt> saved = new ArrayList<>(attempts.findByUserIdAndTopicId(userId(), topicId));
-        TopicRetryRuntime retryState = retries == null ? null : retries.runtime(topicId);
+        long generation = detail.getGeneration();
+        List<UserTopicItemAttempt> saved = new ArrayList<>(attempts.findByUserIdAndTopicId(userId(), topicId).stream().filter(a -> a.getGeneration() == generation).toList());
+        TopicRetryRuntime retryState = retries == null ? null : retries.runtime(topicId, generation);
         if (retryState != null) saved.addAll(retryState.getOfficialResults().values());
         int totalWords = 0, totalExpressions = 0, totalQuiz = 0, learnedWords = 0, learnedExpressions = 0, doneQuiz = 0;
         Instant accessed = saved.stream().map(UserTopicItemAttempt::getLastAccessedAt).filter(Objects::nonNull).max(Comparator.naturalOrder()).orElse(null);
@@ -571,7 +619,12 @@ public class TopicAttemptService {
         String owner = userId();
         UserTopicItemAttempt attempt = attempts.findById(id).orElseThrow(() -> problem(404, "CONTENT_UNAVAILABLE", "Attempt not found"));
         if (!owner.equals(attempt.getUserId())) throw problem(404, "CONTENT_UNAVAILABLE", "Attempt not found");
+        requireGeneration(attempt);
         return attempt;
+    }
+
+    private void requireGeneration(UserTopicItemAttempt attempt) {
+        if (generations != null) generations.require(attempt.getUserId(), attempt.getTopicId(), attempt.getGeneration());
     }
 
     private boolean isRetry(String id) { return retries != null && retries.isRetry(id); }

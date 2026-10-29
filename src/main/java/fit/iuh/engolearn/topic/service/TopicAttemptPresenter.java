@@ -11,6 +11,8 @@ import java.util.*;
 
 @Component
 public class TopicAttemptPresenter {
+    @org.springframework.beans.factory.annotation.Autowired
+    private TopicGenerationService generations;
     private final TopicItemVersionRepository versions;
     public TopicAttemptPresenter(TopicItemVersionRepository versions) { this.versions = versions; }
 
@@ -21,6 +23,7 @@ public class TopicAttemptPresenter {
     }
 
     public TopicAttemptResponse describe(UserTopicItemAttempt attempt, LearningStage stage, int index, long revision, Instant accessed) {
+        if (generations != null) generations.require(attempt.getUserId(), attempt.getTopicId(), attempt.getGeneration());
         TopicItemVersion version = versions.findById(attempt.getTopicItemVersionId()).orElseThrow();
         TopicItemContentResponse content = TopicAttemptContentMapper.content(version);
         List<TopicCatalogPolicy.Position> positions = positions(content);

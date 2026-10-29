@@ -1,5 +1,13 @@
 # Bàn giao API quiz — Slice A (GET current quiz + POST answer)
 
+## Current navigation contract (2026-10-29)
+
+GET `/api/v1/topic-attempts/{attemptId}/quiz-navigation` is read-only and returns `{attempt,entries}` for an IN_PROGRESS owned attempt. Entries follow the pinned mapper sequence and contain `{quizId,type,index,status,quiz,feedback,firstTryCorrect}`; index is zero-based within type.
+
+Before exercises all entries are LOCKED; future entries return only identity/type/index/status, with the other three fields null. CURRENT includes quiz but never feedback or firstTryCorrect, including after wrong submissions. COMPLETED includes the reached quiz, correct feedback and first-submission correctness. Navigation does not move the frontier. The existing answer endpoint still accepts only the current unanswered quiz and current revision.
+
+Completed attempts return `409 STATE_CHANGED` and use review instead. Old owned generations return `409 TOPIC_RESET`, hidden content `410 ITEM_HIDDEN`, foreign/missing `404 CONTENT_UNAVAILABLE`, no learner `401 SIGN_IN_REQUIRED`. This supersedes any current-question-only navigation restriction below; scoring and current-quiz contracts remain unchanged.
+
 ## Coordination update (2026-10-28)
 
 BE work now continues on `feat/complete-topic-learning-flow` from `b14eff0`; prior Slice A commits are preserved. FE commit `82d2201` already declares 410 for both quiz endpoints, and `b841354` implements the quiz consumer. Historical statements below saying this quiz delta is not synchronized are superseded by this update. Full hidden coverage and retry recovery remain open for later consumers (retry recovery in C).
