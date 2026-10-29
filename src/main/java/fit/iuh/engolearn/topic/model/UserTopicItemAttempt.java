@@ -26,6 +26,16 @@ import java.util.List;
 @SuperBuilder
 @EqualsAndHashCode(callSuper = true)
 public class UserTopicItemAttempt extends BaseDocument {
+    private long generation;
+    @Field("attempt_type")
+    private fit.iuh.engolearn.topic.model.enums.AttemptType attemptType;
+    @Field("start_request_key")
+    private String startRequestKey;
+    @Field("start_fingerprint")
+    private String startFingerprint;
+    @Field("mutation_receipts")
+    private List<fit.iuh.engolearn.topic.model.vo.ContentMutationReceiptVo> mutationReceipts;
+
     @Field(value = "user_topic_attempt_id", targetType = FieldType.OBJECT_ID)
     private String userTopicAttemptId;
 
@@ -58,6 +68,12 @@ public class UserTopicItemAttempt extends BaseDocument {
 
     @Field("completed_at")
     private Instant completedAt;
+
+    @Field("completion_result")
+    private fit.iuh.engolearn.topic.model.vo.CompletionResultVo completionResult;
+
+    @Field("abandoned_reason")
+    private String abandonedReason;
 
     @Version
     private Long version;

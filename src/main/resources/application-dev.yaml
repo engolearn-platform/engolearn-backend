@@ -1,0 +1,4 @@
+engolearn:
+  security:
+    dev-auth:
+      enabled: true

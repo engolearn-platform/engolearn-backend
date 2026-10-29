@@ -25,16 +25,17 @@ import org.springframework.web.bind.annotation.RestController;
 public class TopicLearningController {
 
     private final TopicLearningService topicLearningService;
+    private final fit.iuh.engolearn.topic.service.TopicAttemptService attempts;
 
-    public TopicLearningController(TopicLearningService topicLearningService) {
+    public TopicLearningController(TopicLearningService topicLearningService, fit.iuh.engolearn.topic.service.TopicAttemptService attempts) {
         this.topicLearningService = topicLearningService;
+        this.attempts = attempts;
     }
 
     @GetMapping("/topic-items/{itemId}/content")
     public ApiResponse<TopicItemContentResponse> getItemContent(
             @Valid @NotBlank @PathVariable("itemId") String itemId) {
-        return ApiResponse.ok(topicLearningService.getItemContent(
-                GetTopicItemContentRequest.builder().topicItemId(itemId).build()));
+        throw new fit.iuh.engolearn.topic.exception.TopicRequestException(410, "INVALID_REQUEST", "Use the owned attempt content endpoint");
     }
 
     @GetMapping("/topic-items/{itemId}/position")
@@ -53,13 +54,12 @@ public class TopicLearningController {
                 .stage(body == null ? null : body.getStage())
                 .itemIndex(body == null ? null : body.getItemIndex())
                 .build();
-        return ApiResponse.ok(topicLearningService.saveItemPosition(request));
+        throw new fit.iuh.engolearn.topic.exception.TopicRequestException(410, "INVALID_REQUEST", "Use attempt start/advance; arbitrary position writes are retired");
     }
 
     @GetMapping("/topics/{topicId}/progress")
     public ApiResponse<TopicProgressResponse> getTopicProgress(
             @Valid @NotBlank @PathVariable("topicId") String topicId) {
-        return ApiResponse.ok(topicLearningService.getTopicProgress(
-                GetTopicProgressRequest.builder().topicId(topicId).build()));
+        return ApiResponse.ok(attempts.topicProgress(topicId));
     }
 }

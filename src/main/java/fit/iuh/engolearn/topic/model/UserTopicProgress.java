@@ -21,6 +21,7 @@ import java.time.Instant;
 @SuperBuilder
 @EqualsAndHashCode(callSuper = true)
 public class UserTopicProgress extends BaseDocument {
+    private long generation;
     @Field("user_id")
     private String userId;
 
