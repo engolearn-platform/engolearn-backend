@@ -2,3 +2,6 @@ engolearn:
   security:
     dev-auth:
       enabled: true
+  speaking:
+    demo:
+      enabled: true

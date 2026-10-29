@@ -19,7 +19,7 @@ import java.util.List;
 @Profile("dev")
 public class SpeakingDevSeed {
     public record Seed(String topicItemId, String topicItemVersionId, List<SpeakingGoal> goals,
-                       int goalPercentage, int minimumValidTurns) {}
+                       int minimumValidTurns) {}
 
     @Bean
     public ApplicationRunner speakingConfigSeed(SpeakingItemConfigRepository repository,
@@ -33,14 +33,14 @@ public class SpeakingDevSeed {
                         || seed.topicItemVersionId() == null || seed.topicItemVersionId().isBlank()
                         || !versions.add(seed.topicItemVersionId()) || seed.goals() == null
                         || seed.goals().size() < 3 || seed.goals().size() > 5
-                        || seed.goalPercentage() < 1 || seed.goalPercentage() > 100
+                        || seed.goals().stream().noneMatch(goal -> goal.priority() == SpeakingGoal.Priority.REQUIRED)
                         || seed.minimumValidTurns() < 3 || seed.minimumValidTurns() > 5) {
                     throw new IllegalArgumentException("Invalid Speaking seed configuration");
                 }
                 repository.findByTopicItemVersionId(seed.topicItemVersionId()).ifPresentOrElse(
                         ignored -> { }, () -> repository.save(SpeakingItemConfig.builder()
                                 .topicItemId(seed.topicItemId()).topicItemVersionId(seed.topicItemVersionId())
-                                .goals(List.copyOf(seed.goals())).goalPercentage(seed.goalPercentage())
+                                .goals(List.copyOf(seed.goals()))
                                 .minimumValidTurns(seed.minimumValidTurns()).revision(1)
                                 .status(SpeakingItemConfig.Status.PUBLISHED).build()));
             }

@@ -23,7 +23,7 @@ public class SpeakingItemConfig extends BaseDocument {
     @Field("goals")
     private List<SpeakingGoal> goals;
     @Field("goal_percentage")
-    private int goalPercentage;
+    private Integer goalPercentage;
     @Field("minimum_valid_turns")
     private int minimumValidTurns;
     @Field("revision")
@@ -32,6 +32,8 @@ public class SpeakingItemConfig extends BaseDocument {
     private Status status;
 
     public int requiredGoalCount() {
+        if (goalPercentage == null) return (int) goals.stream()
+                .filter(goal -> goal.priority() == SpeakingGoal.Priority.REQUIRED).count();
         return (goals.size() * goalPercentage + 99) / 100;
     }
 }

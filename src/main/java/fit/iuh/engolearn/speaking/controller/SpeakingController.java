@@ -57,7 +57,7 @@ public class SpeakingController {
     @PostMapping("/sessions/{id}/end")
     public ApiResponse<SpeakingSessionResponse> end(@PathVariable String id,
             @Valid @RequestBody SpeakingControlRequest body) {
-        return ApiResponse.ok(service.end(id, body.controllerEpoch()));
+        return ApiResponse.ok(service.end(id, body.controllerEpoch(), body.requestId()));
     }
 
     @PostMapping("/sessions/{id}/socket-ticket")

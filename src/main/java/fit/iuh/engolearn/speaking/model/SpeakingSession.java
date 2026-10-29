@@ -40,6 +40,7 @@ public class SpeakingSession extends BaseDocument {
     @Field("achieved_goal_ids") private List<String> achievedGoalIds;
     @Field("opening_reply") private String openingReply;
     @Field("last_resume_request_id") private String lastResumeRequestId;
+    @Field("end_request_id") private String endRequestId;
 
     public boolean isOpen() {
         return status == Status.ACTIVE || status == Status.INTERRUPTED;

@@ -11,6 +11,7 @@ import fit.iuh.engolearn.speaking.utils.port.SpeechSynthesisPort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.context.event.EventListener;
 
 import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;
@@ -214,6 +215,15 @@ public class SpeakingRealtimeService {
                 if (!reconnected) sessions.interruptIfDisconnected(c.sessionId, c.learnerId, c.epoch);
             });
         }
+    }
+
+    @EventListener
+    public void onSessionEnded(SpeakingSessionService.SessionEndedEvent event) {
+        connections.values().stream()
+                .filter(connection -> connection.active && connection.sessionId.equals(event.sessionId())
+                        && connection.learnerId.equals(event.learnerId()))
+                .forEach(connection -> send(connection, "SESSION_ENDED", null, Map.of(
+                        "snapshot", sessions.socketSnapshot(event.sessionId(), event.learnerId()))));
     }
 
     private Connection require(String connectionId) {

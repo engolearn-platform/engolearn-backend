@@ -87,7 +87,7 @@ public class SpeakingDevFixture implements ApplicationRunner {
                                     "Ask when boarding begins.", SpeakingGoal.Priority.REQUIRED),
                             new SpeakingGoal("clarify-direction", "Clarify a direction",
                                     "Ask the agent to repeat or explain one direction.", SpeakingGoal.Priority.OPTIONAL)))
-                    .goalPercentage(66).minimumValidTurns(3).revision(1)
+                    .minimumValidTurns(3).revision(1)
                     .status(SpeakingItemConfig.Status.PUBLISHED).build());
         }
     }
