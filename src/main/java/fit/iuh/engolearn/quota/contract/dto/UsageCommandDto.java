@@ -2,9 +2,9 @@ package fit.iuh.engolearn.quota.contract.dto;
 
 import java.time.Instant;
 
-public record UsageCommand(String userId, String quotaType, long amount, String sourceFeature,
+public record UsageCommandDto(String userId, String quotaType, long amount, String sourceFeature,
         String idempotencyKey, String sourceReference, Instant occurredAt) {
-    public UsageCommand {
+    public UsageCommandDto {
         requireIdentifier(userId);
         requireIdentifier(quotaType);
         requireIdentifier(sourceFeature);

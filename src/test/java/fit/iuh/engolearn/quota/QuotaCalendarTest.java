@@ -1,7 +1,7 @@
 package fit.iuh.engolearn.quota;
 
-import fit.iuh.engolearn.quota.contract.dto.UsageCommand;
-import fit.iuh.engolearn.quota.service.QuotaCalendar;
+import fit.iuh.engolearn.quota.contract.dto.UsageCommandDto;
+import fit.iuh.engolearn.quota.model.QuotaCalendar;
 import java.time.Instant;
 import org.junit.jupiter.api.Test;
 import static org.assertj.core.api.Assertions.*;
@@ -22,18 +22,18 @@ class QuotaCalendarTest {
     }
 
     @Test void inProcessContractRejectsMalformedShape() {
-        assertThatThrownBy(() -> new UsageCommand(" ", "TYPE", 1, "CALLER", "key", null, null)).isInstanceOf(IllegalArgumentException.class);
-        assertThatThrownBy(() -> new UsageCommand("u", "TYPE", 0, "CALLER", "key", null, null)).isInstanceOf(IllegalArgumentException.class);
-        assertThatThrownBy(() -> new UsageCommand("u", "TYPE", 9_007_199_254_740_992L, "CALLER", "key", null, null)).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> new UsageCommandDto(" ", "TYPE", 1, "CALLER", "key", null, null)).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> new UsageCommandDto("u", "TYPE", 0, "CALLER", "key", null, null)).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> new UsageCommandDto("u", "TYPE", 9_007_199_254_740_992L, "CALLER", "key", null, null)).isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test void missingTransactionManagerRefusesOperationBeforeAnyWork() {
         var beans = new org.springframework.beans.factory.support.StaticListableBeanFactory();
-        var transactions = new fit.iuh.engolearn.quota.service.QuotaTransactions(
+        var transactions = new fit.iuh.engolearn.quota.service.impl.QuotaTransactionsImpl(
                 beans.getBeanProvider(org.springframework.data.mongodb.MongoTransactionManager.class));
         var called = new java.util.concurrent.atomic.AtomicBoolean();
         assertThatThrownBy(() -> transactions.execute(() -> { called.set(true); return true; }))
-                .isInstanceOf(fit.iuh.engolearn.quota.contract.QuotaUnavailableException.class);
+                .isInstanceOf(fit.iuh.engolearn.quota.contract.exception.QuotaUnavailableException.class);
         assertThat(called).isFalse();
     }
 }

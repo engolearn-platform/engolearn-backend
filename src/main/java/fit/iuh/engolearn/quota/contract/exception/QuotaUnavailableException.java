@@ -1,4 +1,4 @@
-package fit.iuh.engolearn.quota.contract;
+package fit.iuh.engolearn.quota.contract.exception;
 
 public class QuotaUnavailableException extends RuntimeException {
     public QuotaUnavailableException() { super("Quota is temporarily unavailable"); }

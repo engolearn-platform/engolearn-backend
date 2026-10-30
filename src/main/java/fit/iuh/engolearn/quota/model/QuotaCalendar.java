@@ -1,4 +1,4 @@
-package fit.iuh.engolearn.quota.service;
+package fit.iuh.engolearn.quota.model;
 
 import java.time.DayOfWeek;
 import java.time.Instant;

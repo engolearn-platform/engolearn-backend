@@ -1,6 +1,7 @@
-package fit.iuh.engolearn.quota.controller;
+package fit.iuh.engolearn.quota.controller.exceptionhandler;
+import fit.iuh.engolearn.quota.controller.QuotaController;
 
-import fit.iuh.engolearn.quota.contract.QuotaUnavailableException;
+import fit.iuh.engolearn.quota.contract.exception.QuotaUnavailableException;
 import fit.iuh.engolearn.shared.security.UnauthenticatedException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;

@@ -2,10 +2,15 @@ package fit.iuh.engolearn.quota;
 
 import fit.iuh.engolearn.config.AbstractMongoIntegrationTest;
 import fit.iuh.engolearn.quota.contract.*;
+import fit.iuh.engolearn.quota.contract.exception.*;
+import fit.iuh.engolearn.quota.contract.exception.*;
 import fit.iuh.engolearn.quota.contract.dto.*;
-import fit.iuh.engolearn.quota.repository.QuotaStore;
+import fit.iuh.engolearn.quota.repository.QuotaRepository;
 import fit.iuh.engolearn.quota.service.*;
 import fit.iuh.engolearn.subscription.contract.*;
+import fit.iuh.engolearn.subscription.contract.event.EntitlementChangedEvent;
+import fit.iuh.engolearn.subscription.contract.event.QuotaPolicyActivatedEvent;
+import fit.iuh.engolearn.subscription.contract.exception.SubscriptionUnavailableException;
 import fit.iuh.engolearn.subscription.contract.dto.*;
 import java.time.*;
 import java.util.*;
@@ -22,13 +27,19 @@ import org.springframework.test.context.TestPropertySource;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.testcontainers.junit.jupiter.EnabledIfDockerAvailable;
 
-import static fit.iuh.engolearn.quota.repository.QuotaStore.*;
+
 import static org.assertj.core.api.Assertions.*;
 
 @EnabledIfDockerAvailable
 @Import(QuotaIntegrationTest.Fixtures.class)
 @TestPropertySource(properties = "engolearn.subscription.activation-delay-ms=3600000")
 class QuotaIntegrationTest extends AbstractMongoIntegrationTest {
+    private static final String POLICIES = "quota_policy_snapshots";
+    private static final String ENTITLEMENTS = "quota_entitlement_projection";
+    private static final String COUNTERS = "quota_usage_counters";
+    private static final String LEDGER = "quota_usage_ledger";
+    private static final String RECEIPTS = "quota_policy_activation_receipts";
+
     private static final Instant START = Instant.parse("2026-10-28T12:00:00Z");
     private static final String SPEAKING = "SPEAKING_DURATION";
     private static final String ATTEMPT = "PROFICIENCY_CHECK_ATTEMPT";
@@ -42,10 +53,10 @@ class QuotaIntegrationTest extends AbstractMongoIntegrationTest {
     }
 
     static class TestEntitlements implements EffectiveEntitlementProvider {
-        final Map<String, EffectiveEntitlement> users = new ConcurrentHashMap<>();
+        final Map<String, EffectiveEntitlementDto> users = new ConcurrentHashMap<>();
         volatile boolean fail;
         volatile java.util.function.Consumer<String> onLookup = user -> {};
-        public EffectiveEntitlement resolveEffectiveEntitlement(String userId, Instant at) {
+        public EffectiveEntitlementDto resolveEffectiveEntitlement(String userId, Instant at) {
             onLookup.accept(userId);
             if (fail || !users.containsKey(userId)) throw new SubscriptionUnavailableException();
             return users.get(userId);
@@ -63,8 +74,8 @@ class QuotaIntegrationTest extends AbstractMongoIntegrationTest {
     @Autowired QuotaAvailability availability;
     @Autowired QuotaService service;
     @Autowired QuotaEntitlements projections;
-    @Autowired QuotaActivationHandler activations;
-    @Autowired QuotaStore store;
+    @Autowired QuotaActivationService activations;
+    @Autowired QuotaRepository store;
     @Autowired MongoTransactionManager manager;
     @Autowired TestClock clock;
     @Autowired TestEntitlements provider;
@@ -82,26 +93,26 @@ class QuotaIntegrationTest extends AbstractMongoIntegrationTest {
         mongoTemplate.createCollection("test_preconditions");
     }
 
-    private QuotaPolicySnapshot snapshot(String scope, long version, long seconds, long attempts) {
-        return new QuotaPolicySnapshot(scope + version, scope, version, List.of(
-                new QuotaRule(SPEAKING, "Speaking", seconds, "SECOND", "DAILY", 0),
-                new QuotaRule(ATTEMPT, "Assessment", attempts, "ATTEMPT", "MONTHLY", 1),
-                new QuotaRule(WEEKLY, "Weekly", 5, "ATTEMPT", "WEEKLY", 2)));
+    private QuotaPolicySnapshotDto snapshot(String scope, long version, long seconds, long attempts) {
+        return new QuotaPolicySnapshotDto(scope + version, scope, version, List.of(
+                new QuotaRuleDto(SPEAKING, "Speaking", seconds, "SECOND", "DAILY", 0),
+                new QuotaRuleDto(ATTEMPT, "Assessment", attempts, "ATTEMPT", "MONTHLY", 1),
+                new QuotaRuleDto(WEEKLY, "Weekly", 5, "ATTEMPT", "WEEKLY", 2)));
     }
 
-    private EffectiveEntitlement entitlement(String user, long revision, QuotaPolicySnapshot policy, long sequence, Instant effective, Instant until) {
-        return new EffectiveEntitlement(user, revision, policy.policyScope(), policy.policySnapshotId(), policy.policyVersion(), sequence, effective, until, policy);
+    private EffectiveEntitlementDto entitlement(String user, long revision, QuotaPolicySnapshotDto policy, long sequence, Instant effective, Instant until) {
+        return new EffectiveEntitlementDto(user, revision, policy.policyScope(), policy.policySnapshotId(), policy.policyVersion(), sequence, effective, until, policy);
     }
 
-    private UsageCommand command(String type, long amount, String key) {
-        return new UsageCommand("u", type, amount, "TEST_CALLER", key, "reference-" + key, null);
+    private UsageCommandDto command(String type, long amount, String key) {
+        return new UsageCommandDto("u", type, amount, "TEST_CALLER", key, "reference-" + key, null);
     }
 
     private long count(String collection) { return mongoTemplate.getCollection(collection).countDocuments(); }
-    private Document counter(String type) { return store.one(COUNTERS, Criteria.where("userId").is("u").and("quotaType").is(type)); }
-    private void publishEntitlement(EffectiveEntitlement entitlement) {
+    private Document counter(String type) { return mongoTemplate.findOne(Query.query(Criteria.where("user_id").is("u").and("quota_type").is(type)), Document.class, COUNTERS); }
+    private void publishEntitlement(EffectiveEntitlementDto entitlement) {
         provider.users.put(entitlement.userId(), entitlement);
-        projections.onEntitlementChanged(new EntitlementChanged(entitlement));
+        projections.onEntitlementChanged(new EntitlementChangedEvent(entitlement));
     }
 
     @Test
@@ -110,7 +121,7 @@ class QuotaIntegrationTest extends AbstractMongoIntegrationTest {
         assertThat(availability.checkAvailability("u", SPEAKING).remaining()).isEqualTo(10);
         assertThat(counter(SPEAKING)).isEqualTo(before);
         assertThat(count(LEDGER)).isZero();
-        UsageResult accepted = consumption.consume(command(SPEAKING, 8, "accepted"));
+        UsageResultDto accepted = consumption.consume(command(SPEAKING, 8, "accepted"));
         assertThat(accepted.accepted()).isTrue();
         assertThat(consumption.consume(command(SPEAKING, 3, "denied")).accepted()).isFalse();
         assertThat(count(LEDGER)).isEqualTo(1);
@@ -125,12 +136,12 @@ class QuotaIntegrationTest extends AbstractMongoIntegrationTest {
     void concurrentFirstCounterCreationAndConditionalExistingCounterNeverExceedCap() throws Exception {
         provider.users.put("u", entitlement("u", 0, snapshot("FREE", 1, 1, 1), 0, START.minusSeconds(1), null));
         assertBoundedConcurrentAcceptance("first");
-        assertThat(counter(SPEAKING).getLong("usedAmount")).isEqualTo(1);
+        assertThat(counter(SPEAKING).getLong("used_amount")).isEqualTo(1);
         assertThat(count(COUNTERS)).isEqualTo(1);
         assertThat(count(LEDGER)).isEqualTo(1);
         clock.at = START.plus(Duration.ofDays(1));
         assertBoundedConcurrentAcceptance("existing");
-        assertThat(counter(SPEAKING).getLong("usedAmount")).isEqualTo(1);
+        assertThat(counter(SPEAKING).getLong("used_amount")).isEqualTo(1);
         assertThat(count(COUNTERS)).isEqualTo(1);
         assertThat(count(LEDGER)).isEqualTo(2);
     }
@@ -140,7 +151,7 @@ class QuotaIntegrationTest extends AbstractMongoIntegrationTest {
         CountDownLatch ready = new CountDownLatch(2);
         CountDownLatch start = new CountDownLatch(1);
         try {
-            List<Future<UsageResult>> results = new ArrayList<>();
+            List<Future<UsageResultDto>> results = new ArrayList<>();
             for (int index = 0; index < 2; index++) {
                 String key = prefix + index;
                 results.add(workers.submit(() -> {
@@ -152,7 +163,7 @@ class QuotaIntegrationTest extends AbstractMongoIntegrationTest {
             assertThat(ready.await(10, TimeUnit.SECONDS)).isTrue();
             start.countDown();
             int accepted = 0;
-            for (Future<UsageResult> result : results) if (result.get(20, TimeUnit.SECONDS).accepted()) accepted++;
+            for (Future<UsageResultDto> result : results) if (result.get(20, TimeUnit.SECONDS).accepted()) accepted++;
             assertThat(accepted).isEqualTo(1);
         } finally { workers.shutdownNow(); }
     }
@@ -160,12 +171,12 @@ class QuotaIntegrationTest extends AbstractMongoIntegrationTest {
     @Test
     void acceptedReplayRetainsOriginalOutcomeAcrossMidnightAndExpiryAndRejectsChangedPayload() {
         provider.users.put("u", entitlement("u", 1, snapshot("TRIAL", 1, 10, 2), 0, START.minusSeconds(1), START.plusSeconds(60)));
-        UsageCommand command = new UsageCommand("u", SPEAKING, 6, "SPEAKING", "turn-1", "turn", START.minusNanos(1));
-        UsageResult original = recording.recordUsage(command);
+        UsageCommandDto command = new UsageCommandDto("u", SPEAKING, 6, "SPEAKING", "turn-1", "turn", START.minusNanos(1));
+        UsageResultDto original = recording.recordUsage(command);
         clock.at = Instant.parse("2026-10-29T17:00:00Z");
         provider.fail = true;
         assertThat(recording.recordUsage(command)).isEqualTo(original);
-        assertThatThrownBy(() -> recording.recordUsage(new UsageCommand("u", SPEAKING, 7, "SPEAKING", "turn-1", "turn", command.occurredAt())))
+        assertThatThrownBy(() -> recording.recordUsage(new UsageCommandDto("u", SPEAKING, 7, "SPEAKING", "turn-1", "turn", command.occurredAt())))
                 .isInstanceOf(QuotaIdempotencyConflictException.class);
         assertThatThrownBy(() -> consumption.consume(command)).isInstanceOf(QuotaIdempotencyConflictException.class);
         assertThat(count(LEDGER)).isEqualTo(1);
@@ -178,8 +189,8 @@ class QuotaIntegrationTest extends AbstractMongoIntegrationTest {
         assertThat(availability.checkAvailability("u", SPEAKING).remaining()).isEqualTo(10);
         assertThat(count(COUNTERS)).isZero();
         clock.at = Instant.parse("2026-10-28T17:01:00Z");
-        UsageCommand turn = new UsageCommand("u", SPEAKING, 25, "SPEAKING", "audio-turn-1", "turn-1", turnStarted);
-        UsageResult first = recording.recordUsage(turn);
+        UsageCommandDto turn = new UsageCommandDto("u", SPEAKING, 25, "SPEAKING", "audio-turn-1", "turn-1", turnStarted);
+        UsageResultDto first = recording.recordUsage(turn);
         assertThat(first.availability().windowStartAt()).isEqualTo(Instant.parse("2026-10-28T17:00:00Z"));
         assertThat(first.availability().used()).isEqualTo(25);
         assertThat(first.availability().status()).isEqualTo("OVER_LIMIT");
@@ -201,18 +212,18 @@ class QuotaIntegrationTest extends AbstractMongoIntegrationTest {
         assertThat(count("test_attempts")).isEqualTo(1);
         assertThat(count("test_timers")).isEqualTo(1);
         assertThat(count(LEDGER)).isEqualTo(1);
-        assertThat(counter(ATTEMPT).getLong("usedAmount")).isEqualTo(1);
+        assertThat(counter(ATTEMPT).getLong("used_amount")).isEqualTo(1);
         assertThatThrownBy(() -> caller.start("failed", true)).isInstanceOf(IllegalStateException.class).hasMessage("injected after consume");
         assertThat(count("test_attempts")).isEqualTo(1);
         assertThat(count("test_timers")).isEqualTo(1);
         assertThat(count(LEDGER)).isEqualTo(1);
-        assertThat(counter(ATTEMPT).getLong("usedAmount")).isEqualTo(1);
+        assertThat(counter(ATTEMPT).getLong("used_amount")).isEqualTo(1);
         caller.start("start-2", false);
         assertThatThrownBy(() -> caller.start("denied", false)).isInstanceOf(QuotaDenied.class);
         assertThat(count("test_attempts")).isEqualTo(2);
         assertThat(count("test_timers")).isEqualTo(2);
         assertThat(count(LEDGER)).isEqualTo(2);
-        assertThat(counter(ATTEMPT).getLong("usedAmount")).isEqualTo(2);
+        assertThat(counter(ATTEMPT).getLong("used_amount")).isEqualTo(2);
     }
 
     private class TestAssessmentCaller {
@@ -226,7 +237,7 @@ class QuotaIntegrationTest extends AbstractMongoIntegrationTest {
                 String attemptId = UUID.randomUUID().toString();
                 mongoTemplate.insert(new Document("_id", intent).append("attemptId", attemptId).append("resource", preparedResource), "test_attempts");
                 mongoTemplate.insert(new Document("_id", intent).append("attemptId", attemptId).append("startedAt", Date.from(clock.instant())), "test_timers");
-                UsageResult result = consumption.consume(command(ATTEMPT, 1, intent));
+                UsageResultDto result = consumption.consume(command(ATTEMPT, 1, intent));
                 if (!result.accepted()) throw new QuotaDenied();
                 if (fail) throw new IllegalStateException("injected after consume");
                 return attemptId;
@@ -263,12 +274,12 @@ class QuotaIntegrationTest extends AbstractMongoIntegrationTest {
 
     @Test
     void tierAndNewPeriodKeepUsageAndSnapshotsAndStaleEventCannotRewind() {
-        UsageResult first = consumption.consume(command(SPEAKING, 7, "first"));
+        UsageResultDto first = consumption.consume(command(SPEAKING, 7, "first"));
         publishEntitlement(entitlement("u", 1, snapshot("TRIAL", 1, 20, 4), 0, START, START.plusSeconds(60)));
         publishEntitlement(entitlement("u", 2, snapshot("PREMIUM", 1, 30, 6), 0, START, START.plusSeconds(120)));
         assertThat(availability.checkAvailability("u", SPEAKING).used()).isEqualTo(7);
-        assertThat(counter(SPEAKING).getString("allowanceId")).isEqualTo(first.allowanceId());
-        projections.onEntitlementChanged(new EntitlementChanged(entitlement("u", 1, snapshot("TRIAL", 1, 20, 4), 0, START, START.plusSeconds(60))));
+        assertThat(counter(SPEAKING).getString("allowance_id")).isEqualTo(first.allowanceId());
+        projections.onEntitlementChanged(new EntitlementChangedEvent(entitlement("u", 1, snapshot("TRIAL", 1, 20, 4), 0, START, START.plusSeconds(60))));
         assertThat(availability.checkAvailability("u", SPEAKING).limit()).isEqualTo(30);
         assertThatThrownBy(() -> publishEntitlement(entitlement("u", 2, snapshot("PREMIUM", 2, 40, 8), 0, START, START.plusSeconds(120))))
                 .isInstanceOf(QuotaUnavailableException.class);
@@ -278,7 +289,7 @@ class QuotaIntegrationTest extends AbstractMongoIntegrationTest {
     @Test
     void equalEntitlementVersionAdvancesFreePolicyWithoutResetUntilDeliveredActivation() {
         consumption.consume(command(SPEAKING, 7, "first"));
-        QuotaPolicySnapshot next = snapshot("FREE", 2, 5, 3);
+        QuotaPolicySnapshotDto next = snapshot("FREE", 2, 5, 3);
         publishEntitlement(entitlement("u", 0, next, 1, START, null));
         assertThat(availability.checkAvailability("u", SPEAKING).used()).isEqualTo(7);
         assertThat(availability.checkAvailability("u", SPEAKING).status()).isEqualTo("OVER_LIMIT");
@@ -292,14 +303,14 @@ class QuotaIntegrationTest extends AbstractMongoIntegrationTest {
         recording.recordUsage(command(SPEAKING, 8, "before"));
         consumption.consume(command(ATTEMPT, 1, "assessment"));
         provider.users.put("premium", entitlement("premium", 1, snapshot("PREMIUM", 1, 30, 5), 0, START, START.plus(Duration.ofDays(7))));
-        recording.recordUsage(new UsageCommand("premium", SPEAKING, 6, "SPEAKING", "premium-turn", null, null));
+        recording.recordUsage(new UsageCommandDto("premium", SPEAKING, 6, "SPEAKING", "premium-turn", null, null));
         Instant effective = START.plusSeconds(3600);
         clock.at = effective.plusSeconds(10);
-        QuotaPolicySnapshot next = snapshot("FREE", 2, 5, 2);
+        QuotaPolicySnapshotDto next = snapshot("FREE", 2, 5, 2);
         provider.users.put("u", entitlement("u", 0, next, 1, effective, null));
         recording.recordUsage(command(SPEAKING, 3, "after"));
         assertThat(availability.checkAvailability("u", SPEAKING).used()).isEqualTo(11);
-        QuotaPolicyActivated event = new QuotaPolicyActivated("activation-1", "FREE", 2, 1, effective, Set.of(SPEAKING), next);
+        QuotaPolicyActivatedEvent event = new QuotaPolicyActivatedEvent("activation-1", "FREE", 2, 1, effective, Set.of(SPEAKING), next);
         activations.onPolicyActivated(event);
         assertThat(availability.checkAvailability("u", SPEAKING).used()).isEqualTo(3);
         assertThat(availability.checkAvailability("u", SPEAKING).allowanceStartAt()).isEqualTo(effective);
@@ -307,12 +318,12 @@ class QuotaIntegrationTest extends AbstractMongoIntegrationTest {
         assertThat(availability.checkAvailability("premium", SPEAKING).used()).isEqualTo(6);
         assertThat(count(LEDGER)).isEqualTo(4);
         assertThat(count(RECEIPTS)).isEqualTo(2);
-        String allowance = counter(SPEAKING).getString("allowanceId");
+        String allowance = counter(SPEAKING).getString("allowance_id");
         recording.recordUsage(command(SPEAKING, 1, "after-reset"));
         activations.onPolicyActivated(event);
         assertThat(availability.checkAvailability("u", SPEAKING).used()).isEqualTo(4);
-        assertThat(counter(SPEAKING).getString("allowanceId")).isEqualTo(allowance);
-        activations.onPolicyActivated(new QuotaPolicyActivated("stale", "FREE", 1, 0, START, Set.of(SPEAKING), snapshot("FREE", 1, 10, 2)));
+        assertThat(counter(SPEAKING).getString("allowance_id")).isEqualTo(allowance);
+        activations.onPolicyActivated(new QuotaPolicyActivatedEvent("stale", "FREE", 1, 0, START, Set.of(SPEAKING), snapshot("FREE", 1, 10, 2)));
         assertThat(availability.checkAvailability("u", SPEAKING).used()).isEqualTo(4);
     }
 
@@ -321,12 +332,12 @@ class QuotaIntegrationTest extends AbstractMongoIntegrationTest {
         recording.recordUsage(command(SPEAKING, 6, "yesterday"));
         Instant midnight = Instant.parse("2026-10-28T17:00:00Z");
         clock.at = midnight;
-        QuotaPolicySnapshot next = snapshot("FREE", 2, 20, 2);
+        QuotaPolicySnapshotDto next = snapshot("FREE", 2, 20, 2);
         provider.users.put("u", entitlement("u", 0, next, 1, midnight, null));
-        UsageResult first = recording.recordUsage(command(SPEAKING, 4, "today"));
-        activations.onPolicyActivated(new QuotaPolicyActivated("midnight", "FREE", 2, 1, midnight, Set.of(SPEAKING), next));
+        UsageResultDto first = recording.recordUsage(command(SPEAKING, 4, "today"));
+        activations.onPolicyActivated(new QuotaPolicyActivatedEvent("midnight", "FREE", 2, 1, midnight, Set.of(SPEAKING), next));
         assertThat(availability.checkAvailability("u", SPEAKING).used()).isEqualTo(4);
-        assertThat(counter(SPEAKING).getString("allowanceId")).isEqualTo(first.allowanceId());
+        assertThat(counter(SPEAKING).getString("allowance_id")).isEqualTo(first.allowanceId());
         assertThat(count(LEDGER)).isEqualTo(2);
     }
 
@@ -335,26 +346,26 @@ class QuotaIntegrationTest extends AbstractMongoIntegrationTest {
         recording.recordUsage(command(SPEAKING, 6, "yesterday"));
         Instant effective = START.plusSeconds(3600);
         clock.at = START.plus(Duration.ofDays(1));
-        QuotaPolicySnapshot next = snapshot("FREE", 2, 20, 2);
+        QuotaPolicySnapshotDto next = snapshot("FREE", 2, 20, 2);
         provider.users.put("u", entitlement("u", 0, next, 1, effective, null));
         recording.recordUsage(command(SPEAKING, 4, "today"));
         Document before = new Document(counter(SPEAKING));
-        activations.onPolicyActivated(new QuotaPolicyActivated("late", "FREE", 2, 1, effective, Set.of(SPEAKING), next));
+        activations.onPolicyActivated(new QuotaPolicyActivatedEvent("late", "FREE", 2, 1, effective, Set.of(SPEAKING), next));
         assertThat(counter(SPEAKING)).isEqualTo(before);
     }
 
     @Test
     void invalidCanonicalUnitOrPeriodAndCorruptCounterFailWholeSummary() {
         availability.checkAvailability("u", SPEAKING);
-        QuotaPolicySnapshot invalidUnit = new QuotaPolicySnapshot("FREE2", "FREE", 2,
-                List.of(new QuotaRule(SPEAKING, "Speaking", 5, "MINUTE", "DAILY", 0)));
+        QuotaPolicySnapshotDto invalidUnit = new QuotaPolicySnapshotDto("FREE2", "FREE", 2,
+                List.of(new QuotaRuleDto(SPEAKING, "Speaking", 5, "MINUTE", "DAILY", 0)));
         assertThatThrownBy(() -> publishEntitlement(entitlement("u", 0, invalidUnit, 1, START, null))).isInstanceOf(QuotaUnavailableException.class);
-        QuotaPolicySnapshot invalidPeriod = new QuotaPolicySnapshot("FREE2", "FREE", 2,
-                List.of(new QuotaRule(SPEAKING, "Speaking", 5, "SECOND", "MONTHLY", 0)));
+        QuotaPolicySnapshotDto invalidPeriod = new QuotaPolicySnapshotDto("FREE2", "FREE", 2,
+                List.of(new QuotaRuleDto(SPEAKING, "Speaking", 5, "SECOND", "MONTHLY", 0)));
         assertThatThrownBy(() -> publishEntitlement(entitlement("u", 0, invalidPeriod, 1, START, null))).isInstanceOf(QuotaUnavailableException.class);
         recording.recordUsage(command(SPEAKING, 1, "one"));
-        mongoTemplate.updateFirst(Query.query(Criteria.where("quotaType").is(SPEAKING)),
-                new org.springframework.data.mongodb.core.query.Update().set("usedAmount", -1L), COUNTERS);
+        mongoTemplate.updateFirst(Query.query(Criteria.where("quota_type").is(SPEAKING)),
+                new org.springframework.data.mongodb.core.query.Update().set("used_amount", -1L), COUNTERS);
         assertThatThrownBy(() -> service.usage("u")).isInstanceOf(QuotaUnavailableException.class);
         assertThat(count(LEDGER)).isEqualTo(1);
     }
@@ -363,7 +374,7 @@ class QuotaIntegrationTest extends AbstractMongoIntegrationTest {
     void zeroLimitIsExhaustedAndDeniedKeyCanBeReevaluatedAfterTierChange() {
         provider.users.put("u", entitlement("u", 0, snapshot("FREE", 1, 0, 0), 0, START.minusSeconds(1), null));
         assertThat(availability.checkAvailability("u", SPEAKING).status()).isEqualTo("EXHAUSTED");
-        UsageCommand command = command(SPEAKING, 1, "denied-retry");
+        UsageCommandDto command = command(SPEAKING, 1, "denied-retry");
         assertThat(consumption.consume(command).accepted()).isFalse();
         assertThat(count(LEDGER)).isZero();
         publishEntitlement(entitlement("u", 1, snapshot("TRIAL", 1, 20, 4), 0, START, START.plusSeconds(60)));
@@ -375,7 +386,7 @@ class QuotaIntegrationTest extends AbstractMongoIntegrationTest {
         recording.recordUsage(command(SPEAKING, 8, "before"));
         Instant effective = START.plusSeconds(3600);
         clock.at = effective.plusSeconds(10);
-        QuotaPolicySnapshot next = snapshot("FREE", 2, 20, 2);
+        QuotaPolicySnapshotDto next = snapshot("FREE", 2, 20, 2);
         provider.users.put("u", entitlement("u", 0, next, 1, effective, null));
         CountDownLatch handlerRead = new CountDownLatch(1);
         CountDownLatch usageCommitted = new CountDownLatch(1);
@@ -391,7 +402,7 @@ class QuotaIntegrationTest extends AbstractMongoIntegrationTest {
         ExecutorService worker = Executors.newSingleThreadExecutor(task -> new Thread(task, "activation-race"));
         try {
             Future<?> handler = worker.submit(() -> activations.onPolicyActivated(
-                    new QuotaPolicyActivated("raced", "FREE", 2, 1, effective, Set.of(SPEAKING), next)));
+                    new QuotaPolicyActivatedEvent("raced", "FREE", 2, 1, effective, Set.of(SPEAKING), next)));
             assertThat(handlerRead.await(10, TimeUnit.SECONDS)).isTrue();
             recording.recordUsage(command(SPEAKING, 4, "raced-usage"));
             usageCommitted.countDown();
@@ -406,18 +417,18 @@ class QuotaIntegrationTest extends AbstractMongoIntegrationTest {
     void failedActivationRollsBackEveryResetAndAllReceiptsAndScopeOrder() {
         recording.recordUsage(command(SPEAKING, 8, "first-user"));
         provider.users.put("other", entitlement("other", 0, snapshot("FREE", 1, 10, 2), 0, START.minusSeconds(1), null));
-        recording.recordUsage(new UsageCommand("other", SPEAKING, 7, "TEST", "other-key", null, null));
+        recording.recordUsage(new UsageCommandDto("other", SPEAKING, 7, "TEST", "other-key", null, null));
         Instant effective = START.plusSeconds(3600);
         clock.at = effective.plusSeconds(10);
-        QuotaPolicySnapshot next = snapshot("FREE", 2, 20, 2);
+        QuotaPolicySnapshotDto next = snapshot("FREE", 2, 20, 2);
         provider.users.put("u", entitlement("u", 0, next, 1, effective, null));
         provider.users.put("other", entitlement("other", 0, next, 1, effective, null));
-        List<Document> before = store.all(COUNTERS);
+        List<Document> before = mongoTemplate.findAll(Document.class, COUNTERS);
         provider.onLookup = user -> { if (user.equals("other")) throw new SubscriptionUnavailableException(); };
         assertThatThrownBy(() -> activations.onPolicyActivated(
-                new QuotaPolicyActivated("failed", "FREE", 2, 1, effective, Set.of(SPEAKING), next)))
+                new QuotaPolicyActivatedEvent("failed", "FREE", 2, 1, effective, Set.of(SPEAKING), next)))
                 .isInstanceOf(SubscriptionUnavailableException.class);
-        assertThat(store.all(COUNTERS)).containsExactlyElementsOf(before);
+        assertThat(mongoTemplate.findAll(Document.class, COUNTERS)).containsExactlyElementsOf(before);
         assertThat(count(RECEIPTS)).isZero();
         assertThat(count(LEDGER)).isEqualTo(2);
     }
@@ -426,11 +437,11 @@ class QuotaIntegrationTest extends AbstractMongoIntegrationTest {
     void weeklyAndMonthlyRolloverReadZeroWithoutStorageWritesAndLazyWriteRetainsLedger() {
         consumption.consume(command(WEEKLY, 2, "week"));
         consumption.consume(command(ATTEMPT, 1, "month"));
-        List<Document> before = store.all(COUNTERS);
+        List<Document> before = mongoTemplate.findAll(Document.class, COUNTERS);
         clock.at = Instant.parse("2026-11-01T17:00:00Z");
         assertThat(availability.checkAvailability("u", WEEKLY).used()).isZero();
         assertThat(availability.checkAvailability("u", ATTEMPT).used()).isZero();
-        assertThat(store.all(COUNTERS)).containsExactlyElementsOf(before);
+        assertThat(mongoTemplate.findAll(Document.class, COUNTERS)).containsExactlyElementsOf(before);
         consumption.consume(command(WEEKLY, 1, "next-week"));
         consumption.consume(command(ATTEMPT, 1, "next-month"));
         assertThat(availability.checkAvailability("u", WEEKLY).used()).isEqualTo(1);
