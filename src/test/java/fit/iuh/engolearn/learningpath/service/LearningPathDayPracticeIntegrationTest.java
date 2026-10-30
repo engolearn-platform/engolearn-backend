@@ -177,6 +177,17 @@ class LearningPathDayPracticeIntegrationTest {
                 assertThat(submission.wrong()).isEqualTo(1);
                 assertThat(submission.completionRate()).isEqualTo(20.0);
                 assertThat(submission.practiceScore()).isEqualTo(50.0);
+                var review = new LearningPathDayResultService(paths, questions)
+                        .getResult(pathId.toHexString(), 1, 1, userId.toHexString());
+                assertThat(review.questions()).hasSize(10);
+                assertThat(review.correct()).isEqualTo(1);
+                assertThat(review.questions().get(0).answerStatus()).isEqualTo("CORRECT");
+                assertThat(review.questions().get(0).selectedOptionId()).isEqualTo("A");
+                assertThat(review.questions().get(1).answerStatus()).isEqualTo("WRONG");
+                assertThat(review.questions().get(1).correctOptionId()).isEqualTo("A");
+                assertThat(review.questions().get(2).answerStatus()).isEqualTo("UNANSWERED");
+                assertThat(review.questions().get(2).selectedOptionId()).isNull();
+                assertThat(review.questions().get(2).explanation()).isEqualTo("hidden");
                 Document persisted = template.getCollection("learning_paths").find(new Document("_id", pathId)).first();
                 Document day = persisted.getList("weeks", Document.class).getFirst().getList("days", Document.class).getFirst();
                 assertThat(day.getString("close_reason")).isEqualTo("SUBMITTED");

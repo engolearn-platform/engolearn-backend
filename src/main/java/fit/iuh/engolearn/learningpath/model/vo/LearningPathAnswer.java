@@ -21,4 +21,8 @@ public class LearningPathAnswer implements EmbeddedDocument {
     public Boolean getCorrect() {
         return correct;
     }
+
+    public String getSelectedOptionId() {
+        return selectedOptionId;
+    }
 }

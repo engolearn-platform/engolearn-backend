@@ -62,5 +62,22 @@ day cannot be submitted, including a repeat submission or an elapsed deadline.
 Weeks 1 and 2 wait until midnight before closing; if all questions in week 3
 have been answered, the final submission closes the week and path immediately.
 Submission, draft saves and the lifecycle job use a path revision to detect
-concurrent writes; older documents without a revision are supported. Detailed
-question review still requires a separate result API.
+concurrent writes; older documents without a revision are supported.
+
+## Review a practice day
+
+`GET /api/learning-paths/{pathId}/weeks/{weekNo}/days/{dayNo}/result?userId={userId}`
+returns the shared response envelope for a day in `COMPLETED` or `CLOSED` state,
+including days closed automatically at midnight or when their week ended. The path
+must belong to the user and must not be cancelled. A missing path, week or day
+returns 404; a cancelled path or a day that has not closed returns 409.
+
+The response contains `pathId`, `weekNo`, `dayNo`, `status`, `closedAt`,
+`assigned`, `answered`, `correct`, `wrong`, `completionRate`, `practiceScore`,
+and `questions` in the original order. `practiceScore` is null when no answer
+was saved. Each question contains `order`, `questionId`, `microSkill`, `skill`,
+`prompt`, `options`, optional `passage` including audio and transcript,
+`selectedOptionId`, `correctOptionId`, `explanation`, and `answerStatus`
+(`CORRECT`, `WRONG`, or `UNANSWERED`). Unanswered questions have a null
+selection and still include the correct option and explanation. Question content
+comes from the saved snapshots; missing or inconsistent result data is a server error.
