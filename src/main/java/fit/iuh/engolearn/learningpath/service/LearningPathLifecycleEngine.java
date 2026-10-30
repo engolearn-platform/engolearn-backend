@@ -51,10 +51,9 @@ final class LearningPathLifecycleEngine {
         closeDay(path, week, day, dayIndex, weekIndex, now,
                 complete ? LearningPathDayCloseReason.ALL_ANSWERED : LearningPathDayCloseReason.SUBMITTED,
                 answerKeys, changes);
-        if (complete) {
-            day.setStatus(LearningPathDayStatus.COMPLETED);
-            changes.put("weeks." + weekIndex + ".days." + dayIndex + ".status", "COMPLETED");
-        }
+        LearningPathDayStatus submittedStatus = complete ? LearningPathDayStatus.COMPLETED : LearningPathDayStatus.SUBMITTED;
+        day.setStatus(submittedStatus);
+        changes.put("weeks." + weekIndex + ".days." + dayIndex + ".status", submittedStatus.name());
         if (week.getWeekNo() == 3 && week.getDays().stream().allMatch(d ->
                 d.getItems() != null && !d.getItems().isEmpty()
                         && d.getItems().stream().allMatch(item -> item.getAnswer() != null))) {
@@ -155,7 +154,9 @@ final class LearningPathLifecycleEngine {
     }
 
     private boolean isTerminalDay(LearningPathDay day) {
-        return LearningPathDayStatus.COMPLETED == day.getStatus() || LearningPathDayStatus.CLOSED == day.getStatus();
+        return LearningPathDayStatus.COMPLETED == day.getStatus()
+                || LearningPathDayStatus.SUBMITTED == day.getStatus()
+                || LearningPathDayStatus.CLOSED == day.getStatus();
     }
 
     private Instant midnightAtOrAfter(Instant instant) {

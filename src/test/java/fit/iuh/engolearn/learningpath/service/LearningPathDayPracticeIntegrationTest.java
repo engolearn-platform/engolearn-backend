@@ -171,7 +171,7 @@ class LearningPathDayPracticeIntegrationTest {
                 drafts.save(pathId.toHexString(), 1, 1, "q-2", userId.toHexString(), new SaveLearningPathAnswerDraftRequest("B"));
                 var submission = new LearningPathDaySubmissionService(paths, practice, questions, clock)
                         .submit(pathId.toHexString(), 1, 1, userId.toHexString());
-                assertThat(submission.status()).isEqualTo("CLOSED");
+                assertThat(submission.status()).isEqualTo("SUBMITTED");
                 assertThat(submission.answered()).isEqualTo(2);
                 assertThat(submission.correct()).isEqualTo(1);
                 assertThat(submission.wrong()).isEqualTo(1);
@@ -180,6 +180,7 @@ class LearningPathDayPracticeIntegrationTest {
                 var review = new LearningPathDayResultService(paths, questions)
                         .getResult(pathId.toHexString(), 1, 1, userId.toHexString());
                 assertThat(review.questions()).hasSize(10);
+                assertThat(review.status()).isEqualTo("SUBMITTED");
                 assertThat(review.correct()).isEqualTo(1);
                 assertThat(review.questions().get(0).answerStatus()).isEqualTo("CORRECT");
                 assertThat(review.questions().get(0).selectedOptionId()).isEqualTo("A");

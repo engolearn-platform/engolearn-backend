@@ -42,7 +42,8 @@ public class LearningPathDayResultService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy tuần luyện tập"));
         LearningPathDay day = week.getDays().stream().filter(item -> item.getDayNo() == dayNo).findFirst()
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy ngày luyện tập"));
-        if (day.getStatus() != LearningPathDayStatus.COMPLETED && day.getStatus() != LearningPathDayStatus.CLOSED) {
+        if (day.getStatus() != LearningPathDayStatus.COMPLETED && day.getStatus() != LearningPathDayStatus.SUBMITTED
+                && day.getStatus() != LearningPathDayStatus.CLOSED) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Ngày luyện tập chưa kết thúc");
         }
         if (day.getItems() == null || day.getItems().size() != 10 || day.getProgress() == null
@@ -76,7 +77,8 @@ public class LearningPathDayResultService {
             throw new IllegalStateException("Learning Path question snapshot is incomplete");
         }
         var review = items.stream().map(item -> toQuestion(item, snapshots.get(item.getQuestionId()))).toList();
-        return new LearningPathDayResultResponse(pathId, weekNo, dayNo, day.getStatus().name(), day.getClosedAt(),
+        return new LearningPathDayResultResponse(pathId, weekNo, dayNo,
+                LearningPathDayStatus.effective(day.getStatus(), day.getCloseReason()).name(), day.getClosedAt(),
                 day.getProgress().getAssigned(), day.getProgress().getAnswered(), day.getProgress().getCorrect(),
                 day.getResult().getWrong(), day.getResult().getCompletionRate(), day.getResult().getPracticeScore(), review);
     }

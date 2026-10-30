@@ -2,6 +2,7 @@
 package fit.iuh.engolearn.learningpath.service;
 
 import fit.iuh.engolearn.learningpath.model.enums.LearningPathStatus;
+import fit.iuh.engolearn.learningpath.model.enums.LearningPathDayStatus;
 import fit.iuh.engolearn.learningpath.model.enums.LearningPathWeekStatus;
 
 import fit.iuh.engolearn.learningpath.dto.response.LearningPathDetailResponse;
@@ -297,7 +298,7 @@ public class LearningPathService {
 
         return new LearningPathDetailResponse.DayInfo(
                 day.getDayNo(),
-                day.getStatus().name(),
+                LearningPathDayStatus.effective(day.getStatus(), day.getCloseReason()).name(),
                 day.getStartedDate(),
                 day.getAutoCloseAt(),
                 day.getClosedAt(),

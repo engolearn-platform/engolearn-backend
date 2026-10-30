@@ -37,18 +37,35 @@ class LearningPathLifecycleEngineTest {
     private final LearningPathLifecycleEngine engine = new LearningPathLifecycleEngine();
 
     @Test
-    void submittingAnEmptyDayClosesItAndKeepsPracticeScoreEmpty() {
+    void submittingAnEmptyDayMarksItSubmittedAndKeepsPracticeScoreEmpty() {
         LearningPath path = path("2026-10-09", "2026-10-09");
         startFirstDay(path, "2026-10-09", 0, 0);
         Instant now = Instant.parse("2026-10-09T03:00:00Z");
         engine.submit(path, 0, 0, now, Map.of());
         LearningPathDay day = path.getWeeks().getFirst().getDays().getFirst();
-        assertThat(day.getStatus()).isEqualTo(LearningPathDayStatus.CLOSED);
+        assertThat(day.getStatus()).isEqualTo(LearningPathDayStatus.SUBMITTED);
         assertThat(day.getCloseReason().name()).isEqualTo("SUBMITTED");
         assertThat(day.getResult().getPracticeScore()).isNull();
         assertThat(day.getResult().getCompletionRate()).isZero();
         assertThat(path.getNextRunAt()).isNotNull();
         assertThat(path.getWeeks().getFirst().getStatus()).isEqualTo(LearningPathWeekStatus.OPEN);
+    }
+
+    @Test
+    void submittedDayClosesWeekAtMidnightWithoutChangingItsResult() {
+        LearningPath path = path("2026-10-09", "2026-10-09");
+        startFirstDay(path, "2026-10-09", 2, 1);
+        engine.submit(path, 0, 0, Instant.parse("2026-10-09T03:00:00Z"), Map.of());
+        LearningPathDay day = path.getWeeks().getFirst().getDays().getFirst();
+        assertThat(day.getStatus()).isEqualTo(LearningPathDayStatus.SUBMITTED);
+        assertThat(day.getResult().getPracticeScore()).isEqualTo(50.0);
+        assertThat(path.getWeeks().getFirst().getStatus()).isEqualTo(LearningPathWeekStatus.OPEN);
+        engine.advance(path, midnight("2026-10-10"));
+        assertThat(day.getStatus()).isEqualTo(LearningPathDayStatus.SUBMITTED);
+        assertThat(day.getCloseReason().name()).isEqualTo("SUBMITTED");
+        assertThat(day.getProgress().getAnswered()).isEqualTo(2);
+        assertThat(path.getWeeks().getFirst().getStatus()).isEqualTo(LearningPathWeekStatus.CLOSED);
+        assertThat(path.getWeeks().get(1).getStatus()).isEqualTo(LearningPathWeekStatus.OPEN);
     }
 
     @Test
