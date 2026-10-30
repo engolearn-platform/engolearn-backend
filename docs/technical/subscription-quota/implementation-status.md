@@ -1,5 +1,11 @@
 # Subscription and Quota implementation status
 
+## P03 purchase orchestration (2026-10-30)
+
+Create/detail learner purchase APIs, pinned matching plan/policy/price snapshots, request idempotency, account revision serialization and one-blocking-purchase constraints are implemented. Payment intake commits a setup-pending transaction and receipt; actual checkout preparation/provider execution is not automatic. Checkout/definitive-failure/expiry projections use durable result receipts, with conflict review evidence. See [purchase API](purchase-api.md). Paid activation, history list, refund and VNPay remain later slices.
+
+Verification: nine architecture checks passed; the purchase suite ran seven cases (including repeated concurrency) with one HTTP fixture identity error. That fixture was corrected to the real dev-auth account ID; the single HTTP rerun passed. Two test corrections were used (initial fixture compilation, then identity mapping); no application assertion was weakened and no full-project suite was run.
+
 ## P01-P02 source update (2026-10-30)
 
 Observed verification: the initial critical batch ran 26 tests with one concurrent Trial error; all nine architecture checks, two selected Quota checks and nine new durable checks passed. After bounded retry waits and test storage setup were corrected, the focused rerun passed all 10 tests (nine durable checks plus the failed Trial case), with no failures/errors/skips. No assertions were weakened. Normal dev BE started on 8080 and public plans returned 200 with two items and no-store. One correction rerun was used; full-project verify was not run under the user's explicit focused-testing budget. Exact logs are in `.artifacts/subscription-payment-p01-p02/` at the workspace root.
