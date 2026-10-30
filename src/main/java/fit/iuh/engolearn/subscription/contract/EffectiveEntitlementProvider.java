@@ -1,8 +1,8 @@
 package fit.iuh.engolearn.subscription.contract;
 
-import fit.iuh.engolearn.subscription.contract.dto.EffectiveEntitlement;
+import fit.iuh.engolearn.subscription.contract.dto.EffectiveEntitlementDto;
 import java.time.Instant;
 
 public interface EffectiveEntitlementProvider {
-    EffectiveEntitlement resolveEffectiveEntitlement(String userId, Instant at);
+    EffectiveEntitlementDto resolveEffectiveEntitlement(String userId, Instant at);
 }

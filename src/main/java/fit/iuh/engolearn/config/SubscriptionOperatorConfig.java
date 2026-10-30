@@ -1,5 +1,5 @@
 package fit.iuh.engolearn.config;
-import fit.iuh.engolearn.subscription.dto.request.PublicationManifest;
+import fit.iuh.engolearn.subscription.dto.request.PublicationManifestRequest;
 import fit.iuh.engolearn.subscription.service.SubscriptionPublicationService;
 import java.nio.file.*;
 import org.springframework.boot.ApplicationRunner;
@@ -14,7 +14,7 @@ public class SubscriptionOperatorConfig {
     public ApplicationRunner publishSubscriptionManifest(SubscriptionPublicationService service,ObjectMapper mapper,
         @Value("${engolearn.subscription.publish-manifest}") String path) {
         return arguments->{
-            PublicationManifest manifest=mapper.readValue(Files.readString(Path.of(path)),PublicationManifest.class);
+            PublicationManifestRequest manifest=mapper.readValue(Files.readString(Path.of(path)),PublicationManifestRequest.class);
             service.publish(manifest);
             System.out.println("Subscription manifest published: "+manifest.manifestId()+" environment="+manifest.environment());
             for(var policy:manifest.policies()) System.out.println("Subscription policy published: "+policy.id()+" scope="+policy.scope()+" version="+policy.version());
