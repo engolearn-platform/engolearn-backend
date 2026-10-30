@@ -47,6 +47,12 @@ A new dependency needs an explicit reason and approval. Keep this table in sync 
 | `user` | `topic` |
 | `subscription` | None |
 | `quota` | `subscription` (effective entitlements and after-commit events) |
+| `payment` | None; immutable success/refund fact declarations only |
+
+The approved M3 preparation adds only `payment.contract` records. Subscription owns the future
+consumer and may import `payment.contract` when paid lifecycle work is implemented; there is
+no production consumer or runtime dependency in this increment. Payment must not depend on
+Subscription. See [payment contract handoff](../technical/subscription-quota/payment-contract-handoff.md).
 
 `ArchitectureTest` checks that cross-feature code dependencies target a contract and that dependency cycles do not exist. It does **not** currently enforce this table as an exact allow-list, so reviewers must check that new dependencies are listed and approved.
 

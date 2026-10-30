@@ -309,3 +309,42 @@ This is a deliberately limited same-application MVP choice, detailed in the sepa
 
 1. **REST path/shape review:** compare the target read APIs above with existing controllers before FE freezes its handoff. The suggested paths are not a claim that these endpoints already exist; reuse an existing endpoint when it provides the same capability.
 2. **Ledger retention:** no TTL/automatic deletion until a retention requirement is agreed.
+
+## 10. Admin immutable configuration bundles (M5)
+
+The ADMIN-only `/api/v1/subscription/admin` interface reads a consistent Mongo transaction
+baseline, previews without publishing, and appends a complete scope bundle. The HTTP input
+contains authored metadata, benefits, billing options and explicit quota rules, never operator
+manifests, account histories or storage snapshot IDs. The OpenAPI defines all six operations.
+
+One transaction inserts the policy and its `CurrentBenefits`, the matching FREE/PREMIUM plan,
+the actor/operation/key receipt and the next GLOBAL configuration revision. TRIAL has only a
+policy/benefits bundle and uses PREMIUM as its benefit plan code. Descriptions and benefit
+display values retain their nullable/empty meaning. Reads reject missing required FREE/TRIAL
+baselines or mismatched plan/policy display benefits; Admin does not migrate existing data.
+
+Every publication writer, including the external operator and activation scheduler, writes
+the GLOBAL revision inside its transaction. This serializes historical canonical unit/period
+validation across scopes, as well as invalidating stale editors. Scope/version and receipt
+identity indexes are created before publication transactions. Initializing the GLOBAL token
+does not rewrite plans, policies, accounts or snapshots and is not an eager startup action.
+
+An accepted same-actor/key/normalized-input receipt is checked before revision, pending and
+time preconditions and returns the original result. The fingerprint includes scope, expected
+revision and effective-time intent; NOW's accepted time is not fingerprint input. Transient
+Admin transaction retries are bounded to three attempts. Unknown commit results are resolved
+by reading the receipt; absent/unreadable receipts return CONFIGURATION_UNAVAILABLE, preserving
+the client's exact intent and key. A changed same-key body is an IDEMPOTENCY_CONFLICT.
+
+FREE always activates at the next Vietnam midnight. Admin NOW for TRIAL/PREMIUM makes the new
+bundle eligible for new periods immediately; AT schedules it for a future instant. The operator
+manifest keeps its existing future-only update semantics. Existing period snapshots remain
+immutable, and TRIAL/PREMIUM changes emit no reset. A due pending policy is CURRENT by server
+time even before the worker moves its pointer; activationPending reports that lag separately.
+Any pending pointer still blocks another publication. FREE retains the existing selective
+after-commit activation event and ADR-0001 delivery limitations.
+
+The UI has only unsaved local form state. Saved versions cannot be edited, deleted or canceled.
+Quota removal, manual resets/bonuses, account provisioning, checkout and paid lifecycle handlers
+are outside this interface. Payment success/refund records are declarations only; see the
+[M3 handoff](payment-contract-handoff.md).

@@ -68,6 +68,8 @@ class SecurityProdGuardTest {
     void theDevHeaderIsIgnoredWhenTheProdProfileIsActive() throws Exception {
         mockMvc.perform(get("/api/v1/auth/me").header("X-Dev-User-Id", "dev-admin"))
                 .andExpect(status().isUnauthorized());
+        mockMvc.perform(get("/api/v1/subscription/admin/catalog").header("X-Dev-User-Id", "dev-admin"))
+                .andExpect(status().isUnauthorized());
     }
 
     @Test

@@ -1,0 +1,155 @@
+{
+  "manifestId": "main-dev-subscription-baseline-v1",
+  "environment": "main-development-only",
+  "plans": [
+    {
+      "id": "verification-free-offer-v1",
+      "scope": "FREE",
+      "version": 1,
+      "effectiveAt": "2026-10-01T00:00:00Z",
+      "published": true,
+      "displayOrder": 0,
+      "plan": {
+        "planCode": "FREE",
+        "displayName": "Miễn phí",
+        "description": "Cấu hình kiểm chứng cục bộ, chưa phải chính sách phát hành.",
+        "benefits": [
+          {
+            "code": "SPEAKING_DURATION",
+            "title": "Luyện nói với AI",
+            "description": "Nonproduction configuration approved for this verification batch.",
+            "displayValue": "60 phút/ngày",
+            "sortOrder": 0
+          },
+          {
+            "code": "PROFICIENCY_CHECK_ATTEMPT",
+            "title": "Đánh giá trình độ",
+            "description": "Nonproduction configuration approved for this verification batch.",
+            "displayValue": "1 lượt/tháng",
+            "sortOrder": 1
+          }
+        ],
+        "billingOptions": []
+      }
+    }
+  ],
+  "policies": [
+    {
+      "id": "verification-free-v1",
+      "scope": "FREE",
+      "version": 1,
+      "effectiveAt": "2026-10-01T00:00:00Z",
+      "snapshot": {
+        "policySnapshotId": "verification-free-v1",
+        "policyScope": "FREE",
+        "policyVersion": 1,
+        "rules": [
+          {
+            "quotaType": "SPEAKING_DURATION",
+            "displayName": "Thời lượng luyện nói với AI",
+            "limit": 3600,
+            "unit": "SECOND",
+            "period": "DAILY",
+            "displayOrder": 0
+          },
+          {
+            "quotaType": "PROFICIENCY_CHECK_ATTEMPT",
+            "displayName": "Đánh giá trình độ",
+            "limit": 1,
+            "unit": "ATTEMPT",
+            "period": "MONTHLY",
+            "displayOrder": 1
+          }
+        ]
+      },
+      "benefits": {
+        "planCode": "FREE",
+        "displayName": "Miễn phí",
+        "policySnapshotId": "verification-free-v1",
+        "benefits": [
+          {
+            "code": "SPEAKING_DURATION",
+            "title": "Luyện nói với AI",
+            "description": "Nonproduction configuration approved for this verification batch.",
+            "displayValue": "60 phút/ngày",
+            "sortOrder": 0
+          },
+          {
+            "code": "PROFICIENCY_CHECK_ATTEMPT",
+            "title": "Đánh giá trình độ",
+            "description": "Nonproduction configuration approved for this verification batch.",
+            "displayValue": "1 lượt/tháng",
+            "sortOrder": 1
+          }
+        ]
+      }
+    },
+    {
+      "id": "verification-trial-v1",
+      "scope": "TRIAL",
+      "version": 1,
+      "effectiveAt": "2026-10-01T00:00:00Z",
+      "snapshot": {
+        "policySnapshotId": "verification-trial-v1",
+        "policyScope": "TRIAL",
+        "policyVersion": 1,
+        "rules": [
+          {
+            "quotaType": "SPEAKING_DURATION",
+            "displayName": "Thời lượng luyện nói với AI",
+            "limit": 3600,
+            "unit": "SECOND",
+            "period": "DAILY",
+            "displayOrder": 0
+          },
+          {
+            "quotaType": "PROFICIENCY_CHECK_ATTEMPT",
+            "displayName": "Đánh giá trình độ",
+            "limit": 2,
+            "unit": "ATTEMPT",
+            "period": "MONTHLY",
+            "displayOrder": 1
+          }
+        ]
+      },
+      "benefits": {
+        "planCode": "PREMIUM",
+        "displayName": "Dùng thử Premium",
+        "policySnapshotId": "verification-trial-v1",
+        "benefits": [
+          {
+            "code": "SPEAKING_DURATION",
+            "title": "Luyện nói với AI",
+            "description": "Nonproduction configuration approved for this verification batch.",
+            "displayValue": "60 phút/ngày",
+            "sortOrder": 0
+          },
+          {
+            "code": "PROFICIENCY_CHECK_ATTEMPT",
+            "title": "Đánh giá trình độ",
+            "description": "Nonproduction configuration approved for this verification batch.",
+            "displayValue": "2 lượt/tháng",
+            "sortOrder": 1
+          }
+        ]
+      }
+    }
+  ],
+  "accounts": [
+    {
+      "userId": "68f8f3a9b9e4a12345678901",
+      "trialUsed": false,
+      "provenance": "NEW_ACCOUNT"
+    },
+    {
+      "userId": "68f8f3a9b9e4a12345678902",
+      "trialUsed": false,
+      "provenance": "NEW_ACCOUNT"
+    },
+    {
+      "userId": "68f8f3a9b9e4a12345678903",
+      "trialUsed": false,
+      "provenance": "NEW_ACCOUNT"
+    }
+  ]
+}

@@ -29,8 +29,9 @@ public class SubscriptionPublicationService {
         transactions.execute(()->{
             PublicationReceipt receipt=mongo.findById(manifest.manifestId(),PublicationReceipt.class);
             if(receipt!=null) { require(receipt.fingerprint().equals(fingerprint),"Manifest ID reused with changed content"); return null; }
+            require(store.advanceConfiguration(store.configurationRevision()),"Configuration revision changed");
             Map<String,String> canonical=new HashMap<>();
-            for(PolicyVersion existing:store.policies()) for(QuotaRule r:existing.snapshot().rules()) canonical.put(r.quotaType(),r.unit()+":"+r.period());
+            for(PolicyVersion existing:store.policies()) for(QuotaRule r:existing.snapshot().rules()) {String prior=canonical.putIfAbsent(r.quotaType(),r.unit()+":"+r.period());require(prior==null||prior.equals(r.unit()+":"+r.period()),"Canonical unit/period cannot change");}
             for(PolicyVersion p:manifest.policies()) {
                 for(QuotaRule r:p.snapshot().rules()) { String previous=canonical.putIfAbsent(r.quotaType(),r.unit()+":"+r.period()); require(previous==null || previous.equals(r.unit()+":"+r.period()),"Canonical unit/period cannot change"); }
                 PolicyState state=store.state(p.scope());

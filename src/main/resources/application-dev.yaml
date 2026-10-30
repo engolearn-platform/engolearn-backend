@@ -1,4 +1,7 @@
 engolearn:
+  mongodb:
+    transactions:
+      enabled: true
   security:
     dev-auth:
       enabled: true

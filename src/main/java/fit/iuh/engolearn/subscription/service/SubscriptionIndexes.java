@@ -13,12 +13,15 @@ public class SubscriptionIndexes {
     private final MongoTemplate mongo;
     public SubscriptionIndexes(MongoTemplate mongo) { this.mongo=mongo; }
     public void ensure() {
-        for(Class<?> type: new Class<?>[]{PlanVersion.class,PolicyVersion.class,SubscriptionAccount.class,SubscriptionPeriod.class,TrialReceipt.class,PolicyState.class,PublicationReceipt.class})
+        for(Class<?> type: new Class<?>[]{AdminConfigurationState.class,AdminPublicationReceipt.class,PlanVersion.class,PolicyVersion.class,SubscriptionAccount.class,SubscriptionPeriod.class,TrialReceipt.class,PolicyState.class,PublicationReceipt.class})
             if(!mongo.collectionExists(type)) mongo.createCollection(type);
         mongo.indexOps(PlanVersion.class).createIndex(new Index().on("scope",Sort.Direction.ASC).on("version",Sort.Direction.ASC).unique());
         mongo.indexOps(PolicyVersion.class).createIndex(new Index().on("scope",Sort.Direction.ASC).on("version",Sort.Direction.ASC).unique());
         mongo.indexOps(SubscriptionPeriod.class).createIndex(new Index().on("userId",Sort.Direction.ASC).unique().partial(PartialIndexFilter.of(Criteria.where("kind").is("TRIAL"))).named("one_lifetime_trial"));
         mongo.indexOps(SubscriptionPeriod.class).createIndex(new Index().on("userId",Sort.Direction.ASC).on("periodStartAt",Sort.Direction.DESC));
         mongo.indexOps(TrialReceipt.class).createIndex(new Index().on("userId",Sort.Direction.ASC).on("operation",Sort.Direction.ASC).on("idempotencyKey",Sort.Direction.ASC).unique());
+        mongo.indexOps(AdminPublicationReceipt.class).createIndex(new Index().on("actorId",Sort.Direction.ASC).on("operation",Sort.Direction.ASC).on("idempotencyKey",Sort.Direction.ASC).unique());
+        mongo.upsert(org.springframework.data.mongodb.core.query.Query.query(Criteria.where("_id").is("GLOBAL")),
+            new org.springframework.data.mongodb.core.query.Update().setOnInsert("revision",0L),AdminConfigurationState.class);
     }
 }

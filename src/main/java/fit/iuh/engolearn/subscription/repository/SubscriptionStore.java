@@ -21,6 +21,23 @@ public class SubscriptionStore {
     public PolicyState state(String scope) { return mongo.findById(scope, PolicyState.class); }
     public PolicyVersion policy(String id) { return mongo.findById(id, PolicyVersion.class); }
     public List<PolicyVersion> policies() { return mongo.findAll(PolicyVersion.class); }
+    public List<PlanVersion> allPlans() { return mongo.findAll(PlanVersion.class); }
+    public long configurationRevision() {
+        AdminConfigurationState state=mongo.findById("GLOBAL",AdminConfigurationState.class);
+        if(state==null) throw new IllegalStateException("Configuration state unavailable");
+        return state.revision();
+    }
+    public boolean advanceConfiguration(long revision) {
+        return mongo.updateFirst(Query.query(Criteria.where("_id").is("GLOBAL").and("revision").is(revision)),
+            new Update().inc("revision",1),AdminConfigurationState.class).getModifiedCount()==1;
+    }
+    public AdminPublicationReceipt adminReceipt(String actor,String key) {
+        return mongo.findOne(Query.query(Criteria.where("actorId").is(actor).and("operation").is("PUBLISH_CONFIGURATION").and("idempotencyKey").is(key)),AdminPublicationReceipt.class);
+    }
+    public boolean replaceActive(PolicyState old,PolicyVersion next) {
+        return mongo.updateFirst(Query.query(Criteria.where("_id").is(old.scope()).and("revision").is(old.revision()).and("pendingVersionId").is(null)),
+            new Update().set("activeVersionId",next.id()).inc("revision",1),PolicyState.class).getModifiedCount()==1;
+    }
     public List<PlanVersion> plans(Instant at) {
         return mongo.find(Query.query(Criteria.where("published").is(true).and("effectiveAt").lte(at))
             .with(Sort.by(Sort.Direction.DESC,"version")), PlanVersion.class);

@@ -17,7 +17,8 @@ public class SubscriptionActivationScheduler {
         for(PolicyState observed:store.due(clock.instant())) transactions.execute(()->{
             PolicyState state=store.state(observed.scope());
             if(state.pendingVersionId()==null || clock.instant().isBefore(state.pendingEffectiveAt())) return null;
-            PolicyVersion old=store.policy(state.activeVersionId()), next=store.policy(state.pendingVersionId());
+            if(!store.advanceConfiguration(store.configurationRevision())) throw new org.springframework.dao.OptimisticLockingFailureException("Configuration revision changed");
+            PolicyVersion old=state.activeVersionId()==null?null:store.policy(state.activeVersionId()), next=store.policy(state.pendingVersionId());
             if(!store.activate(state)) return null;
             if("FREE".equals(state.scope())) {
                 Map<String,QuotaRule> prior=new HashMap<>();for(QuotaRule r:old.snapshot().rules()) prior.put(r.quotaType(),r);

@@ -53,6 +53,7 @@ public class SecurityConfig {
                         // Interim (scope decision 2026-10-27): only the auth contract endpoint is
                         // enforced; legacy feature endpoints keep pre-auth behavior until migrated.
                         .requestMatchers(HttpMethod.GET, "/api/v1/auth/me").authenticated()
+                        .requestMatchers("/api/v1/subscription/admin", "/api/v1/subscription/admin/**").hasRole("ADMIN")
                         .requestMatchers("/api/v1/subscription/me", "/api/v1/subscription/me/**", "/api/v1/quota/me/**").authenticated()
                         .anyRequest().permitAll()
                 );

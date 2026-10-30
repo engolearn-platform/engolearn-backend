@@ -4,7 +4,7 @@ The application is a single Maven module. Organize production code by **feature 
 
 ```text
 fit.iuh.engolearn
-├── <feature>                 current features: topic, dictionary, user, learningpath, subscription, quota
+├── <feature>                 current features: topic, dictionary, user, learningpath, subscription, quota, payment
 │   ├── contract              public capability interfaces and contract types
 │   │   └── dto               DTOs shared through that contract
 │   ├── controller            frontend HTTP endpoints
