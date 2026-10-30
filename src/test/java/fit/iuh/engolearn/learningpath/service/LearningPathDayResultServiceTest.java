@@ -2,6 +2,7 @@ package fit.iuh.engolearn.learningpath.service;
 
 import fit.iuh.engolearn.learningpath.model.LearningPath;
 import fit.iuh.engolearn.learningpath.model.enums.LearningPathDayStatus;
+import fit.iuh.engolearn.learningpath.model.enums.LearningPathDayCloseReason;
 import fit.iuh.engolearn.learningpath.model.enums.LearningPathStatus;
 import fit.iuh.engolearn.learningpath.model.vo.LearningPathDay;
 import fit.iuh.engolearn.learningpath.model.vo.LearningPathDayItem;
@@ -49,6 +50,24 @@ class LearningPathDayResultServiceTest {
             assertThat(question.explanation()).isEqualTo("Explanation");
         });
         assertThat(result.questions().getFirst().passage().transcript()).isEqualTo("Transcript");
+    }
+
+    @Test
+    void legacySubmittedDayIsReturnedAsSubmitted() {
+        LearningPath path = path(LearningPathDayStatus.CLOSED);
+        path.getWeeks().getFirst().getDays().getFirst().setCloseReason(LearningPathDayCloseReason.SUBMITTED);
+        when(paths.findByIdAndUserId(pathId, userId)).thenReturn(Optional.of(path));
+        when(questions.findSnapshots(eq(pathId), eq(userId), anyList())).thenReturn(snapshots());
+        assertThat(service.getResult(pathId.toHexString(), 1, 1, userId.toHexString()).status())
+                .isEqualTo("SUBMITTED");
+    }
+
+    @Test
+    void submittedDayCanBeReviewed() {
+        when(paths.findByIdAndUserId(pathId, userId)).thenReturn(Optional.of(path(LearningPathDayStatus.SUBMITTED)));
+        when(questions.findSnapshots(eq(pathId), eq(userId), anyList())).thenReturn(snapshots());
+        assertThat(service.getResult(pathId.toHexString(), 1, 1, userId.toHexString()).status())
+                .isEqualTo("SUBMITTED");
     }
 
     @Test

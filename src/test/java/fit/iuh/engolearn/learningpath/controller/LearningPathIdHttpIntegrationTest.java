@@ -23,13 +23,13 @@ class LearningPathIdHttpIntegrationTest extends AbstractMongoIntegrationTest {
         ObjectId userId = new ObjectId();
         List<Document> items = IntStream.rangeClosed(1, 10).mapToObj(i -> new Document("order", i)
                 .append("question_id", "review-" + i).append("micro_skill", "Reading for Gist")).toList();
-        Document day = new Document("day_no", 1).append("status", "CLOSED")
+        Document day = new Document("day_no", 1).append("status", "CLOSED").append("close_reason", "SUBMITTED")
                 .append("progress", new Document("assigned", 10).append("answered", 0).append("correct", 0))
                 .append("result", new Document("wrong", 0).append("completion_rate", 0.0))
                 .append("items", items);
         mongoTemplate.getCollection("learning_paths").insertOne(new Document("_id", id).append("user_id", userId)
                 .append("status", "COMPLETED").append("is_active", false)
-                .append("weeks", List.of(new Document("week_no", 1).append("days", List.of(day)))));
+                .append("weeks", List.of(new Document("week_no", 1).append("status", "CLOSED").append("days", List.of(day)))));
         List<Document> options = List.of(new Document("option_id", "A").append("text", "A"),
                 new Document("option_id", "B").append("text", "B"),
                 new Document("option_id", "C").append("text", "C"),
@@ -44,10 +44,15 @@ class LearningPathIdHttpIntegrationTest extends AbstractMongoIntegrationTest {
                 + "/weeks/1/days/1/result?userId=" + userId.toHexString();
         JsonNode data = JsonMapper.builder().build().readTree(restTemplate.getForObject(url, String.class)).path("data");
         assertThat(data.path("answered").asInt()).isZero();
+        assertThat(data.path("status").asString()).isEqualTo("SUBMITTED");
         assertThat(data.path("practiceScore").isNull()).isTrue();
         assertThat(data.path("questions").size()).isEqualTo(10);
         assertThat(data.path("questions").get(0).path("answerStatus").asString()).isEqualTo("UNANSWERED");
         assertThat(data.path("questions").get(0).path("correctOptionId").asString()).isEqualTo("A");
+        String detailUrl = "http://localhost:" + port + "/api/learning-paths/" + id.toHexString()
+                + "?userId=" + userId.toHexString();
+        JsonNode detail = JsonMapper.builder().build().readTree(restTemplate.getForObject(detailUrl, String.class)).path("data");
+        assertThat(detail.path("weeks").get(0).path("days").get(0).path("status").asString()).isEqualTo("SUBMITTED");
     }
 
     @Test

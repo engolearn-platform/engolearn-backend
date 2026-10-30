@@ -52,7 +52,7 @@ against concurrent closure.
 requires no request body. The path must belong to the user, the week must be open,
 and the day must already be in progress and before its deadline. The server
 finalizes and grades the saved drafts atomically. Blank questions remain unanswered;
-a fully answered day becomes `COMPLETED`, otherwise it becomes `CLOSED` with
+a fully answered day becomes `COMPLETED`, otherwise it becomes `SUBMITTED` with
 close reason `SUBMITTED`. The response envelope contains `pathId`, `weekNo`,
 `dayNo`, `status`, `closedAt`, `assigned`, `answered`, `correct`, `wrong`,
 `completionRate`, and `practiceScore` (null when no answers were saved).
@@ -67,7 +67,7 @@ concurrent writes; older documents without a revision are supported.
 ## Review a practice day
 
 `GET /api/learning-paths/{pathId}/weeks/{weekNo}/days/{dayNo}/result?userId={userId}`
-returns the shared response envelope for a day in `COMPLETED` or `CLOSED` state,
+returns the shared response envelope for a day in `COMPLETED`, `SUBMITTED` or `CLOSED` state,
 including days closed automatically at midnight or when their week ended. The path
 must belong to the user and must not be cancelled. A missing path, week or day
 returns 404; a cancelled path or a day that has not closed returns 409.
@@ -81,3 +81,7 @@ was saved. Each question contains `order`, `questionId`, `microSkill`, `skill`,
 (`CORRECT`, `WRONG`, or `UNANSWERED`). Unanswered questions have a null
 selection and still include the correct option and explanation. Question content
 comes from the saved snapshots; missing or inconsistent result data is a server error.
+
+Legacy days stored as `CLOSED` with `close_reason: SUBMITTED` are returned as
+`SUBMITTED` by both the detail and result APIs. Other closed days remain `CLOSED`.
+For the optional one-time data migration, see [migration instructions](learning-path-submitted-migration.md).
