@@ -1,5 +1,11 @@
 # Subscription and Quota implementation status
 
+## P05 history list
+
+Observed: both focused integration methods passed, zero failures/errors/skips, on the first run (Maven total 1:04). No earlier test groups or full suite were rerun. Logs: workspace `.artifacts/subscription-payment-p05/tests.log`.
+
+GET /api/v1/subscription/me/purchases now returns the authenticated learner's purchase projections with bounded cursor pagination, default 20/max 50, sorted by persisted creation timestamp and ID descending. One existing purchase yields one row regardless of its payment/refund status. No cross-module query, account provisioning or lifecycle write is introduced. P06-P07 are deferred by user request. Verification is limited to two focused isolated integration methods for owner isolation, tied timestamps, insertion between pages, stored refund projection, expired URL hiding, empty history and HTTP authentication/bounds/cursor validation.
+
 ## P04 paid activation (2026-10-30)
 
 Internal Payment outcome operations commit normalized verified facts and result Outbox atomically; future provider adapters must authenticate/verify provider evidence before using them. No HTTP endpoint or fake provider can force success. Subscription result handling validates pinned correlation/amount/currency and atomically supersedes eligible Trial, creates one Premium period, records receipt, updates purchase and emits current effective entitlement. Monthly/yearly duration uses calendar arithmetic in Asia/Ho_Chi_Minh with UTC millisecond storage; late delivery does not extend the interval. Original Trial scheduled end is retained for audit; SUPERSEDED/supersededAt describe its actual termination. Usage is preserved. Contradictions are retained for review without clearing another purchase's lock.

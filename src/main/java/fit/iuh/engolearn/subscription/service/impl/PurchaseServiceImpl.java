@@ -5,6 +5,7 @@ import fit.iuh.engolearn.shared.messaging.*;
 import fit.iuh.engolearn.subscription.contract.exception.SubscriptionUnavailableException;
 import fit.iuh.engolearn.subscription.dto.request.CreatePurchaseRequest;
 import fit.iuh.engolearn.subscription.dto.response.PurchaseResponse;
+import fit.iuh.engolearn.subscription.dto.response.PurchaseHistoryResponse;
 import fit.iuh.engolearn.subscription.exception.SubscriptionRequestException;
 import fit.iuh.engolearn.subscription.model.*;
 import fit.iuh.engolearn.subscription.model.enums.*;
@@ -106,13 +107,40 @@ public class PurchaseServiceImpl implements PurchaseService {
             throw error(404, "PURCHASE_NOT_FOUND", "Purchase was not found");
         return response(purchase);
     }
+    public PurchaseHistoryResponse history(String userId, int limit, String cursor) {
+        if (limit < 1 || limit > 50) throw error(400, "INVALID_REQUEST", "History limit must be between 1 and 50");
+        Instant before = null;
+        String beforeId = null;
+        if (cursor != null) {
+            try {
+                if (cursor.isBlank() || cursor.length() > 512) throw new IllegalArgumentException();
+                String decoded = new String(Base64.getUrlDecoder().decode(cursor), java.nio.charset.StandardCharsets.UTF_8);
+                String[] parts = decoded.split(":", 2);
+                if (parts.length != 2 || parts[1].isBlank() || parts[1].length() > 128) throw new IllegalArgumentException();
+                before = Instant.ofEpochMilli(Long.parseLong(parts[0]));
+                beforeId = parts[1];
+            } catch (RuntimeException invalid) { throw error(400, "INVALID_REQUEST", "Invalid history cursor"); }
+        }
+        List<PremiumPurchase> rows = purchases.history(userId, limit + 1, before, beforeId);
+        boolean more = rows.size() > limit;
+        List<PremiumPurchase> page = more ? rows.subList(0, limit) : rows;
+        String next = null;
+        if (more) {
+            PremiumPurchase last = page.getLast();
+            next = Base64.getUrlEncoder().withoutPadding().encodeToString(
+                    (last.getCreatedAt().toEpochMilli() + ":" + last.getId()).getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        }
+        return new PurchaseHistoryResponse(page.stream().map(this::response).toList(), next);
+    }
+
     private PurchaseResponse response(PremiumPurchase purchase) {
         String url = purchase.getStatus() == PurchaseStatus.PAYMENT_PENDING && clock.instant().isBefore(purchase.getExpiresAt())
                 ? purchase.getCheckoutUrl() : null;
         return new PurchaseResponse(purchase.getPurchaseReference(), purchase.getStatus().name(), purchase.getBillingPeriod().name(),
                 purchase.getAmountVnd(), purchase.getCurrency(), purchase.getPaymentId(), url, purchase.getExpiresAt(),
                 purchase.getPaidAt(), purchase.getPeriodId(), purchase.getIntentCreatedAt() == null ? purchase.getCreatedAt() : purchase.getIntentCreatedAt(),
-                purchase.getFailureCode(), purchase.getPeriodEndAt());
+                purchase.getFailureCode(), purchase.getPeriodEndAt(), purchase.getRefundReference(), purchase.getRefundId(),
+                purchase.getRefundStatus() == null ? null : purchase.getRefundStatus().name());
     }
     private String fingerprint(CreatePurchaseRequest request) { return request.planCode() + ":" + request.billingPeriod(); }
     private SubscriptionRequestException error(int status, String code, String message) {

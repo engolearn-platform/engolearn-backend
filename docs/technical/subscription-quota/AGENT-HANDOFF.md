@@ -1,5 +1,7 @@
 # Subscription / Quota handoff
 
+P05 continuation: learner purchase history list now supports owner-filtered keyset pagination, stable newest-first ordering and stored refund projections. See [purchase API](purchase-api.md). Stop after P05 per user request; P06 refund and P07 VNPay are deferred to a later session. No dev purchases or usage were seeded for verification.
+
 P03-P04 continuation 2026-10-30: purchase create/detail APIs, Payment checkout-intent intake and Subscription paid activation are now implemented. See [purchase API](purchase-api.md) and the latest [status](implementation-status.md). Real provider adapters, history list and refund orchestration remain absent. Never wire a fake success adapter into runtime. Payment outcomes are internal trusted adapter capabilities; provider signatures/reconciliation must be implemented in P07. Trial SUPERSEDED retains its original scheduled end plus actual supersededAt. Continue from the separate completed commits on feat/payment; do not reset or seed dev history.
 
 ## P01-P02 continuation (2026-10-30)

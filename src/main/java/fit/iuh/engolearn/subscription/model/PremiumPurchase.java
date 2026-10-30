@@ -13,6 +13,7 @@ import org.springframework.data.mongodb.core.index.CompoundIndexes;
 
 @Document("subscription_purchases")
 @CompoundIndexes({
+    @CompoundIndex(name = "purchase_history", def = "{'user_id':1,'created_at':-1,'_id':-1}"),
     @CompoundIndex(name = "purchase_reference_unique", def = "{'purchase_reference':1}", unique = true),
     @CompoundIndex(name = "purchase_request_unique", def = "{'user_id':1,'idempotency_key':1}", unique = true),
     @CompoundIndex(name = "one_blocking_purchase", def = "{'user_id':1}", unique = true, partialFilter = "{'blocks_new_purchase':true}"),

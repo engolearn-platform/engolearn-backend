@@ -40,6 +40,19 @@ public class SubscriptionController {
         return ApiResponse.ok(result.purchase());
     }
 
+    @GetMapping("/me/purchases")
+    public ApiResponse<PurchaseHistoryResponse> history(@RequestParam(defaultValue="20") String limit,
+            @RequestParam(required=false) String cursor, HttpServletResponse response) {
+        response.setHeader("Cache-Control", "no-store");
+        int pageSize;
+        try { pageSize = Integer.parseInt(limit); }
+        catch (NumberFormatException invalid) {
+            throw new fit.iuh.engolearn.subscription.exception.SubscriptionRequestException(
+                    400, "INVALID_REQUEST", "History limit must be an integer between 1 and 50");
+        }
+        return ApiResponse.ok(purchases.history(users.requireCurrentUserId(), pageSize, cursor));
+    }
+
     @GetMapping("/me/purchases/{reference}")
     public ApiResponse<PurchaseResponse> purchase(@PathVariable String reference, HttpServletResponse response) {
         response.setHeader("Cache-Control", "no-store");

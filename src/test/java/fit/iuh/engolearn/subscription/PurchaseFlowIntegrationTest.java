@@ -100,6 +100,50 @@ class PurchaseFlowIntegrationTest extends AbstractMongoIntegrationTest {
                 "subscription.payment",clock.instant(),mapper.writeValueAsString(event)));return null;});
     }
 
+    void historyFixture(String id,String owner,PurchaseStatus status,Instant created){
+        store.insert(PremiumPurchase.builder().id(id).purchaseReference(id).userId(owner).idempotencyKey("fixture-"+id)
+                .billingPeriod(BillingPeriod.MONTHLY).amountVnd(100000).currency("VND").status(status)
+                .intentCreatedAt(created).expiresAt(created.minusSeconds(1)).checkoutUrl("https://checkout.example.test/expired")
+                .refundReference(status==PurchaseStatus.REFUNDED?"refund-ref":null)
+                .refundId(status==PurchaseStatus.REFUNDED?"refund-id":null)
+                .refundStatus(status==PurchaseStatus.REFUNDED?PurchaseRefundStatus.SUCCEEDED:null).build());
+        mongoTemplate.updateFirst(org.springframework.data.mongodb.core.query.Query.query(
+                org.springframework.data.mongodb.core.query.Criteria.where("_id").is(id)),
+                new org.springframework.data.mongodb.core.query.Update().set("created_at",created),PremiumPurchase.class);
+    }
+    @Test void historyIsOwnerScopedStableAcrossTiesAndConcurrentInsertion(){
+        historyFixture("history-a",USER,PurchaseStatus.PAYMENT_PENDING,START);
+        historyFixture("history-b",USER,PurchaseStatus.PAYMENT_FAILED,START);
+        historyFixture("history-c",USER,PurchaseStatus.REFUNDED,START);
+        historyFixture("foreign-z","another-user",PurchaseStatus.ACTIVE,START.plusSeconds(10));
+        var first=purchases.history(USER,2,null);
+        assertThat(first.items()).extracting(PurchaseResponse::purchaseReference).containsExactly("history-c","history-b");
+        assertThat(first.items().getFirst().refundReference()).isEqualTo("refund-ref");
+        assertThat(first.items().getFirst().refundStatus()).isEqualTo("SUCCEEDED");
+        assertThat(first.nextCursor()).isNotBlank();
+        historyFixture("history-new",USER,PurchaseStatus.PAYMENT_SETUP_PENDING,START.plusSeconds(1));
+        var second=purchases.history(USER,2,first.nextCursor());
+        assertThat(second.items()).extracting(PurchaseResponse::purchaseReference).containsExactly("history-a");
+        assertThat(second.items().getFirst().checkoutUrl()).isNull();assertThat(second.nextCursor()).isNull();
+        assertThat(purchases.history("another-user",20,null).items()).extracting(PurchaseResponse::purchaseReference)
+                .containsExactly("foreign-z");
+        assertThat(count("subscription_purchases")).isEqualTo(5);
+    }
+    @Test void historyHttpRejectsAnonymousBadBoundsAndBadCursor(){
+        String url="http://localhost:"+port+"/api/v1/subscription/me/purchases";
+        assertThatThrownBy(()->restTemplate.getForEntity(url,String.class)).isInstanceOfSatisfying(HttpClientErrorException.class,
+                e->assertThat(e.getStatusCode().value()).isEqualTo(401));
+        HttpHeaders headers=new HttpHeaders();headers.set("X-Dev-User-Id","dev-user");
+        var empty=restTemplate.exchange(url,HttpMethod.GET,new HttpEntity<>(headers),String.class);
+        assertThat(empty.getStatusCode().value()).isEqualTo(200);assertThat(empty.getHeaders().getCacheControl()).isEqualTo("no-store");
+        assertThat(mapper.readTree(empty.getBody()).path("data").path("items").size()).isZero();
+        for(String query:List.of("?limit=0","?limit=51","?limit=abc","?cursor=not-a-cursor"))
+            assertThatThrownBy(()->restTemplate.exchange(url+query,HttpMethod.GET,new HttpEntity<>(headers),String.class))
+                    .isInstanceOfSatisfying(HttpClientErrorException.class,e->{
+                        assertThat(e.getStatusCode().value()).isEqualTo(400);
+                        assertThat(e.getResponseBodyAsString()).contains("INVALID_REQUEST");});
+    }
+
     @Test void sameIntentReplaysPinnedPriceAndDifferentSelectionConflicts(){
         String id=key();var original=purchases.create(USER,id,MONTH);
         PlanVersion plan=mongoTemplate.findById("premium-plan",PlanVersion.class);
