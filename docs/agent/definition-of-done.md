@@ -10,6 +10,7 @@ A task is Done when the common criteria and applicable task-type criteria are me
 - [ ] Checks appropriate to the change have been run and their actual results are reported accurately.
 - [ ] Existing checks have not been weakened, disabled, suppressed, or bypassed to obtain a pass.
 - [ ] Relevant documentation and examples match the resulting code and configuration.
+- [ ] New/refactored code follows the [implementation conventions](../architecture/implementation-conventions.md); agreed exceptions and legacy gaps are identified, not silently copied.
 - [ ] Remaining risks, unrun checks, and required manual actions are disclosed.
 - [ ] Comments explain non-obvious *why* only; no signature-restating Javadoc.
 

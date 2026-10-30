@@ -8,6 +8,7 @@ Read only what applies to the task:
 
 - `docs/architecture/package-structure.md` — package layout and layer boundaries.
 - `docs/architecture/cross-feature-communication.md` — allowed dependencies between features.
+- `docs/architecture/implementation-conventions.md` — required naming, responsibility, model and public-contract conventions for new/refactored code.
 - `docs/agent/working-agreement.md` — workflow-neutral task process and implementation loop.
 - `docs/agent/definition-of-done.md` — completion criteria for every workflow.
 
@@ -16,6 +17,7 @@ Use the team's chosen workflow. OpenSpec is an optional pilot, not mandatory for
 ## Non-negotiable
 
 - Follow the documented package and cross-feature boundaries.
+- Follow the implementation conventions; inspect existing patterns without treating legacy inconsistencies as exceptions.
 - Refactors must preserve behavior and existing API/persistence contracts unless the agreed scope explicitly says otherwise.
 - Do not invent missing business rules. Find the team's business documentation or report the ambiguity.
 - Do not add dependencies, Maven modules, or top-level feature packages without approval.
