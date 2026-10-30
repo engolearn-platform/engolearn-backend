@@ -1,5 +1,6 @@
-package fit.iuh.engolearn.topic.controller;
+package fit.iuh.engolearn.topic.controller.exceptionhandler;
 
+import fit.iuh.engolearn.topic.controller.TopicBrowseController;
 import fit.iuh.engolearn.topic.exception.InvalidBrowseRequestException;
 import fit.iuh.engolearn.topic.exception.TopicNotFoundException;
 import org.springframework.http.HttpStatus;

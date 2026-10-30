@@ -1,5 +1,6 @@
-package fit.iuh.engolearn.topic.controller;
+package fit.iuh.engolearn.topic.controller.exceptionhandler;
 
+import fit.iuh.engolearn.topic.controller.*;
 import fit.iuh.engolearn.topic.exception.TopicRequestException;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ProblemDetail;

@@ -1,7 +1,8 @@
-package fit.iuh.engolearn.topic.service;
+package fit.iuh.engolearn.topic.utils;
 
 import fit.iuh.engolearn.shared.enums.CefrLevel;
 import fit.iuh.engolearn.topic.exception.InvalidBrowseRequestException;
+import fit.iuh.engolearn.topic.model.enums.TopicSortOrder;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;

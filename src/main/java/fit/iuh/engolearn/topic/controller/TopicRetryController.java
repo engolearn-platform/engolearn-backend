@@ -1,5 +1,7 @@
 package fit.iuh.engolearn.topic.controller;
 
+import lombok.RequiredArgsConstructor;
+
 import fit.iuh.engolearn.shared.web.ApiResponse;
 import fit.iuh.engolearn.topic.dto.request.StartTopicRetryRequest;
 import fit.iuh.engolearn.topic.dto.response.TopicRetrySessionResponse;
@@ -10,10 +12,10 @@ import jakarta.validation.constraints.Size;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
+@RequiredArgsConstructor
 @RequestMapping("/api/v1")
 public class TopicRetryController {
     private final TopicRetryService retries;
-    public TopicRetryController(TopicRetryService retries) { this.retries=retries; }
 
     @PostMapping("/topics/{topicId}/retry-sessions")
     public ApiResponse<TopicRetrySessionResponse> start(@PathVariable String topicId,@Valid @RequestBody StartTopicRetryRequest body,

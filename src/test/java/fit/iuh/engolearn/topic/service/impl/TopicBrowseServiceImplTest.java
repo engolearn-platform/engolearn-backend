@@ -1,4 +1,6 @@
-package fit.iuh.engolearn.topic.service;
+package fit.iuh.engolearn.topic.service.impl;
+
+import fit.iuh.engolearn.topic.model.enums.TopicSortOrder;
 
 import fit.iuh.engolearn.shared.enums.CefrLevel;
 import fit.iuh.engolearn.topic.dto.request.GetAvailableTopicRequest;
@@ -20,6 +22,7 @@ import fit.iuh.engolearn.topic.model.vo.QuizModuleVo;
 import fit.iuh.engolearn.topic.repository.TopicItemVersionRepository;
 import fit.iuh.engolearn.topic.repository.TopicRepository;
 import fit.iuh.engolearn.topic.repository.TopicVersionRepository;
+import fit.iuh.engolearn.topic.utils.TopicCursorCodec;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -185,7 +188,7 @@ class TopicBrowseServiceImplTest {
     @Test
     void listRejectsACursorProducedByAnotherSortOrderOrAnotherFilter() {
         String cursor = TopicCursorCodec.encode(TopicSortOrder.RECOMMENDED,
-                TopicCursorCodec.fingerprint(CefrLevel.A1, null), 1, "t1");
+                                                TopicCursorCodec.fingerprint(CefrLevel.A1, null), 1, "t1");
 
         assertThatThrownBy(() -> service.getAvailableTopics(request(null, null, "duration", null, cursor)))
                 .isInstanceOf(InvalidBrowseRequestException.class);

@@ -1,10 +1,16 @@
-package fit.iuh.engolearn.topic.service;
+package fit.iuh.engolearn.topic.service.impl;
+
+import fit.iuh.engolearn.topic.infra.dev.LocalLearnerProvider;
+import fit.iuh.engolearn.topic.service.*;
 
 import fit.iuh.engolearn.topic.dto.response.CurrentQuizResponse;
 import fit.iuh.engolearn.topic.dto.response.QuizFillBlankResponse;
 import fit.iuh.engolearn.topic.dto.response.QuizSituationalChoiceResponse;
 import fit.iuh.engolearn.topic.exception.TopicRequestException;
 import fit.iuh.engolearn.topic.mapper.TopicQuizMapper;
+import fit.iuh.engolearn.topic.mapper.TopicRetrySessionMapper;
+import fit.iuh.engolearn.topic.repository.TopicAttemptMutationRepository;
+import fit.iuh.engolearn.topic.mapper.TopicAttemptMapper;
 import fit.iuh.engolearn.topic.mapper.TopicQuizMapper.QuizEntry;
 import fit.iuh.engolearn.topic.model.Topic;
 import fit.iuh.engolearn.topic.model.TopicItemVersion;
@@ -52,6 +58,15 @@ import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class TopicQuizReadTest {
+    @org.mockito.Mock
+    private TopicAttemptMapper attemptMapper;
+
+    @org.mockito.Mock
+    private TopicRetryService retries;
+
+    @org.mockito.Mock
+    private TopicGenerationService generations;
+
 
     private static final String ATTEMPT_ID = "a1";
     private static final String USER_ID = "u1";
@@ -95,31 +110,33 @@ class TopicQuizReadTest {
     @Spy
     private TopicQuizMapper quizMapper = new TopicQuizMapper();
 
+    private final TopicQuizProgressService quizProgress = new TopicQuizProgressServiceImpl();
+
     private TopicAttemptService service;
 
     @BeforeEach
     void setUp() {
-        service = new TopicAttemptService(learner, catalog, attempts, versions, mongo, topicItems, learning, quizMapper,
-                topics, releases);
+        service = new TopicAttemptServiceImpl(learner, catalog, attempts, versions, new TopicAttemptMutationRepository(mongo), topicItems, learning, quizMapper,
+                topics, releases, generations, retries, attemptMapper, quizProgress, new TopicRetrySessionMapper());
     }
 
     @Test
     void withoutProgressReturnsFirstFillBlankQuestion() {
-        assertThat(TopicAttemptService.firstUnanswered(SEQUENCE, List.of())).contains(SEQUENCE.get(0));
+        assertThat(quizProgress.firstUnanswered(SEQUENCE, List.of())).contains(SEQUENCE.get(0));
     }
 
     @Test
     void wrongAnswerKeepsTheSameQuestionCurrent() {
         List<QuizProgressVo> progress = List.of(progress("iv1:quiz:0:0", false));
 
-        assertThat(TopicAttemptService.firstUnanswered(SEQUENCE, progress)).contains(SEQUENCE.get(0));
+        assertThat(quizProgress.firstUnanswered(SEQUENCE, progress)).contains(SEQUENCE.get(0));
     }
 
     @Test
     void correctAnswerAdvancesToTheNextQuestion() {
         List<QuizProgressVo> progress = List.of(progress("iv1:quiz:0:0", true));
 
-        assertThat(TopicAttemptService.firstUnanswered(SEQUENCE, progress)).contains(SEQUENCE.get(1));
+        assertThat(quizProgress.firstUnanswered(SEQUENCE, progress)).contains(SEQUENCE.get(1));
     }
 
     @Test
@@ -128,7 +145,7 @@ class TopicQuizReadTest {
                 progress("iv1:quiz:0:0", true),
                 progress("iv1:quiz:0:1", false));
 
-        assertThat(TopicAttemptService.firstUnanswered(SEQUENCE, progress)).contains(SEQUENCE.get(1));
+        assertThat(quizProgress.firstUnanswered(SEQUENCE, progress)).contains(SEQUENCE.get(1));
     }
 
     @Test
@@ -139,7 +156,7 @@ class TopicQuizReadTest {
                 progress("iv1:quiz:0:2", true),
                 progress("iv1:quiz:0:3", true));
 
-        QuizEntry current = TopicAttemptService.firstUnanswered(SEQUENCE, progress).orElseThrow();
+        QuizEntry current = quizProgress.firstUnanswered(SEQUENCE, progress).orElseThrow();
 
         assertThat(current).isEqualTo(SEQUENCE.get(4));
         assertThat(current.type()).isEqualTo(QuizType.SITUATIONAL_CHOICE);
@@ -156,19 +173,19 @@ class TopicQuizReadTest {
                 progress("iv1:quiz:1:0", true),
                 progress("iv1:quiz:1:1", true));
 
-        assertThat(TopicAttemptService.firstUnanswered(SEQUENCE, progress)).isEmpty();
+        assertThat(quizProgress.firstUnanswered(SEQUENCE, progress)).isEmpty();
     }
 
     @Test
     void unknownQuizIdInProgressIsIgnored() {
         List<QuizProgressVo> progress = List.of(progress("iv1:quiz:9:9", true));
 
-        assertThat(TopicAttemptService.firstUnanswered(SEQUENCE, progress)).contains(SEQUENCE.get(0));
+        assertThat(quizProgress.firstUnanswered(SEQUENCE, progress)).contains(SEQUENCE.get(0));
     }
 
     @Test
     void nullProgressReturnsFirstQuestion() {
-        assertThat(TopicAttemptService.firstUnanswered(SEQUENCE, null)).contains(SEQUENCE.get(0));
+        assertThat(quizProgress.firstUnanswered(SEQUENCE, null)).contains(SEQUENCE.get(0));
     }
 
     @Test
@@ -177,7 +194,7 @@ class TopicQuizReadTest {
                 progress("iv1:quiz:0:0", false),
                 progress("iv1:quiz:0:0", true));
 
-        assertThat(TopicAttemptService.firstUnanswered(SEQUENCE, progress)).contains(SEQUENCE.get(1));
+        assertThat(quizProgress.firstUnanswered(SEQUENCE, progress)).contains(SEQUENCE.get(1));
     }
 
     @Test
@@ -185,7 +202,7 @@ class TopicQuizReadTest {
         List<QuizEntry> withNull = new ArrayList<>(SEQUENCE);
         withNull.add(0, null);
 
-        assertThat(TopicAttemptService.firstUnanswered(withNull, List.of())).contains(SEQUENCE.get(0));
+        assertThat(quizProgress.firstUnanswered(withNull, List.of())).contains(SEQUENCE.get(0));
     }
 
     @Test
@@ -196,7 +213,7 @@ class TopicQuizReadTest {
                         .submissions(Arrays.asList((QuizSubmissionVo) null)).build(),
                 QuizProgressVo.builder().submissions(List.of(submission(true))).build());
 
-        assertThat(TopicAttemptService.firstUnanswered(SEQUENCE, progress)).contains(SEQUENCE.get(0));
+        assertThat(quizProgress.firstUnanswered(SEQUENCE, progress)).contains(SEQUENCE.get(0));
     }
 
     @Test

@@ -11,6 +11,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.experimental.SuperBuilder;
 import org.springframework.data.annotation.Version;
+import org.springframework.data.mongodb.core.index.CompoundIndex;
 import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.mongodb.core.mapping.Field;
 import org.springframework.data.mongodb.core.mapping.FieldType;
@@ -19,6 +20,12 @@ import java.time.Instant;
 import java.util.List;
 
 @Document("user_topic_item_attempts")
+@CompoundIndex(
+        name = "one_running_learning_item_per_topic",
+        def = "{'user_id': 1, 'topic_id': 1, 'attempt_type': 1, 'generation': 1}",
+        unique = true,
+        partialFilter = "{'status': 'IN_PROGRESS', 'attempt_type': 'LEARNING'}"
+)
 @Getter
 @Setter
 @NoArgsConstructor
@@ -26,13 +33,18 @@ import java.util.List;
 @SuperBuilder
 @EqualsAndHashCode(callSuper = true)
 public class UserTopicItemAttempt extends BaseDocument {
+    @Field("generation")
     private long generation;
+
     @Field("attempt_type")
     private fit.iuh.engolearn.topic.model.enums.AttemptType attemptType;
+
     @Field("start_request_key")
     private String startRequestKey;
+
     @Field("start_fingerprint")
     private String startFingerprint;
+
     @Field("mutation_receipts")
     private List<fit.iuh.engolearn.topic.model.vo.ContentMutationReceiptVo> mutationReceipts;
 
@@ -76,5 +88,6 @@ public class UserTopicItemAttempt extends BaseDocument {
     private String abandonedReason;
 
     @Version
+    @Field("version")
     private Long version;
 }

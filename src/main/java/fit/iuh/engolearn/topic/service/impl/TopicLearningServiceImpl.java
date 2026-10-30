@@ -1,4 +1,7 @@
-package fit.iuh.engolearn.topic.service;
+package fit.iuh.engolearn.topic.service.impl;
+
+import fit.iuh.engolearn.topic.service.*;
+import lombok.RequiredArgsConstructor;
 
 import fit.iuh.engolearn.shared.enums.CefrLevel;
 import fit.iuh.engolearn.topic.dto.request.GetTopicItemContentRequest;
@@ -51,9 +54,8 @@ import java.util.Map;
 import java.util.Optional;
 
 @Service
+@RequiredArgsConstructor
 public class TopicLearningServiceImpl implements TopicLearningService {
-    @org.springframework.beans.factory.annotation.Autowired
-    private TopicGenerationService generations;
 
     private static final Comparator<TopicItemVersion> ITEM_ORDER =
             Comparator.comparing(TopicItemVersion::getOrder, Comparator.nullsLast(Comparator.naturalOrder()))
@@ -74,28 +76,7 @@ public class TopicLearningServiceImpl implements TopicLearningService {
     private final UserTopicItemAttemptRepository userTopicItemAttemptRepository;
     private final CurrentUserProvider currentUserProvider;
     private final LearnerLevelProvider learnerLevelProvider;
-
-    public TopicLearningServiceImpl(TopicRepository topicRepository,
-                                    TopicVersionRepository topicVersionRepository,
-                                    TopicItemRepository topicItemRepository,
-                                    TopicItemVersionRepository topicItemVersionRepository,
-                                    UserTopicProgressRepository userTopicProgressRepository,
-                                    UserTopicItemProgressRepository userTopicItemProgressRepository,
-                                    UserTopicAttemptRepository userTopicAttemptRepository,
-                                    UserTopicItemAttemptRepository userTopicItemAttemptRepository,
-                                    CurrentUserProvider currentUserProvider,
-                                    LearnerLevelProvider learnerLevelProvider) {
-        this.topicRepository = topicRepository;
-        this.topicVersionRepository = topicVersionRepository;
-        this.topicItemRepository = topicItemRepository;
-        this.topicItemVersionRepository = topicItemVersionRepository;
-        this.userTopicProgressRepository = userTopicProgressRepository;
-        this.userTopicItemProgressRepository = userTopicItemProgressRepository;
-        this.userTopicAttemptRepository = userTopicAttemptRepository;
-        this.userTopicItemAttemptRepository = userTopicItemAttemptRepository;
-        this.currentUserProvider = currentUserProvider;
-        this.learnerLevelProvider = learnerLevelProvider;
-    }
+    private final TopicGenerationService generations;
 
     // --- content -----------------------------------------------------------------------
 
@@ -169,7 +150,7 @@ public class TopicLearningServiceImpl implements TopicLearningService {
                 stage, itemIndex, now);
         upsertItemProgress(userId, item.topic().getId(), topicItemId, now, item.generation());
         upsertTopicProgress(userId, item.topic().getId(), topicItemId, now, item.generation());
-        if (generations != null) generations.require(userId, item.topic().getId(), item.generation());
+        generations.require(userId, item.topic().getId(), item.generation());
 
         FurthestReachedVo furthest = savedItemAttempt.getFurthestReached();
         return TopicItemPositionResponse.builder()
@@ -484,7 +465,6 @@ public class TopicLearningServiceImpl implements TopicLearningService {
     // --- lookups -----------------------------------------------------------------------
 
     private UserTopicItemProgress findItemProgress(String userId, String topicItemId, long generation) {
-        if (generations == null) return userTopicItemProgressRepository.findByUserIdAndTopicItemId(userId, topicItemId).orElse(null);
         return userTopicItemProgressRepository.findByUserId(userId).stream()
                 .filter(row -> topicItemId.equals(row.getTopicItemId()) && row.getGeneration() == generation).findFirst().orElse(null);
     }
@@ -524,12 +504,11 @@ public class TopicLearningServiceImpl implements TopicLearningService {
                 .orElse(null);
     }
 
-    private long generation(String userId, String topicId) { return generations == null ? 0 : generations.current(userId, topicId); }
+    private long generation(String userId, String topicId) { return generations.current(userId, topicId); }
     private String progressId(String userId, String topicId, String kind, long generation) {
-        return generation == 0 || generations == null ? null : generations.id(userId, topicId + "|" + kind + "|" + generation);
+        return generation == 0 ? null : generations.id(userId, topicId + "|" + kind + "|" + generation);
     }
     private UserTopicProgress findTopicProgress(String userId, String topicId, long generation) {
-        if (generations == null) return userTopicProgressRepository.findByUserIdAndTopicId(userId, topicId).orElse(null);
         return userTopicProgressRepository.findByUserId(userId).stream()
                 .filter(row -> topicId.equals(row.getTopicId()) && row.getGeneration() == generation).findFirst().orElse(null);
     }

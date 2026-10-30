@@ -1,4 +1,4 @@
-package fit.iuh.engolearn.topic.service;
+package fit.iuh.engolearn.topic.model.enums;
 
 import java.util.Locale;
 import java.util.Optional;

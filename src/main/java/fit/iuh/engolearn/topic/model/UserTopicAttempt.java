@@ -26,7 +26,9 @@ import java.util.List;
 @SuperBuilder
 @EqualsAndHashCode(callSuper = true)
 public class UserTopicAttempt extends BaseDocument {
+    @Field("generation")
     private long generation;
+
     @Field("user_id")
     private String userId;
 

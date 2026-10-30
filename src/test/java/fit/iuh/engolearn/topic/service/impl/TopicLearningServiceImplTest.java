@@ -1,4 +1,6 @@
-package fit.iuh.engolearn.topic.service;
+package fit.iuh.engolearn.topic.service.impl;
+
+import fit.iuh.engolearn.topic.service.*;
 
 import fit.iuh.engolearn.shared.enums.CefrLevel;
 import fit.iuh.engolearn.topic.dto.request.GetTopicItemContentRequest;
@@ -81,6 +83,9 @@ import static org.mockito.Mockito.when;
  */
 @ExtendWith(MockitoExtension.class)
 class TopicLearningServiceImplTest {
+    @org.mockito.Mock
+    private TopicGenerationService generations;
+
 
     private static final String USER = "user-mock-001";
     private static final String TOPIC_ID = "t1";
@@ -127,7 +132,7 @@ class TopicLearningServiceImplTest {
         service = new TopicLearningServiceImpl(topicRepository, topicVersionRepository, topicItemRepository,
                 topicItemVersionRepository, userTopicProgressRepository, userTopicItemProgressRepository,
                 userTopicAttemptRepository, userTopicItemAttemptRepository, currentUserProvider,
-                learnerLevelProvider);
+                learnerLevelProvider, generations);
     }
 
     // --- content ------------------------------------------------------------------------
@@ -290,8 +295,8 @@ class TopicLearningServiceImplTest {
         stubTopicItems();
         stubSignedIn();
         when(userTopicItemAttemptRepository.findByUserIdAndTopicItemId(USER, ITEM_ONE)).thenReturn(List.of());
-        when(userTopicItemProgressRepository.findByUserIdAndTopicItemId(USER, ITEM_ONE))
-                .thenReturn(Optional.empty());
+        when(userTopicItemProgressRepository.findByUserId(USER))
+                .thenReturn(List.of());
 
         service.getItemContent(GetTopicItemContentRequest.builder().topicItemId(ITEM_ONE).build());
         service.getItemPosition(GetTopicItemPositionRequest.builder().topicItemId(ITEM_ONE).build());
@@ -311,8 +316,8 @@ class TopicLearningServiceImplTest {
         stubTopicItems();
         stubSignedIn();
         when(userTopicItemAttemptRepository.findByUserIdAndTopicItemId(USER, ITEM_ONE)).thenReturn(List.of());
-        when(userTopicItemProgressRepository.findByUserIdAndTopicItemId(USER, ITEM_ONE))
-                .thenReturn(Optional.empty());
+        when(userTopicItemProgressRepository.findByUserId(USER))
+                .thenReturn(List.of());
 
         TopicItemPositionResponse position = service.getItemPosition(
                 GetTopicItemPositionRequest.builder().topicItemId(ITEM_ONE).build());
@@ -330,8 +335,8 @@ class TopicLearningServiceImplTest {
         stubSignedIn();
         when(userTopicItemAttemptRepository.findByUserIdAndTopicItemId(USER, ITEM_ONE))
                 .thenReturn(List.of(itemAttempt("ia1", VERSION_ONE, LearningStage.EXPRESSIONS, 1)));
-        when(userTopicItemProgressRepository.findByUserIdAndTopicItemId(USER, ITEM_ONE))
-                .thenReturn(Optional.of(itemProgress(ITEM_ONE, ItemProgressStatus.IN_PROGRESS)));
+        when(userTopicItemProgressRepository.findByUserId(USER))
+                .thenReturn(List.of(itemProgress(ITEM_ONE, ItemProgressStatus.IN_PROGRESS)));
 
         TopicItemPositionResponse position = service.getItemPosition(
                 GetTopicItemPositionRequest.builder().topicItemId(ITEM_ONE).build());
@@ -348,8 +353,8 @@ class TopicLearningServiceImplTest {
         stubSignedIn();
         when(userTopicItemAttemptRepository.findByUserIdAndTopicItemId(USER, ITEM_ONE))
                 .thenReturn(List.of(itemAttempt("ia1", VERSION_ONE, LearningStage.VOCAB, 0)));
-        when(userTopicItemProgressRepository.findByUserIdAndTopicItemId(USER, ITEM_ONE))
-                .thenReturn(Optional.empty());
+        when(userTopicItemProgressRepository.findByUserId(USER))
+                .thenReturn(List.of());
 
         TopicItemPositionResponse position = service.getItemPosition(
                 GetTopicItemPositionRequest.builder().topicItemId(ITEM_ONE).build());
@@ -447,7 +452,7 @@ class TopicLearningServiceImplTest {
         stubTopicItems();
         stubSignedIn();
         stubLearnerLevel();
-        when(userTopicItemProgressRepository.findByUserIdAndTopicItemId(USER, ITEM_ONE)).thenReturn(Optional.empty());
+        when(userTopicItemProgressRepository.findByUserId(USER)).thenReturn(List.of());
         when(userTopicItemProgressRepository.findByUserIdAndTopicId(USER, TOPIC_ID)).thenReturn(List.of());
         when(userTopicItemAttemptRepository.findByUserIdAndTopicItemId(USER, ITEM_ONE))
                 .thenReturn(List.of(itemAttempt("ia1", "iv-old", LearningStage.VOCAB, 0)));
@@ -494,7 +499,7 @@ class TopicLearningServiceImplTest {
         stubTopicItems();
         stubSignedIn();
         stubLearnerLevel();
-        when(userTopicItemProgressRepository.findByUserIdAndTopicItemId(USER, ITEM_ONE)).thenReturn(Optional.empty());
+        when(userTopicItemProgressRepository.findByUserId(USER)).thenReturn(List.of());
         when(userTopicItemAttemptRepository.findByUserIdAndTopicItemId(USER, ITEM_ONE)).thenReturn(List.of());
         when(userTopicItemProgressRepository.findByUserIdAndTopicId(USER, TOPIC_ID))
                 .thenReturn(List.of(itemProgress(ITEM_TWO, ItemProgressStatus.IN_PROGRESS)));
@@ -511,7 +516,7 @@ class TopicLearningServiceImplTest {
         stubTopicItems();
         stubSignedIn();
         stubLearnerLevel();
-        when(userTopicItemProgressRepository.findByUserIdAndTopicItemId(USER, ITEM_TWO)).thenReturn(Optional.empty());
+        when(userTopicItemProgressRepository.findByUserId(USER)).thenReturn(List.of());
         when(userTopicItemAttemptRepository.findByUserIdAndTopicItemId(USER, ITEM_TWO)).thenReturn(List.of());
         when(userTopicItemProgressRepository.findByUserIdAndTopicId(USER, TOPIC_ID))
                 .thenReturn(List.of(itemProgress(ITEM_ONE, ItemProgressStatus.NOT_STARTED)));
@@ -528,7 +533,7 @@ class TopicLearningServiceImplTest {
         stubTopicItems();
         stubSignedIn();
         when(learnerLevelProvider.getCurrentLevel()).thenReturn(CefrLevel.A1);
-        when(userTopicItemProgressRepository.findByUserIdAndTopicItemId(USER, ITEM_ONE)).thenReturn(Optional.empty());
+        when(userTopicItemProgressRepository.findByUserId(USER)).thenReturn(List.of());
         when(userTopicItemAttemptRepository.findByUserIdAndTopicItemId(USER, ITEM_ONE)).thenReturn(List.of());
 
         assertThatThrownBy(() -> service.saveItemPosition(SaveTopicItemPositionRequest.builder()
@@ -542,8 +547,8 @@ class TopicLearningServiceImplTest {
         stubPublishedRelease();
         stubTopicItems();
         stubSignedIn();
-        when(userTopicItemProgressRepository.findByUserIdAndTopicItemId(USER, ITEM_ONE))
-                .thenReturn(Optional.of(itemProgress(ITEM_ONE, ItemProgressStatus.COMPLETED)));
+        when(userTopicItemProgressRepository.findByUserId(USER))
+                .thenReturn(List.of(itemProgress(ITEM_ONE, ItemProgressStatus.COMPLETED)));
         when(userTopicItemAttemptRepository.findByUserIdAndTopicItemId(USER, ITEM_ONE)).thenReturn(List.of());
 
         assertThatThrownBy(() -> service.saveItemPosition(SaveTopicItemPositionRequest.builder()
@@ -605,7 +610,7 @@ class TopicLearningServiceImplTest {
                 itemProgress(ITEM_ONE, ItemProgressStatus.COMPLETED),
                 itemProgress(ITEM_TWO, ItemProgressStatus.IN_PROGRESS)));
         when(userTopicItemAttemptRepository.findByUserIdAndTopicId(USER, TOPIC_ID)).thenReturn(List.of());
-        when(userTopicProgressRepository.findByUserIdAndTopicId(USER, TOPIC_ID)).thenReturn(Optional.empty());
+        when(userTopicProgressRepository.findByUserId(USER)).thenReturn(List.of());
 
         TopicProgressResponse progress = service.getTopicProgress(
                 GetTopicProgressRequest.builder().topicId(TOPIC_ID).build());
@@ -624,7 +629,7 @@ class TopicLearningServiceImplTest {
         stubSignedIn();
         when(userTopicItemProgressRepository.findByUserIdAndTopicId(USER, TOPIC_ID)).thenReturn(List.of());
         when(userTopicItemAttemptRepository.findByUserIdAndTopicId(USER, TOPIC_ID)).thenReturn(List.of());
-        when(userTopicProgressRepository.findByUserIdAndTopicId(USER, TOPIC_ID)).thenReturn(Optional.empty());
+        when(userTopicProgressRepository.findByUserId(USER)).thenReturn(List.of());
 
         TopicProgressResponse progress = service.getTopicProgress(
                 GetTopicProgressRequest.builder().topicId(TOPIC_ID).build());
@@ -644,8 +649,8 @@ class TopicLearningServiceImplTest {
                 itemProgress(ITEM_ONE, ItemProgressStatus.COMPLETED),
                 itemProgress(ITEM_TWO, ItemProgressStatus.COMPLETED)));
         when(userTopicItemAttemptRepository.findByUserIdAndTopicId(USER, TOPIC_ID)).thenReturn(List.of());
-        when(userTopicProgressRepository.findByUserIdAndTopicId(USER, TOPIC_ID))
-                .thenReturn(Optional.of(UserTopicProgress.builder()
+        when(userTopicProgressRepository.findByUserId(USER))
+                .thenReturn(List.of(UserTopicProgress.builder()
                         .id("tp1").userId(USER).topicId(TOPIC_ID)
                         .lastAccessedAt(Instant.parse("2026-01-01T00:00:00Z")).build()));
 
@@ -664,7 +669,7 @@ class TopicLearningServiceImplTest {
         when(userTopicItemProgressRepository.findByUserIdAndTopicId(USER, TOPIC_ID)).thenReturn(List.of());
         when(userTopicItemAttemptRepository.findByUserIdAndTopicId(USER, TOPIC_ID))
                 .thenReturn(List.of(itemAttempt("ia1", VERSION_ONE, LearningStage.VOCAB, 0)));
-        when(userTopicProgressRepository.findByUserIdAndTopicId(USER, TOPIC_ID)).thenReturn(Optional.empty());
+        when(userTopicProgressRepository.findByUserId(USER)).thenReturn(List.of());
 
         TopicProgressResponse progress = service.getTopicProgress(
                 GetTopicProgressRequest.builder().topicId(TOPIC_ID).build());
@@ -699,8 +704,8 @@ class TopicLearningServiceImplTest {
 
     /** No progress and no running attempt yet, so the item counts as not started. */
     private void stubNothingStartedYet() {
-        when(userTopicItemProgressRepository.findByUserIdAndTopicItemId(anyString(), anyString()))
-                .thenReturn(Optional.empty());
+        when(userTopicItemProgressRepository.findByUserId(anyString()))
+                .thenReturn(List.of());
         when(userTopicItemProgressRepository.findByUserIdAndTopicId(anyString(), anyString()))
                 .thenReturn(List.of());
         when(userTopicItemAttemptRepository.findByUserIdAndTopicItemId(anyString(), anyString()))
@@ -729,8 +734,8 @@ class TopicLearningServiceImplTest {
             }
             return progress;
         });
-        when(userTopicProgressRepository.findByUserIdAndTopicId(anyString(), anyString()))
-                .thenReturn(Optional.empty());
+        when(userTopicProgressRepository.findByUserId(anyString()))
+                .thenReturn(List.of());
         when(userTopicProgressRepository.save(any(UserTopicProgress.class))).thenAnswer(invocation -> {
             UserTopicProgress progress = invocation.getArgument(0);
             if (progress.getId() == null) {

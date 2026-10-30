@@ -1,4 +1,4 @@
-package fit.iuh.engolearn.topic.service;
+package fit.iuh.engolearn.topic.infra.dev;
 
 import fit.iuh.engolearn.shared.enums.CefrLevel;
 import fit.iuh.engolearn.topic.model.TopicLearnerProfile;
@@ -28,12 +28,12 @@ public class LocalLearnerProvider implements CurrentUserProvider, LearnerLevelPr
     @Override
     public String getCurrentUserId() {
         TopicLearnerProfile profile = selectedProfile();
-        return profile == null ? null : profile.id();
+        return profile == null ? null : profile.getId();
     }
 
     @Override
     public CefrLevel getCurrentLevel() {
         TopicLearnerProfile profile = selectedProfile();
-        return profile == null ? null : profile.cefrLevel();
+        return profile == null ? null : profile.getCefrLevel();
     }
 }

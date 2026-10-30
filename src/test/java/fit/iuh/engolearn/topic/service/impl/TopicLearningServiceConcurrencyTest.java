@@ -1,4 +1,6 @@
-package fit.iuh.engolearn.topic.service;
+package fit.iuh.engolearn.topic.service.impl;
+
+import fit.iuh.engolearn.topic.service.*;
 
 import fit.iuh.engolearn.shared.enums.CefrLevel;
 import fit.iuh.engolearn.topic.dto.request.SaveTopicItemPositionRequest;
@@ -63,6 +65,9 @@ import static org.mockito.Mockito.when;
  */
 @ExtendWith(MockitoExtension.class)
 class TopicLearningServiceConcurrencyTest {
+    @org.mockito.Mock
+    private TopicGenerationService generations;
+
 
     private static final String USER = "user-mock-001";
     private static final String TOPIC_ID = "t1";
@@ -110,7 +115,7 @@ class TopicLearningServiceConcurrencyTest {
         service = new TopicLearningServiceImpl(topicRepository, topicVersionRepository, topicItemRepository,
                 topicItemVersionRepository, userTopicProgressRepository, userTopicItemProgressRepository,
                 userTopicAttemptRepository, userTopicItemAttemptRepository, currentUserProvider,
-                learnerLevelProvider);
+                learnerLevelProvider, generations);
     }
 
     @Test
@@ -234,18 +239,18 @@ class TopicLearningServiceConcurrencyTest {
                 return copyOf(candidate);
             });
         });
-        when(userTopicItemProgressRepository.findByUserIdAndTopicItemId(anyString(), anyString()))
+        when(userTopicItemProgressRepository.findByUserId(anyString()))
                 .thenAnswer(invocation -> Optional.ofNullable(
-                        store.itemProgress.get(store.itemProgressKey())).map(TopicLearningServiceConcurrencyTest::copyOf));
+                        store.itemProgress.get(store.itemProgressKey())).map(TopicLearningServiceConcurrencyTest::copyOf).stream().toList());
         when(userTopicItemProgressRepository.save(any(UserTopicItemProgress.class))).thenAnswer(invocation -> {
             UserTopicItemProgress candidate = invocation.getArgument(0);
             candidate.setId("progress-1");
             store.itemProgress.put(store.itemProgressKey(), copyOf(candidate));
             return copyOf(candidate);
         });
-        when(userTopicProgressRepository.findByUserIdAndTopicId(anyString(), anyString()))
+        when(userTopicProgressRepository.findByUserId(anyString()))
                 .thenAnswer(invocation -> Optional.ofNullable(
-                        store.topicProgress.get(store.topicProgressKey())).map(TopicLearningServiceConcurrencyTest::copyOf));
+                        store.topicProgress.get(store.topicProgressKey())).map(TopicLearningServiceConcurrencyTest::copyOf).stream().toList());
         when(userTopicProgressRepository.save(any(UserTopicProgress.class))).thenAnswer(invocation -> {
             UserTopicProgress candidate = invocation.getArgument(0);
             candidate.setId("topic-progress-1");

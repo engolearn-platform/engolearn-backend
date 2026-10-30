@@ -1,10 +1,16 @@
-package fit.iuh.engolearn.topic.service;
+package fit.iuh.engolearn.topic.service.impl;
+
+import fit.iuh.engolearn.topic.infra.dev.LocalLearnerProvider;
+import fit.iuh.engolearn.topic.service.*;
 
 import fit.iuh.engolearn.topic.dto.request.AnswerQuizRequest;
 import fit.iuh.engolearn.topic.dto.response.QuizAnswerResponse;
 import fit.iuh.engolearn.topic.dto.response.TopicCatalogPolicy;
 import fit.iuh.engolearn.topic.exception.TopicRequestException;
 import fit.iuh.engolearn.topic.mapper.TopicQuizMapper;
+import fit.iuh.engolearn.topic.mapper.TopicRetrySessionMapper;
+import fit.iuh.engolearn.topic.repository.TopicAttemptMutationRepository;
+import fit.iuh.engolearn.topic.mapper.TopicAttemptMapper;
 import fit.iuh.engolearn.topic.model.Topic;
 import fit.iuh.engolearn.topic.model.TopicItemVersion;
 import fit.iuh.engolearn.topic.model.TopicVersion;
@@ -43,7 +49,6 @@ import org.springframework.data.mongodb.core.query.Update;
 
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
@@ -59,6 +64,15 @@ import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class TopicQuizAnswerTest {
+    @org.mockito.Mock
+    private TopicAttemptMapper attemptMapper;
+
+    @org.mockito.Mock
+    private TopicRetryService retries;
+
+    @org.mockito.Mock
+    private TopicGenerationService generations;
+
 
     private static final String ATTEMPT_ID = "a1";
     private static final String USER_ID = "u1";
@@ -106,12 +120,14 @@ class TopicQuizAnswerTest {
     @Spy
     private TopicQuizMapper quizMapper = new TopicQuizMapper();
 
+    private final TopicQuizProgressService quizProgress = new TopicQuizProgressServiceImpl();
+
     private TopicAttemptService service;
 
     @BeforeEach
     void setUp() {
-        service = new TopicAttemptService(learner, catalog, attempts, versions, mongo, topicItems, learning, quizMapper,
-                topics, releases);
+        service = new TopicAttemptServiceImpl(learner, catalog, attempts, versions, new TopicAttemptMutationRepository(mongo), topicItems, learning, quizMapper,
+                topics, releases, generations, retries, attemptMapper, quizProgress, new TopicRetrySessionMapper());
     }
 
     @Test
@@ -153,11 +169,11 @@ class TopicQuizAnswerTest {
         assertThat(state.getSubmissions().get(0).getSubmittedAt()).isNotNull();
 
         ContentMutationReceiptVo pushed = receiptOf(pushOf(update));
-        assertThat(pushed.key()).isEqualTo(KEY);
-        assertThat(pushed.fingerprint()).isEqualTo(answerFingerprint(3L));
-        assertThat(pushed.revision()).isEqualTo(4L);
-        assertThat(pushed.stage()).isEqualTo(LearningStage.FILL_BLANK);
-        assertThat(pushed.itemIndex()).isEqualTo(1);
+        assertThat(pushed.getKey()).isEqualTo(KEY);
+        assertThat(pushed.getFingerprint()).isEqualTo(answerFingerprint(3L));
+        assertThat(pushed.getRevision()).isEqualTo(4L);
+        assertThat(pushed.getStage()).isEqualTo(LearningStage.FILL_BLANK);
+        assertThat(pushed.getItemIndex()).isEqualTo(1);
     }
 
     @Test
@@ -187,10 +203,10 @@ class TopicQuizAnswerTest {
         assertThat(state.getSubmissions().get(0).getIsCorrect()).isFalse();
         assertThat(state.getSubmissions().get(0).getAnswer()).isEqualTo(FIRST_WRONG);
         ContentMutationReceiptVo pushed = receiptOf(pushOf(update));
-        assertThat(pushed.key()).isEqualTo(KEY);
-        assertThat(pushed.stage()).isEqualTo(LearningStage.FILL_BLANK);
-        assertThat(pushed.itemIndex()).isZero();
-        assertThat(pushed.revision()).isEqualTo(4L);
+        assertThat(pushed.getKey()).isEqualTo(KEY);
+        assertThat(pushed.getStage()).isEqualTo(LearningStage.FILL_BLANK);
+        assertThat(pushed.getItemIndex()).isZero();
+        assertThat(pushed.getRevision()).isEqualTo(4L);
     }
 
     @Test
@@ -317,7 +333,14 @@ class TopicQuizAnswerTest {
         attempt.setVersion(5L);
         attempt.setLastAccessedAt(SAVED_AT);
         attempt.setMutationReceipts(new ArrayList<>(List.of(
-                new ContentMutationReceiptVo(KEY, answerFingerprint(3L), LearningStage.FILL_BLANK, 1, 4L, SAVED_AT))));
+                ContentMutationReceiptVo.builder()
+                        .key(KEY)
+                        .fingerprint(answerFingerprint(3L))
+                        .stage(LearningStage.FILL_BLANK)
+                        .itemIndex(1)
+                        .revision(4L)
+                        .accessedAt(SAVED_AT)
+                        .build())));
         givenAttempt(attempt);
         when(versions.findById("iv1")).thenReturn(Optional.of(pinned()));
 
@@ -345,7 +368,14 @@ class TopicQuizAnswerTest {
         attempt.setVersion(5L);
         attempt.setLastAccessedAt(SAVED_AT);
         attempt.setMutationReceipts(new ArrayList<>(List.of(
-                new ContentMutationReceiptVo(KEY, answerFingerprint(3L), LearningStage.FILL_BLANK, 1, 4L, SAVED_AT))));
+                ContentMutationReceiptVo.builder()
+                        .key(KEY)
+                        .fingerprint(answerFingerprint(3L))
+                        .stage(LearningStage.FILL_BLANK)
+                        .itemIndex(1)
+                        .revision(4L)
+                        .accessedAt(SAVED_AT)
+                        .build())));
         givenAttempt(attempt);
         when(versions.findById("iv1")).thenReturn(Optional.of(pinned()));
 
@@ -372,7 +402,14 @@ class TopicQuizAnswerTest {
     void replaySameKeyDifferentPayloadIsRejected() {
         UserTopicItemAttempt attempt = attempt(AttemptStatus.IN_PROGRESS, LearningStage.FILL_BLANK, 0, List.of());
         attempt.setMutationReceipts(new ArrayList<>(List.of(
-                new ContentMutationReceiptVo(KEY, answerFingerprint(9L), LearningStage.FILL_BLANK, 1, 9L, SAVED_AT))));
+                ContentMutationReceiptVo.builder()
+                        .key(KEY)
+                        .fingerprint(answerFingerprint(9L))
+                        .stage(LearningStage.FILL_BLANK)
+                        .itemIndex(1)
+                        .revision(9L)
+                        .accessedAt(SAVED_AT)
+                        .build())));
         givenAttempt(attempt);
 
         TopicRequestException error = catchThrowableOfType(
@@ -522,7 +559,14 @@ class TopicQuizAnswerTest {
         latest.setVersion(4L);
         latest.setLastAccessedAt(SAVED_AT);
         latest.setMutationReceipts(new ArrayList<>(List.of(
-                new ContentMutationReceiptVo(KEY, answerFingerprint(3L), LearningStage.FILL_BLANK, 1, 4L, SAVED_AT))));
+                ContentMutationReceiptVo.builder()
+                        .key(KEY)
+                        .fingerprint(answerFingerprint(3L))
+                        .stage(LearningStage.FILL_BLANK)
+                        .itemIndex(1)
+                        .revision(4L)
+                        .accessedAt(SAVED_AT)
+                        .build())));
         when(learner.getCurrentUserId()).thenReturn(USER_ID);
         when(attempts.findById(ATTEMPT_ID)).thenReturn(Optional.of(stale), Optional.of(latest));
         when(versions.findById("iv1")).thenReturn(Optional.of(pinned()));

@@ -33,7 +33,7 @@ class ArchitectureTest {
         "topic", "dictionary", "user", "learningpath", "subscription", "quota", "payment", "shared", "config"
     );
     private static final Set<String> FEATURE_LAYERS = Set.of(
-        "contract", "controller", "dto", "service", "repository", "model", "exception", "utils", "mapper"
+        "contract", "controller", "dto", "service", "repository", "model", "exception", "utils", "mapper", "infra"
     );
 
     /** Feature name of a package, or null for the root package, shared and config. */
@@ -127,11 +127,16 @@ class ArchitectureTest {
     @ArchTest
     static final ArchRule per_controller_advice_lives_with_its_controllers =
         classes().that().areAnnotatedWith(RestControllerAdvice.class)
-            .should(new ArchCondition<JavaClass>("reside in the package of every controller they target") {
+            .should(new ArchCondition<JavaClass>(
+                "reside in each target controller's package or its exact exceptionhandler subpackage"
+            ) {
                 @Override
                 public void check(JavaClass adviceClass, ConditionEvents events) {
                     for (Class<?> controller : assignableControllers(adviceClass)) {
-                        if (!controller.getPackageName().equals(adviceClass.getPackageName())) {
+                        String controllerPackage = controller.getPackageName();
+                        String advicePackage = adviceClass.getPackageName();
+                        if (!advicePackage.equals(controllerPackage)
+                                && !advicePackage.equals(controllerPackage + ".exceptionhandler")) {
                             events.add(SimpleConditionEvent.violated(adviceClass,
                                 adviceClass.getName() + " resides in " + adviceClass.getPackageName()
                                     + " but targets " + controller.getName()

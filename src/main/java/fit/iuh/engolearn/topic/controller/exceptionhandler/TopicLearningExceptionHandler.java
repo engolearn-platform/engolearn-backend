@@ -1,5 +1,6 @@
-package fit.iuh.engolearn.topic.controller;
+package fit.iuh.engolearn.topic.controller.exceptionhandler;
 
+import fit.iuh.engolearn.topic.controller.TopicLearningController;
 import fit.iuh.engolearn.topic.exception.LearningPreconditionFailedException;
 import fit.iuh.engolearn.topic.exception.TopicItemNotFoundException;
 import fit.iuh.engolearn.topic.exception.TopicNotFoundException;

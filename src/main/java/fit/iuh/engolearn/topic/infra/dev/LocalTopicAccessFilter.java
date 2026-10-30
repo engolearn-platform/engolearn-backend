@@ -1,4 +1,4 @@
-package fit.iuh.engolearn.topic.controller;
+package fit.iuh.engolearn.topic.infra.dev;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;

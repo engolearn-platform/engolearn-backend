@@ -1,4 +1,9 @@
-package fit.iuh.engolearn.topic.service;
+package fit.iuh.engolearn.topic.service.impl;
+
+import fit.iuh.engolearn.topic.model.enums.TopicSortOrder;
+import fit.iuh.engolearn.topic.service.*;
+import fit.iuh.engolearn.topic.utils.TopicCursorCodec;
+import lombok.RequiredArgsConstructor;
 
 import fit.iuh.engolearn.shared.enums.CefrLevel;
 import fit.iuh.engolearn.topic.dto.request.GetAvailableTopicRequest;
@@ -31,9 +36,8 @@ import java.util.Map;
 import java.util.Objects;
 
 @Service
+@RequiredArgsConstructor
 public class TopicBrowseServiceImpl implements TopicBrowseService {
-    public static final int DEFAULT_LIMIT = 20;
-    public static final int MAX_LIMIT = 100;
 
     private static final Comparator<TopicItemVersion> ITEM_ORDER =
             Comparator.comparing(TopicItemVersion::getOrder, Comparator.nullsLast(Comparator.naturalOrder()))
@@ -43,14 +47,6 @@ public class TopicBrowseServiceImpl implements TopicBrowseService {
     private final TopicRepository topicRepository;
     private final TopicVersionRepository topicVersionRepository;
     private final TopicItemVersionRepository topicItemVersionRepository;
-
-    public TopicBrowseServiceImpl(TopicRepository topicRepository,
-                                  TopicVersionRepository topicVersionRepository,
-                                  TopicItemVersionRepository topicItemVersionRepository) {
-        this.topicRepository = topicRepository;
-        this.topicVersionRepository = topicVersionRepository;
-        this.topicItemVersionRepository = topicItemVersionRepository;
-    }
 
     @Override
     public TopicPageResponse getAvailableTopics(GetAvailableTopicRequest request) {
