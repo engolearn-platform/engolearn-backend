@@ -5,6 +5,8 @@ services:
     image: mongo:8.0.29-noble
     container_name: mongodb_srv
     restart: unless-stopped
+    entrypoint: ["/bin/bash", "/opt/engolearn-mongo/start.sh"]
+    command: ["mongod", "--replSet", "engolearn-rs", "--bind_ip_all", "--keyFile", "/data/configdb/engolearn-keyfile"]
     ports:
       - "${MONGO_PORT:-27017}:27017"
     environment:
@@ -17,15 +19,16 @@ services:
     volumes:
       - mongodb_data:/data/db
       - mongodb_config:/data/configdb
+      - ./tools/mongo:/opt/engolearn-mongo:ro
 
         # mount init database script to initialize the database with default user and password
       - ./init-mongo.sh:/docker-entrypoint-initdb.d/init-mongo.sh:ro
     healthcheck:
-      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      test: ["CMD", "mongosh", "--quiet", "--host", "127.0.0.1", "--port", "27017", "--file", "/opt/engolearn-mongo/ready.js"]
       interval: 10s
       timeout: 5s
-      retries: 5
-      start_period: 15s
+      retries: 12
+      start_period: 30s
     networks:
       - engolearn-network
 
@@ -38,7 +41,7 @@ services:
     environment:
       ME_CONFIG_MONGODB_ADMINUSERNAME: ${MONGO_USER}
       ME_CONFIG_MONGODB_ADMINPASSWORD: ${MONGO_PASS}
-      ME_CONFIG_MONGODB_URL: mongodb://${MONGO_USER}:${MONGO_PASS}@mongodb:27017/?authSource=admin
+      ME_CONFIG_MONGODB_URL: mongodb://${MONGO_USER}:${MONGO_PASS}@mongodb:27017/?authSource=admin&directConnection=true
       ME_CONFIG_BASICAUTH_USERNAME: ${ME_BASIC_USER:-admin}
       ME_CONFIG_BASICAUTH_PASSWORD: ${ME_BASIC_PASS:-admin123}
     depends_on:

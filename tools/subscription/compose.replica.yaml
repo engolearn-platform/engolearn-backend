@@ -1,0 +1,15 @@
+services:
+  subscription-mongo:
+    image: mongo:8.0.29-noble
+    command: [mongod, --replSet, subscription-rs, --bind_ip_all]
+    ports:
+      - "127.0.0.1:27018:27017"
+    volumes:
+      - subscription-mongo-data:/data/db
+    healthcheck:
+      test: [CMD-SHELL, "mongosh --quiet --eval 'try { rs.status().ok } catch(e) { rs.initiate({_id: \"subscription-rs\", members:[{_id:0,host:\"localhost:27017\"}]}).ok }' | grep 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+volumes:
+  subscription-mongo-data:

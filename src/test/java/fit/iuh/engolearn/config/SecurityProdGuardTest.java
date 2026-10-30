@@ -46,6 +46,14 @@ class SecurityProdGuardTest {
 
     @MockitoBean
     private LearningPathService learningPathService;
+    @MockitoBean private fit.iuh.engolearn.topic.service.TopicLearnerCatalogService learnerCatalogService;
+    @MockitoBean private fit.iuh.engolearn.topic.service.TopicAttemptService attemptService;
+
+    @MockitoBean private fit.iuh.engolearn.learningpath.service.LearningPathRecommendationService recommendationService;
+    @MockitoBean private fit.iuh.engolearn.learningpath.service.LearningPathCreationService creationService;
+    @MockitoBean private fit.iuh.engolearn.learningpath.service.LearningPathDayPracticeService dayPracticeService;
+    @MockitoBean private fit.iuh.engolearn.learningpath.service.LearningPathAnswerDraftService answerDraftService;
+    @MockitoBean private fit.iuh.engolearn.learningpath.service.LearningPathDaySubmissionService submissionService;
 
     @Test
     void theDevAuthFilterIsNotRegisteredInProd() {
@@ -59,6 +67,8 @@ class SecurityProdGuardTest {
     @Test
     void theDevHeaderIsIgnoredWhenTheProdProfileIsActive() throws Exception {
         mockMvc.perform(get("/api/v1/auth/me").header("X-Dev-User-Id", "dev-admin"))
+                .andExpect(status().isUnauthorized());
+        mockMvc.perform(get("/api/v1/subscription/admin/catalog").header("X-Dev-User-Id", "dev-admin"))
                 .andExpect(status().isUnauthorized());
     }
 

@@ -1,0 +1,41 @@
+package fit.iuh.engolearn.subscription.controller;
+
+import fit.iuh.engolearn.shared.security.CurrentUserProvider;
+import fit.iuh.engolearn.shared.web.ApiResponse;
+import fit.iuh.engolearn.subscription.dto.response.*;
+import fit.iuh.engolearn.subscription.service.SubscriptionService;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.validation.Valid;
+import fit.iuh.engolearn.subscription.dto.request.TrialActivationRequest;
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@lombok.RequiredArgsConstructor
+@RequestMapping("/api/v1/subscription")
+public class SubscriptionController {
+    private final SubscriptionService service;
+    private final CurrentUserProvider users;
+
+    @GetMapping("/plans")
+    public ApiResponse<PlanListResponse> plans(HttpServletResponse response) {
+        response.setHeader("Cache-Control", "no-store");
+        return ApiResponse.ok(new PlanListResponse(service.plans()));
+    }
+
+    @GetMapping("/me")
+    public ApiResponse<MySubscriptionSummaryResponse> me(HttpServletResponse response) {
+        response.setHeader("Cache-Control", "no-store");
+        return ApiResponse.ok(service.summary(users.requireCurrentUserId()));
+    }
+
+    @PostMapping("/me/trial")
+    public ApiResponse<TrialActivationResponse> trial(
+            @RequestHeader(value = "Idempotency-Key", required = false) String key,
+            @Valid @RequestBody TrialActivationRequest body, HttpServletResponse response) {
+        response.setHeader("Cache-Control", "no-store");
+        SubscriptionHttpValidation.trialKey(key);
+        var result = service.activateTrial(users.requireCurrentUserId(), key);
+        response.setStatus(result.created() ? 201 : 200);
+        return ApiResponse.ok(result.activation());
+    }
+}

@@ -1,4 +1,12 @@
+spring:
+  data:
+    mongodb:
+      auto-index-creation: true
+
 engolearn:
+  mongodb:
+    transactions:
+      enabled: true
   security:
     dev-auth:
       enabled: true

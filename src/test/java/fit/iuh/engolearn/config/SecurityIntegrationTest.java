@@ -57,11 +57,20 @@ class SecurityIntegrationTest {
 
     @MockitoBean
     private LearningPathService learningPathService;
+    @MockitoBean private fit.iuh.engolearn.topic.service.TopicLearnerCatalogService learnerCatalogService;
+    @MockitoBean private fit.iuh.engolearn.topic.service.TopicAttemptService attemptService;
+
+    @MockitoBean private fit.iuh.engolearn.learningpath.service.LearningPathRecommendationService recommendationService;
+    @MockitoBean private fit.iuh.engolearn.learningpath.service.LearningPathCreationService creationService;
+    @MockitoBean private fit.iuh.engolearn.learningpath.service.LearningPathDayPracticeService dayPracticeService;
+    @MockitoBean private fit.iuh.engolearn.learningpath.service.LearningPathAnswerDraftService answerDraftService;
+    @MockitoBean private fit.iuh.engolearn.learningpath.service.LearningPathDaySubmissionService submissionService;
 
     @Test
     void legacyFeatureEndpointsStayUnprotectedUntilMigration() throws Exception {
         mockMvc.perform(get("/api/v1/topic-items/i1/content"))
-                .andExpect(status().isOk());
+                .andExpect(status().isGone())
+                .andExpect(jsonPath("$.code").value("INVALID_REQUEST"));
 
         mockMvc.perform(get("/api/v1/topics/t1/progress"))
                 .andExpect(status().isOk());

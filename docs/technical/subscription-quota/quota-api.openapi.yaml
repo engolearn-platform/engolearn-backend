@@ -1,15 +1,14 @@
 openapi: 3.1.0
 info:
-  title: Subscription and Quota UI Read API
-  version: 0.1.0
+  title: Subscription and Quota Learner API
+  version: 1.0.0
   description: |
-    DRAFT handoff for the Subscription package page and the quota-usage overview.
-    Review the paths against existing controllers before implementation; reuse an
-    existing endpoint if it already provides the same capability.
-
-    These are read-only UI APIs. Quota's consume/checkAvailability/recordUsage
+    Frozen M1/M2 learner contract. Every response uses Cache-Control: no-store.
+    Identity comes from the authenticated principal; no user selector is accepted.
+    All timestamps are UTC instants; calendar windows use Asia/Ho_Chi_Minh.
+    Quota's consume/checkAvailability/recordUsage
     operations are in-process backend contracts and are not exposed to the client.
-  x-review-status: DRAFT_FOR_BACKEND_AND_FE_REVIEW
+  x-review-status: IMPLEMENTATION_CONTRACT
 
 servers:
   - url: /
@@ -21,6 +20,51 @@ tags:
     description: Current quota usage overview for the authenticated user.
 
 paths:
+  /api/v1/subscription/me/trial:
+    post:
+      tags: [Subscription]
+      operationId: activateMyTrial
+      summary: Explicitly activate the one-time seven-day Trial
+      x-auth-requirement: authenticated-user
+      description: |
+        Accepted receipts are checked before current eligibility. Same active Trial
+        with a new key returns its original values and records that accepted intent.
+        Replay never extends the Trial and does not claim it remains active now.
+        Refetch subscription and quota reads after every accepted response.
+      parameters:
+        - in: header
+          name: Idempotency-Key
+          required: true
+          schema: {type: string, format: uuid}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {type: object, additionalProperties: false, maxProperties: 0}
+      responses:
+        '201':
+          description: Trial created.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/TrialActivationApiResponse'}
+        '200':
+          description: Accepted replay or the original already-active Trial.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/TrialActivationApiResponse'}
+        '400': {$ref: '#/components/responses/InvalidRequest'}
+        '401': {$ref: '#/components/responses/AuthenticationRequired'}
+        '403': {$ref: '#/components/responses/AccessDenied'}
+        '409':
+          description: IDEMPOTENCY_CONFLICT, TRIAL_ALREADY_USED or PREMIUM_ALREADY_ACTIVE.
+          content:
+            application/problem+json:
+              schema: {$ref: '#/components/schemas/ProblemDetail'}
+        '503':
+          description: SUBSCRIPTION_STATE_UNAVAILABLE; history/configuration or commit cannot be confirmed.
+          content:
+            application/problem+json:
+              schema: {$ref: '#/components/schemas/ProblemDetail'}
   /api/v1/subscription/plans:
     get:
       tags: [Subscription]
@@ -49,6 +93,7 @@ paths:
     get:
       tags: [Subscription]
       operationId: getMySubscriptionSummary
+      x-error-codes: [AUTHENTICATION_REQUIRED, ACCESS_DENIED, SUBSCRIPTION_STATE_UNAVAILABLE]
       summary: Get the current user's subscription summary
       description: |
         Requires an authenticated user. No user identifier is accepted from the
@@ -64,6 +109,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/MySubscriptionApiResponse'
+        '403': {$ref: '#/components/responses/AccessDenied'}
         '401':
           description: Authentication is required.
           content:
@@ -81,6 +127,7 @@ paths:
     get:
       tags: [Quota]
       operationId: getMyQuotaUsage
+      x-error-codes: [AUTHENTICATION_REQUIRED, ACCESS_DENIED, QUOTA_SUMMARY_UNAVAILABLE]
       summary: Get the current user's quota usage overview
       description: |
         Requires an authenticated user. Returns one item per quota applicable
@@ -99,6 +146,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/QuotaUsageApiResponse'
+        '403': {$ref: '#/components/responses/AccessDenied'}
         '401':
           description: Authentication is required.
           content:
@@ -112,8 +160,72 @@ paths:
               schema:
                 $ref: '#/components/schemas/ProblemDetail'
 
+  /api/v1/subscription/admin/catalog: {"get":{"tags":["Subscription"],"operationId":"AdminCatalog","x-auth-requirement":"ADMIN","description":"ADMIN only. All responses no-store. INVALID_REQUEST 400; AUTHENTICATION_REQUIRED 401; ACCESS_DENIED 403; CONFIGURATION_VERSION_NOT_FOUND 404; REVISION_CONFLICT, PENDING_PUBLICATION_EXISTS, IDEMPOTENCY_CONFLICT, CANONICAL_QUOTA_CONFLICT, INVALID_EFFECTIVE_TIME, CONFIGURATION_CONFLICT 409; CONFIGURATION_UNAVAILABLE 503.","parameters":[],"responses":{"200":{"description":"Success; Cache-Control: no-store","content":{"application/json":{"schema":{"$ref":"#/components/schemas/AdminCatalogResponse"}}}},"400":{"description":"RFC7807 Admin error; see codes in operation description","content":{"application/problem+json":{"schema":{"$ref":"#/components/schemas/ProblemDetail"}}}},"401":{"description":"RFC7807 Admin error; see codes in operation description","content":{"application/problem+json":{"schema":{"$ref":"#/components/schemas/ProblemDetail"}}}},"403":{"description":"RFC7807 Admin error; see codes in operation description","content":{"application/problem+json":{"schema":{"$ref":"#/components/schemas/ProblemDetail"}}}},"404":{"description":"RFC7807 Admin error; see codes in operation description","content":{"application/problem+json":{"schema":{"$ref":"#/components/schemas/ProblemDetail"}}}},"409":{"description":"RFC7807 Admin error; see codes in operation description","content":{"application/problem+json":{"schema":{"$ref":"#/components/schemas/ProblemDetail"}}}},"503":{"description":"RFC7807 Admin error; see codes in operation description","content":{"application/problem+json":{"schema":{"$ref":"#/components/schemas/ProblemDetail"}}}}}}}
+  /api/v1/subscription/admin/configurations/{scope}: {"get":{"tags":["Subscription"],"operationId":"AdminConfiguration","x-auth-requirement":"ADMIN","description":"ADMIN only. All responses no-store. INVALID_REQUEST 400; AUTHENTICATION_REQUIRED 401; ACCESS_DENIED 403; CONFIGURATION_VERSION_NOT_FOUND 404; REVISION_CONFLICT, PENDING_PUBLICATION_EXISTS, IDEMPOTENCY_CONFLICT, CANONICAL_QUOTA_CONFLICT, INVALID_EFFECTIVE_TIME, CONFIGURATION_CONFLICT 409; CONFIGURATION_UNAVAILABLE 503.","parameters":[{"in":"path","name":"scope","required":true,"schema":{"$ref":"#/components/schemas/AdminScope"}}],"responses":{"200":{"description":"Success; Cache-Control: no-store","content":{"application/json":{"schema":{"$ref":"#/components/schemas/AdminConfigurationResponse"}}}},"400":{"description":"RFC7807 Admin error; see codes in operation description","content":{"application/problem+json":{"schema":{"$ref":"#/components/schemas/ProblemDetail"}}}},"401":{"description":"RFC7807 Admin error; see codes in operation description","content":{"application/problem+json":{"schema":{"$ref":"#/components/schemas/ProblemDetail"}}}},"403":{"description":"RFC7807 Admin error; see codes in operation description","content":{"application/problem+json":{"schema":{"$ref":"#/components/schemas/ProblemDetail"}}}},"404":{"description":"RFC7807 Admin error; see codes in operation description","content":{"application/problem+json":{"schema":{"$ref":"#/components/schemas/ProblemDetail"}}}},"409":{"description":"RFC7807 Admin error; see codes in operation description","content":{"application/problem+json":{"schema":{"$ref":"#/components/schemas/ProblemDetail"}}}},"503":{"description":"RFC7807 Admin error; see codes in operation description","content":{"application/problem+json":{"schema":{"$ref":"#/components/schemas/ProblemDetail"}}}}}}}
+  /api/v1/subscription/admin/configurations/{scope}/versions: {"get":{"tags":["Subscription"],"operationId":"AdminHistory","x-auth-requirement":"ADMIN","description":"ADMIN only. All responses no-store. INVALID_REQUEST 400; AUTHENTICATION_REQUIRED 401; ACCESS_DENIED 403; CONFIGURATION_VERSION_NOT_FOUND 404; REVISION_CONFLICT, PENDING_PUBLICATION_EXISTS, IDEMPOTENCY_CONFLICT, CANONICAL_QUOTA_CONFLICT, INVALID_EFFECTIVE_TIME, CONFIGURATION_CONFLICT 409; CONFIGURATION_UNAVAILABLE 503.","parameters":[{"in":"path","name":"scope","required":true,"schema":{"$ref":"#/components/schemas/AdminScope"}},{"in":"query","name":"limit","schema":{"type":"integer","minimum":1,"maximum":50,"default":20}},{"in":"query","name":"beforeVersion","schema":{"type":"integer","minimum":1,"maximum":9007199254740991}}],"responses":{"200":{"description":"Success; Cache-Control: no-store","content":{"application/json":{"schema":{"$ref":"#/components/schemas/AdminHistoryResponse"}}}},"400":{"description":"RFC7807 Admin error; see codes in operation description","content":{"application/problem+json":{"schema":{"$ref":"#/components/schemas/ProblemDetail"}}}},"401":{"description":"RFC7807 Admin error; see codes in operation description","content":{"application/problem+json":{"schema":{"$ref":"#/components/schemas/ProblemDetail"}}}},"403":{"description":"RFC7807 Admin error; see codes in operation description","content":{"application/problem+json":{"schema":{"$ref":"#/components/schemas/ProblemDetail"}}}},"404":{"description":"RFC7807 Admin error; see codes in operation description","content":{"application/problem+json":{"schema":{"$ref":"#/components/schemas/ProblemDetail"}}}},"409":{"description":"RFC7807 Admin error; see codes in operation description","content":{"application/problem+json":{"schema":{"$ref":"#/components/schemas/ProblemDetail"}}}},"503":{"description":"RFC7807 Admin error; see codes in operation description","content":{"application/problem+json":{"schema":{"$ref":"#/components/schemas/ProblemDetail"}}}}}}}
+  /api/v1/subscription/admin/configurations/{scope}/versions/{version}: {"get":{"tags":["Subscription"],"operationId":"AdminVersion","x-auth-requirement":"ADMIN","description":"ADMIN only. All responses no-store. INVALID_REQUEST 400; AUTHENTICATION_REQUIRED 401; ACCESS_DENIED 403; CONFIGURATION_VERSION_NOT_FOUND 404; REVISION_CONFLICT, PENDING_PUBLICATION_EXISTS, IDEMPOTENCY_CONFLICT, CANONICAL_QUOTA_CONFLICT, INVALID_EFFECTIVE_TIME, CONFIGURATION_CONFLICT 409; CONFIGURATION_UNAVAILABLE 503.","parameters":[{"in":"path","name":"scope","required":true,"schema":{"$ref":"#/components/schemas/AdminScope"}},{"in":"path","name":"version","required":true,"schema":{"type":"integer","minimum":1,"maximum":9007199254740991}}],"responses":{"200":{"description":"Success; Cache-Control: no-store","content":{"application/json":{"schema":{"$ref":"#/components/schemas/AdminVersionResponse"}}}},"400":{"description":"RFC7807 Admin error; see codes in operation description","content":{"application/problem+json":{"schema":{"$ref":"#/components/schemas/ProblemDetail"}}}},"401":{"description":"RFC7807 Admin error; see codes in operation description","content":{"application/problem+json":{"schema":{"$ref":"#/components/schemas/ProblemDetail"}}}},"403":{"description":"RFC7807 Admin error; see codes in operation description","content":{"application/problem+json":{"schema":{"$ref":"#/components/schemas/ProblemDetail"}}}},"404":{"description":"RFC7807 Admin error; see codes in operation description","content":{"application/problem+json":{"schema":{"$ref":"#/components/schemas/ProblemDetail"}}}},"409":{"description":"RFC7807 Admin error; see codes in operation description","content":{"application/problem+json":{"schema":{"$ref":"#/components/schemas/ProblemDetail"}}}},"503":{"description":"RFC7807 Admin error; see codes in operation description","content":{"application/problem+json":{"schema":{"$ref":"#/components/schemas/ProblemDetail"}}}}}}}
+  /api/v1/subscription/admin/configurations/{scope}/preview: {"post":{"tags":["Subscription"],"operationId":"AdminPreview","x-auth-requirement":"ADMIN","description":"ADMIN only. All responses no-store. INVALID_REQUEST 400; AUTHENTICATION_REQUIRED 401; ACCESS_DENIED 403; CONFIGURATION_VERSION_NOT_FOUND 404; REVISION_CONFLICT, PENDING_PUBLICATION_EXISTS, IDEMPOTENCY_CONFLICT, CANONICAL_QUOTA_CONFLICT, INVALID_EFFECTIVE_TIME, CONFIGURATION_CONFLICT 409; CONFIGURATION_UNAVAILABLE 503.","parameters":[{"in":"path","name":"scope","required":true,"schema":{"$ref":"#/components/schemas/AdminScope"}}],"responses":{"200":{"description":"Success; Cache-Control: no-store","content":{"application/json":{"schema":{"$ref":"#/components/schemas/AdminPreviewResponse"}}}},"400":{"description":"RFC7807 Admin error; see codes in operation description","content":{"application/problem+json":{"schema":{"$ref":"#/components/schemas/ProblemDetail"}}}},"401":{"description":"RFC7807 Admin error; see codes in operation description","content":{"application/problem+json":{"schema":{"$ref":"#/components/schemas/ProblemDetail"}}}},"403":{"description":"RFC7807 Admin error; see codes in operation description","content":{"application/problem+json":{"schema":{"$ref":"#/components/schemas/ProblemDetail"}}}},"404":{"description":"RFC7807 Admin error; see codes in operation description","content":{"application/problem+json":{"schema":{"$ref":"#/components/schemas/ProblemDetail"}}}},"409":{"description":"RFC7807 Admin error; see codes in operation description","content":{"application/problem+json":{"schema":{"$ref":"#/components/schemas/ProblemDetail"}}}},"503":{"description":"RFC7807 Admin error; see codes in operation description","content":{"application/problem+json":{"schema":{"$ref":"#/components/schemas/ProblemDetail"}}}}},"requestBody":{"required":true,"content":{"application/json":{"schema":{"$ref":"#/components/schemas/AdminPublicationInput"}}}}}}
+  /api/v1/subscription/admin/configurations/{scope}/publications: {"post":{"tags":["Subscription"],"operationId":"AdminPublicationResult","x-auth-requirement":"ADMIN","description":"ADMIN only. All responses no-store. INVALID_REQUEST 400; AUTHENTICATION_REQUIRED 401; ACCESS_DENIED 403; CONFIGURATION_VERSION_NOT_FOUND 404; REVISION_CONFLICT, PENDING_PUBLICATION_EXISTS, IDEMPOTENCY_CONFLICT, CANONICAL_QUOTA_CONFLICT, INVALID_EFFECTIVE_TIME, CONFIGURATION_CONFLICT 409; CONFIGURATION_UNAVAILABLE 503. Same actor/key/normalized input replays original result with 200 before revision/time checks; new acceptance 201. Keep body/key after ambiguous 503. FREE next Vietnam midnight; NOW or future AT for TRIAL/PREMIUM; existing periods retain snapshots.","parameters":[{"in":"path","name":"scope","required":true,"schema":{"$ref":"#/components/schemas/AdminScope"}},{"in":"header","name":"Idempotency-Key","required":true,"schema":{"type":"string","format":"uuid"}}],"responses":{"200":{"description":"Success; Cache-Control: no-store","content":{"application/json":{"schema":{"$ref":"#/components/schemas/AdminPublicationResultResponse"}}}},"201":{"description":"Success; Cache-Control: no-store","content":{"application/json":{"schema":{"$ref":"#/components/schemas/AdminPublicationResultResponse"}}}},"400":{"description":"RFC7807 Admin error; see codes in operation description","content":{"application/problem+json":{"schema":{"$ref":"#/components/schemas/ProblemDetail"}}}},"401":{"description":"RFC7807 Admin error; see codes in operation description","content":{"application/problem+json":{"schema":{"$ref":"#/components/schemas/ProblemDetail"}}}},"403":{"description":"RFC7807 Admin error; see codes in operation description","content":{"application/problem+json":{"schema":{"$ref":"#/components/schemas/ProblemDetail"}}}},"404":{"description":"RFC7807 Admin error; see codes in operation description","content":{"application/problem+json":{"schema":{"$ref":"#/components/schemas/ProblemDetail"}}}},"409":{"description":"RFC7807 Admin error; see codes in operation description","content":{"application/problem+json":{"schema":{"$ref":"#/components/schemas/ProblemDetail"}}}},"503":{"description":"RFC7807 Admin error; see codes in operation description","content":{"application/problem+json":{"schema":{"$ref":"#/components/schemas/ProblemDetail"}}}}},"requestBody":{"required":true,"content":{"application/json":{"schema":{"$ref":"#/components/schemas/AdminPublicationInput"}}}}}}
+
 components:
+  responses:
+    InvalidRequest:
+      description: INVALID_REQUEST; request body or intent key is invalid.
+      content:
+        application/problem+json:
+          schema: {$ref: '#/components/schemas/ProblemDetail'}
+    AuthenticationRequired:
+      description: AUTHENTICATION_REQUIRED; missing or unsupported identity.
+      content:
+        application/problem+json:
+          schema: {$ref: '#/components/schemas/ProblemDetail'}
+    AccessDenied:
+      description: ACCESS_DENIED; authenticated principal denied by deployed security policy.
+      content:
+        application/problem+json:
+          schema: {$ref: '#/components/schemas/ProblemDetail'}
   schemas:
+    AdminScope: {"type":"string","enum":["FREE","TRIAL","PREMIUM"]}
+    AdminBenefit: {"type":"object","additionalProperties":false,"required":["code","title","description","displayValue","sortOrder"],"properties":{"code":{"type":"string","minLength":1,"maxLength":128},"title":{"type":"string","minLength":1,"maxLength":200},"description":{"type":"string","minLength":1,"maxLength":2000},"displayValue":{"anyOf":[{"type":"string","maxLength":200},{"type":"null"}]},"sortOrder":{"type":"integer","minimum":0,"maximum":10000}}}
+    AdminBillingOption: {"type":"object","additionalProperties":false,"required":["billingPeriod","amount","currency"],"properties":{"billingPeriod":{"type":"string","enum":["MONTHLY","ANNUAL"]},"amount":{"type":"integer","minimum":0,"maximum":9007199254740991},"currency":{"type":"string","pattern":"^[A-Z]{3}$"}}}
+    AdminQuotaRule: {"type":"object","additionalProperties":false,"required":["quotaType","displayName","unit","period","limit","displayOrder"],"properties":{"quotaType":{"type":"string","minLength":1,"maxLength":128},"displayName":{"type":"string","minLength":1,"maxLength":200},"unit":{"type":"string","minLength":1,"maxLength":128},"period":{"type":"string","enum":["DAILY","WEEKLY","MONTHLY"]},"limit":{"type":"integer","minimum":0,"maximum":9007199254740991},"displayOrder":{"type":"integer","minimum":0,"maximum":10000}}}
+    AdminContent: {"type":"object","additionalProperties":false,"required":["displayName","description","displayOrder","benefits","billingOptions","quotaRules"],"properties":{"displayName":{"type":"string","minLength":1,"maxLength":200},"description":{"anyOf":[{"type":"string","maxLength":2000},{"type":"null"}]},"displayOrder":{"type":"integer","minimum":0,"maximum":10000},"benefits":{"type":"array","items":{"$ref":"#/components/schemas/AdminBenefit"},"maxItems":100},"billingOptions":{"type":"array","items":{"$ref":"#/components/schemas/AdminBillingOption"},"maxItems":2},"quotaRules":{"type":"array","items":{"$ref":"#/components/schemas/AdminQuotaRule"},"maxItems":100,"minItems":1}}}
+    AdminPublicationInput: {"type":"object","additionalProperties":false,"required":["expectedRevision","effect","content"],"properties":{"expectedRevision":{"type":"integer","minimum":0,"maximum":9007199254740991},"effect":{"type":"object","additionalProperties":false,"required":["mode","at"],"properties":{"mode":{"type":"string","enum":["NEXT_LOCAL_MIDNIGHT","NOW","AT"]},"at":{"anyOf":[{"type":"string","format":"date-time","description":"UTC instant at millisecond precision"},{"type":"null"}]}}},"content":{"$ref":"#/components/schemas/AdminContent"}}}
+    AdminVersion: {"type":"object","additionalProperties":false,"required":["scope","version","effectiveAt","status","content"],"properties":{"scope":{"$ref":"#/components/schemas/AdminScope"},"version":{"type":"integer","minimum":1,"maximum":9007199254740991},"effectiveAt":{"type":"string","format":"date-time","description":"UTC instant at millisecond precision"},"status":{"type":"string","enum":["CURRENT","SCHEDULED","HISTORICAL"]},"content":{"$ref":"#/components/schemas/AdminContent"}}}
+    AdminConfiguration: {"type":"object","additionalProperties":false,"required":["revision","serverTime","scope","current","pending","activationPending"],"properties":{"revision":{"type":"integer","minimum":0,"maximum":9007199254740991},"serverTime":{"type":"string","format":"date-time","description":"UTC instant at millisecond precision"},"scope":{"$ref":"#/components/schemas/AdminScope"},"current":{"anyOf":[{"$ref":"#/components/schemas/AdminVersion"},{"type":"null"}]},"pending":{"anyOf":[{"$ref":"#/components/schemas/AdminVersion"},{"type":"null"}]},"activationPending":{"type":"boolean"}}}
+    AdminCatalog: {"type":"object","additionalProperties":false,"required":["revision","serverTime","timeZone","quotaTypes","scopes"],"properties":{"revision":{"type":"integer","minimum":0,"maximum":9007199254740991},"serverTime":{"type":"string","format":"date-time","description":"UTC instant at millisecond precision"},"timeZone":{"type":"string","const":"Asia/Ho_Chi_Minh"},"quotaTypes":{"type":"array","items":{"type":"object","additionalProperties":false,"required":["quotaType","unit","period"],"properties":{"quotaType":{"type":"string","minLength":1,"maxLength":128},"unit":{"type":"string","minLength":1,"maxLength":128},"period":{"type":"string","enum":["DAILY","WEEKLY","MONTHLY"]}}},"maxItems":100},"scopes":{"type":"array","items":{"$ref":"#/components/schemas/AdminScope"},"maxItems":100}}}
+    AdminHistory: {"type":"object","additionalProperties":false,"required":["items","nextBeforeVersion"],"properties":{"items":{"type":"array","items":{"$ref":"#/components/schemas/AdminVersion"},"maxItems":50},"nextBeforeVersion":{"anyOf":[{"type":"integer","minimum":1,"maximum":9007199254740991},{"type":"null"}]}}}
+    AdminPreview: {"type":"object","additionalProperties":false,"required":["revision","scope","effectiveAt","changedQuotaTypes","impact","content"],"properties":{"revision":{"type":"integer","minimum":0,"maximum":9007199254740991},"scope":{"$ref":"#/components/schemas/AdminScope"},"effectiveAt":{"type":"string","format":"date-time","description":"UTC instant at millisecond precision"},"changedQuotaTypes":{"type":"array","items":{"type":"string","minLength":1,"maxLength":128},"maxItems":100},"impact":{"type":"string","enum":["FREE_CHANGED_TYPES_AT_EFFECTIVE_TIME","NEW_PERIODS_ONLY"]},"content":{"$ref":"#/components/schemas/AdminContent"}}}
+    AdminPublicationResult: {"type":"object","additionalProperties":false,"required":["publicationId","scope","version","effectiveAt","acceptedAt","revision"],"properties":{"publicationId":{"type":"string","format":"uuid"},"scope":{"$ref":"#/components/schemas/AdminScope"},"version":{"type":"integer","minimum":1,"maximum":9007199254740991},"effectiveAt":{"type":"string","format":"date-time","description":"UTC instant at millisecond precision"},"acceptedAt":{"type":"string","format":"date-time","description":"UTC instant at millisecond precision"},"revision":{"type":"integer","minimum":0,"maximum":9007199254740991}}}
+    AdminCatalogResponse: {"type":"object","additionalProperties":false,"required":["data","timestamp"],"properties":{"data":{"$ref":"#/components/schemas/AdminCatalog"},"timestamp":{"type":"string","format":"date-time","description":"UTC instant at millisecond precision"}}}
+    AdminConfigurationResponse: {"type":"object","additionalProperties":false,"required":["data","timestamp"],"properties":{"data":{"$ref":"#/components/schemas/AdminConfiguration"},"timestamp":{"type":"string","format":"date-time","description":"UTC instant at millisecond precision"}}}
+    AdminHistoryResponse: {"type":"object","additionalProperties":false,"required":["data","timestamp"],"properties":{"data":{"$ref":"#/components/schemas/AdminHistory"},"timestamp":{"type":"string","format":"date-time","description":"UTC instant at millisecond precision"}}}
+    AdminVersionResponse: {"type":"object","additionalProperties":false,"required":["data","timestamp"],"properties":{"data":{"$ref":"#/components/schemas/AdminVersion"},"timestamp":{"type":"string","format":"date-time","description":"UTC instant at millisecond precision"}}}
+    AdminPreviewResponse: {"type":"object","additionalProperties":false,"required":["data","timestamp"],"properties":{"data":{"$ref":"#/components/schemas/AdminPreview"},"timestamp":{"type":"string","format":"date-time","description":"UTC instant at millisecond precision"}}}
+    AdminPublicationResultResponse: {"type":"object","additionalProperties":false,"required":["data","timestamp"],"properties":{"data":{"$ref":"#/components/schemas/AdminPublicationResult"},"timestamp":{"type":"string","format":"date-time","description":"UTC instant at millisecond precision"}}}
+    TrialActivationApiResponse:
+      type: object
+      required: [data, timestamp]
+      properties:
+        timestamp: {type: string, format: date-time}
+        data:
+          type: object
+          required: [trialPeriodId, periodStartAt, periodEndAt, policySnapshotId]
+          properties:
+            trialPeriodId: {type: string, minLength: 1}
+            periodStartAt: {type: string, format: date-time}
+            periodEndAt: {type: string, format: date-time}
+            policySnapshotId: {type: string, minLength: 1}
+    CurrentBenefits:
+      type: object
+      required: [planCode, displayName, policySnapshotId, benefits]
+      properties:
+        planCode: {type: string, enum: [FREE, PREMIUM]}
+        displayName: {type: string, minLength: 1}
+        policySnapshotId: {type: string, minLength: 1}
+        benefits:
+          type: array
+          items: {$ref: '#/components/schemas/PlanBenefit'}
     PlanListApiResponse:
       type: object
       required: [data, timestamp]
@@ -183,6 +295,7 @@ components:
         amount:
           type: integer
           minimum: 0
+          maximum: 9007199254740991
           description: |
             Price in the currency's minor unit. The client formats this value
             using currency; it must not infer price from planCode.
@@ -205,8 +318,13 @@ components:
 
     MySubscriptionSummary:
       type: object
-      required: [tier, status, trialEligible]
+      required: [tier, status, periodStartAt, periodEndAt, trialEligible, trialIneligibilityReason, currentBenefits]
       properties:
+        trialIneligibilityReason:
+          type: [string, 'null']
+          enum: [null, ALREADY_USED, ACTIVE_PREMIUM]
+        currentBenefits:
+          $ref: '#/components/schemas/CurrentBenefits'
         tier:
           type: string
           enum: [FREE, PREMIUM]
@@ -252,6 +370,7 @@ components:
         - period
         - windowStartAt
         - windowEndsAt
+        - allowanceStartAt
         - status
       properties:
         quotaType:
@@ -265,17 +384,21 @@ components:
         used:
           type: integer
           minimum: 0
+          maximum: 9007199254740991
           description: Actual recorded usage in the canonical unit; may exceed limit for post-action usage.
         limit:
           type: integer
           minimum: 0
+          maximum: 9007199254740991
         remaining:
           type: integer
           minimum: 0
+          maximum: 9007199254740991
           description: max(0, limit - used); never negative.
         overLimitAmount:
           type: integer
           minimum: 0
+          maximum: 9007199254740991
           description: Optional; present when used > limit and equals used - limit.
         unit:
           type: string
@@ -288,6 +411,10 @@ components:
           type: string
           format: date-time
           description: Start of the current calendar period, in UTC.
+        allowanceStartAt:
+          type: string
+          format: date-time
+          description: Counted allowance start; may be later than calendar start after a delivered Free policy activation.
         windowEndsAt:
           type: string
           format: date-time
@@ -299,8 +426,12 @@ components:
 
     ProblemDetail:
       type: object
+      required: [type, title, status, detail, instance, code]
       description: RFC 9457/ProblemDetail-style error response used by the backend.
       properties:
+        code:
+          type: string
+          description: Stable endpoint error code; storage errors and personal data are never exposed.
         type:
           type: string
           format: uri-reference

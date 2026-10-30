@@ -1,5 +1,7 @@
 package fit.iuh.engolearn.topic.controller;
 
+import lombok.RequiredArgsConstructor;
+
 import fit.iuh.engolearn.shared.web.ApiResponse;
 import fit.iuh.engolearn.topic.dto.request.GetAvailableTopicRequest;
 import fit.iuh.engolearn.topic.dto.response.TopicDetailResponse;
@@ -13,13 +15,10 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
+@RequiredArgsConstructor
 @RequestMapping("/api/v1/topics")
 public class TopicBrowseController {
     private final TopicLearnerCatalogService topicBrowseService;
-
-    public TopicBrowseController(TopicLearnerCatalogService topicBrowseService) {
-        this.topicBrowseService = topicBrowseService;
-    }
 
     @GetMapping
     public ApiResponse<TopicPageResponse> getAvailableTopics(

@@ -1,5 +1,7 @@
 package fit.iuh.engolearn.topic.controller;
 
+import lombok.RequiredArgsConstructor;
+
 import fit.iuh.engolearn.shared.web.ApiResponse;
 import fit.iuh.engolearn.topic.dto.request.*;
 import fit.iuh.engolearn.topic.dto.response.*;
@@ -12,10 +14,10 @@ import java.time.Instant;
 import java.util.Map;
 
 @RestController
+@RequiredArgsConstructor
 @RequestMapping("/api/v1")
 public class TopicAttemptController {
     private final TopicAttemptService attempts;
-    public TopicAttemptController(TopicAttemptService attempts) { this.attempts = attempts; }
 
     @PostMapping("/topic-items/{itemId}/attempts")
     public ApiResponse<TopicAttemptResponse> start(@PathVariable String itemId, @Valid @RequestBody StartTopicAttemptRequest body,

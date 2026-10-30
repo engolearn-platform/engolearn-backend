@@ -1,0 +1,246 @@
+{
+  "manifestId": "main-dev-subscription-baseline-v1",
+  "environment": "main-development-only",
+  "plans": [
+    {
+      "id": "verification-free-offer-v1",
+      "scope": "FREE",
+      "version": 1,
+      "effectiveAt": "2026-10-01T00:00:00Z",
+      "published": true,
+      "displayOrder": 0,
+      "plan": {
+        "planCode": "FREE",
+        "displayName": "Miễn phí",
+        "description": "Bắt đầu thói quen học tiếng Anh mỗi ngày với 60 phút luyện nói cùng AI và 1 lượt đánh giá trình độ mỗi tháng. Gói miễn phí không có phí đăng ký.",
+        "benefits": [
+          {
+            "code": "SPEAKING_DURATION",
+            "title": "Luyện nói với AI mỗi ngày",
+            "description": "Duy trì thói quen giao tiếp tiếng Anh với tối đa 60 phút luyện nói cùng AI mỗi ngày. Hạn mức thời lượng được làm mới hằng ngày.",
+            "displayValue": "60 phút/ngày",
+            "sortOrder": 0
+          },
+          {
+            "code": "PROFICIENCY_CHECK_ATTEMPT",
+            "title": "Đánh giá trình độ tiếng Anh",
+            "description": "Sử dụng tối đa 1 lượt đánh giá trình độ tiếng Anh mỗi tháng để theo dõi việc học. Hạn mức lượt đánh giá được làm mới hằng tháng.",
+            "displayValue": "1 lượt/tháng",
+            "sortOrder": 1
+          }
+        ],
+        "billingOptions": []
+      }
+    },
+    {
+      "id": "dev-premium-offer-v1",
+      "scope": "PREMIUM",
+      "version": 1,
+      "effectiveAt": "2026-10-01T00:00:00Z",
+      "published": true,
+      "displayOrder": 1,
+      "plan": {
+        "planCode": "PREMIUM",
+        "displayName": "Premium",
+        "description": "Dành thêm thời gian cho mục tiêu tiếng Anh với 120 phút luyện nói cùng AI mỗi ngày và 5 lượt đánh giá trình độ mỗi tháng. Chọn thanh toán theo tháng hoặc theo năm phù hợp với kế hoạch học tập.",
+        "benefits": [
+          {
+            "code": "SPEAKING_DURATION",
+            "title": "Luyện nói với AI mỗi ngày",
+            "description": "Duy trì thói quen giao tiếp tiếng Anh với tối đa 120 phút luyện nói cùng AI mỗi ngày. Hạn mức thời lượng được làm mới hằng ngày.",
+            "displayValue": "120 phút/ngày",
+            "sortOrder": 0
+          },
+          {
+            "code": "PROFICIENCY_CHECK_ATTEMPT",
+            "title": "Đánh giá trình độ tiếng Anh",
+            "description": "Sử dụng tối đa 5 lượt đánh giá trình độ tiếng Anh mỗi tháng để theo dõi việc học. Hạn mức lượt đánh giá được làm mới hằng tháng.",
+            "displayValue": "5 lượt/tháng",
+            "sortOrder": 1
+          }
+        ],
+        "billingOptions": [
+          {
+            "billingPeriod": "MONTHLY",
+            "amount": 199000,
+            "currency": "VND"
+          },
+          {
+            "billingPeriod": "ANNUAL",
+            "amount": 1590000,
+            "currency": "VND"
+          }
+        ]
+      }
+    }
+  ],
+  "policies": [
+    {
+      "id": "verification-free-v1",
+      "scope": "FREE",
+      "version": 1,
+      "effectiveAt": "2026-10-01T00:00:00Z",
+      "snapshot": {
+        "policySnapshotId": "verification-free-v1",
+        "policyScope": "FREE",
+        "policyVersion": 1,
+        "rules": [
+          {
+            "quotaType": "SPEAKING_DURATION",
+            "displayName": "Thời lượng luyện nói với AI",
+            "limit": 3600,
+            "unit": "SECOND",
+            "period": "DAILY",
+            "displayOrder": 0
+          },
+          {
+            "quotaType": "PROFICIENCY_CHECK_ATTEMPT",
+            "displayName": "Đánh giá trình độ",
+            "limit": 1,
+            "unit": "ATTEMPT",
+            "period": "MONTHLY",
+            "displayOrder": 1
+          }
+        ]
+      },
+      "benefits": {
+        "planCode": "FREE",
+        "displayName": "Miễn phí",
+        "policySnapshotId": "verification-free-v1",
+        "benefits": [
+          {
+            "code": "SPEAKING_DURATION",
+            "title": "Luyện nói với AI mỗi ngày",
+            "description": "Duy trì thói quen giao tiếp tiếng Anh với tối đa 60 phút luyện nói cùng AI mỗi ngày. Hạn mức thời lượng được làm mới hằng ngày.",
+            "displayValue": "60 phút/ngày",
+            "sortOrder": 0
+          },
+          {
+            "code": "PROFICIENCY_CHECK_ATTEMPT",
+            "title": "Đánh giá trình độ tiếng Anh",
+            "description": "Sử dụng tối đa 1 lượt đánh giá trình độ tiếng Anh mỗi tháng để theo dõi việc học. Hạn mức lượt đánh giá được làm mới hằng tháng.",
+            "displayValue": "1 lượt/tháng",
+            "sortOrder": 1
+          }
+        ]
+      }
+    },
+    {
+      "id": "verification-trial-v1",
+      "scope": "TRIAL",
+      "version": 1,
+      "effectiveAt": "2026-10-01T00:00:00Z",
+      "snapshot": {
+        "policySnapshotId": "verification-trial-v1",
+        "policyScope": "TRIAL",
+        "policyVersion": 1,
+        "rules": [
+          {
+            "quotaType": "SPEAKING_DURATION",
+            "displayName": "Thời lượng luyện nói với AI",
+            "limit": 3600,
+            "unit": "SECOND",
+            "period": "DAILY",
+            "displayOrder": 0
+          },
+          {
+            "quotaType": "PROFICIENCY_CHECK_ATTEMPT",
+            "displayName": "Đánh giá trình độ",
+            "limit": 2,
+            "unit": "ATTEMPT",
+            "period": "MONTHLY",
+            "displayOrder": 1
+          }
+        ]
+      },
+      "benefits": {
+        "planCode": "PREMIUM",
+        "displayName": "Dùng thử Premium",
+        "policySnapshotId": "verification-trial-v1",
+        "benefits": [
+          {
+            "code": "SPEAKING_DURATION",
+            "title": "Luyện nói với AI mỗi ngày",
+            "description": "Duy trì thói quen giao tiếp tiếng Anh với tối đa 60 phút luyện nói cùng AI mỗi ngày. Hạn mức thời lượng được làm mới hằng ngày.",
+            "displayValue": "60 phút/ngày",
+            "sortOrder": 0
+          },
+          {
+            "code": "PROFICIENCY_CHECK_ATTEMPT",
+            "title": "Đánh giá trình độ tiếng Anh",
+            "description": "Sử dụng tối đa 2 lượt đánh giá trình độ tiếng Anh mỗi tháng để theo dõi việc học. Hạn mức lượt đánh giá được làm mới hằng tháng.",
+            "displayValue": "2 lượt/tháng",
+            "sortOrder": 1
+          }
+        ]
+      }
+    },
+    {
+      "id": "dev-premium-v1",
+      "scope": "PREMIUM",
+      "version": 1,
+      "effectiveAt": "2026-10-01T00:00:00Z",
+      "snapshot": {
+        "policySnapshotId": "dev-premium-v1",
+        "policyScope": "PREMIUM",
+        "policyVersion": 1,
+        "rules": [
+          {
+            "quotaType": "SPEAKING_DURATION",
+            "displayName": "Thời lượng luyện nói với AI",
+            "limit": 7200,
+            "unit": "SECOND",
+            "period": "DAILY",
+            "displayOrder": 0
+          },
+          {
+            "quotaType": "PROFICIENCY_CHECK_ATTEMPT",
+            "displayName": "Đánh giá trình độ",
+            "limit": 5,
+            "unit": "ATTEMPT",
+            "period": "MONTHLY",
+            "displayOrder": 1
+          }
+        ]
+      },
+      "benefits": {
+        "planCode": "PREMIUM",
+        "displayName": "Premium",
+        "policySnapshotId": "dev-premium-v1",
+        "benefits": [
+          {
+            "code": "SPEAKING_DURATION",
+            "title": "Luyện nói với AI mỗi ngày",
+            "description": "Duy trì thói quen giao tiếp tiếng Anh với tối đa 120 phút luyện nói cùng AI mỗi ngày. Hạn mức thời lượng được làm mới hằng ngày.",
+            "displayValue": "120 phút/ngày",
+            "sortOrder": 0
+          },
+          {
+            "code": "PROFICIENCY_CHECK_ATTEMPT",
+            "title": "Đánh giá trình độ tiếng Anh",
+            "description": "Sử dụng tối đa 5 lượt đánh giá trình độ tiếng Anh mỗi tháng để theo dõi việc học. Hạn mức lượt đánh giá được làm mới hằng tháng.",
+            "displayValue": "5 lượt/tháng",
+            "sortOrder": 1
+          }
+        ]
+      }
+    }
+  ],
+  "accounts": [
+    {
+      "userId": "68f8f3a9b9e4a12345678901",
+      "trialUsed": false,
+      "provenance": "NEW_ACCOUNT"
+    },
+    {
+      "userId": "68f8f3a9b9e4a12345678902",
+      "trialUsed": false,
+      "provenance": "NEW_ACCOUNT"
+    },
+    {
+      "userId": "68f8f3a9b9e4a12345678903",
+      "trialUsed": false,
+      "provenance": "NEW_ACCOUNT"
+    }
+  ]
+}

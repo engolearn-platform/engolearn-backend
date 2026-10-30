@@ -1,5 +1,7 @@
 package fit.iuh.engolearn.topic.controller;
 
+import lombok.RequiredArgsConstructor;
+
 import fit.iuh.engolearn.shared.web.ApiResponse;
 import fit.iuh.engolearn.topic.dto.request.CreateLocalLearnerRequest;
 import fit.iuh.engolearn.topic.dto.response.LocalLearnerResponse;
@@ -16,11 +18,10 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 
 @RestController
+@RequiredArgsConstructor
 @RequestMapping("/api/v1/topic-learning/local-profiles")
 public class LocalLearnerController {
     private final LocalLearnerService profiles;
-
-    public LocalLearnerController(LocalLearnerService profiles) { this.profiles = profiles; }
 
     @PostMapping
     public ApiResponse<LocalLearnerResponse> create(@Valid @RequestBody CreateLocalLearnerRequest body, HttpServletRequest request) {

@@ -1,5 +1,7 @@
 package fit.iuh.engolearn.topic.controller;
 
+import lombok.RequiredArgsConstructor;
+
 import fit.iuh.engolearn.shared.web.ApiResponse;
 import fit.iuh.engolearn.topic.dto.request.GetTopicItemContentRequest;
 import fit.iuh.engolearn.topic.dto.request.GetTopicItemPositionRequest;
@@ -21,16 +23,12 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
+@RequiredArgsConstructor
 @RequestMapping("/api/v1")
 public class TopicLearningController {
 
     private final TopicLearningService topicLearningService;
     private final fit.iuh.engolearn.topic.service.TopicAttemptService attempts;
-
-    public TopicLearningController(TopicLearningService topicLearningService, fit.iuh.engolearn.topic.service.TopicAttemptService attempts) {
-        this.topicLearningService = topicLearningService;
-        this.attempts = attempts;
-    }
 
     @GetMapping("/topic-items/{itemId}/content")
     public ApiResponse<TopicItemContentResponse> getItemContent(
