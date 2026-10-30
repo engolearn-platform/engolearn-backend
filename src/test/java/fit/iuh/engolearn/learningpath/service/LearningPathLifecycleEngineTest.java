@@ -200,7 +200,7 @@ class LearningPathLifecycleEngineTest {
     @Test
     void serviceReplaysEveryMissedDeadlineInOneRun() {
         LearningPath path = path("2026-10-01", "2026-10-01");
-        path.setId(new ObjectId());
+        path.setId(new ObjectId().toHexString());
         Instant recoveredAt = midnight("2026-10-23");
         FakeRepository repository = new FakeRepository(path);
 
@@ -214,7 +214,7 @@ class LearningPathLifecycleEngineTest {
     @Test
     void lifecycleServiceLoadsAnswerKeyToFinalizeDraft() {
         LearningPath path = path("2026-10-01", "2026-10-07");
-        path.setId(new ObjectId());
+        path.setId(new ObjectId().toHexString());
         path.setUserId(new ObjectId());
         startFirstDay(path, "2026-10-07", 0, 0);
         LearningPathDayItem item = path.getWeeks().getFirst().getDays().getFirst()
@@ -225,7 +225,7 @@ class LearningPathLifecycleEngineTest {
         draft.setSavedAt(Date.from(midnight("2026-10-07")));
         item.setDraft(draft);
         LearningPathQuestionRepository questions = mock(LearningPathQuestionRepository.class);
-        when(questions.findAnswerKeys(path.getId(), path.getUserId(), List.of("q-1")))
+        when(questions.findAnswerKeys(new ObjectId(path.getId()), path.getUserId(), List.of("q-1")))
                 .thenReturn(List.of(new Document("question_id", "q-1")
                         .append("correct_option_id", "B")));
 

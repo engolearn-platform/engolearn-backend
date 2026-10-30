@@ -100,7 +100,7 @@ class LearningPathAnswerDraftServiceTest {
 
     private LearningPath path() {
         LearningPath path = new LearningPath();
-        path.setId(pathId);
+        path.setId(pathId.toHexString());
         path.setUserId(userId);
         path.setActive(true);
         path.setStatus(LearningPathStatus.IN_PROGRESS);

@@ -16,6 +16,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.repository.support.MongoRepositoryFactory;
 import org.testcontainers.DockerClientFactory;
 import org.testcontainers.containers.MongoDBContainer;
 import org.testcontainers.utility.DockerImageName;
@@ -251,6 +252,40 @@ class LearningPathDayPracticeIntegrationTest {
                 assertThat(result.practiceScore()).isEqualTo(100.0);
                 Document saved = template.getCollection("learning_paths").find(new Document("_id", pathId)).first();
                 assertThat(saved.getDate("next_run_at")).isEqualTo(AUTO_CLOSE_AT);
+            } finally {
+                template.getDb().drop();
+            }
+        }
+    }
+
+    @Test
+    void existingObjectIdPathCanBeReadAndSavedWithStringModelId() {
+        try (MongoClient client = MongoClients.create(mongoUri)) {
+            MongoTemplate template = new MongoTemplate(client, "learning_path_id_" + UUID.randomUUID().toString().replace("-", ""));
+            try {
+                ObjectId pathId = new ObjectId();
+                ObjectId userId = new ObjectId();
+                insertPath(template, pathId, userId);
+                Date originalCreatedAt = Date.from(Instant.parse("2026-10-09T03:00:00Z"));
+                template.getCollection("learning_paths").updateOne(new Document("_id", pathId),
+                        new Document("$set", new Document("created_at", originalCreatedAt)));
+                insertSnapshots(template, pathId, userId);
+                LearningPathRepository paths = new MongoRepositoryFactory(template)
+                        .getRepository(LearningPathRepository.class);
+
+                LearningPath path = paths.findById(pathId.toHexString()).orElseThrow();
+                assertThat(path.getId()).isEqualTo(pathId.toHexString());
+                assertThat(path.getCreatedAt()).isEqualTo(originalCreatedAt.toInstant());
+                assertThat(paths.findByIdAndUserId(pathId, userId)).isPresent();
+                paths.save(path);
+
+                Document saved = template.getCollection("learning_paths").find(new Document("_id", pathId)).first();
+                assertThat(saved).isNotNull();
+                assertThat(saved.get("_id")).isEqualTo(pathId);
+                assertThat(saved.getDate("created_at")).isEqualTo(originalCreatedAt);
+                assertThat(template.getCollection("learning_paths").countDocuments()).isEqualTo(1);
+                assertThat(new LearningPathQuestionRepository(template).findAnswerKeys(pathId, userId, List.of("q-1")))
+                        .hasSize(1);
             } finally {
                 template.getDb().drop();
             }
