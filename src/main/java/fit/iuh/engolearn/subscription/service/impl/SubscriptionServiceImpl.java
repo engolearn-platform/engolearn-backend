@@ -23,7 +23,7 @@ import org.springframework.stereotype.Service;
 
 @Service
 @RequiredArgsConstructor
-public class SubscriptionServiceImpl implements SubscriptionService, EffectiveEntitlementProvider {
+public class SubscriptionServiceImpl implements SubscriptionService, EffectiveEntitlementProvider, SubscriptionEntitlementUpdates {
     private final SubscriptionRepository store;
     private final SubscriptionTransactions transactions;
     private final Clock clock;
@@ -83,6 +83,12 @@ public class SubscriptionServiceImpl implements SubscriptionService, EffectiveEn
             }
         }
         throw new SubscriptionUnavailableException();
+    }
+
+    public void refreshOwned(String userId, Instant at) {
+        if (!org.springframework.transaction.support.TransactionSynchronizationManager.isActualTransactionActive())
+            throw new IllegalStateException("Entitlement changes require the Subscription transaction");
+        resolveOwnedEntitlement(userId, at);
     }
 
     private EffectiveEntitlementDto resolveOwnedEntitlement(String userId, Instant at) {

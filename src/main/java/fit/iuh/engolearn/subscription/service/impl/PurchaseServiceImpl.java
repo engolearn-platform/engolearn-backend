@@ -85,7 +85,7 @@ public class PurchaseServiceImpl implements PurchaseService {
                 .policyVersion(policy.getVersion()).planSnapshot(plan.getPlan()).benefitsSnapshot(policy.getBenefits())
                 .policySnapshot(policy.getSnapshot()).selectedBillingOption(option).expiresAt(now.plus(checkoutLifetime))
                 .status(PurchaseStatus.PAYMENT_SETUP_PENDING).idempotencyKey(key).requestFingerprint(fingerprint(request))
-                .blocksNewPurchase(true).createdAt(now).build();
+                .blocksNewPurchase(true).intentCreatedAt(now).createdAt(now).build();
         purchases.insert(purchase);
         String messageId = UUID.randomUUID().toString();
         CreateCheckoutCommandDto command = new CreateCheckoutCommandDto(messageId, 1, now, reference, userId,
@@ -111,7 +111,8 @@ public class PurchaseServiceImpl implements PurchaseService {
                 ? purchase.getCheckoutUrl() : null;
         return new PurchaseResponse(purchase.getPurchaseReference(), purchase.getStatus().name(), purchase.getBillingPeriod().name(),
                 purchase.getAmountVnd(), purchase.getCurrency(), purchase.getPaymentId(), url, purchase.getExpiresAt(),
-                purchase.getPaidAt(), purchase.getPeriodId(), purchase.getCreatedAt(), purchase.getFailureCode());
+                purchase.getPaidAt(), purchase.getPeriodId(), purchase.getIntentCreatedAt() == null ? purchase.getCreatedAt() : purchase.getIntentCreatedAt(),
+                purchase.getFailureCode(), purchase.getPeriodEndAt());
     }
     private String fingerprint(CreatePurchaseRequest request) { return request.planCode() + ":" + request.billingPeriod(); }
     private SubscriptionRequestException error(int status, String code, String message) {

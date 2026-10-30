@@ -1,5 +1,11 @@
 # Subscription and Quota implementation status
 
+## P04 paid activation (2026-10-30)
+
+Internal Payment outcome operations commit normalized verified facts and result Outbox atomically; future provider adapters must authenticate/verify provider evidence before using them. No HTTP endpoint or fake provider can force success. Subscription result handling validates pinned correlation/amount/currency and atomically supersedes eligible Trial, creates one Premium period, records receipt, updates purchase and emits current effective entitlement. Monthly/yearly duration uses calendar arithmetic in Asia/Ho_Chi_Minh with UTC millisecond storage; late delivery does not extend the interval. Original Trial scheduled end is retained for audit; SUPERSEDED/supersededAt describe its actual termination. Usage is preserved. Contradictions are retained for review without clearing another purchase's lock.
+
+Verification: nine architecture checks passed. Seven P04 cases passed, including twice-run concurrent success, receipt-failure rollback, month-end/leap-year, retained usage, expiry and late facts. A test-framework condition failed before these cases could run through an inherited fixture; the cases were moved into the already-verified isolated fixture and only P04 methods rerun. Earlier P03 passing evidence was reused. Full-project verify was not run under the focused budget. BE read checks: plans 200 and an authenticated missing purchase returned 404 PURCHASE_NOT_FOUND. No dev purchases, payments or usage were fabricated. P05 history list, P06 refund and P07 provider integration remain unimplemented.
+
 ## P03 purchase orchestration (2026-10-30)
 
 Create/detail learner purchase APIs, pinned matching plan/policy/price snapshots, request idempotency, account revision serialization and one-blocking-purchase constraints are implemented. Payment intake commits a setup-pending transaction and receipt; actual checkout preparation/provider execution is not automatic. Checkout/definitive-failure/expiry projections use durable result receipts, with conflict review evidence. See [purchase API](purchase-api.md). Paid activation, history list, refund and VNPay remain later slices.

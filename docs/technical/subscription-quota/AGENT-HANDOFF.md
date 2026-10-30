@@ -1,5 +1,7 @@
 # Subscription / Quota handoff
 
+P03-P04 continuation 2026-10-30: purchase create/detail APIs, Payment checkout-intent intake and Subscription paid activation are now implemented. See [purchase API](purchase-api.md) and the latest [status](implementation-status.md). Real provider adapters, history list and refund orchestration remain absent. Never wire a fake success adapter into runtime. Payment outcomes are internal trusted adapter capabilities; provider signatures/reconciliation must be implemented in P07. Trial SUPERSEDED retains its original scheduled end plus actual supersededAt. Continue from the separate completed commits on feat/payment; do not reset or seed dev history.
+
 ## P01-P02 continuation (2026-10-30)
 
 The backend now contains Payment contracts/core models and durable Outbox/receipt infrastructure. Trial and Free policy activation use the durable Subscription -> Quota route; the previous in-memory event listener is removed. Each module owns its collections. The dispatcher uses recipient-scoped leases/fencing and consumer acknowledgments after local receipt/effect commit. Payment checkout/result handlers, purchase endpoints, paid activation and refund/provider execution are still future P03-P07 work.

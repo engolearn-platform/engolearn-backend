@@ -16,6 +16,7 @@ import org.springframework.data.mongodb.core.index.CompoundIndexes;
 })
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @SuperBuilder @EqualsAndHashCode(callSuper = true)
 public class PaymentTransaction extends BaseDocument {
+    @Field("review_reason") private String reviewReason;
     @Field("purchase_reference")
     private String purchaseReference;
     @Field("user_id")

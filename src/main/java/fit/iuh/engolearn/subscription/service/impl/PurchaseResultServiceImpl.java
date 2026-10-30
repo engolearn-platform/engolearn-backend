@@ -15,10 +15,12 @@ public class PurchaseResultServiceImpl implements PurchaseResultService {
     private final SubscriptionMessageRepository reviews;
     private final ObjectMapper mapper;
     private final Clock clock;
+    private final fit.iuh.engolearn.subscription.service.PaidActivationService activation;
     public void apply(MessageEnvelopeDto envelope) {
         PremiumPurchase purchase = purchases.findByReference(envelope.aggregateId());
         if (purchase == null) { reviews.review(envelope, "PURCHASE_NOT_FOUND"); return; }
         switch (envelope.messageType()) {
+            case "PAYMENT_SUCCEEDED" -> activation.apply(mapper.readValue(envelope.payload(),PaymentSucceededEvent.class),envelope);
             case "CHECKOUT_READY" -> {
                 var event = mapper.readValue(envelope.payload(), CheckoutReadyEvent.class);
                 if (!valid(envelope, event.eventId(), event.purchaseReference()) ||

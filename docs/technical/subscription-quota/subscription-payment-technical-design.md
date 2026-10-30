@@ -1,5 +1,7 @@
 # Subscription and Payment technical design
 
+P03-P04 source update (2026-10-30): owner-scoped purchase create/detail, durable checkout-intent intake and verified paid activation now exist. See [purchase API](purchase-api.md) and current [implementation status](implementation-status.md). The P05 history list, P06 refund flow and P07 real provider integration are still pending; internal outcome capabilities alone do not verify VNPay signatures or charge money. Older dated implementation snapshots below are retained as provenance.
+
 P01-P02 source update (2026-10-30): contracts, core models and recipient-scoped durable delivery foundation are implemented, including existing Trial/Free publication and the Quota consumer. Public Payment business consumers and purchase/paid/refund/provider flows remain P03-P07 work. The rest of this document continues to describe the full target; source presence alone is not end-to-end payment verification. See [implementation status](implementation-status.md) and workspace `.artifacts/subscription-payment-p01-p02/` for actual evidence.
 
 Status: **Agreed target design; P01-P02 foundation implemented, paid flows pending**. Revised 2026-10-30 from the read-only `D:/DownloadinD/subscription-payment-technical-design-draft.md`. This canonical English design records the approved decisions for incremental implementation on the `feat/subscription` baseline. Documentation approval is not authorization to implement, deploy, charge or refund.

@@ -50,6 +50,10 @@ public class MongoSubscriptionRepository implements SubscriptionRepository {
         return mongo.updateFirst(Query.query(Criteria.where("_id").is(account.getId()).and("revision").is(account.getRevision()).and("trial_used").is(false)),
             new Update().set("trial_used",true).inc("revision",1),SubscriptionAccount.class).getModifiedCount()==1;
     }
+    public void supersedeTrial(String periodId, Instant paidAt) {
+        mongo.updateFirst(Query.query(Criteria.where("_id").is(periodId).and("kind").is("TRIAL")),
+                new Update().set("state","SUPERSEDED").set("superseded_at",paidAt),SubscriptionPeriod.class);
+    }
     public boolean advanceEntitlement(SubscriptionAccount account, String fingerprint) {
         return mongo.updateFirst(Query.query(Criteria.where("_id").is(account.getId()).and("revision").is(account.getRevision())),
             new Update().set("entitlement_fingerprint", fingerprint).inc("entitlement_version", 1).inc("revision", 1),
