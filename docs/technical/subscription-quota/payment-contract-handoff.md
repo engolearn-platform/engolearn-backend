@@ -1,81 +1,41 @@
-# Payment fact contract handoff
+# Payment contract handoff
 
-## Delivered boundary
+Updated 2026-10-30 for P01-P02. Contracts and persistence/delivery foundation exist; this does not implement charging, checkout, purchase APIs, paid activation, refunds or VNPay.
 
-M3 preparation declares `payment.contract.PaymentSucceeded` and
-`payment.contract.PaymentRefundSucceeded` as immutable JDK records. Payment owns
-these facts. They contain no validation, framework annotations, publisher,
-listener, adapter, persistence, provider integration or paid lifecycle behavior.
-Record construction does not establish that its contents are valid or verified.
+## Current public types
 
-The approved future dependency is Subscription -> `payment.contract`. Payment
-must not depend on Subscription. Subscription will own its future consumer and
-all period/snapshot mutations. Quota -> `subscription.contract` is unchanged;
-these declarations introduce no runtime integration.
+Command DTOs are Payment-owned in `payment.contract.dto`; result facts are in `payment.contract.event`. Subscription may import these contracts. Payment never imports Subscription. The former root-package declaration-only records have been replaced; their only code caller was the compile-only example, updated in the same change. No existing Payment persistence or external production consumer was found.
 
-## Declared shape
+Every command has `messageId`, `schemaVersion=1`, `occurredAt`; every event has `eventId`, `schemaVersion=1`, `occurredAt`. Transport uses that same identity without minting an unrelated event ID. Required IDs/text/timestamps and the schema version are validated by immutable record constructors; construction validates shape, not provider authenticity.
 
-Every field is required. Strings remain strings rather than parsing UUIDs or
-interpreting opaque identifiers inside the records.
+| Type | Payload in addition to metadata |
+| --- | --- |
+| `CreateCheckoutCommandDto` | purchaseReference, userId, amountVnd, currency, expiresAt |
+| `FullRefundCommandDto` | refundReference, paymentId, purchaseReference, userId, requestedBy, reason |
+| `CheckoutReadyEvent` | purchaseReference, paymentId, checkoutUrl, expiresAt |
+| `CheckoutRejectedEvent` | purchaseReference, reasonCode, rejectedAt |
+| `PaymentSucceededEvent` | paymentId, purchaseReference, userId, amountVnd, currency, paidAt |
+| `PaymentFailedEvent` | paymentId, purchaseReference, userId, failureCode, failedAt |
+| `PaymentExpiredEvent` | paymentId, purchaseReference, userId, expiredAt |
+| `PaymentRefundSucceededEvent` | refundReference, refundId, paymentId, purchaseReference, userId, refundedAt |
+| `PaymentRefundFailedEvent` | refundReference, refundId, paymentId, purchaseReference, userId, failureCode, failedAt |
 
-| Fact | Field | JDK type | Required meaning |
-| --- | --- | --- | --- |
-| Both | `eventId` | `String` | UUID string identifying the fact |
-| Both | `paymentId` | `String` | Opaque nonblank Payment transaction identity |
-| Both | `purchaseReference` | `String` | Opaque nonblank correlation identity owned by future Subscription purchase orchestration |
-| Both | `userId` | `String` | Opaque nonblank account identity |
-| Success | `amount` | `long` | Integer minor units, inclusive range 0..9007199254740991 |
-| Success | `currency` | `String` | Uppercase ISO 4217 currency code |
-| Success | `paidAt` | `Instant` | Verified payment completion time in UTC |
-| Full refund | `refundId` | `String` | Opaque nonblank completed refund identity |
-| Full refund | `refundedAt` | `Instant` | Completed full-refund time in UTC |
+`amountVnd` is an integer VND amount (`long`, 0..9007199254740991); currency is exactly VND for this MVP. The former `amount` minor-unit declaration is not silently reused. Provider wire scaling belongs only in the future verified provider adapter; do not apply an assumed factor of 100. Refund amount comes from the original verified payment, never an Admin body.
 
-No purchase reference is minted or persisted in this increment. The example
-amount in test source is illustrative, not a configured offer or production price.
+## Persistence and delivery foundation
 
-## Future integration responsibilities
+Purchase/Payment/Refund models and unique indexes enforce business references, one blocking purchase per user, one PaymentTransaction per purchase, one pending refund and one successful full refund per payment. Period payment identity is unique when present. These constraints do not substitute for future authorized state-transition services.
 
-Payment may publish success only after verifying the transaction. Browser input
-and return URLs cannot establish authoritative payment success. Payment owns
-provider details and refund eligibility/window enforcement. Refund success means
-a completed full refund for the correlated Premium purchase; partial refunds are
-not introduced.
+Each module owns its Outbox/receipt collections. Shared technical dispatch claims only registered recipient routes, leases work with fencing tokens, retries technical errors and acknowledges after consumer commit. Future Payment command/result routes have no runtime business consumer yet and must not be acknowledged by placeholders. Existing Trial and Free-policy events do use durable delivery to Quota. No broker, TTL or cross-module transaction is introduced.
 
-The future consumer must validate the required fields and verify the purchase
-reference, user and payment identities against the pinned price and snapshot.
-It must handle at-least-once and possibly reordered facts, deduplicate event and
-transaction identities, and commit each applicable lifecycle transition once.
-These are future implementation obligations, not guarantees of these records.
-No durable delivery, reconciliation or retry mechanism is provided here.
-Timestamps are facts, not instructions to extend access. No new paid entitlement
-event is declared; the existing Subscription entitlement event remains the
-intended fact after the real lifecycle behavior is specified and implemented.
+## Future business responsibilities
 
-The business baseline remains authoritative: Payment confirms outcomes,
-Subscription owns periods and snapshots, and resource-owning modules decide
-resource access. This handoff adds no activation, refund-period, quota-reset or
-resource-access rules.
+Subscription owns pinned prices/snapshots, purchase eligibility and product refund windows. Payment owns provider verification, financial/provider invariants and authoritative outcomes. Subscription consumes validated facts and owns period mutations. Browser returns cannot establish success. Checkout timeout alone never releases a purchase lock; confirmed failure/closed-unpaid expiry does, while UNKNOWN waits for provider reconciliation. Preserve late results and match refundReference to the correct request.
 
-## Readiness and evidence limits
+Trial conversion at verified paidAt is resolved: Trial becomes SUPERSEDED, history remains, Premium starts at the same instant with calendar month/year duration. Quota usage is retained in its calendar window. These paid transitions remain future implementation. OQ-SUB-F1-02 (methods, displayed details and return UX) remains open for P07.
 
-`src/test/java/fit/iuh/engolearn/payment/contract/PaymentContractConsumerExample.java`
-is a compile-only exchange example using the records and JDK consumers, without
-internal models or web DTOs. Its compilation is included in the shared backend
-test batch. It contains no test or claim of activation/refund correctness.
-Actual compilation and architecture results belong in the coordinated execution
-report; source presence alone is not a passing result.
+## Evidence boundary
 
-Observed on2026-10-29: the coordinated scoped batch passed66tests including9 architecture checks, and PaymentContractConsumerExample.class was present under target/test-classes with the current compilation timestamp. This confirms compilation and architecture compatibility only. The final whole-project verify still failed in the existing Topic/context areas; see implementation-status.md and the workspace execution log for exact counts.
+`src/test/java/fit/iuh/engolearn/payment/contract/PaymentContractConsumerExample.java` remains compile-only; it proves no lifecycle behavior. New P01-P02 critical checks and startup evidence are recorded in workspace `.artifacts/subscription-payment-p01-p02/` and [implementation status](implementation-status.md). Earlier 2026-10-29 scoped results were historical compilation/architecture evidence for the old declarations; they are not evidence for this revision. The known full-project Topic/context failures were not fixed by this work.
 
-Real Payment, charging, callbacks, purchase orchestration, delivery, idempotency,
-paid transitions, refund handling and reconciliation remain unimplemented and
-unverified by this increment. Two F1 questions still block real paid lifecycle
-implementation: `OQ-SUB-F1-01` (how Trial ends on paid conversion) and
-`OQ-SUB-F1-02` (payment methods, displayed transaction details and return flow).
-This declaration does not resolve either question.
-
-Business references: the sibling business repository's
-`docs/usecase_spec/subscription/00-module.md` and
-`docs/usecase_spec/subscription/f1-premium-registration/{README.md,rules.md}`.
-Approved implementation and verification scope:
-`.artifacts/subscription-payment-admin/{plan.md,test-plan.md}` in the workspace.
+[Canonical design and proposed P01-P07](subscription-payment-technical-design.md), [ADR-0002](../../architecture/decisions/ADR-0002-durable-subscription-payment-quota-delivery.md), [business module](../../../../engolearn-business-docs-and-tools/docs/usecase_spec/subscription/00-module.md).

@@ -1,12 +1,31 @@
 # Subscription and Quota implementation status
 
+## P01-P02 source update (2026-10-30)
+
+Observed verification: the initial critical batch ran 26 tests with one concurrent Trial error; all nine architecture checks, two selected Quota checks and nine new durable checks passed. After bounded retry waits and test storage setup were corrected, the focused rerun passed all 10 tests (nine durable checks plus the failed Trial case), with no failures/errors/skips. No assertions were weakened. Normal dev BE started on 8080 and public plans returned 200 with two items and no-store. One correction rerun was used; full-project verify was not run under the user's explicit focused-testing budget. Exact logs are in `.artifacts/subscription-payment-p01-p02/` at the workspace root.
+
+Payment command/result records now live in `payment.contract.dto` / `payment.contract.event`, with schema/identity metadata, VND integer validation and refundReference. Purchase/Payment/Refund persistence models and uniqueness indexes are present; no purchase API, provider execution, paid activation or refund orchestration is added.
+
+Durable module-owned Outboxes/receipts and an internal recipient-scoped dispatcher are implemented. Existing Trial and scheduled Free activation enqueue typed snapshots atomically; Quota applies effects with its receipt in a separate transaction. The old in-memory listener is removed. Shared transport is feature-neutral; Payment business handlers remain absent until later slices. Entitlement fingerprints lazily advance existing account versions with revision CAS, preserving policy freshness and account/trial history; public Subscription resolution commits independently of a Quota transaction. No database reset or historical event backfill is performed.
+
+Delivery defaults: 1-second poll, 30-second lease, 5-second exponential retry base capped at 64 times base, 20 messages per outbox per tick; all are configurable under `engolearn.messaging`. These are development defaults, not measured production tuning. No message/receipt TTL is introduced. Future Payment routes are not claimed without a registered consumer. Verification evidence and limits are recorded in workspace `.artifacts/subscription-payment-p01-p02/`; earlier execution results below are historical.
+
 Updated: 2026-10-29. Scope: M1 + M2 + M4-contract, M3 declarations and M5 Admin configuration.
+
+Design update 2026-10-30: the [canonical Subscription/Payment design](subscription-payment-technical-design.md)
+and [ADR-0002](../../architecture/decisions/ADR-0002-durable-subscription-payment-quota-delivery.md)
+record the agreed future durable delivery baseline, Trial supersede at paidAt,
+calendar Premium periods, refundReference contracts and safe checkout expiry handling.
+These decisions supersede ADR-0001 for future implementation, not the actual runtime
+or historic test evidence below. Outbox/receipts delivery, paid lifecycle and provider
+integration remain unimplemented. The earlier Trial-conversion question is resolved
+in design; payment methods/return UX remain open. P01-P07 are proposed work only.
 
 ## Current outcome
 
 Subscription and Quota source implementations, learner read APIs, one-time Trial activation and test-only caller contracts are present. Live local learner API reads and browser Trial activation have been observed against a separate real replica-set database. M5 now has typed ADMIN-only configuration reads, history, preview and atomic append-only bundle publication in source; its new execution evidence is tracked separately below. M3 adds only Payment fact declarations and a compile-only consumer example. Actual Speaking/Proficiency and Payment runtime remain deferred. Previous full backend verification failed in existing Topic expectations and the unavailable-database context; this ledger does not claim whole-project green or production readiness.
 
-Business documentation remains the policy authority. [Technical design](quota-engine-design.md), [OpenAPI](quota-api.openapi.yaml) and [ADR-0001](../../architecture/decisions/ADR-0001-no-outbox-for-quota-mvp.md) define the implementation baseline. OpenAPI now carries IMPLEMENTATION_CONTRACT, not the former draft-read-only status.
+Business documentation remains the policy authority. [Quota design](quota-engine-design.md), [OpenAPI](quota-api.openapi.yaml) and historical [ADR-0001](../../architecture/decisions/ADR-0001-no-outbox-for-quota-mvp.md) describe the current implementation baseline; the dated target above governs future delivery work. OpenAPI now carries IMPLEMENTATION_CONTRACT, not the former draft-read-only status.
 
 ## Capability ledger
 

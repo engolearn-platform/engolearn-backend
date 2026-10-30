@@ -22,6 +22,8 @@ public class SubscriptionAccount extends BaseDocument {
     private boolean trialUsed;
     @Field("entitlement_version")
     private long entitlementVersion;
+    @Field("entitlement_fingerprint")
+    private String entitlementFingerprint;
     @Field("revision")
     private long revision;
     @Field("provenance")

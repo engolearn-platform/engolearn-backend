@@ -27,7 +27,10 @@ public class QuotaEntitlementsImpl implements QuotaEntitlements {
 
     public EffectiveEntitlementDto resolve(String userId, Instant at) {
         QuotaEntitlementProjection current = store.findEntitlement(userId);
-        if (current != null && !current.getEffectiveAt().isAfter(at) &&
+        QuotaActivationReceipt freeHead = current != null && "FREE".equals(String.valueOf(current.getPolicyScope()))
+                ? store.findActivationHead("FREE") : null;
+        boolean staleFree = freeHead != null && freeHead.getActivationSequence() > current.getPolicyActivationSequence();
+        if (current != null && !staleFree && !current.getEffectiveAt().isAfter(at) &&
                 (current.getValidUntil() == null || at.isBefore(current.getValidUntil()))) return decode(current);
         EffectiveEntitlementDto resolved = provider.resolveEffectiveEntitlement(userId, at);
         if (!Objects.equals(userId, resolved.userId())) throw new QuotaUnavailableException();

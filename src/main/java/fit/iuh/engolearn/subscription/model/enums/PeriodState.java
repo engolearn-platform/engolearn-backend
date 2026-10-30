@@ -1,3 +1,3 @@
 package fit.iuh.engolearn.subscription.model.enums;
 
-public enum PeriodState { ACTIVE, EXPIRED, REFUNDED }
+public enum PeriodState { ACTIVE, EXPIRED, REFUNDED, SUPERSEDED }

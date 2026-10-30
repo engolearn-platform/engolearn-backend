@@ -1,8 +1,12 @@
 # ADR-0001: Defer Transactional Outbox for Subscription–Quota Events
 
-- **Status:** Accepted for MVP
+- **Status:** Superseded for future implementation by [ADR-0002](ADR-0002-durable-subscription-payment-quota-delivery.md); retained as the historical implemented MVP decision
 - **Date:** 2026-10-29
 - **Scope:** Current single-application modular monolith
+
+Supersession recorded 2026-10-30: the decision body below is preserved as historical
+context and describes the historical pre-P02 non-durable runtime. ADR-0002 agrees a
+durable target, including existing Trial and Free-policy events; P02 now implements the durable foundation without retrospectively changing earlier verification evidence.
 
 ## Context
 

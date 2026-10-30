@@ -12,7 +12,6 @@ import org.springframework.data.mongodb.MongoTransactionManager;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.transaction.support.TransactionTemplate;
-import org.springframework.transaction.TransactionDefinition;
 
 @Service
 @RequiredArgsConstructor
@@ -27,10 +26,7 @@ public class QuotaTransactionsImpl implements QuotaTransactions {
     public <T> T event(Supplier<T> action) {
         MongoTransactionManager manager = managers.getIfAvailable();
         if (manager == null) throw new QuotaUnavailableException();
-        // AFTER_COMMIT may still have bound resources from the already committed publisher.
-        TransactionTemplate suspended = new TransactionTemplate(manager);
-        suspended.setPropagationBehavior(TransactionDefinition.PROPAGATION_NOT_SUPPORTED);
-        return suspended.execute(status -> execute(action));
+        return execute(action);
     }
 
     public <T> T execute(Supplier<T> action, Supplier<T> acceptedLookup) {

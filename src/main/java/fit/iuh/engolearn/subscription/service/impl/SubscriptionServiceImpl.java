@@ -18,7 +18,6 @@ import java.time.Instant;
 import java.time.Duration;
 import java.util.*;
 
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 
@@ -28,7 +27,7 @@ public class SubscriptionServiceImpl implements SubscriptionService, EffectiveEn
     private final SubscriptionRepository store;
     private final SubscriptionTransactions transactions;
     private final Clock clock;
-    private final ApplicationEventPublisher events;
+    private final SubscriptionMessagePublisher messages;
 
     public List<PlanCardResponse> plans() {
         try {
@@ -76,25 +75,46 @@ public class SubscriptionServiceImpl implements SubscriptionService, EffectiveEn
 
     @Override
     public EffectiveEntitlementDto resolveEffectiveEntitlement(String userId, Instant at) {
-        if (!org.springframework.transaction.support.TransactionSynchronizationManager.isActualTransactionActive())
-            return transactions.execute(() -> resolveEffectiveEntitlement(userId, at));
-        try {
-            SubscriptionAccount a = account(userId);
-            SubscriptionPeriod p = active(store.findPeriodsNewestFirst(userId), at);
-            if (p != null) return SubscriptionModelMapper.entitlement(userId, a.getEntitlementVersion() - 1,
+        for (int attempt = 0; attempt < 3; attempt++) {
+            try { return transactions.independent(() -> resolveOwnedEntitlement(userId, at)); }
+            catch (RuntimeException failure) {
+                if (attempt == 2 || !retryable(failure)) throw new SubscriptionUnavailableException(failure);
+                pauseBeforeRetry(attempt);
+            }
+        }
+        throw new SubscriptionUnavailableException();
+    }
+
+    private EffectiveEntitlementDto resolveOwnedEntitlement(String userId, Instant at) {
+        SubscriptionAccount a = account(userId);
+        SubscriptionPeriod p = active(store.findPeriodsNewestFirst(userId), at);
+        EffectiveEntitlementDto candidate;
+        if (p != null) {
+            candidate = SubscriptionModelMapper.entitlement(userId, a.getEntitlementVersion(),
                     p.getSnapshot(), 0, p.getPeriodStartAt(), p.getPeriodEndAt());
+        } else {
             PolicyVersion free = policy("FREE", at);
             PolicyState state = store.findPolicyState("FREE");
             boolean pending = Objects.equals(state.getPendingVersionId(), free.getId());
             Instant validUntil = state.getPendingEffectiveAt() != null && at.isBefore(state.getPendingEffectiveAt())
                     ? state.getPendingEffectiveAt() : null;
-            return SubscriptionModelMapper.entitlement(userId, a.getEntitlementVersion(), "FREE", free.getId(), free.getVersion(), free.getSnapshot(),
-                    state.getActivationSequence() + (pending ? 1 : 0), free.getEffectiveAt(), validUntil);
-        } catch (SubscriptionUnavailableException ex) {
-            throw ex;
-        } catch (RuntimeException ex) {
-            throw new SubscriptionUnavailableException(ex);
+            candidate = SubscriptionModelMapper.entitlement(userId, a.getEntitlementVersion(), "FREE", free.getId(),
+                    free.getVersion(), free.getSnapshot(), state.getActivationSequence() + (pending ? 1 : 0),
+                    free.getEffectiveAt(), validUntil);
         }
+        String fingerprint = fit.iuh.engolearn.shared.messaging.MessageHashes.hash(String.join("|",
+                candidate.policyScope(), candidate.policySnapshotId(), Long.toString(candidate.policyVersion()),
+                Long.toString(candidate.policyActivationSequence()), candidate.effectiveAt().toString(),
+                String.valueOf(candidate.validUntil())));
+        if (fingerprint.equals(a.getEntitlementFingerprint())) return candidate;
+        if (!store.advanceEntitlement(a, fingerprint))
+            throw new org.springframework.dao.OptimisticLockingFailureException("Entitlement revision changed");
+        EffectiveEntitlementDto changed = new EffectiveEntitlementDto(candidate.userId(),
+                Math.addExact(candidate.entitlementVersion(), 1), candidate.policyScope(), candidate.policySnapshotId(),
+                candidate.policyVersion(), candidate.policyActivationSequence(), candidate.effectiveAt(),
+                candidate.validUntil(), candidate.policySnapshot());
+        messages.entitlementChanged(new EntitlementChangedEvent(changed));
+        return changed;
     }
 
     public MySubscriptionSummaryResponse summary(String userId) {
@@ -132,7 +152,10 @@ public class SubscriptionServiceImpl implements SubscriptionService, EffectiveEn
                 throw ex;
             } catch (RuntimeException ex) {
                 if (!unknownCommit(ex) && retryable(ex)) {
-                    if (attempt < 2) continue;
+                    if (attempt < 2) {
+                        pauseBeforeRetry(attempt);
+                        continue;
+                    }
                     throw new SubscriptionUnavailableException(ex);
                 }
                 try {
@@ -146,6 +169,11 @@ public class SubscriptionServiceImpl implements SubscriptionService, EffectiveEn
             }
         }
         throw new SubscriptionUnavailableException();
+    }
+
+    private void pauseBeforeRetry(int attempt) {
+        java.util.concurrent.locks.LockSupport.parkNanos(Duration.ofMillis(50L * (attempt + 1)).toNanos());
+        if (Thread.currentThread().isInterrupted()) throw new SubscriptionUnavailableException();
     }
 
     private boolean unknownCommit(Throwable failure) {
@@ -196,8 +224,7 @@ public class SubscriptionServiceImpl implements SubscriptionService, EffectiveEn
                 SubscriptionModelMapper.trialReceipt(UUID.randomUUID().toString(), userId, "ACTIVATE_TRIAL", key,
                                                      "ACTIVATE_TRIAL:{}", result));
         if (created) {
-            EffectiveEntitlementDto entitlement = resolveEffectiveEntitlement(userId, now);
-            transactions.afterCommit(() -> events.publishEvent(new EntitlementChangedEvent(entitlement)));
+            resolveOwnedEntitlement(userId, now);
         }
         return new ActivationResult(result, created);
     }
