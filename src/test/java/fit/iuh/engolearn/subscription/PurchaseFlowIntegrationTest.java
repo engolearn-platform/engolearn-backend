@@ -559,8 +559,14 @@ class PurchaseFlowIntegrationTest extends AbstractMongoIntegrationTest {
     }
     @Test void vnpayTimeoutReconcilesSignedPaymentWithoutExpiringOrExtending(){
         PurchaseResponse p=vnCreate();clock.now=p.expiresAt().plusSeconds(1);
-        when(vnGateway.post(anyMap())).thenThrow(new IllegalStateException("timeout"));vnpay.process();
+        when(vnGateway.post(anyMap())).thenThrow(new fit.iuh.engolearn.payment.exception.VnpayTransportException(
+                fit.iuh.engolearn.payment.model.enums.ProviderTransportFailure.TIMEOUT,null,"HttpTimeoutException"));vnpay.process();
         assertThat(payments.findById(p.paymentId()).getStatus()).isEqualTo(PaymentStatus.UNKNOWN);
+        assertThat(payments.findById(p.paymentId()).getProviderLastCheck().getResult())
+                .isEqualTo(fit.iuh.engolearn.payment.model.enums.ProviderCheckResult.TRANSPORT_ERROR);
+        assertThat(payments.findById(p.paymentId()).getProviderLastCheck().getTransportFailure())
+                .isEqualTo(fit.iuh.engolearn.payment.model.enums.ProviderTransportFailure.TIMEOUT);
+        assertThat(payments.findById(p.paymentId()).getProviderLastCheck().getCauseType()).isEqualTo("HttpTimeoutException");
         assertThat(store.findByReference(p.purchaseReference()).isBlocksNewPurchase()).isTrue();
         clock.now=clock.instant().plus(Duration.ofMinutes(6));
         doReturn(vnApi(p,false,"01","00",START.plusSeconds(60))).when(vnGateway).post(anyMap());vnpay.process();drain();
@@ -619,5 +625,73 @@ class PurchaseFlowIntegrationTest extends AbstractMongoIntegrationTest {
             verify(vnGateway,times(1)).post(anyMap());
             assertThat(refundTransaction(request).getStatus()).isEqualTo(fit.iuh.engolearn.payment.model.enums.RefundStatus.UNKNOWN);
         }finally{pool.shutdownNow();}
+    }
+
+    @Test void vnpayVerifiedFailureStatusCompletesEvenUnlistedResponseCode(){
+        PurchaseResponse p=vnCreate();var fields=vnFields(p);
+        fields.put("vnp_ResponseCode","15");fields.put("vnp_TransactionStatus","02");fields.put("vnp_TransactionNo","0");
+        assertThat(vnpay.returned(vnSigned(fields)).validSignature()).isTrue();
+        assertThat(payments.findById(p.paymentId()).getStatus()).isEqualTo(PaymentStatus.PENDING);
+        Map<String,List<String>> tampered=new LinkedHashMap<>(vnSigned(fields));
+        tampered.put("vnp_SecureHash",List.of("00".repeat(64)));
+        assertThat(vnpay.ipn(tampered).code()).isEqualTo("97");
+        assertThat(store.findByReference(p.purchaseReference()).isBlocksNewPurchase()).isTrue();
+        assertThat(vnpay.ipn(vnSigned(fields)).code()).isEqualTo("00");drain();
+        assertThat(purchases.detail(USER,p.purchaseReference()).status()).isEqualTo("PAYMENT_FAILED");
+        assertThat(purchases.detail(USER,p.purchaseReference()).failureCode()).isEqualTo("VNPAY_15");
+        assertThat(store.findByReference(p.purchaseReference()).isBlocksNewPurchase()).isFalse();
+        var check=payments.findById(p.paymentId()).getProviderLastCheck();
+        assertThat(check.getSource()).isEqualTo(fit.iuh.engolearn.payment.model.enums.ProviderCheckSource.IPN);
+        assertThat(check.getResult()).isEqualTo(fit.iuh.engolearn.payment.model.enums.ProviderCheckResult.CONFIRMED_FAILURE);
+        assertThat(check.getResponseCode()).isEqualTo("15");assertThat(check.isSignatureVerified()).isTrue();
+        assertThat(vnpay.ipn(vnSigned(fields)).code()).isEqualTo("02");
+        assertThat(mongoTemplate.getCollection("payment_outbox").countDocuments(new org.bson.Document("message_type","PAYMENT_FAILED"))).isEqualTo(1);
+        assertThat(purchases.create(USER,key(),MONTH).created()).isTrue();
+        assertThat(count("subscription_periods")).isZero();
+    }
+    @Test void vnpayQueryErrorsAreObservableAndNeverUnlockUnverifiedPayment(){
+        PurchaseResponse p=vnCreate();clock.now=clock.instant().plus(Duration.ofMinutes(6));
+        doReturn(Map.of("vnp_ResponseCode","99","vnp_Message","Unexpected error\n"+vnSettings.getHashSecret()+"x".repeat(300)))
+                .when(vnGateway).post(anyMap());
+        vnpay.process();drain();
+        var first=payments.findById(p.paymentId()).getProviderLastCheck();
+        assertThat(first.getResult()).isEqualTo(fit.iuh.engolearn.payment.model.enums.ProviderCheckResult.API_ERROR);
+        assertThat(first.getResponseCode()).isEqualTo("99");assertThat(first.isSignatureVerified()).isFalse();
+        assertThat(first.getSource()).isEqualTo(fit.iuh.engolearn.payment.model.enums.ProviderCheckSource.QUERYDR);
+        assertThat(first.getMessage()).hasSizeLessThanOrEqualTo(200).doesNotContain(vnSettings.getHashSecret(),"\n");
+        assertThat(first.getRequestId()).matches("[a-f0-9]{32}");assertThat(first.getCheckedAt()).isEqualTo(clock.instant());
+        assertThat(store.findByReference(p.purchaseReference()).isBlocksNewPurchase()).isTrue();
+        clock.now=clock.instant().plus(Duration.ofMinutes(6));
+        var invalid=vnApi(p,false,"01","02",clock.instant());invalid.put("vnp_SecureHash","00".repeat(64));
+        doReturn(invalid).when(vnGateway).post(anyMap());vnpay.process();drain();
+        assertThat(payments.findById(p.paymentId()).getProviderLastCheck().getResult())
+                .isEqualTo(fit.iuh.engolearn.payment.model.enums.ProviderCheckResult.INVALID_SIGNATURE);
+        assertThat(payments.findById(p.paymentId()).getStatus()).isEqualTo(PaymentStatus.UNKNOWN);
+        assertThat(purchases.detail(USER,p.purchaseReference()).status()).isEqualTo("PAYMENT_PENDING");
+        clock.now=clock.instant().plus(Duration.ofMinutes(6));
+        doReturn(vnApi(p,false,"01","02",clock.instant())).when(vnGateway).post(anyMap());vnpay.process();drain();
+        var confirmed=payments.findById(p.paymentId());
+        assertThat(confirmed.getProviderCheckCount()).isEqualTo(3);
+        assertThat(confirmed.getProviderLastCheck().getResult())
+                .isEqualTo(fit.iuh.engolearn.payment.model.enums.ProviderCheckResult.CONFIRMED_FAILURE);
+        assertThat(confirmed.getProviderLastCheck().isSignatureVerified()).isTrue();
+        assertThat(purchases.detail(USER,p.purchaseReference()).status()).isEqualTo("PAYMENT_FAILED");
+        assertThat(store.findByReference(p.purchaseReference()).isBlocksNewPurchase()).isFalse();
+        var args=org.mockito.ArgumentCaptor.forClass(Map.class);verify(vnGateway,times(3)).post(args.capture());
+        assertThat(args.getAllValues()).allSatisfy(request->{
+            assertThat(request.get("vnp_TransactionDate")).isEqualTo("20270131100000");
+            assertThat(request.containsKey("vnp_Amount")).isFalse();
+            assertThat(request.containsKey("vnp_TransactionNo")).isFalse();
+        });
+    }
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings={"01","04","07"})
+    void vnpayUnresolvedStatusesDoNotBecomeFailureFromResponseCodeAlone(String status){
+        PurchaseResponse p=vnCreate();var fields=vnFields(p);
+        fields.put("vnp_ResponseCode","15");fields.put("vnp_TransactionStatus",status);fields.put("vnp_TransactionNo","0");
+        assertThat(vnpay.ipn(vnSigned(fields)).code()).isEqualTo("99");drain();
+        assertThat(payments.findById(p.paymentId()).getStatus()).isEqualTo(PaymentStatus.UNKNOWN);
+        assertThat(store.findByReference(p.purchaseReference()).isBlocksNewPurchase()).isTrue();
+        assertThat(count("subscription_periods")).isZero();
     }
 }

@@ -1,5 +1,7 @@
 package fit.iuh.engolearn.payment.infra.vnpay;
 import fit.iuh.engolearn.payment.service.VnpayGateway;
+import fit.iuh.engolearn.payment.exception.VnpayTransportException;
+import fit.iuh.engolearn.payment.model.enums.ProviderTransportFailure;
 import java.net.URI;
 import java.net.http.*;
 import java.time.Duration;
@@ -18,7 +20,10 @@ public class VnpayHttpGateway implements VnpayGateway {
             var response=client.send(HttpRequest.newBuilder(URI.create(settings.getApiUrl())).timeout(settings.getTimeout())
                     .header("Content-Type","application/json").POST(HttpRequest.BodyPublishers.ofString(mapper.writeValueAsString(request)))
                     .build(),HttpResponse.BodyHandlers.ofString());
-            if (response.statusCode()!=200 || response.body().length()>65536) throw new IllegalStateException("VNPay transport response rejected");
+            if (response.statusCode()!=200)
+                throw new VnpayTransportException(ProviderTransportFailure.HTTP_ERROR,response.statusCode(),null);
+            if (response.body().length()>65536)
+                throw new VnpayTransportException(ProviderTransportFailure.INVALID_RESPONSE,response.statusCode(),null);
             var body=mapper.readTree(response.body());
             if (!body.isObject()) throw new IllegalArgumentException("VNPay response object required");
             Map<String,String> result=new LinkedHashMap<>();
@@ -30,7 +35,13 @@ public class VnpayHttpGateway implements VnpayGateway {
             }
             return result;
         } catch (InterruptedException interrupted) {
-            Thread.currentThread().interrupt();throw new IllegalStateException("VNPay request interrupted");
-        } catch (java.io.IOException failure) {throw new IllegalStateException("VNPay transport unavailable");}
+            Thread.currentThread().interrupt();throw new VnpayTransportException(ProviderTransportFailure.INTERRUPTED,null,"InterruptedException");
+        } catch (java.io.IOException failure) {
+            throw new VnpayTransportException(failure instanceof HttpTimeoutException?ProviderTransportFailure.TIMEOUT:ProviderTransportFailure.NETWORK_ERROR,
+                    null,failure.getClass().getSimpleName());
+        } catch (VnpayTransportException failure) {throw failure;}
+        catch (RuntimeException invalid) {
+            throw new VnpayTransportException(ProviderTransportFailure.INVALID_RESPONSE,null,invalid.getClass().getSimpleName());
+        }
     }
 }

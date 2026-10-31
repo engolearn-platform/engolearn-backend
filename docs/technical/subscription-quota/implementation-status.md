@@ -1,5 +1,13 @@
 # Subscription and Quota implementation status
 
+## Reconciliation failure fix (2026-10-31)
+
+Verified PAY failure is now classified by terminal transaction status 02 plus a valid non-success response code, rather than a fixed code whitelist. Signed/correlated IPN code 15 is covered; Return, API errors, unverifiable responses, reversal/fraud/pending and checkout deadline cannot unlock an order. Payment metadata, accepted result diagnostics and fact Outbox commit together. Bounded Payment-owned last-check metadata distinguishes query/API/signature/correlation/transport errors with source/time/request ID/code/status/signature validity, without storing secret/signature/raw payload in that summary.
+
+Verification: one focused batch passed all 16 cases (9 architecture and 7 integration executions), zero failures/errors/skips, Maven 1:42. Includes code 15 failure/deduplication/new-purchase eligibility, Return non-mutation, tampering rejection, unsigned99/invalid signature retaining the lock, signed QueryDR recovery, retained 01/04/07, transport diagnostics, existing success and Outbox rollback. No full suite or live payment/refund. See workspace .artifacts/subscription-payment-reconciliation/tests.log and report.md.
+
+The official Java QueryDR sample agrees with current field/checksum structure; no malformed request field has been confirmed. One prior approved live query returned unsigned API 99. Public unsigned IPN reachability returned HTTP200/RspCode97, but no matching-order IPN was found in retained tunnel logs. A supplemental signed-query diagnostic was rejected by automatic review as outside the earlier single-request approval; it was not sent. Actual pending order, merchant registration and ReturnURL remain unchanged. Further real-provider diagnosis/recovery is pending an authorized authoritative result.
+
 ## P07 configurable adapter (2026-10-31; merchant validation pending)
 
 The optional VNPay adapter now prepares signed PAY checkout, verifies raw IPN, serves a read-only browser Return, queries uncertain payment outcomes and processes full-refund intents using persisted provider metadata. It is disabled by default. Exact handoff: [VNPay setup](vnpay-setup.md), GET /api/payment/vnpay/ipn on backend 8080; blank merchant example keys are in .env.vnpay.example. No real credentials or provider calls were used. The existing dev BE returned HTTP 200 with raw {RspCode:99,Message:"VNPay is disabled"} on the new IPN route, without authentication or dev-data mutation.

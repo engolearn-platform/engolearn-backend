@@ -18,6 +18,8 @@ import org.springframework.data.mongodb.core.index.CompoundIndexes;
 })
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @SuperBuilder @EqualsAndHashCode(callSuper = true)
 public class PaymentTransaction extends BaseDocument {
+    @Field("provider_last_check") private fit.iuh.engolearn.payment.model.vo.ProviderCheckVo providerLastCheck;
+    @Field("provider_check_count") private long providerCheckCount;
     @Field("provider_tmn_code") private String providerTmnCode;
     @Field("provider_transaction_no") private String providerTransactionNo;
     @Field("provider_created_at") private Instant providerCreatedAt;

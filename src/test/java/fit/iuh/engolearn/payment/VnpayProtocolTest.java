@@ -47,6 +47,7 @@ class VnpayProtocolTest {
             exchange.getResponseHeaders().set("Content-Type","application/json");exchange.sendResponseHeaders(200,data.length);
             exchange.getResponseBody().write(data);exchange.close();
         });
+        server.createContext("/denied",exchange->{exchange.sendResponseHeaders(403,-1);exchange.close();});
         server.start();
         try{
             VnpaySettings settings=new VnpaySettings();settings.setApiUrl("http://127.0.0.1:"+server.getAddress().getPort()+"/transaction");
@@ -55,6 +56,12 @@ class VnpayProtocolTest {
             assertThat(method.get()).isEqualTo("POST");assertThat(type.get()).isEqualTo("application/json");
             assertThat(body.get()).contains("\"vnp_Command\":\"querydr\"","\"vnp_RequestId\":\"request1\"");
             assertThat(result.get("vnp_Amount")).isEqualTo("10000000");assertThat(result.get("vnp_ResponseCode")).isEqualTo("00");
+            settings.setApiUrl("http://127.0.0.1:"+server.getAddress().getPort()+"/denied");
+            assertThatThrownBy(()->gateway.post(Map.of())).isInstanceOfSatisfying(
+                    fit.iuh.engolearn.payment.exception.VnpayTransportException.class,error->{
+                        assertThat(error.getFailure()).isEqualTo(fit.iuh.engolearn.payment.model.enums.ProviderTransportFailure.HTTP_ERROR);
+                        assertThat(error.getHttpStatus()).isEqualTo(403);
+                    });
         }finally{server.stop(0);}
     }
 }

@@ -41,12 +41,16 @@ public class VnpayServiceImpl implements VnpayService {
                 PaymentTransaction payment=work.findPayment(fields.get("vnp_TxnRef"));
                 if (payment==null) return ack("01","Order not found");
                 if (VnpayProtocol.vnd(fields.get("vnp_Amount"))!=payment.getAmountVnd()) {
-                    reviewPayment(payment,"VNPAY_AMOUNT_MISMATCH",fields);return ack("04","Invalid amount");
+                    reviewPayment(payment,"VNPAY_AMOUNT_MISMATCH",fields);
+                    check(payment.getId(),ProviderCheckSource.IPN,ProviderCheckResult.CORRELATION_MISMATCH,fields,true,null);
+                    return ack("04","Invalid amount");
                 }
                 if (!merchant(payment) || payment.getProviderCreatedAt()==null) return ack("99","Merchant mismatch");
                 payments.guardRefund(payment.getId());
                 boolean wasTerminal=payment.getStatus()==PaymentStatus.SUCCEEDED || payment.getStatus()==PaymentStatus.FAILED || payment.getStatus()==PaymentStatus.EXPIRED;
-                if (!applyPayment(payment,fields,false)) return ack("99","Outcome requires reconciliation");
+                boolean applied=applyPayment(payment,fields,false);
+                check(payment.getId(),ProviderCheckSource.IPN,result(payment.getId(),applied),fields,true,null);
+                if (!applied) return ack("99","Outcome requires reconciliation");
                 return ack(wasTerminal?"02":"00",wasTerminal?"Order already confirmed":"Confirm success");
             });
         } catch (RuntimeException rejected) {return ack("99","Unable to confirm outcome");}
@@ -71,6 +75,8 @@ public class VnpayServiceImpl implements VnpayService {
                 if (claim.getStatus()==PaymentStatus.CHECKOUT_SETUP_PENDING) prepare(claim.getId());
                 else reconcilePayment(claim);
             } catch (RuntimeException uncertain) {
+                if (claim.getStatus()!=PaymentStatus.CHECKOUT_SETUP_PENDING)
+                    check(claim.getId(),ProviderCheckSource.QUERYDR,ProviderCheckResult.PROCESSING_ERROR,Map.of(),false,null);
                 if (payments.findById(claim.getId()).getStatus()!=PaymentStatus.CHECKOUT_SETUP_PENDING) outcomes.markUnknown(claim.getId());
             }
             finally {work.releasePayment(claim,now().plus(settings.getQueryInterval()));}
@@ -117,13 +123,34 @@ public class VnpayServiceImpl implements VnpayService {
     }
     private void reconcilePayment(PaymentTransaction payment) {
         if (!merchant(payment)) {hold(payment.getId(),"VNPAY_MERCHANT_MISMATCH");return;}
-        Map<String,String> response=gateway.post(query(payment,payment.getProviderTransactionNo()));
-        if (!api(response,false,payment) || !"00".equals(response.get("vnp_ResponseCode")) || !"01".equals(response.get("vnp_TransactionType"))) {
+        Map<String,String> request=query(payment,payment.getProviderTransactionNo());
+        String requestId=request.get("vnp_RequestId");
+        Map<String,String> response;
+        try {response=gateway.post(request);}
+        catch (RuntimeException transport) {
+            check(payment.getId(),ProviderCheckSource.QUERYDR,ProviderCheckResult.TRANSPORT_ERROR,Map.of(),false,requestId,transport);
+            outcomes.markUnknown(payment.getId());return;
+        }
+        boolean verified=VnpayProtocol.verifyApi(settings.getHashSecret(),response,false);
+        ProviderCheckResult rejection=null;
+        if (!"00".equals(response.get("vnp_ResponseCode"))) rejection=ProviderCheckResult.API_ERROR;
+        else if (!verified) rejection=response.getOrDefault("vnp_SecureHash","").isBlank()
+                ?ProviderCheckResult.MISSING_SIGNATURE:ProviderCheckResult.INVALID_SIGNATURE;
+        else {
+            try {
+                if (!api(response,false,payment) || !"01".equals(response.get("vnp_TransactionType")))
+                    rejection=ProviderCheckResult.CORRELATION_MISMATCH;
+            } catch (IllegalArgumentException malformed) {rejection=ProviderCheckResult.CORRELATION_MISMATCH;}
+        }
+        if (rejection!=null) {
+            check(payment.getId(),ProviderCheckSource.QUERYDR,rejection,response,verified,requestId);
             outcomes.markUnknown(payment.getId());return;
         }
         transactions.independent(()->{
             payments.guardRefund(payment.getId());
-            if (!applyPayment(payments.findById(payment.getId()),response,true)) outcomes.markUnknown(payment.getId());
+            boolean applied=applyPayment(payments.findById(payment.getId()),response,true);
+            check(payment.getId(),ProviderCheckSource.QUERYDR,result(payment.getId(),applied),response,true,requestId);
+            if (!applied) outcomes.markUnknown(payment.getId());
             return null;
         });
     }
@@ -135,8 +162,11 @@ public class VnpayServiceImpl implements VnpayService {
             reviewPayment(payment,"VNPAY_TRANSACTION_MISMATCH",fields);return false;
         }
         boolean succeeded="00".equals(status) && "00".equals(code);
-        boolean failed="02".equals(status) && (queried || Set.of("09","10","11","12","13","24","51","65","75","79").contains(code));
+        boolean failed="02".equals(status) && (queried || code!=null && code.matches("[0-9]{2}") && !"00".equals(code));
         if (!succeeded && !failed) {outcomes.markUnknown(payment.getId());return false;}
+        if (succeeded && Long.parseLong(number)==0) {
+            reviewPayment(payment,"VNPAY_TRANSACTION_MISMATCH",fields);return false;
+        }
         if (payment.getStatus()==PaymentStatus.SUCCEEDED && !succeeded ||
                 (payment.getStatus()==PaymentStatus.FAILED || payment.getStatus()==PaymentStatus.EXPIRED) && succeeded) {
             hold(payment.getId(),"VNPAY_CONFLICTING_OUTCOME");return false;
@@ -259,6 +289,28 @@ public class VnpayServiceImpl implements VnpayService {
         payments.save(payment);
         messages.review(new MessageEnvelopeDto(UUID.randomUUID().toString(),"VNPAY_PROVIDER_REVIEW",1,payment.getPurchaseReference(),
                 "payment.vnpay.review",now(),mapper.writeValueAsString(fields)),reason);
+    }
+    private ProviderCheckResult result(String paymentId,boolean applied) {
+        if (!applied) return ProviderCheckResult.UNRESOLVED;
+        return payments.findById(paymentId).getStatus()==PaymentStatus.SUCCEEDED
+                ?ProviderCheckResult.CONFIRMED_SUCCESS:ProviderCheckResult.CONFIRMED_FAILURE;
+    }
+    private void check(String id,ProviderCheckSource source,ProviderCheckResult result,Map<String,String> fields,boolean verified,String requestId) {
+        check(id,source,result,fields,verified,requestId,null);
+    }
+    private void check(String id,ProviderCheckSource source,ProviderCheckResult result,Map<String,String> fields,boolean verified,String requestId,RuntimeException failure) {
+        var transport=failure instanceof fit.iuh.engolearn.payment.exception.VnpayTransportException typed?typed:null;
+        work.recordPaymentCheck(id,fit.iuh.engolearn.payment.model.vo.ProviderCheckVo.builder().source(source).result(result)
+                .checkedAt(now()).requestId(bounded(requestId,32)).responseCode(bounded(fields.get("vnp_ResponseCode"),8))
+                .transactionStatus(bounded(fields.get("vnp_TransactionStatus"),8)).signatureVerified(verified)
+                .message(bounded(fields.get("vnp_Message"),200)).transportFailure(transport==null?null:transport.getFailure())
+                .httpStatus(transport==null?null:transport.getHttpStatus())
+                .causeType(transport!=null?transport.getCauseType():failure==null?null:failure.getClass().getSimpleName()).build());
+    }
+    private String bounded(String value,int limit) {
+        if (value==null) return null;
+        String safe=value.replace(settings.getHashSecret(),"[redacted]").replaceAll("[\\p{Cntrl}]"," ");
+        return safe.substring(0,Math.min(safe.length(),limit));
     }
     private VnpayIpnResponse ack(String code,String message) {return new VnpayIpnResponse(code,message);}
     private Instant now() {return Instant.ofEpochMilli(clock.millis());}

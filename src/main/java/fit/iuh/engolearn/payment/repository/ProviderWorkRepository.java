@@ -7,4 +7,5 @@ public interface ProviderWorkRepository {
     void releasePayment(PaymentTransaction claim, Instant nextCheck);
     void releaseRefund(RefundTransaction claim, Instant nextCheck);
     PaymentTransaction findPayment(String providerReference);
+    void recordPaymentCheck(String paymentId, fit.iuh.engolearn.payment.model.vo.ProviderCheckVo check);
 }

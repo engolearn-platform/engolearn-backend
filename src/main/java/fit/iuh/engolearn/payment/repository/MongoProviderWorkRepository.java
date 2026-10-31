@@ -39,4 +39,8 @@ public class MongoProviderWorkRepository implements ProviderWorkRepository {
     public PaymentTransaction findPayment(String ref) {
         return mongo.findOne(Query.query(Criteria.where("provider").is("VNPAY").and("provider_reference").is(ref)),PaymentTransaction.class);
     }
+    public void recordPaymentCheck(String paymentId,fit.iuh.engolearn.payment.model.vo.ProviderCheckVo check) {
+        mongo.updateFirst(Query.query(Criteria.where("_id").is(paymentId).and("provider").is("VNPAY")),
+                new Update().set("provider_last_check",check).inc("provider_check_count",1L),PaymentTransaction.class);
+    }
 }
