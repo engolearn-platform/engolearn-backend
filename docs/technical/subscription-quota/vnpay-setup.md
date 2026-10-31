@@ -36,6 +36,8 @@ The current tunnel policy exposes only IPN: it will deny /api/payment/vnpay/retu
 
 ## Verify the connection
 
+For local frontend testing, use http://localhost:3000/subscription. The dev profile appends localhost:3000 and 127.0.0.1:3000 to the configured CORS origins, retaining a configured Vercel origin. Production continues to use the explicit CORS_ALLOWED_ORIGINS allow-list. A browser POST returning plain-text 403 "Invalid CORS request" is an origin/configuration rejection, not a created or failed payment.
+
 1. Start/restart BE on 8080. GET http://localhost:8080/api/payment/vnpay/ipn needs no login and returns raw JSON with RspCode and Message. While disabled it returns RspCode 99 and "VNPay is disabled". With enabled settings, an unsigned request returns RspCode 97. These are reachability checks, not payment confirmations.
 2. Point the HTTPS tunnel to localhost:8080 and register its exact IPN URL with VNPay. Check the public URL returns the same raw provider JSON, without a tunnel login/interstitial or redirect. POST is not the implemented IPN method.
 3. After merchant settings are ready, enable VNPay and its worker, then use the existing authenticated POST /api/v1/subscription/me/purchases with a new UUID Idempotency-Key. Poll the owner detail route until checkoutUrl is available; open that URL. The backend captures request.getRemoteAddr for the provider client IP and pins checkout metadata. Forwarded headers are not accepted as client identity without trusted-proxy setup.
