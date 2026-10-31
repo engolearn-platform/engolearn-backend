@@ -1,0 +1,12 @@
+{
+  "metadata": { "name": "generic-development-sample", "version": 1 },
+  "collections": {
+    "sample_users": [
+      { "_id": "sample-user-001", "name": "Alice", "role": "developer", "active": true },
+      { "_id": "sample-user-002", "name": "Bob", "role": "reviewer", "active": true }
+    ],
+    "sample_projects": [
+      { "_id": "sample-project-001", "name": "Demo project", "owner_id": "sample-user-001", "status": "active" }
+    ]
+  }
+}
