@@ -97,13 +97,6 @@ Write-Host "Policy   : $policy"
 Write-Host "Batch    : $batchSize"
 Write-Host "Files    : $($resolvedFiles.Count)"
 foreach ($filePath in $resolvedFiles) { Write-Host "  - $($filePath.Substring($repoRoot.Length).TrimStart('\', '/'))" }
-if ($DryRun) { Write-Host 'Mode     : DRY RUN (read-only)' -ForegroundColor Yellow }
-else { Write-Host 'Mode     : IMPORT' -ForegroundColor Yellow }
-
-if (-not $DryRun -and $requireConfirmation) {
-    $confirmation = Read-Host 'Review the settings above. Type IMPORT to continue'
-    if ($confirmation -cne 'IMPORT') { Write-Host 'Cancelled. No data was written.' -ForegroundColor Yellow; return }
-}
 
 $environmentNames = @('MONGO_IMPORT_URI','MONGO_IMPORT_DATABASE','MONGO_IMPORT_FILES_JSON','MONGO_IMPORT_CONFLICT_POLICY','MONGO_IMPORT_BATCH_SIZE','MONGO_IMPORT_CONTINUE_ON_ERROR','MONGO_IMPORT_APPLY')
 $oldEnvironment = @{}
@@ -116,8 +109,7 @@ try {
     $env:MONGO_IMPORT_CONFLICT_POLICY = $policy
     $env:MONGO_IMPORT_BATCH_SIZE = [string]$batchSize
     $env:MONGO_IMPORT_CONTINUE_ON_ERROR = ([string]$continueOnError).ToLowerInvariant()
-    if ($DryRun) { Remove-Item Env:MONGO_IMPORT_APPLY -ErrorAction SilentlyContinue }
-    else { $env:MONGO_IMPORT_APPLY = '1' }
+    Remove-Item Env:MONGO_IMPORT_APPLY -ErrorAction SilentlyContinue
 
     Push-Location $repoRoot
     try {
@@ -135,17 +127,43 @@ try {
         if ([string]::IsNullOrWhiteSpace($networkName)) { throw 'Could not determine MongoDB Docker network.' }
 
         $mount = "type=bind,source=$repoRoot,target=/workspace,readonly"
-        $dockerArgs = @(
-            'run','--rm','--network',$networkName,
-            '--mount',$mount,'--workdir','/workspace',
-            '-e','MONGO_IMPORT_URI','-e','MONGO_IMPORT_DATABASE','-e','MONGO_IMPORT_FILES_JSON',
-            '-e','MONGO_IMPORT_CONFLICT_POLICY','-e','MONGO_IMPORT_BATCH_SIZE',
-            '-e','MONGO_IMPORT_CONTINUE_ON_ERROR','-e','MONGO_IMPORT_APPLY',
-            'mongo:8.0.29-noble','mongosh','--nodb','--file',
-            '/workspace/tools/mongo-json-importer/importer.mongosh.js'
-        )
-        & docker @dockerArgs
-        if ($LASTEXITCODE -ne 0) { throw 'Importer failed. Review the reported MongoDB error before retrying.' }
+        function Invoke-Importer([bool]$ApplyMode) {
+            if ($ApplyMode) { $env:MONGO_IMPORT_APPLY = '1' }
+            else { Remove-Item Env:MONGO_IMPORT_APPLY -ErrorAction SilentlyContinue }
+
+            $dockerArgs = @(
+                'run','--rm','--network',$networkName,
+                '--mount',$mount,'--workdir','/workspace',
+                '-e','MONGO_IMPORT_URI','-e','MONGO_IMPORT_DATABASE','-e','MONGO_IMPORT_FILES_JSON',
+                '-e','MONGO_IMPORT_CONFLICT_POLICY','-e','MONGO_IMPORT_BATCH_SIZE',
+                '-e','MONGO_IMPORT_CONTINUE_ON_ERROR','-e','MONGO_IMPORT_APPLY',
+                'mongo:8.0.29-noble','mongosh','--nodb','--file',
+                '/workspace/tools/mongo-json-importer/importer.mongosh.js'
+            )
+            & docker @dockerArgs
+            if ($LASTEXITCODE -ne 0) { throw 'Importer preflight or write failed. Review the MongoDB report above.' }
+        }
+
+        Write-Host ''
+        Write-Host 'Step 1/2 - Read-only preflight for every input file...' -ForegroundColor Cyan
+        Invoke-Importer $false
+        if ($DryRun) {
+            Write-Host 'Dry-run complete. No data was written.' -ForegroundColor Yellow
+            return
+        }
+
+        if ($requireConfirmation) {
+            $confirmation = Read-Host 'Review the preflight report. Type IMPORT to write these documents'
+            if ($confirmation -cne 'IMPORT') {
+                Write-Host 'Cancelled. No data was written.' -ForegroundColor Yellow
+                return
+            }
+        }
+
+        Write-Host ''
+        Write-Host 'Step 2/2 - Applying the import...' -ForegroundColor Cyan
+        Invoke-Importer $true
+        Write-Host 'Import completed. Review the write report above.' -ForegroundColor Green
     } finally { Pop-Location }
 } finally {
     foreach ($name in $environmentNames) {
