@@ -1,0 +1,4205 @@
+{
+  "meta": {
+    "pack_id": "engolearn-a1-shopping-deep-v3",
+    "purpose": "One story-driven A1 topic (5 items) rewritten for depth. Same collections/fields as all-cefr-topic-samples-v2.json.",
+    "created_at": "2026-10-31T10:00:00.000Z",
+    "cefr_levels": [
+      "A1"
+    ],
+    "media_status": "LOCAL_PREVIEW_ONLY",
+    "media_blockers": [
+      "Audio fields are null (no project-hosted audio assets)."
+    ],
+    "model_compatibility": "Root _id fields are 24-char hex; references remain strings, as in v2."
+  },
+  "collections": {
+    "topics": [
+      {
+        "_id": "6a7500000000000000000001",
+        "latest_published_version": "6a7500000000000000000002",
+        "latest_beta_version": null,
+        "title_en": "Shopping Trip: When Things Don't Go to Plan",
+        "title_vi": "Đi mua sắm: khi mọi thứ không như kế hoạch",
+        "description": "Follow one shopping trip in a new city: find items, ask about prices, try on clothes, pay and solve small problems politely. Đi theo một chuyến mua sắm ở thành phố mới: tìm đồ, hỏi giá, thử đồ, thanh toán và xử lý những rắc rối nhỏ một cách lịch sự.",
+        "cefr_level": "A1",
+        "category": "DAILY",
+        "order_index": 100,
+        "duration_minutes": 40,
+        "cover_url": null,
+        "tags": [
+          "sample-data",
+          "a1",
+          "shopping",
+          "story-driven",
+          "depth-v3"
+        ],
+        "created_at": "2026-10-31T10:00:00.000Z",
+        "updated_at": "2026-10-31T10:00:00.000Z"
+      }
+    ],
+    "topic_versions": [
+      {
+        "_id": "6a7500000000000000000002",
+        "topic_id": "6a7500000000000000000001",
+        "version": 1,
+        "previous_version_id": null,
+        "status": "PUBLISHED",
+        "item_version_ids": [
+          "6a7500000000000000000020",
+          "6a7500000000000000000021",
+          "6a7500000000000000000022",
+          "6a7500000000000000000023",
+          "6a7500000000000000000024"
+        ],
+        "published_at": "2026-10-31T10:00:00.000Z",
+        "created_at": "2026-10-31T10:00:00.000Z",
+        "updated_at": "2026-10-31T10:00:00.000Z"
+      }
+    ],
+    "topic_items": [
+      {
+        "_id": "6a7500000000000000000010",
+        "topic_id": "6a7500000000000000000001",
+        "created_at": "2026-10-31T10:00:00.000Z",
+        "updated_at": "2026-10-31T10:00:00.000Z"
+      },
+      {
+        "_id": "6a7500000000000000000011",
+        "topic_id": "6a7500000000000000000001",
+        "created_at": "2026-10-31T10:00:00.000Z",
+        "updated_at": "2026-10-31T10:00:00.000Z"
+      },
+      {
+        "_id": "6a7500000000000000000012",
+        "topic_id": "6a7500000000000000000001",
+        "created_at": "2026-10-31T10:00:00.000Z",
+        "updated_at": "2026-10-31T10:00:00.000Z"
+      },
+      {
+        "_id": "6a7500000000000000000013",
+        "topic_id": "6a7500000000000000000001",
+        "created_at": "2026-10-31T10:00:00.000Z",
+        "updated_at": "2026-10-31T10:00:00.000Z"
+      },
+      {
+        "_id": "6a7500000000000000000014",
+        "topic_id": "6a7500000000000000000001",
+        "created_at": "2026-10-31T10:00:00.000Z",
+        "updated_at": "2026-10-31T10:00:00.000Z"
+      }
+    ],
+    "topic_item_versions": [
+      {
+        "_id": "6a7500000000000000000020",
+        "topic_item_id": "6a7500000000000000000010",
+        "topic_id": "6a7500000000000000000001",
+        "topic_version_id": "6a7500000000000000000002",
+        "version": 1,
+        "change_type": "MAJOR",
+        "previous_item_version_id": null,
+        "title": "It's Not on the Shelf",
+        "description": "Món bạn cần mua đã hết hàng. Học cách hỏi vị trí, hỏi phương án khác và xử lý khi nghe không kịp.",
+        "order": 1,
+        "status": "PUBLISHED",
+        "duration_minutes": 8,
+        "context": {
+          "prompt": "Bạn cần mua pin nhưng không biết ở đâu. Bạn sẽ hỏi nhân viên thế nào?",
+          "scenario_description": "Chiều thứ Bảy, bạn mới chuyển đến thành phố mới và cần mua pin cho chiếc đồng hồ treo tường. Siêu thị khá đông, và loại pin nhỏ bạn cần lại hết hàng.",
+          "dialogue": [
+            {
+              "speaker": "Partner",
+              "text_en": "Hi there. Are you looking for something?",
+              "text_vi": "Xin chào. Bạn đang tìm gì à?",
+              "audio_url": null
+            },
+            {
+              "speaker": "Learner",
+              "text_en": "Yes. I'm looking for batteries.",
+              "text_vi": "Vâng. Tôi đang tìm pin.",
+              "audio_url": null
+            },
+            {
+              "speaker": "Partner",
+              "text_en": "Batteries are in aisle five, next to the lights.",
+              "text_vi": "Pin ở dãy số năm, cạnh các loại đèn.",
+              "audio_url": null
+            },
+            {
+              "speaker": "Learner",
+              "text_en": "Thank you. ... Excuse me, I can't find the small ones.",
+              "text_vi": "Cảm ơn bạn. ... Xin lỗi, tôi không tìm thấy loại nhỏ.",
+              "audio_url": null
+            },
+            {
+              "speaker": "Partner",
+              "text_en": "Ah, the small ones are out of stock today. We have big batteries instead.",
+              "text_vi": "À, loại nhỏ hôm nay hết hàng. Bên mình có pin lớn thay vào đó.",
+              "audio_url": null
+            },
+            {
+              "speaker": "Learner",
+              "text_en": "Hmm, I need small ones. Is there another shop near here?",
+              "text_vi": "Ừm, tôi cần loại nhỏ. Gần đây có cửa hàng nào khác không?",
+              "audio_url": null
+            },
+            {
+              "speaker": "Partner",
+              "text_en": "Yes, the shop on the corner has them. It's five minutes from here.",
+              "text_vi": "Có, cửa hàng ở góc phố có loại đó. Cách đây năm phút.",
+              "audio_url": null
+            },
+            {
+              "speaker": "Learner",
+              "text_en": "Sorry, can you say that again, please?",
+              "text_vi": "Xin lỗi, bạn nói lại được không?",
+              "audio_url": null
+            },
+            {
+              "speaker": "Partner",
+              "text_en": "The shop on the corner. Five minutes, that way.",
+              "text_vi": "Cửa hàng ở góc phố. Năm phút, đi hướng đó.",
+              "audio_url": null
+            },
+            {
+              "speaker": "Learner",
+              "text_en": "Great. Thank you for your help!",
+              "text_vi": "Tuyệt. Cảm ơn bạn đã giúp!",
+              "audio_url": null
+            }
+          ],
+          "duration_sec": 480,
+          "tips": "Người Việt hay nói “Where I can find…?” theo trật tự câu tiếng Việt. Trong tiếng Anh, trợ động từ đứng trước chủ ngữ: “Where can I find…?”."
+        },
+        "vocabularies": [
+          {
+            "vocab_id": "a1s-01-vocab-01-aisle",
+            "sense_id": "a1s-01-sense-01-v1",
+            "snapshot": {
+              "word": "aisle",
+              "pos": "noun",
+              "sense": "A long walkway between shelves in a shop.",
+              "describe_vi": "dãy hàng (lối đi giữa các kệ)",
+              "phonetic": "/aɪl/",
+              "audio_url": null,
+              "audio_en_url": null,
+              "audio_us_url": null
+            },
+            "samples": [
+              {
+                "text_en": "The batteries are in aisle five.",
+                "text_vi": "Pin ở dãy số năm.",
+                "audio_url": null,
+                "is_manual": true
+              },
+              {
+                "text_en": "Which aisle is the milk in?",
+                "text_vi": "Sữa ở dãy nào?",
+                "audio_url": null,
+                "is_manual": true
+              }
+            ],
+            "collocations": [
+              {
+                "text": "in aisle two",
+                "example": {
+                  "en": "Rice is in aisle two, next to the noodles.",
+                  "vi": "Gạo ở dãy hai, cạnh mì."
+                },
+                "description_vi": "ở dãy số… (dùng giới từ “in”, số đặt sau aisle)"
+              }
+            ],
+            "quick_check": {
+              "sentence": {
+                "text_en": "Rice is in ___ two.",
+                "meaning_vi": "Gạo ở dãy hai.",
+                "audio_url": null
+              },
+              "quiz_data": {
+                "question": "Rice is in ___ two.",
+                "options": [
+                  "aisle",
+                  "shelf",
+                  "floor"
+                ]
+              },
+              "answer_data": {
+                "answer": "aisle",
+                "correct_answer": "aisle"
+              },
+              "explanation": "“aisle” là lối đi giữa các kệ: “in aisle two”. “shelf” là cái kệ (đi với “on”), còn “floor” là tầng."
+            },
+            "order_index": 1,
+            "tips": "Chữ “s” không đọc: aisle /aɪl/ đọc giống “I’ll”. Khi chỉ vị trí dùng “in aisle + số”."
+          },
+          {
+            "vocab_id": "a1s-01-vocab-02-out-of-stock",
+            "sense_id": "a1s-01-sense-02-v1",
+            "snapshot": {
+              "word": "out of stock",
+              "pos": "phrase",
+              "sense": "Not available in the shop right now.",
+              "describe_vi": "hết hàng",
+              "phonetic": "/ˌaʊt əv ˈstɒk/",
+              "audio_url": null,
+              "audio_en_url": null,
+              "audio_us_url": null
+            },
+            "samples": [
+              {
+                "text_en": "Sorry, this size is out of stock.",
+                "text_vi": "Xin lỗi, cỡ này hết hàng.",
+                "audio_url": null,
+                "is_manual": true
+              },
+              {
+                "text_en": "Milk is out of stock today.",
+                "text_vi": "Hôm nay hết sữa.",
+                "audio_url": null,
+                "is_manual": true
+              }
+            ],
+            "collocations": [
+              {
+                "text": "in stock",
+                "example": {
+                  "en": "Do you have this in stock?",
+                  "vi": "Món này bên bạn còn hàng không?"
+                },
+                "description_vi": "còn hàng (trái nghĩa với out of stock)"
+              }
+            ],
+            "quick_check": {
+              "sentence": {
+                "text_en": "I want blue shoes, but they are ___ of stock.",
+                "meaning_vi": "Tôi muốn giày xanh, nhưng chúng hết hàng.",
+                "audio_url": null
+              },
+              "quiz_data": {
+                "question": "I want blue shoes, but they are ___ of stock.",
+                "options": [
+                  "out",
+                  "no",
+                  "not"
+                ]
+              },
+              "answer_data": {
+                "answer": "out",
+                "correct_answer": "out"
+              },
+              "explanation": "“out of stock” là cụm cố định, nghĩa là hết hàng. Không thay “out” bằng “no” hay “not”."
+            },
+            "order_index": 2,
+            "tips": "Trái nghĩa là “in stock” (còn hàng). Đừng nói “out of goods”."
+          },
+          {
+            "vocab_id": "a1s-01-vocab-03-instead",
+            "sense_id": "a1s-01-sense-03-v1",
+            "snapshot": {
+              "word": "instead",
+              "pos": "adverb",
+              "sense": "In place of something else.",
+              "describe_vi": "thay vào đó; thay vì",
+              "phonetic": "/ɪnˈsted/",
+              "audio_url": null,
+              "audio_en_url": null,
+              "audio_us_url": null
+            },
+            "samples": [
+              {
+                "text_en": "We have big batteries instead.",
+                "text_vi": "Bên mình có pin lớn thay vào đó.",
+                "audio_url": null,
+                "is_manual": true
+              },
+              {
+                "text_en": "I don't want milk. Can I have juice instead?",
+                "text_vi": "Tôi không muốn sữa. Cho tôi nước ép thay vào nhé?",
+                "audio_url": null,
+                "is_manual": true
+              }
+            ],
+            "collocations": [
+              {
+                "text": "instead of",
+                "example": {
+                  "en": "I buy rice instead of bread.",
+                  "vi": "Tôi mua gạo thay vì bánh mì."
+                },
+                "description_vi": "thay vì + danh từ"
+              }
+            ],
+            "quick_check": {
+              "sentence": {
+                "text_en": "I'll buy noodles ___ of rice.",
+                "meaning_vi": "Tôi sẽ mua mì thay vì gạo.",
+                "audio_url": null
+              },
+              "quiz_data": {
+                "question": "I'll buy noodles ___ of rice.",
+                "options": [
+                  "instead",
+                  "in",
+                  "out"
+                ]
+              },
+              "answer_data": {
+                "answer": "instead",
+                "correct_answer": "instead"
+              },
+              "explanation": "“instead of + danh từ” nghĩa là thay vì. “in of” và “out of” là cụm khác."
+            },
+            "order_index": 3,
+            "tips": "Đứng cuối câu: “…instead”, hoặc “instead of + danh từ” (thay vì …)."
+          },
+          {
+            "vocab_id": "a1s-01-vocab-04-look-for",
+            "sense_id": "a1s-01-sense-04-v1",
+            "snapshot": {
+              "word": "look for",
+              "pos": "phrasal verb",
+              "sense": "To try to find someone or something.",
+              "describe_vi": "tìm kiếm",
+              "phonetic": "/ˈlʊk fɔː/",
+              "audio_url": null,
+              "audio_en_url": null,
+              "audio_us_url": null
+            },
+            "samples": [
+              {
+                "text_en": "I'm looking for the bus stop.",
+                "text_vi": "Tôi đang tìm trạm xe buýt.",
+                "audio_url": null,
+                "is_manual": true
+              },
+              {
+                "text_en": "Are you looking for a pen?",
+                "text_vi": "Bạn đang tìm một cây bút à?",
+                "audio_url": null,
+                "is_manual": true
+              }
+            ],
+            "collocations": [
+              {
+                "text": "look for something",
+                "example": {
+                  "en": "She is looking for her keys.",
+                  "vi": "Cô ấy đang tìm chìa khóa."
+                },
+                "description_vi": "tìm cái gì / ai"
+              }
+            ],
+            "quick_check": {
+              "sentence": {
+                "text_en": "Excuse me, I'm looking ___ the bread.",
+                "meaning_vi": "Xin lỗi, tôi đang tìm bánh mì.",
+                "audio_url": null
+              },
+              "quiz_data": {
+                "question": "Excuse me, I'm looking ___ the bread.",
+                "options": [
+                  "for",
+                  "at",
+                  "on"
+                ]
+              },
+              "answer_data": {
+                "answer": "for",
+                "correct_answer": "for"
+              },
+              "explanation": "“look for” là đi tìm. “look at” chỉ là nhìn vào, không phải tìm."
+            },
+            "order_index": 4,
+            "tips": "Khi nghĩa là đi tìm thì “look” luôn đi với “for”. Không nói “look the batteries”."
+          }
+        ],
+        "expressions": [
+          {
+            "purposes": [
+              {
+                "purpose_en": "Ask where something is",
+                "purpose_vi": "Hỏi món đồ ở đâu",
+                "order_index": 1,
+                "examples": [
+                  {
+                    "type": "BASIC_SUGGESTION",
+                    "text_en": "Where are the batteries?",
+                    "text_vi": "Pin ở đâu vậy?",
+                    "usage_note": "Ngắn gọn, ổn với nhân viên đang rảnh. Nhớ “are” cho danh từ số nhiều (batteries), “is” cho số ít.",
+                    "audio_url": null,
+                    "linked_vocab_ids": [
+                      "a1s-01-vocab-01-aisle"
+                    ]
+                  },
+                  {
+                    "type": "POLITE_INQUIRY",
+                    "text_en": "Excuse me, where can I find the batteries?",
+                    "text_vi": "Xin lỗi, tôi có thể tìm pin ở đâu?",
+                    "usage_note": "Dùng khi mở lời với người lạ. “Excuse me” giúp gọi sự chú ý trước khi hỏi, đừng bỏ qua.",
+                    "audio_url": null,
+                    "linked_vocab_ids": [
+                      "a1s-01-vocab-01-aisle"
+                    ]
+                  },
+                  {
+                    "type": "PLACEHOLDER",
+                    "text_en": "I'm looking for ___.",
+                    "text_vi": "Tôi đang tìm ___.",
+                    "usage_note": "Điền tên món đồ. Hợp khi bạn chưa biết nó nằm ở đâu, nhân viên thường sẽ dẫn bạn tới nơi.",
+                    "audio_url": null,
+                    "linked_vocab_ids": [
+                      "a1s-01-vocab-04-look-for"
+                    ]
+                  }
+                ]
+              }
+            ],
+            "tips": "Mở đầu bằng “Excuse me” rồi mới hỏi. Người bán sẽ thấy bạn lịch sự và dễ giúp hơn."
+          },
+          {
+            "purposes": [
+              {
+                "purpose_en": "When it is not there",
+                "purpose_vi": "Khi món đồ không có hoặc bạn nghe không kịp",
+                "order_index": 1,
+                "examples": [
+                  {
+                    "type": "BASIC_SUGGESTION",
+                    "text_en": "Do you have something else?",
+                    "text_vi": "Bạn có món nào khác không?",
+                    "usage_note": "Hỏi phương án thay thế khi món bạn cần hết hàng. Không nghe như phàn nàn.",
+                    "audio_url": null,
+                    "linked_vocab_ids": [
+                      "a1s-01-vocab-03-instead"
+                    ]
+                  },
+                  {
+                    "type": "POLITE_INQUIRY",
+                    "text_en": "Sorry, can you say that again, please?",
+                    "text_vi": "Xin lỗi, bạn nói lại được không?",
+                    "usage_note": "Dùng khi chưa nghe kịp. Tránh chỉ nói “What?”, nghe rất cộc.",
+                    "audio_url": null,
+                    "linked_vocab_ids": []
+                  },
+                  {
+                    "type": "BASIC_SUGGESTION",
+                    "text_en": "Is there another shop near here?",
+                    "text_vi": "Gần đây có cửa hàng nào khác không?",
+                    "usage_note": "Hỏi chỗ khác khi cửa hàng này hết hàng. “near here” = gần đây.",
+                    "audio_url": null,
+                    "linked_vocab_ids": [
+                      "a1s-01-vocab-02-out-of-stock"
+                    ]
+                  }
+                ]
+              }
+            ],
+            "tips": "Nghe không rõ thì hỏi lại ngay là bình thường. Bắt đầu bằng “Sorry” để câu nghe mềm hơn."
+          }
+        ],
+        "quizzes": [
+          {
+            "quiz_id": "a1s-01-fill-blank",
+            "quiz_type": "FILL_BLANK",
+            "title": "Complete the sentences: It's Not on the Shelf",
+            "instructions": "Choose the word that best completes each sentence.",
+            "order_index": 1,
+            "questions": [
+              {
+                "prompt": "Excuse me, where can I ___ the batteries?",
+                "audio_url": null,
+                "options": [
+                  {
+                    "label": "A",
+                    "text_en": "look",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "B",
+                    "text_en": "find",
+                    "is_correct": true
+                  },
+                  {
+                    "label": "C",
+                    "text_en": "search",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "D",
+                    "text_en": "see",
+                    "is_correct": false
+                  }
+                ],
+                "correct": "B",
+                "explanation_ok": "“find” nghĩa là tìm thấy; “where can I find…?” là khung cố định để hỏi vị trí.",
+                "explanation_ng": "“look” cần đi với “for”, còn “see” chỉ là nhìn thấy, không phải đi tìm.",
+                "sentence": {
+                  "text_en": "Excuse me, where can I find the batteries?",
+                  "meaning_vi": "Xin lỗi, tôi có thể tìm pin ở đâu?",
+                  "audio_url": null,
+                  "audio_url_slow": null
+                },
+                "quiz_data": {
+                  "question_type": "FILL_BLANK",
+                  "word_bank": [
+                    "look",
+                    "find",
+                    "search",
+                    "see"
+                  ],
+                  "blank_count": 1
+                },
+                "answer_data": {
+                  "answer": "find",
+                  "correct_answer": "find",
+                  "correct_option": "B"
+                },
+                "explanation": "“find” nghĩa là tìm thấy; “where can I find…?” là khung cố định để hỏi vị trí. “look” cần đi với “for”, còn “see” chỉ là nhìn thấy, không phải đi tìm.",
+                "tips": "Tiếng Việt chỉ có “tìm”, nhưng tiếng Anh tách “look for” (đang tìm) và “find” (tìm thấy)."
+              },
+              {
+                "prompt": "I'm ___ for small batteries.",
+                "audio_url": null,
+                "options": [
+                  {
+                    "label": "A",
+                    "text_en": "finding",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "B",
+                    "text_en": "seeing",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "C",
+                    "text_en": "looking",
+                    "is_correct": true
+                  },
+                  {
+                    "label": "D",
+                    "text_en": "watching",
+                    "is_correct": false
+                  }
+                ],
+                "correct": "C",
+                "explanation_ok": "“looking for” là đang đi tìm, dùng được khi bạn chưa biết món đó ở đâu.",
+                "explanation_ng": "“finding”, “seeing” và “watching” không đi với “for” theo nghĩa này.",
+                "sentence": {
+                  "text_en": "I'm looking for small batteries.",
+                  "meaning_vi": "Tôi đang tìm pin nhỏ.",
+                  "audio_url": null,
+                  "audio_url_slow": null
+                },
+                "quiz_data": {
+                  "question_type": "FILL_BLANK",
+                  "word_bank": [
+                    "finding",
+                    "seeing",
+                    "looking",
+                    "watching"
+                  ],
+                  "blank_count": 1
+                },
+                "answer_data": {
+                  "answer": "looking",
+                  "correct_answer": "looking",
+                  "correct_option": "C"
+                },
+                "explanation": "“looking for” là đang đi tìm, dùng được khi bạn chưa biết món đó ở đâu. “finding”, “seeing” và “watching” không đi với “for” theo nghĩa này.",
+                "tips": "Nhớ cả cụm: look + for."
+              },
+              {
+                "prompt": "Sorry, the small ones are out of ___ today.",
+                "audio_url": null,
+                "options": [
+                  {
+                    "label": "A",
+                    "text_en": "shop",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "B",
+                    "text_en": "store",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "C",
+                    "text_en": "sale",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "D",
+                    "text_en": "stock",
+                    "is_correct": true
+                  }
+                ],
+                "correct": "D",
+                "explanation_ok": "“out of stock” là cụm cố định, nghĩa là hết hàng.",
+                "explanation_ng": "“out of shop/store” chỉ là ra khỏi cửa hàng, còn “out of sale” không phải cách nói hết hàng.",
+                "sentence": {
+                  "text_en": "Sorry, the small ones are out of stock today.",
+                  "meaning_vi": "Xin lỗi, loại nhỏ hôm nay hết hàng.",
+                  "audio_url": null,
+                  "audio_url_slow": null
+                },
+                "quiz_data": {
+                  "question_type": "FILL_BLANK",
+                  "word_bank": [
+                    "shop",
+                    "store",
+                    "sale",
+                    "stock"
+                  ],
+                  "blank_count": 1
+                },
+                "answer_data": {
+                  "answer": "stock",
+                  "correct_answer": "stock",
+                  "correct_option": "D"
+                },
+                "explanation": "“out of stock” là cụm cố định, nghĩa là hết hàng. “out of shop/store” chỉ là ra khỏi cửa hàng, còn “out of sale” không phải cách nói hết hàng.",
+                "tips": "Người bán thường nói câu này; bạn cần nghe hiểu."
+              },
+              {
+                "prompt": "I don't want the red ones. Do you have blue ones ___?",
+                "audio_url": null,
+                "options": [
+                  {
+                    "label": "A",
+                    "text_en": "instead",
+                    "is_correct": true
+                  },
+                  {
+                    "label": "B",
+                    "text_en": "also",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "C",
+                    "text_en": "again",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "D",
+                    "text_en": "too",
+                    "is_correct": false
+                  }
+                ],
+                "correct": "A",
+                "explanation_ok": "“instead” đứng cuối câu, nghĩa là thay vào đó, hợp với “I don't want…”.",
+                "explanation_ng": "“also” và “too” là cũng, còn “again” là lần nữa.",
+                "sentence": {
+                  "text_en": "I don't want the red ones. Do you have blue ones instead?",
+                  "meaning_vi": "Tôi không muốn loại đỏ. Bạn có loại xanh thay vào đó không?",
+                  "audio_url": null,
+                  "audio_url_slow": null
+                },
+                "quiz_data": {
+                  "question_type": "FILL_BLANK",
+                  "word_bank": [
+                    "instead",
+                    "also",
+                    "again",
+                    "too"
+                  ],
+                  "blank_count": 1
+                },
+                "answer_data": {
+                  "answer": "instead",
+                  "correct_answer": "instead",
+                  "correct_option": "A"
+                },
+                "explanation": "“instead” đứng cuối câu, nghĩa là thay vào đó, hợp với “I don't want…”. “also” và “too” là cũng, còn “again” là lần nữa.",
+                "tips": "“instead” = thay thế, không phải “cũng”."
+              }
+            ]
+          },
+          {
+            "quiz_id": "a1s-01-situation",
+            "quiz_type": "SITUATIONAL_CHOICE",
+            "title": "Respond in context: It's Not on the Shelf",
+            "instructions": "Choose the most appropriate response for the situation.",
+            "order_index": 2,
+            "questions": [
+              {
+                "prompt": "Bạn nói gì?",
+                "audio_url": null,
+                "options": [
+                  {
+                    "label": "A",
+                    "text_en": "Hey! Batteries!",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "B",
+                    "text_en": "Where I can find batteries?",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "C",
+                    "text_en": "Excuse me, where can I find the batteries?",
+                    "is_correct": true
+                  },
+                  {
+                    "label": "D",
+                    "text_en": "I want batteries.",
+                    "is_correct": false
+                  }
+                ],
+                "correct": "C",
+                "explanation_ok": "Mở lời bằng “Excuse me” rồi hỏi đủ câu: where + can + I + find.",
+                "explanation_ng": "“Hey! Batteries!” quá cộc, “I want batteries.” không phải câu hỏi, còn “Where I can find…” sai trật tự trợ động từ.",
+                "sentence": {
+                  "text_en": "Excuse me, where can I find the batteries?",
+                  "meaning_vi": "Xin lỗi, tôi có thể tìm pin ở đâu?",
+                  "audio_url": null,
+                  "audio_url_slow": null
+                },
+                "quiz_data": {
+                  "question_type": "SITUATIONAL_CHOICE"
+                },
+                "answer_data": {
+                  "answer": "Excuse me, where can I find the batteries?",
+                  "correct_answer": "Excuse me, where can I find the batteries?",
+                  "correct_option": "C"
+                },
+                "explanation": "Mở lời bằng “Excuse me” rồi hỏi đủ câu: where + can + I + find. “Hey! Batteries!” quá cộc, “I want batteries.” không phải câu hỏi, còn “Where I can find…” sai trật tự trợ động từ.",
+                "tips": "Câu hỏi tiếng Anh đưa trợ động từ lên trước chủ ngữ.",
+                "scenario_vi": "Bạn vào siêu thị, thấy một nhân viên đang xếp hàng lên kệ và muốn hỏi pin ở đâu."
+              },
+              {
+                "prompt": "Bạn đáp thế nào?",
+                "audio_url": null,
+                "options": [
+                  {
+                    "label": "A",
+                    "text_en": "Out of stock? No!",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "B",
+                    "text_en": "Where is the stock?",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "C",
+                    "text_en": "I don't care.",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "D",
+                    "text_en": "Do you have something else?",
+                    "is_correct": true
+                  }
+                ],
+                "correct": "D",
+                "explanation_ok": "Câu này hỏi trực tiếp về phương án thay thế và nghe tự nhiên, thân thiện.",
+                "explanation_ng": "“Where is the stock?” hiểu sai “stock” là một nơi chốn, còn hai câu kia nghe như gắt gỏng hoặc bỏ mặc.",
+                "sentence": {
+                  "text_en": "Do you have something else?",
+                  "meaning_vi": "Bạn có món nào khác không?",
+                  "audio_url": null,
+                  "audio_url_slow": null
+                },
+                "quiz_data": {
+                  "question_type": "SITUATIONAL_CHOICE"
+                },
+                "answer_data": {
+                  "answer": "Do you have something else?",
+                  "correct_answer": "Do you have something else?",
+                  "correct_option": "D"
+                },
+                "explanation": "Câu này hỏi trực tiếp về phương án thay thế và nghe tự nhiên, thân thiện. “Where is the stock?” hiểu sai “stock” là một nơi chốn, còn hai câu kia nghe như gắt gỏng hoặc bỏ mặc.",
+                "tips": "“out of stock” là cả cụm, không tách “stock” ra thành nơi chốn.",
+                "scenario_vi": "Nhân viên nói: “Sorry, the small ones are out of stock.” Bạn muốn hỏi xem có loại khác không."
+              },
+              {
+                "prompt": "Bạn nhờ họ nói lại thế nào?",
+                "audio_url": null,
+                "options": [
+                  {
+                    "label": "A",
+                    "text_en": "Sorry, can you say that again, please?",
+                    "is_correct": true
+                  },
+                  {
+                    "label": "B",
+                    "text_en": "What?",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "C",
+                    "text_en": "Again!",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "D",
+                    "text_en": "I don't understand you.",
+                    "is_correct": false
+                  }
+                ],
+                "correct": "A",
+                "explanation_ok": "“Sorry” và “please” làm câu nhờ nói lại nghe lịch sự mà vẫn rõ ý.",
+                "explanation_ng": "“What?” và “Again!” nghe rất cộc, còn “I don't understand you.” nghe như đang trách người nói.",
+                "sentence": {
+                  "text_en": "Sorry, can you say that again, please?",
+                  "meaning_vi": "Xin lỗi, bạn nói lại được không?",
+                  "audio_url": null,
+                  "audio_url_slow": null
+                },
+                "quiz_data": {
+                  "question_type": "SITUATIONAL_CHOICE"
+                },
+                "answer_data": {
+                  "answer": "Sorry, can you say that again, please?",
+                  "correct_answer": "Sorry, can you say that again, please?",
+                  "correct_option": "A"
+                },
+                "explanation": "“Sorry” và “please” làm câu nhờ nói lại nghe lịch sự mà vẫn rõ ý. “What?” và “Again!” nghe rất cộc, còn “I don't understand you.” nghe như đang trách người nói.",
+                "tips": "Nhờ nói lại không có gì đáng ngại, miễn là mở đầu lịch sự.",
+                "scenario_vi": "Nhân viên chỉ đường rất nhanh và bạn chưa nghe kịp."
+              },
+              {
+                "prompt": "Bạn hỏi gì?",
+                "audio_url": null,
+                "options": [
+                  {
+                    "label": "A",
+                    "text_en": "You have another shop?",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "B",
+                    "text_en": "Go to another shop.",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "C",
+                    "text_en": "Is there another shop near here?",
+                    "is_correct": true
+                  },
+                  {
+                    "label": "D",
+                    "text_en": "Where is another shop?",
+                    "is_correct": false
+                  }
+                ],
+                "correct": "C",
+                "explanation_ok": "“Is there… near here?” là cách hỏi tự nhiên để biết có nơi nào gần đó.",
+                "explanation_ng": "“You have another shop?” là câu hỏi kiểu tiếng Việt, “Go to another shop.” là mệnh lệnh, còn “Where is another shop?” quá chung chung.",
+                "sentence": {
+                  "text_en": "Is there another shop near here?",
+                  "meaning_vi": "Gần đây có cửa hàng nào khác không?",
+                  "audio_url": null,
+                  "audio_url_slow": null
+                },
+                "quiz_data": {
+                  "question_type": "SITUATIONAL_CHOICE"
+                },
+                "answer_data": {
+                  "answer": "Is there another shop near here?",
+                  "correct_answer": "Is there another shop near here?",
+                  "correct_option": "C"
+                },
+                "explanation": "“Is there… near here?” là cách hỏi tự nhiên để biết có nơi nào gần đó. “You have another shop?” là câu hỏi kiểu tiếng Việt, “Go to another shop.” là mệnh lệnh, còn “Where is another shop?” quá chung chung.",
+                "tips": "“Is there + danh từ + near here?” dùng cho mọi loại địa điểm.",
+                "scenario_vi": "Cửa hàng hết loại pin bạn cần. Bạn muốn hỏi xem gần đây còn nơi nào bán không."
+              }
+            ]
+          }
+        ],
+        "created_at": "2026-10-31T10:00:00.000Z",
+        "updated_at": "2026-10-31T10:00:00.000Z",
+        "published_at": "2026-10-31T10:00:00.000Z"
+      },
+      {
+        "_id": "6a7500000000000000000021",
+        "topic_item_id": "6a7500000000000000000011",
+        "topic_id": "6a7500000000000000000001",
+        "topic_version_id": "6a7500000000000000000002",
+        "version": 1,
+        "change_type": "MAJOR",
+        "previous_item_version_id": null,
+        "title": "Is This on Sale?",
+        "description": "Giá trên bảng khác với giá nhân viên nói. Học cách hỏi giá, xác nhận lại một cách lịch sự và so sánh.",
+        "order": 2,
+        "status": "PUBLISHED",
+        "duration_minutes": 8,
+        "context": {
+          "prompt": "Hai bảng giá cho cùng một loại táo khác nhau. Bạn hỏi thế nào?",
+          "scenario_description": "Bạn đứng trước quầy trái cây. Bảng giá ghi 2 đô nhưng nhân viên nói 3 đô, và bạn không chắc mình sẽ phải trả bao nhiêu.",
+          "dialogue": [
+            {
+              "speaker": "Learner",
+              "text_en": "Excuse me, how much are these apples?",
+              "text_vi": "Xin lỗi, những quả táo này giá bao nhiêu?",
+              "audio_url": null
+            },
+            {
+              "speaker": "Partner",
+              "text_en": "The red ones are three dollars per kilo.",
+              "text_vi": "Táo đỏ ba đô một ký.",
+              "audio_url": null
+            },
+            {
+              "speaker": "Learner",
+              "text_en": "The sign says two dollars. Is that right?",
+              "text_vi": "Bảng ghi hai đô. Vậy có đúng không?",
+              "audio_url": null
+            },
+            {
+              "speaker": "Partner",
+              "text_en": "Oh, that price is for the green apples. They are on sale today.",
+              "text_vi": "À, giá đó là của táo xanh. Hôm nay chúng đang giảm giá.",
+              "audio_url": null
+            },
+            {
+              "speaker": "Learner",
+              "text_en": "I see. So the green ones are cheaper.",
+              "text_vi": "Tôi hiểu rồi. Vậy táo xanh rẻ hơn.",
+              "audio_url": null
+            },
+            {
+              "speaker": "Partner",
+              "text_en": "Yes, two dollars per kilo. They are sweet, too.",
+              "text_vi": "Đúng, hai đô một ký. Chúng cũng ngọt nữa.",
+              "audio_url": null
+            },
+            {
+              "speaker": "Learner",
+              "text_en": "Great. I'd like one kilo of the green ones, please.",
+              "text_vi": "Tuyệt. Cho tôi một ký táo xanh nhé.",
+              "audio_url": null
+            },
+            {
+              "speaker": "Partner",
+              "text_en": "Sure. One kilo. Anything else?",
+              "text_vi": "Được. Một ký. Bạn cần gì nữa không?",
+              "audio_url": null
+            },
+            {
+              "speaker": "Learner",
+              "text_en": "No, that's all. Thank you.",
+              "text_vi": "Không, vậy là đủ. Cảm ơn bạn.",
+              "audio_url": null
+            }
+          ],
+          "duration_sec": 480,
+          "tips": "Giá tiếng Anh thường đi kèm đơn vị: “three dollars per kilo” là 3 đô cho mỗi ký, không phải cho cả túi."
+        },
+        "vocabularies": [
+          {
+            "vocab_id": "a1s-02-vocab-01-price",
+            "sense_id": "a1s-02-sense-01-v1",
+            "snapshot": {
+              "word": "price",
+              "pos": "noun",
+              "sense": "The amount of money you pay for something.",
+              "describe_vi": "giá",
+              "phonetic": "/praɪs/",
+              "audio_url": null,
+              "audio_en_url": null,
+              "audio_us_url": null
+            },
+            "samples": [
+              {
+                "text_en": "The price is too high.",
+                "text_vi": "Giá cao quá.",
+                "audio_url": null,
+                "is_manual": true
+              },
+              {
+                "text_en": "What is the price of this bag?",
+                "text_vi": "Cái túi này giá bao nhiêu?",
+                "audio_url": null,
+                "is_manual": true
+              }
+            ],
+            "collocations": [
+              {
+                "text": "low prices",
+                "example": {
+                  "en": "The market has low prices.",
+                  "vi": "Chợ có giá thấp."
+                },
+                "description_vi": "giá thấp (trái nghĩa: high prices)"
+              }
+            ],
+            "quick_check": {
+              "sentence": {
+                "text_en": "What is the ___ of this bag?",
+                "meaning_vi": "Cái túi này giá bao nhiêu?",
+                "audio_url": null
+              },
+              "quiz_data": {
+                "question": "What is the ___ of this bag?",
+                "options": [
+                  "price",
+                  "pay",
+                  "money"
+                ]
+              },
+              "answer_data": {
+                "answer": "price",
+                "correct_answer": "price"
+              },
+              "explanation": "“the price of + món đồ” là giá của món đồ. “pay” là động từ trả tiền, còn “money of” không dùng."
+            },
+            "order_index": 1,
+            "tips": "Hỏi giá thường dùng “How much is it?”. “What is the price?” cũng đúng nhưng nghe trang trọng hơn."
+          },
+          {
+            "vocab_id": "a1s-02-vocab-02-on-sale",
+            "sense_id": "a1s-02-sense-02-v1",
+            "snapshot": {
+              "word": "on sale",
+              "pos": "phrase",
+              "sense": "Sold at a lower price than usual.",
+              "describe_vi": "đang giảm giá",
+              "phonetic": "/ɒn ˈseɪl/",
+              "audio_url": null,
+              "audio_en_url": null,
+              "audio_us_url": null
+            },
+            "samples": [
+              {
+                "text_en": "These shoes are on sale today.",
+                "text_vi": "Giày này hôm nay giảm giá.",
+                "audio_url": null,
+                "is_manual": true
+              },
+              {
+                "text_en": "Is the milk on sale?",
+                "text_vi": "Sữa có đang giảm giá không?",
+                "audio_url": null,
+                "is_manual": true
+              }
+            ],
+            "collocations": [
+              {
+                "text": "on sale today",
+                "example": {
+                  "en": "Bananas are on sale today.",
+                  "vi": "Hôm nay chuối giảm giá."
+                },
+                "description_vi": "giảm giá trong hôm nay"
+              }
+            ],
+            "quick_check": {
+              "sentence": {
+                "text_en": "The sign says half price. It's ___ sale.",
+                "meaning_vi": "Bảng ghi nửa giá. Nó đang giảm giá.",
+                "audio_url": null
+              },
+              "quiz_data": {
+                "question": "The sign says half price. It's ___ sale.",
+                "options": [
+                  "on",
+                  "for",
+                  "at"
+                ]
+              },
+              "answer_data": {
+                "answer": "on",
+                "correct_answer": "on"
+              },
+              "explanation": "“on sale” là đang giảm giá. “for sale” lại là đang được rao bán."
+            },
+            "order_index": 2,
+            "tips": "Cẩn thận: “for sale” là đang được rao bán, không phải giảm giá."
+          },
+          {
+            "vocab_id": "a1s-02-vocab-03-cheaper",
+            "sense_id": "a1s-02-sense-03-v1",
+            "snapshot": {
+              "word": "cheaper",
+              "pos": "adjective",
+              "sense": "Costing less money than something else.",
+              "describe_vi": "rẻ hơn",
+              "phonetic": "/ˈtʃiːpə/",
+              "audio_url": null,
+              "audio_en_url": null,
+              "audio_us_url": null
+            },
+            "samples": [
+              {
+                "text_en": "This bag is cheaper than that one.",
+                "text_vi": "Cái túi này rẻ hơn cái kia.",
+                "audio_url": null,
+                "is_manual": true
+              },
+              {
+                "text_en": "Is there a cheaper one?",
+                "text_vi": "Có cái nào rẻ hơn không?",
+                "audio_url": null,
+                "is_manual": true
+              }
+            ],
+            "collocations": [
+              {
+                "text": "much cheaper",
+                "example": {
+                  "en": "The market is much cheaper.",
+                  "vi": "Chợ rẻ hơn nhiều."
+                },
+                "description_vi": "rẻ hơn rất nhiều (much đứng trước cheaper)"
+              }
+            ],
+            "quick_check": {
+              "sentence": {
+                "text_en": "Red apples cost $3. Green apples cost $2. Green apples are ___.",
+                "meaning_vi": "Táo đỏ giá 3 đô. Táo xanh giá 2 đô. Táo xanh rẻ hơn.",
+                "audio_url": null
+              },
+              "quiz_data": {
+                "question": "Red apples cost $3. Green apples cost $2. Green apples are ___.",
+                "options": [
+                  "cheaper",
+                  "cheapest",
+                  "more cheap"
+                ]
+              },
+              "answer_data": {
+                "answer": "cheaper",
+                "correct_answer": "cheaper"
+              },
+              "explanation": "So sánh hơn của cheap là “cheaper”. Không nói “more cheap”, còn “cheapest” dùng khi so từ ba thứ trở lên."
+            },
+            "order_index": 3,
+            "tips": "So sánh hơn của cheap. Dùng “than” để nói rẻ hơn cái gì: cheaper than…"
+          },
+          {
+            "vocab_id": "a1s-02-vocab-04-per-kilo",
+            "sense_id": "a1s-02-sense-04-v1",
+            "snapshot": {
+              "word": "per kilo",
+              "pos": "phrase",
+              "sense": "For each kilogram.",
+              "describe_vi": "mỗi ký, trên mỗi ký",
+              "phonetic": "/pə ˈkiːləʊ/",
+              "audio_url": null,
+              "audio_en_url": null,
+              "audio_us_url": null
+            },
+            "samples": [
+              {
+                "text_en": "Rice is two dollars per kilo.",
+                "text_vi": "Gạo giá hai đô một ký.",
+                "audio_url": null,
+                "is_manual": true
+              },
+              {
+                "text_en": "How much is it per kilo?",
+                "text_vi": "Giá bao nhiêu một ký?",
+                "audio_url": null,
+                "is_manual": true
+              }
+            ],
+            "collocations": [
+              {
+                "text": "four dollars per kilo",
+                "example": {
+                  "en": "Mangoes are four dollars per kilo.",
+                  "vi": "Xoài giá bốn đô một ký."
+                },
+                "description_vi": "giá + per kilo (tính theo cân)"
+              }
+            ],
+            "quick_check": {
+              "sentence": {
+                "text_en": "Oranges are two dollars ___ kilo.",
+                "meaning_vi": "Cam giá hai đô một ký.",
+                "audio_url": null
+              },
+              "quiz_data": {
+                "question": "Oranges are two dollars ___ kilo.",
+                "options": [
+                  "per",
+                  "for",
+                  "in"
+                ]
+              },
+              "answer_data": {
+                "answer": "per",
+                "correct_answer": "per"
+              },
+              "explanation": "“per” nghĩa là mỗi, nên “per kilo” là mỗi ký."
+            },
+            "order_index": 4,
+            "tips": "“per” = mỗi. “two dollars per kilo” khác với “two dollars for one bag”. Ở Mỹ hay dùng “per pound”."
+          }
+        ],
+        "expressions": [
+          {
+            "purposes": [
+              {
+                "purpose_en": "Ask about the price",
+                "purpose_vi": "Hỏi giá",
+                "order_index": 1,
+                "examples": [
+                  {
+                    "type": "BASIC_SUGGESTION",
+                    "text_en": "How much is this?",
+                    "text_vi": "Cái này giá bao nhiêu?",
+                    "usage_note": "Dùng cho một món. Nhiều món thì đổi thành “How much are these?”.",
+                    "audio_url": null,
+                    "linked_vocab_ids": [
+                      "a1s-02-vocab-01-price"
+                    ]
+                  },
+                  {
+                    "type": "POLITE_INQUIRY",
+                    "text_en": "Excuse me, how much are these apples?",
+                    "text_vi": "Xin lỗi, những quả táo này giá bao nhiêu?",
+                    "usage_note": "Khi hỏi nhân viên, thêm “Excuse me” và nói rõ món. Số nhiều đi với “are”.",
+                    "audio_url": null,
+                    "linked_vocab_ids": [
+                      "a1s-02-vocab-01-price"
+                    ]
+                  },
+                  {
+                    "type": "PLACEHOLDER",
+                    "text_en": "How much is ___ per kilo?",
+                    "text_vi": "___ giá bao nhiêu một ký?",
+                    "usage_note": "Điền tên món bán theo cân, ví dụ “the rice”. Chỉ dùng cho hàng tính theo ký.",
+                    "audio_url": null,
+                    "linked_vocab_ids": [
+                      "a1s-02-vocab-04-per-kilo"
+                    ]
+                  }
+                ]
+              }
+            ],
+            "tips": "“How much” + is/are tùy số ít hay số nhiều: “How much is this?” nhưng “How much are these?”."
+          },
+          {
+            "purposes": [
+              {
+                "purpose_en": "Check and compare",
+                "purpose_vi": "Xác nhận giá và so sánh",
+                "order_index": 1,
+                "examples": [
+                  {
+                    "type": "BASIC_SUGGESTION",
+                    "text_en": "The sign says two dollars. Is that right?",
+                    "text_vi": "Bảng ghi hai đô. Vậy có đúng không?",
+                    "usage_note": "Dùng để hỏi lại khi giá trên bảng khác giá bạn nghe. Nghe lịch sự vì bạn không buộc lỗi cho ai.",
+                    "audio_url": null,
+                    "linked_vocab_ids": [
+                      "a1s-02-vocab-01-price"
+                    ]
+                  },
+                  {
+                    "type": "POLITE_INQUIRY",
+                    "text_en": "Is there a cheaper one?",
+                    "text_vi": "Có cái nào rẻ hơn không?",
+                    "usage_note": "Hỏi khi món bạn xem hơi đắt. Hỏi thế này không làm người bán mất lòng.",
+                    "audio_url": null,
+                    "linked_vocab_ids": [
+                      "a1s-02-vocab-03-cheaper"
+                    ]
+                  },
+                  {
+                    "type": "PLACEHOLDER",
+                    "text_en": "I'd like one kilo of ___, please.",
+                    "text_vi": "Cho tôi một ký ___.",
+                    "usage_note": "Điền tên món. “I'd like” lịch sự hơn “I want”. Khi mua nhiều, đổi “one” thành “two”.",
+                    "audio_url": null,
+                    "linked_vocab_ids": [
+                      "a1s-02-vocab-04-per-kilo"
+                    ]
+                  }
+                ]
+              }
+            ],
+            "tips": "Khi hai giá khác nhau, hỏi lại bằng giọng tò mò. Đừng nói như bắt lỗi người bán."
+          }
+        ],
+        "quizzes": [
+          {
+            "quiz_id": "a1s-02-fill-blank",
+            "quiz_type": "FILL_BLANK",
+            "title": "Complete the sentences: Is This on Sale?",
+            "instructions": "Choose the word that best completes each sentence.",
+            "order_index": 1,
+            "questions": [
+              {
+                "prompt": "How much ___ these apples?",
+                "audio_url": null,
+                "options": [
+                  {
+                    "label": "A",
+                    "text_en": "is",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "B",
+                    "text_en": "are",
+                    "is_correct": true
+                  },
+                  {
+                    "label": "C",
+                    "text_en": "do",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "D",
+                    "text_en": "have",
+                    "is_correct": false
+                  }
+                ],
+                "correct": "B",
+                "explanation_ok": "“these apples” là số nhiều nên dùng “are”: “How much are these apples?”.",
+                "explanation_ng": "“is” dành cho một món. “do” và “have” không đúng khuôn câu hỏi giá này.",
+                "sentence": {
+                  "text_en": "How much are these apples?",
+                  "meaning_vi": "Những quả táo này giá bao nhiêu?",
+                  "audio_url": null,
+                  "audio_url_slow": null
+                },
+                "quiz_data": {
+                  "question_type": "FILL_BLANK",
+                  "word_bank": [
+                    "is",
+                    "are",
+                    "do",
+                    "have"
+                  ],
+                  "blank_count": 1
+                },
+                "answer_data": {
+                  "answer": "are",
+                  "correct_answer": "are",
+                  "correct_option": "B"
+                },
+                "explanation": "“these apples” là số nhiều nên dùng “are”: “How much are these apples?”. “is” dành cho một món. “do” và “have” không đúng khuôn câu hỏi giá này.",
+                "tips": "Số nhiều đi với are, số ít đi với is."
+              },
+              {
+                "prompt": "The green apples are on ___ today.",
+                "audio_url": null,
+                "options": [
+                  {
+                    "label": "A",
+                    "text_en": "price",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "B",
+                    "text_en": "shop",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "C",
+                    "text_en": "sale",
+                    "is_correct": true
+                  },
+                  {
+                    "label": "D",
+                    "text_en": "cheap",
+                    "is_correct": false
+                  }
+                ],
+                "correct": "C",
+                "explanation_ok": "“on sale” là đang giảm giá.",
+                "explanation_ng": "“on price”, “on shop” và “on cheap” không phải cách nói đúng.",
+                "sentence": {
+                  "text_en": "The green apples are on sale today.",
+                  "meaning_vi": "Hôm nay táo xanh đang giảm giá.",
+                  "audio_url": null,
+                  "audio_url_slow": null
+                },
+                "quiz_data": {
+                  "question_type": "FILL_BLANK",
+                  "word_bank": [
+                    "price",
+                    "shop",
+                    "sale",
+                    "cheap"
+                  ],
+                  "blank_count": 1
+                },
+                "answer_data": {
+                  "answer": "sale",
+                  "correct_answer": "sale",
+                  "correct_option": "C"
+                },
+                "explanation": "“on sale” là đang giảm giá. “on price”, “on shop” và “on cheap” không phải cách nói đúng.",
+                "tips": "Nhớ cả cụm: on sale."
+              },
+              {
+                "prompt": "Green apples are ___ than red apples.",
+                "audio_url": null,
+                "options": [
+                  {
+                    "label": "A",
+                    "text_en": "cheap",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "B",
+                    "text_en": "cheapest",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "C",
+                    "text_en": "more cheap",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "D",
+                    "text_en": "cheaper",
+                    "is_correct": true
+                  }
+                ],
+                "correct": "D",
+                "explanation_ok": "Có “than” nên cần dạng so sánh hơn: cheaper than.",
+                "explanation_ng": "“cheap” là dạng gốc, “cheapest” là so sánh nhất, còn “more cheap” không dùng với tính từ ngắn.",
+                "sentence": {
+                  "text_en": "Green apples are cheaper than red apples.",
+                  "meaning_vi": "Táo xanh rẻ hơn táo đỏ.",
+                  "audio_url": null,
+                  "audio_url_slow": null
+                },
+                "quiz_data": {
+                  "question_type": "FILL_BLANK",
+                  "word_bank": [
+                    "cheap",
+                    "cheapest",
+                    "more cheap",
+                    "cheaper"
+                  ],
+                  "blank_count": 1
+                },
+                "answer_data": {
+                  "answer": "cheaper",
+                  "correct_answer": "cheaper",
+                  "correct_option": "D"
+                },
+                "explanation": "Có “than” nên cần dạng so sánh hơn: cheaper than. “cheap” là dạng gốc, “cheapest” là so sánh nhất, còn “more cheap” không dùng với tính từ ngắn.",
+                "tips": "Tính từ ngắn thêm -er: cheap → cheaper."
+              },
+              {
+                "prompt": "Mangoes are four dollars ___ kilo.",
+                "audio_url": null,
+                "options": [
+                  {
+                    "label": "A",
+                    "text_en": "per",
+                    "is_correct": true
+                  },
+                  {
+                    "label": "B",
+                    "text_en": "for",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "C",
+                    "text_en": "in",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "D",
+                    "text_en": "on",
+                    "is_correct": false
+                  }
+                ],
+                "correct": "A",
+                "explanation_ok": "“per kilo” nghĩa là mỗi ký, dùng để nói giá theo cân.",
+                "explanation_ng": "“for kilo”, “in kilo” và “on kilo” không phải cách nói giá theo cân.",
+                "sentence": {
+                  "text_en": "Mangoes are four dollars per kilo.",
+                  "meaning_vi": "Xoài giá bốn đô một ký.",
+                  "audio_url": null,
+                  "audio_url_slow": null
+                },
+                "quiz_data": {
+                  "question_type": "FILL_BLANK",
+                  "word_bank": [
+                    "per",
+                    "for",
+                    "in",
+                    "on"
+                  ],
+                  "blank_count": 1
+                },
+                "answer_data": {
+                  "answer": "per",
+                  "correct_answer": "per",
+                  "correct_option": "A"
+                },
+                "explanation": "“per kilo” nghĩa là mỗi ký, dùng để nói giá theo cân. “for kilo”, “in kilo” và “on kilo” không phải cách nói giá theo cân.",
+                "tips": "per = mỗi."
+              }
+            ]
+          },
+          {
+            "quiz_id": "a1s-02-situation",
+            "quiz_type": "SITUATIONAL_CHOICE",
+            "title": "Respond in context: Is This on Sale?",
+            "instructions": "Choose the most appropriate response for the situation.",
+            "order_index": 2,
+            "questions": [
+              {
+                "prompt": "Bạn nói gì?",
+                "audio_url": null,
+                "options": [
+                  {
+                    "label": "A",
+                    "text_en": "How much apples?",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "B",
+                    "text_en": "Excuse me, how much are these apples?",
+                    "is_correct": true
+                  },
+                  {
+                    "label": "C",
+                    "text_en": "Apples, how much?",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "D",
+                    "text_en": "I want to know the price of apple.",
+                    "is_correct": false
+                  }
+                ],
+                "correct": "B",
+                "explanation_ok": "Câu đủ động từ “are” và có “Excuse me” nên rõ ràng, lịch sự.",
+                "explanation_ng": "“How much apples?” và “Apples, how much?” thiếu động từ (dịch từ tiếng Việt), còn câu cuối nghe cứng và sai số nhiều.",
+                "sentence": {
+                  "text_en": "Excuse me, how much are these apples?",
+                  "meaning_vi": "Xin lỗi, những quả táo này giá bao nhiêu?",
+                  "audio_url": null,
+                  "audio_url_slow": null
+                },
+                "quiz_data": {
+                  "question_type": "SITUATIONAL_CHOICE"
+                },
+                "answer_data": {
+                  "answer": "Excuse me, how much are these apples?",
+                  "correct_answer": "Excuse me, how much are these apples?",
+                  "correct_option": "B"
+                },
+                "explanation": "Câu đủ động từ “are” và có “Excuse me” nên rõ ràng, lịch sự. “How much apples?” và “Apples, how much?” thiếu động từ (dịch từ tiếng Việt), còn câu cuối nghe cứng và sai số nhiều.",
+                "tips": "Hỏi giá = How much + is/are + món đồ?",
+                "scenario_vi": "Bạn muốn hỏi giá một túi táo với nhân viên bán hàng."
+              },
+              {
+                "prompt": "Bạn hỏi thế nào?",
+                "audio_url": null,
+                "options": [
+                  {
+                    "label": "A",
+                    "text_en": "You are wrong.",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "B",
+                    "text_en": "Your sign is bad.",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "C",
+                    "text_en": "Why two dollars? I don't understand.",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "D",
+                    "text_en": "The sign says two dollars. Is that right?",
+                    "is_correct": true
+                  }
+                ],
+                "correct": "D",
+                "explanation_ok": "Bạn nêu điều mình thấy rồi hỏi “Is that right?”, người bán dễ giải thích hơn.",
+                "explanation_ng": "“You are wrong.” và “Your sign is bad.” nghe như bắt lỗi, còn câu “Why two dollars?” nghe như đang thắc mắc nhưng không rõ muốn hỏi gì.",
+                "sentence": {
+                  "text_en": "The sign says two dollars. Is that right?",
+                  "meaning_vi": "Bảng ghi hai đô. Vậy có đúng không?",
+                  "audio_url": null,
+                  "audio_url_slow": null
+                },
+                "quiz_data": {
+                  "question_type": "SITUATIONAL_CHOICE"
+                },
+                "answer_data": {
+                  "answer": "The sign says two dollars. Is that right?",
+                  "correct_answer": "The sign says two dollars. Is that right?",
+                  "correct_option": "D"
+                },
+                "explanation": "Bạn nêu điều mình thấy rồi hỏi “Is that right?”, người bán dễ giải thích hơn. “You are wrong.” và “Your sign is bad.” nghe như bắt lỗi, còn câu “Why two dollars?” nghe như đang thắc mắc nhưng không rõ muốn hỏi gì.",
+                "tips": "Hỏi lại bằng giọng tò mò thay vì khẳng định người khác sai.",
+                "scenario_vi": "Bảng ghi 2 đô nhưng nhân viên nói 3 đô. Bạn muốn hỏi lại mà không làm họ khó chịu."
+              },
+              {
+                "prompt": "Bạn nói gì?",
+                "audio_url": null,
+                "options": [
+                  {
+                    "label": "A",
+                    "text_en": "I'd like one kilo of the green ones, please.",
+                    "is_correct": true
+                  },
+                  {
+                    "label": "B",
+                    "text_en": "Give me green.",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "C",
+                    "text_en": "I want one kilo apples green.",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "D",
+                    "text_en": "One kilo green, now.",
+                    "is_correct": false
+                  }
+                ],
+                "correct": "A",
+                "explanation_ok": "“I'd like… please” lịch sự và có đủ số lượng, loại táo và đơn vị.",
+                "explanation_ng": "“Give me green.” và “One kilo green, now.” nghe như ra lệnh, còn “apples green” đặt tính từ sau danh từ theo thói quen tiếng Việt.",
+                "sentence": {
+                  "text_en": "I'd like one kilo of the green ones, please.",
+                  "meaning_vi": "Cho tôi một ký táo xanh nhé.",
+                  "audio_url": null,
+                  "audio_url_slow": null
+                },
+                "quiz_data": {
+                  "question_type": "SITUATIONAL_CHOICE"
+                },
+                "answer_data": {
+                  "answer": "I'd like one kilo of the green ones, please.",
+                  "correct_answer": "I'd like one kilo of the green ones, please.",
+                  "correct_option": "A"
+                },
+                "explanation": "“I'd like… please” lịch sự và có đủ số lượng, loại táo và đơn vị. “Give me green.” và “One kilo green, now.” nghe như ra lệnh, còn “apples green” đặt tính từ sau danh từ theo thói quen tiếng Việt.",
+                "tips": "Tính từ đứng trước danh từ trong tiếng Anh: green apples.",
+                "scenario_vi": "Táo đỏ giá 3 đô, táo xanh giá 2 đô. Bạn muốn mua 1 ký táo xanh."
+              },
+              {
+                "prompt": "Bạn nói gì?",
+                "audio_url": null,
+                "options": [
+                  {
+                    "label": "A",
+                    "text_en": "Make it cheap.",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "B",
+                    "text_en": "You have cheap?",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "C",
+                    "text_en": "Is there a cheaper one?",
+                    "is_correct": true
+                  },
+                  {
+                    "label": "D",
+                    "text_en": "This is too expensive.",
+                    "is_correct": false
+                  }
+                ],
+                "correct": "C",
+                "explanation_ok": "Đây là câu hỏi trực tiếp về lựa chọn rẻ hơn nên người bán biết phải giúp gì.",
+                "explanation_ng": "“Make it cheap.” là mệnh lệnh, “You have cheap?” thiếu cấu trúc, còn “This is too expensive.” chỉ là nhận xét, không hỏi thêm gì.",
+                "sentence": {
+                  "text_en": "Is there a cheaper one?",
+                  "meaning_vi": "Có cái nào rẻ hơn không?",
+                  "audio_url": null,
+                  "audio_url_slow": null
+                },
+                "quiz_data": {
+                  "question_type": "SITUATIONAL_CHOICE"
+                },
+                "answer_data": {
+                  "answer": "Is there a cheaper one?",
+                  "correct_answer": "Is there a cheaper one?",
+                  "correct_option": "C"
+                },
+                "explanation": "Đây là câu hỏi trực tiếp về lựa chọn rẻ hơn nên người bán biết phải giúp gì. “Make it cheap.” là mệnh lệnh, “You have cheap?” thiếu cấu trúc, còn “This is too expensive.” chỉ là nhận xét, không hỏi thêm gì.",
+                "tips": "Hỏi thẳng bằng “Is there a…?” để nhận được lựa chọn.",
+                "scenario_vi": "Chiếc túi bạn xem khá đắt. Bạn muốn hỏi xem có cái nào rẻ hơn không."
+              }
+            ]
+          }
+        ],
+        "created_at": "2026-10-31T10:00:00.000Z",
+        "updated_at": "2026-10-31T10:00:00.000Z",
+        "published_at": "2026-10-31T10:00:00.000Z"
+      },
+      {
+        "_id": "6a7500000000000000000022",
+        "topic_item_id": "6a7500000000000000000012",
+        "topic_id": "6a7500000000000000000001",
+        "topic_version_id": "6a7500000000000000000002",
+        "version": 1,
+        "change_type": "MAJOR",
+        "previous_item_version_id": null,
+        "title": "Too Big, Too Small",
+        "description": "Bạn muốn thử áo khoác nhưng cỡ không vừa. Học cách xin thử đồ, nói về độ vừa vặn và hỏi cỡ hoặc màu khác.",
+        "order": 3,
+        "status": "PUBLISHED",
+        "duration_minutes": 8,
+        "context": {
+          "prompt": "Bạn muốn thử áo và hỏi cỡ khác. Bạn nói gì?",
+          "scenario_description": "Ở chợ cuối tuần, bạn thấy một chiếc áo khoác đẹp. Cỡ bạn thử bị nhỏ, và cỡ lớn hơn chỉ còn màu đỏ trong khi bạn thích màu xanh.",
+          "dialogue": [
+            {
+              "speaker": "Partner",
+              "text_en": "Hi. That jacket is new. Do you like it?",
+              "text_vi": "Chào bạn. Chiếc áo khoác đó mới về. Bạn có thích không?",
+              "audio_url": null
+            },
+            {
+              "speaker": "Learner",
+              "text_en": "Yes, it's nice. Can I try it on?",
+              "text_vi": "Vâng, đẹp lắm. Tôi mặc thử được không?",
+              "audio_url": null
+            },
+            {
+              "speaker": "Partner",
+              "text_en": "Of course. The fitting room is over there.",
+              "text_vi": "Tất nhiên. Phòng thử đồ ở đằng kia.",
+              "audio_url": null
+            },
+            {
+              "speaker": "Learner",
+              "text_en": "Sorry, it's too small. Do you have a bigger size?",
+              "text_vi": "Xin lỗi, nó nhỏ quá. Bạn có cỡ lớn hơn không?",
+              "audio_url": null
+            },
+            {
+              "speaker": "Partner",
+              "text_en": "Let me check. I have size L, but only in red.",
+              "text_vi": "Để tôi kiểm tra. Tôi có cỡ L, nhưng chỉ có màu đỏ.",
+              "audio_url": null
+            },
+            {
+              "speaker": "Learner",
+              "text_en": "Oh. I like blue. Do you have this in another color?",
+              "text_vi": "Ồ. Tôi thích màu xanh. Cái này có màu nào khác không?",
+              "audio_url": null
+            },
+            {
+              "speaker": "Partner",
+              "text_en": "Sorry, blue is out of stock. Do you want to try the red one?",
+              "text_vi": "Xin lỗi, màu xanh hết hàng. Bạn có muốn thử cái màu đỏ không?",
+              "audio_url": null
+            },
+            {
+              "speaker": "Learner",
+              "text_en": "OK. ... It fits! I'll take it.",
+              "text_vi": "Được. ... Vừa rồi! Tôi lấy cái này.",
+              "audio_url": null
+            },
+            {
+              "speaker": "Partner",
+              "text_en": "Great. Let's go to the checkout.",
+              "text_vi": "Tuyệt. Mình ra quầy tính tiền nhé.",
+              "audio_url": null
+            }
+          ],
+          "duration_sec": 480,
+          "tips": "“Too” đặt trước tính từ nghĩa là quá mức: too small = quá nhỏ (không dùng được). “very small” chỉ là rất nhỏ, chưa chắc là vấn đề."
+        },
+        "vocabularies": [
+          {
+            "vocab_id": "a1s-03-vocab-01-size",
+            "sense_id": "a1s-03-sense-01-v1",
+            "snapshot": {
+              "word": "size",
+              "pos": "noun",
+              "sense": "How big or small clothes or shoes are.",
+              "describe_vi": "cỡ, size",
+              "phonetic": "/saɪz/",
+              "audio_url": null,
+              "audio_en_url": null,
+              "audio_us_url": null
+            },
+            "samples": [
+              {
+                "text_en": "Do you have this in my size?",
+                "text_vi": "Cái này có cỡ của tôi không?",
+                "audio_url": null,
+                "is_manual": true
+              },
+              {
+                "text_en": "What size do you need?",
+                "text_vi": "Bạn cần cỡ nào?",
+                "audio_url": null,
+                "is_manual": true
+              }
+            ],
+            "collocations": [
+              {
+                "text": "size medium",
+                "example": {
+                  "en": "I wear size medium.",
+                  "vi": "Tôi mặc cỡ M."
+                },
+                "description_vi": "cỡ M (size + S/M/L)"
+              }
+            ],
+            "quick_check": {
+              "sentence": {
+                "text_en": "Do you have this in a bigger ___?",
+                "meaning_vi": "Cái này có cỡ lớn hơn không?",
+                "audio_url": null
+              },
+              "quiz_data": {
+                "question": "Do you have this in a bigger ___?",
+                "options": [
+                  "size",
+                  "number",
+                  "shape"
+                ]
+              },
+              "answer_data": {
+                "answer": "size",
+                "correct_answer": "size"
+              },
+              "explanation": "Cỡ quần áo là “size”. Không dùng “number” dù tiếng Việt hay nói “số”."
+            },
+            "order_index": 1,
+            "tips": "Quần áo hỏi “size”, không dùng “number” (dù tiếng Việt nói “số”). S/M/L là small/medium/large."
+          },
+          {
+            "vocab_id": "a1s-03-vocab-02-try-on",
+            "sense_id": "a1s-03-sense-02-v1",
+            "snapshot": {
+              "word": "try on",
+              "pos": "phrasal verb",
+              "sense": "To put on clothes to see if they fit.",
+              "describe_vi": "mặc thử",
+              "phonetic": "/ˈtraɪ ɒn/",
+              "audio_url": null,
+              "audio_en_url": null,
+              "audio_us_url": null
+            },
+            "samples": [
+              {
+                "text_en": "Can I try on this shirt?",
+                "text_vi": "Tôi mặc thử cái áo sơ mi này được không?",
+                "audio_url": null,
+                "is_manual": true
+              },
+              {
+                "text_en": "Please try it on.",
+                "text_vi": "Mời bạn mặc thử.",
+                "audio_url": null,
+                "is_manual": true
+              }
+            ],
+            "collocations": [
+              {
+                "text": "try on shoes",
+                "example": {
+                  "en": "She tries on three pairs of shoes.",
+                  "vi": "Cô ấy thử ba đôi giày."
+                },
+                "description_vi": "thử giày"
+              }
+            ],
+            "quick_check": {
+              "sentence": {
+                "text_en": "Can I ___ it on?",
+                "meaning_vi": "Tôi mặc thử được không?",
+                "audio_url": null
+              },
+              "quiz_data": {
+                "question": "Can I ___ it on?",
+                "options": [
+                  "try",
+                  "test",
+                  "wear"
+                ]
+              },
+              "answer_data": {
+                "answer": "try",
+                "correct_answer": "try"
+              },
+              "explanation": "“try on” nghĩa là mặc thử. “wear it on” không có nghĩa này."
+            },
+            "order_index": 2,
+            "tips": "Với đại từ phải nói “try it on”, không nói “try on it”. Với danh từ thì cả hai cách đều được."
+          },
+          {
+            "vocab_id": "a1s-03-vocab-03-fitting-room",
+            "sense_id": "a1s-03-sense-03-v1",
+            "snapshot": {
+              "word": "fitting room",
+              "pos": "noun",
+              "sense": "A small room in a shop where you try on clothes.",
+              "describe_vi": "phòng thử đồ",
+              "phonetic": "/ˈfɪtɪŋ ruːm/",
+              "audio_url": null,
+              "audio_en_url": null,
+              "audio_us_url": null
+            },
+            "samples": [
+              {
+                "text_en": "Where is the fitting room?",
+                "text_vi": "Phòng thử đồ ở đâu?",
+                "audio_url": null,
+                "is_manual": true
+              },
+              {
+                "text_en": "The fitting room is full.",
+                "text_vi": "Phòng thử đồ đang kín.",
+                "audio_url": null,
+                "is_manual": true
+              }
+            ],
+            "collocations": [
+              {
+                "text": "use the fitting room",
+                "example": {
+                  "en": "Can I use the fitting room, please?",
+                  "vi": "Tôi dùng phòng thử đồ được không?"
+                },
+                "description_vi": "xin dùng phòng thử đồ"
+              }
+            ],
+            "quick_check": {
+              "sentence": {
+                "text_en": "Where is the fitting ___?",
+                "meaning_vi": "Phòng thử đồ ở đâu?",
+                "audio_url": null
+              },
+              "quiz_data": {
+                "question": "Where is the fitting ___?",
+                "options": [
+                  "room",
+                  "house",
+                  "place"
+                ]
+              },
+              "answer_data": {
+                "answer": "room",
+                "correct_answer": "room"
+              },
+              "explanation": "Cụm cố định là “fitting room”."
+            },
+            "order_index": 3,
+            "tips": "Cũng nói “changing room” (Anh-Anh). Đừng nói “trying room”."
+          },
+          {
+            "vocab_id": "a1s-03-vocab-04-fit",
+            "sense_id": "a1s-03-sense-04-v1",
+            "snapshot": {
+              "word": "fit",
+              "pos": "verb",
+              "sense": "To be the right size for someone.",
+              "describe_vi": "vừa (về kích cỡ)",
+              "phonetic": "/fɪt/",
+              "audio_url": null,
+              "audio_en_url": null,
+              "audio_us_url": null
+            },
+            "samples": [
+              {
+                "text_en": "These shoes don't fit me.",
+                "text_vi": "Đôi giày này không vừa chân tôi.",
+                "audio_url": null,
+                "is_manual": true
+              },
+              {
+                "text_en": "Does it fit?",
+                "text_vi": "Nó có vừa không?",
+                "audio_url": null,
+                "is_manual": true
+              }
+            ],
+            "collocations": [
+              {
+                "text": "fit well",
+                "example": {
+                  "en": "The jacket fits well.",
+                  "vi": "Chiếc áo khoác vừa vặn."
+                },
+                "description_vi": "vừa vặn"
+              }
+            ],
+            "quick_check": {
+              "sentence": {
+                "text_en": "The shoes are too small. They don't ___.",
+                "meaning_vi": "Đôi giày quá nhỏ. Chúng không vừa.",
+                "audio_url": null
+              },
+              "quiz_data": {
+                "question": "The shoes are too small. They don't ___.",
+                "options": [
+                  "fit",
+                  "fix",
+                  "fill"
+                ]
+              },
+              "answer_data": {
+                "answer": "fit",
+                "correct_answer": "fit"
+              },
+              "explanation": "“fit” là vừa cỡ. “fix” là sửa, “fill” là làm đầy."
+            },
+            "order_index": 4,
+            "tips": "“fit” chỉ nói về kích cỡ. “suit” là hợp với bạn (kiểu dáng, màu). “It fits me” khác “It suits me”."
+          }
+        ],
+        "expressions": [
+          {
+            "purposes": [
+              {
+                "purpose_en": "Ask to try something",
+                "purpose_vi": "Xin thử đồ và hỏi cỡ, màu",
+                "order_index": 1,
+                "examples": [
+                  {
+                    "type": "BASIC_SUGGESTION",
+                    "text_en": "Can I try it on?",
+                    "text_vi": "Tôi mặc thử được không?",
+                    "usage_note": "Dùng cho một món đã chỉ vào. Nhiều món thì “Can I try them on?”. Đại từ đứng giữa try và on.",
+                    "audio_url": null,
+                    "linked_vocab_ids": [
+                      "a1s-03-vocab-02-try-on"
+                    ]
+                  },
+                  {
+                    "type": "POLITE_INQUIRY",
+                    "text_en": "Excuse me, could I try this jacket on, please?",
+                    "text_vi": "Xin lỗi, tôi mặc thử chiếc áo khoác này được không ạ?",
+                    "usage_note": "Lịch sự hơn “Can I”. Hợp với cửa hàng đắt hoặc khi hỏi người lạ. “this jacket” nằm giữa try và on.",
+                    "audio_url": null,
+                    "linked_vocab_ids": [
+                      "a1s-03-vocab-02-try-on"
+                    ]
+                  },
+                  {
+                    "type": "PLACEHOLDER",
+                    "text_en": "Do you have this in ___?",
+                    "text_vi": "Cái này có ___ không?",
+                    "usage_note": "Điền màu hoặc cỡ: “in blue”, “in size M”, “in another color”. Dùng khi đã thấy món đồ nhưng cỡ hoặc màu chưa đúng.",
+                    "audio_url": null,
+                    "linked_vocab_ids": [
+                      "a1s-03-vocab-01-size"
+                    ]
+                  }
+                ]
+              }
+            ],
+            "tips": "Mở đầu bằng “Excuse me” hoặc “Sorry” khi bạn cần nhân viên giúp, nhất là ở cửa hàng nhỏ."
+          },
+          {
+            "purposes": [
+              {
+                "purpose_en": "Say how it fits",
+                "purpose_vi": "Nói về độ vừa vặn",
+                "order_index": 1,
+                "examples": [
+                  {
+                    "type": "BASIC_SUGGESTION",
+                    "text_en": "It's too small.",
+                    "text_vi": "Nó nhỏ quá.",
+                    "usage_note": "Nói thẳng nhận xét. “too” đứng trước tính từ. Không nói “It's small too”, câu đó nghĩa là “nó cũng nhỏ”.",
+                    "audio_url": null,
+                    "linked_vocab_ids": [
+                      "a1s-03-vocab-04-fit"
+                    ]
+                  },
+                  {
+                    "type": "POLITE_INQUIRY",
+                    "text_en": "Sorry, do you have a bigger size, please?",
+                    "text_vi": "Xin lỗi, bạn có cỡ lớn hơn không ạ?",
+                    "usage_note": "“Sorry” mở đầu để câu không nghe như yêu cầu ra lệnh. Đổi “bigger” thành “smaller” khi áo rộng.",
+                    "audio_url": null,
+                    "linked_vocab_ids": [
+                      "a1s-03-vocab-01-size"
+                    ]
+                  },
+                  {
+                    "type": "BASIC_SUGGESTION",
+                    "text_en": "It fits! I'll take it.",
+                    "text_vi": "Vừa rồi! Tôi lấy cái này.",
+                    "usage_note": "Báo cho người bán biết bạn sẽ mua. “I'll take it” là cách nói quen thuộc khi chốt mua.",
+                    "audio_url": null,
+                    "linked_vocab_ids": [
+                      "a1s-03-vocab-04-fit"
+                    ]
+                  }
+                ]
+              }
+            ],
+            "tips": "Cỡ không vừa chỉ là chuyện của món đồ, không phải lỗi của cửa hàng. Nói thẳng và lịch sự là được."
+          }
+        ],
+        "quizzes": [
+          {
+            "quiz_id": "a1s-03-fill-blank",
+            "quiz_type": "FILL_BLANK",
+            "title": "Complete the sentences: Too Big, Too Small",
+            "instructions": "Choose the word that best completes each sentence.",
+            "order_index": 1,
+            "questions": [
+              {
+                "prompt": "Can I ___ it on?",
+                "audio_url": null,
+                "options": [
+                  {
+                    "label": "A",
+                    "text_en": "test",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "B",
+                    "text_en": "wear",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "C",
+                    "text_en": "try",
+                    "is_correct": true
+                  },
+                  {
+                    "label": "D",
+                    "text_en": "look",
+                    "is_correct": false
+                  }
+                ],
+                "correct": "C",
+                "explanation_ok": "“try on” là mặc thử; với đại từ ta nói “try it on”.",
+                "explanation_ng": "“test”, “wear” và “look” không đi với “it on” theo nghĩa mặc thử.",
+                "sentence": {
+                  "text_en": "Can I try it on?",
+                  "meaning_vi": "Tôi mặc thử được không?",
+                  "audio_url": null,
+                  "audio_url_slow": null
+                },
+                "quiz_data": {
+                  "question_type": "FILL_BLANK",
+                  "word_bank": [
+                    "test",
+                    "wear",
+                    "try",
+                    "look"
+                  ],
+                  "blank_count": 1
+                },
+                "answer_data": {
+                  "answer": "try",
+                  "correct_answer": "try",
+                  "correct_option": "C"
+                },
+                "explanation": "“try on” là mặc thử; với đại từ ta nói “try it on”. “test”, “wear” và “look” không đi với “it on” theo nghĩa mặc thử.",
+                "tips": "Nhớ cụm: try + it + on."
+              },
+              {
+                "prompt": "The fitting ___ is over there.",
+                "audio_url": null,
+                "options": [
+                  {
+                    "label": "A",
+                    "text_en": "house",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "B",
+                    "text_en": "place",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "C",
+                    "text_en": "door",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "D",
+                    "text_en": "room",
+                    "is_correct": true
+                  }
+                ],
+                "correct": "D",
+                "explanation_ok": "Cụm cố định là “fitting room”.",
+                "explanation_ng": "“fitting house”, “fitting place” và “fitting door” không phải cách nói của người bản ngữ.",
+                "sentence": {
+                  "text_en": "The fitting room is over there.",
+                  "meaning_vi": "Phòng thử đồ ở đằng kia.",
+                  "audio_url": null,
+                  "audio_url_slow": null
+                },
+                "quiz_data": {
+                  "question_type": "FILL_BLANK",
+                  "word_bank": [
+                    "house",
+                    "place",
+                    "door",
+                    "room"
+                  ],
+                  "blank_count": 1
+                },
+                "answer_data": {
+                  "answer": "room",
+                  "correct_answer": "room",
+                  "correct_option": "D"
+                },
+                "explanation": "Cụm cố định là “fitting room”. “fitting house”, “fitting place” và “fitting door” không phải cách nói của người bản ngữ.",
+                "tips": "Học theo cụm, không dịch từng chữ."
+              },
+              {
+                "prompt": "These shoes don't ___ me.",
+                "audio_url": null,
+                "options": [
+                  {
+                    "label": "A",
+                    "text_en": "fit",
+                    "is_correct": true
+                  },
+                  {
+                    "label": "B",
+                    "text_en": "fix",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "C",
+                    "text_en": "fill",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "D",
+                    "text_en": "feel",
+                    "is_correct": false
+                  }
+                ],
+                "correct": "A",
+                "explanation_ok": "“fit” nghĩa là vừa cỡ.",
+                "explanation_ng": "“fix” là sửa, “fill” là làm đầy, “feel” là cảm thấy.",
+                "sentence": {
+                  "text_en": "These shoes don't fit me.",
+                  "meaning_vi": "Đôi giày này không vừa tôi.",
+                  "audio_url": null,
+                  "audio_url_slow": null
+                },
+                "quiz_data": {
+                  "question_type": "FILL_BLANK",
+                  "word_bank": [
+                    "fit",
+                    "fix",
+                    "fill",
+                    "feel"
+                  ],
+                  "blank_count": 1
+                },
+                "answer_data": {
+                  "answer": "fit",
+                  "correct_answer": "fit",
+                  "correct_option": "A"
+                },
+                "explanation": "“fit” nghĩa là vừa cỡ. “fix” là sửa, “fill” là làm đầy, “feel” là cảm thấy.",
+                "tips": "Bốn từ này đọc gần giống nhau nhưng nghĩa khác hẳn."
+              },
+              {
+                "prompt": "Do you have this ___ blue?",
+                "audio_url": null,
+                "options": [
+                  {
+                    "label": "A",
+                    "text_en": "with",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "B",
+                    "text_en": "in",
+                    "is_correct": true
+                  },
+                  {
+                    "label": "C",
+                    "text_en": "on",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "D",
+                    "text_en": "at",
+                    "is_correct": false
+                  }
+                ],
+                "correct": "B",
+                "explanation_ok": "“Do you have this in + màu/cỡ?” là khung cố định để hỏi biến thể khác.",
+                "explanation_ng": "“with”, “on” và “at” không đi với màu sắc trong khung này.",
+                "sentence": {
+                  "text_en": "Do you have this in blue?",
+                  "meaning_vi": "Cái này có màu xanh không?",
+                  "audio_url": null,
+                  "audio_url_slow": null
+                },
+                "quiz_data": {
+                  "question_type": "FILL_BLANK",
+                  "word_bank": [
+                    "with",
+                    "in",
+                    "on",
+                    "at"
+                  ],
+                  "blank_count": 1
+                },
+                "answer_data": {
+                  "answer": "in",
+                  "correct_answer": "in",
+                  "correct_option": "B"
+                },
+                "explanation": "“Do you have this in + màu/cỡ?” là khung cố định để hỏi biến thể khác. “with”, “on” và “at” không đi với màu sắc trong khung này.",
+                "tips": "Màu và cỡ đi với “in”."
+              }
+            ]
+          },
+          {
+            "quiz_id": "a1s-03-situation",
+            "quiz_type": "SITUATIONAL_CHOICE",
+            "title": "Respond in context: Too Big, Too Small",
+            "instructions": "Choose the most appropriate response for the situation.",
+            "order_index": 2,
+            "questions": [
+              {
+                "prompt": "Bạn hỏi nhân viên thế nào?",
+                "audio_url": null,
+                "options": [
+                  {
+                    "label": "A",
+                    "text_en": "Give me this jacket on.",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "B",
+                    "text_en": "I try this jacket.",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "C",
+                    "text_en": "Can I try on it?",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "D",
+                    "text_en": "Excuse me, could I try this jacket on, please?",
+                    "is_correct": true
+                  }
+                ],
+                "correct": "D",
+                "explanation_ok": "Câu lịch sự và có đúng trật tự: try + this jacket + on.",
+                "explanation_ng": "“Give me this jacket on.” và “I try this jacket.” không phải câu xin phép, còn “try on it” sai vị trí đại từ.",
+                "sentence": {
+                  "text_en": "Excuse me, could I try this jacket on, please?",
+                  "meaning_vi": "Xin lỗi, tôi mặc thử chiếc áo khoác này được không ạ?",
+                  "audio_url": null,
+                  "audio_url_slow": null
+                },
+                "quiz_data": {
+                  "question_type": "SITUATIONAL_CHOICE"
+                },
+                "answer_data": {
+                  "answer": "Excuse me, could I try this jacket on, please?",
+                  "correct_answer": "Excuse me, could I try this jacket on, please?",
+                  "correct_option": "D"
+                },
+                "explanation": "Câu lịch sự và có đúng trật tự: try + this jacket + on. “Give me this jacket on.” và “I try this jacket.” không phải câu xin phép, còn “try on it” sai vị trí đại từ.",
+                "tips": "Với đại từ, nói “try it on”, không nói “try on it”.",
+                "scenario_vi": "Bạn thích một chiếc áo khoác và muốn mặc thử trước khi mua."
+              },
+              {
+                "prompt": "Bạn nói gì?",
+                "audio_url": null,
+                "options": [
+                  {
+                    "label": "A",
+                    "text_en": "It's too small. Make it bigger!",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "B",
+                    "text_en": "I want a big.",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "C",
+                    "text_en": "Sorry, do you have a bigger size, please?",
+                    "is_correct": true
+                  },
+                  {
+                    "label": "D",
+                    "text_en": "This jacket is bad. Give me big.",
+                    "is_correct": false
+                  }
+                ],
+                "correct": "C",
+                "explanation_ok": "Câu hỏi này rõ ràng, lịch sự và đúng việc người bán có thể làm: lấy cỡ khác.",
+                "explanation_ng": "“Make it bigger!” là mệnh lệnh (người bán không sửa được áo), “I want a big.” thiếu danh từ, và câu cuối nghe như chê cửa hàng.",
+                "sentence": {
+                  "text_en": "Sorry, do you have a bigger size, please?",
+                  "meaning_vi": "Xin lỗi, bạn có cỡ lớn hơn không ạ?",
+                  "audio_url": null,
+                  "audio_url_slow": null
+                },
+                "quiz_data": {
+                  "question_type": "SITUATIONAL_CHOICE"
+                },
+                "answer_data": {
+                  "answer": "Sorry, do you have a bigger size, please?",
+                  "correct_answer": "Sorry, do you have a bigger size, please?",
+                  "correct_option": "C"
+                },
+                "explanation": "Câu hỏi này rõ ràng, lịch sự và đúng việc người bán có thể làm: lấy cỡ khác. “Make it bigger!” là mệnh lệnh (người bán không sửa được áo), “I want a big.” thiếu danh từ, và câu cuối nghe như chê cửa hàng.",
+                "tips": "Nhờ đổi cỡ bằng “Do you have a bigger size?”.",
+                "scenario_vi": "Chiếc áo bạn thử bị chật. Bạn muốn nhờ lấy cỡ lớn hơn."
+              },
+              {
+                "prompt": "Bạn hỏi gì?",
+                "audio_url": null,
+                "options": [
+                  {
+                    "label": "A",
+                    "text_en": "Do you have this in another color?",
+                    "is_correct": true
+                  },
+                  {
+                    "label": "B",
+                    "text_en": "Have you another this?",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "C",
+                    "text_en": "Change the color.",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "D",
+                    "text_en": "What is your color?",
+                    "is_correct": false
+                  }
+                ],
+                "correct": "A",
+                "explanation_ok": "“Do you have this in…?” là khung quen thuộc để hỏi biến thể khác của cùng món đồ.",
+                "explanation_ng": "“Have you another this?” sai cấu trúc, “Change the color.” là mệnh lệnh, còn “What is your color?” hỏi màu của người bán.",
+                "sentence": {
+                  "text_en": "Do you have this in another color?",
+                  "meaning_vi": "Cái này có màu nào khác không?",
+                  "audio_url": null,
+                  "audio_url_slow": null
+                },
+                "quiz_data": {
+                  "question_type": "SITUATIONAL_CHOICE"
+                },
+                "answer_data": {
+                  "answer": "Do you have this in another color?",
+                  "correct_answer": "Do you have this in another color?",
+                  "correct_option": "A"
+                },
+                "explanation": "“Do you have this in…?” là khung quen thuộc để hỏi biến thể khác của cùng món đồ. “Have you another this?” sai cấu trúc, “Change the color.” là mệnh lệnh, còn “What is your color?” hỏi màu của người bán.",
+                "tips": "Màu và cỡ đi với giới từ “in”.",
+                "scenario_vi": "Chiếc áo bạn thích không còn màu xanh. Bạn muốn hỏi xem có màu khác không."
+              },
+              {
+                "prompt": "Bạn nói gì?",
+                "audio_url": null,
+                "options": [
+                  {
+                    "label": "A",
+                    "text_en": "It's fit! I take it.",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "B",
+                    "text_en": "It fits me suit.",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "C",
+                    "text_en": "It fits. Bye.",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "D",
+                    "text_en": "It fits! I'll take it.",
+                    "is_correct": true
+                  }
+                ],
+                "correct": "D",
+                "explanation_ok": "“It fits!” báo là vừa, “I'll take it.” báo là bạn mua.",
+                "explanation_ng": "“It's fit!” dùng sai “fit” như tính từ, “It fits me suit.” nhầm “fit” với “suit”, còn “It fits. Bye.” vừa rồi mà không nói sẽ mua.",
+                "sentence": {
+                  "text_en": "It fits! I'll take it.",
+                  "meaning_vi": "Vừa rồi! Tôi lấy cái này.",
+                  "audio_url": null,
+                  "audio_url_slow": null
+                },
+                "quiz_data": {
+                  "question_type": "SITUATIONAL_CHOICE"
+                },
+                "answer_data": {
+                  "answer": "It fits! I'll take it.",
+                  "correct_answer": "It fits! I'll take it.",
+                  "correct_option": "D"
+                },
+                "explanation": "“It fits!” báo là vừa, “I'll take it.” báo là bạn mua. “It's fit!” dùng sai “fit” như tính từ, “It fits me suit.” nhầm “fit” với “suit”, còn “It fits. Bye.” vừa rồi mà không nói sẽ mua.",
+                "tips": "“I'll take it” = tôi lấy cái này.",
+                "scenario_vi": "Bạn thử chiếc áo màu đỏ và thấy rất vừa. Bạn muốn cho người bán biết bạn sẽ mua."
+              }
+            ]
+          }
+        ],
+        "created_at": "2026-10-31T10:00:00.000Z",
+        "updated_at": "2026-10-31T10:00:00.000Z",
+        "published_at": "2026-10-31T10:00:00.000Z"
+      },
+      {
+        "_id": "6a7500000000000000000023",
+        "topic_item_id": "6a7500000000000000000013",
+        "topic_id": "6a7500000000000000000001",
+        "topic_version_id": "6a7500000000000000000002",
+        "version": 1,
+        "change_type": "MAJOR",
+        "previous_item_version_id": null,
+        "title": "Cash or Card?",
+        "description": "Máy quẹt thẻ ở quầy tính tiền bị hỏng và bạn không đủ tiền mặt. Học cách chọn cách trả tiền, xử lý thiếu tiền và xin hóa đơn.",
+        "order": 4,
+        "status": "PUBLISHED",
+        "duration_minutes": 8,
+        "context": {
+          "prompt": "Máy thẻ hỏng và bạn không đủ tiền mặt. Bạn nói gì với thu ngân?",
+          "scenario_description": "Bạn xếp hàng ở quầy tính tiền với một giỏ đồ. Tổng cộng 18 đô, nhưng máy quẹt thẻ đang hỏng và trong ví bạn chỉ có 15 đô tiền mặt.",
+          "dialogue": [
+            {
+              "speaker": "Partner",
+              "text_en": "Hello. Welcome to checkout two. Did you find everything?",
+              "text_vi": "Xin chào. Đây là quầy tính tiền số hai. Bạn tìm đủ đồ chưa?",
+              "audio_url": null
+            },
+            {
+              "speaker": "Learner",
+              "text_en": "Yes, thanks.",
+              "text_vi": "Rồi, cảm ơn bạn.",
+              "audio_url": null
+            },
+            {
+              "speaker": "Partner",
+              "text_en": "That's eighteen dollars. Cash or card?",
+              "text_vi": "Tổng là mười tám đô. Tiền mặt hay thẻ?",
+              "audio_url": null
+            },
+            {
+              "speaker": "Learner",
+              "text_en": "Card, please.",
+              "text_vi": "Thẻ nhé.",
+              "audio_url": null
+            },
+            {
+              "speaker": "Partner",
+              "text_en": "I'm sorry. The card machine isn't working. It's cash only today.",
+              "text_vi": "Xin lỗi bạn. Máy thẻ đang hỏng. Hôm nay chỉ nhận tiền mặt.",
+              "audio_url": null
+            },
+            {
+              "speaker": "Learner",
+              "text_en": "Oh no. I only have fifteen dollars. Can I leave the juice?",
+              "text_vi": "Ôi không. Tôi chỉ có mười lăm đô. Tôi để lại chai nước ép được không?",
+              "audio_url": null
+            },
+            {
+              "speaker": "Partner",
+              "text_en": "Sure. Without the juice, it's fourteen dollars.",
+              "text_vi": "Được. Không tính nước ép thì là mười bốn đô.",
+              "audio_url": null
+            },
+            {
+              "speaker": "Learner",
+              "text_en": "OK. Here is fifteen dollars.",
+              "text_vi": "Vâng. Đây là mười lăm đô.",
+              "audio_url": null
+            },
+            {
+              "speaker": "Partner",
+              "text_en": "Thank you. Here is your change and your receipt.",
+              "text_vi": "Cảm ơn bạn. Đây là tiền thừa và hóa đơn của bạn.",
+              "audio_url": null
+            },
+            {
+              "speaker": "Learner",
+              "text_en": "Thanks. Have a nice day!",
+              "text_vi": "Cảm ơn. Chúc bạn một ngày tốt lành!",
+              "audio_url": null
+            }
+          ],
+          "duration_sec": 480,
+          "tips": "Ở nhiều nơi thu ngân sẽ hỏi “Cash or card?”. Trả lời ngắn “Card, please.” là đủ lịch sự. Đừng trả lời “Yes.” cho câu hỏi lựa chọn."
+        },
+        "vocabularies": [
+          {
+            "vocab_id": "a1s-04-vocab-01-checkout",
+            "sense_id": "a1s-04-sense-01-v1",
+            "snapshot": {
+              "word": "checkout",
+              "pos": "noun",
+              "sense": "The place in a shop where you pay.",
+              "describe_vi": "quầy tính tiền",
+              "phonetic": "/ˈtʃekaʊt/",
+              "audio_url": null,
+              "audio_en_url": null,
+              "audio_us_url": null
+            },
+            "samples": [
+              {
+                "text_en": "The checkout is at the front of the shop.",
+                "text_vi": "Quầy tính tiền ở phía trước cửa hàng.",
+                "audio_url": null,
+                "is_manual": true
+              },
+              {
+                "text_en": "There is a long line at the checkout.",
+                "text_vi": "Quầy tính tiền có hàng dài.",
+                "audio_url": null,
+                "is_manual": true
+              }
+            ],
+            "collocations": [
+              {
+                "text": "at the checkout",
+                "example": {
+                  "en": "Please wait at the checkout.",
+                  "vi": "Vui lòng đợi ở quầy tính tiền."
+                },
+                "description_vi": "ở quầy tính tiền (giới từ “at”)"
+              }
+            ],
+            "quick_check": {
+              "sentence": {
+                "text_en": "There is a long line at the ___.",
+                "meaning_vi": "Quầy tính tiền có hàng dài.",
+                "audio_url": null
+              },
+              "quiz_data": {
+                "question": "There is a long line at the ___.",
+                "options": [
+                  "checkout",
+                  "shelf",
+                  "sale"
+                ]
+              },
+              "answer_data": {
+                "answer": "checkout",
+                "correct_answer": "checkout"
+              },
+              "explanation": "“checkout” là nơi trả tiền; “a line at the checkout” là hàng người xếp ở quầy tính tiền."
+            },
+            "order_index": 1,
+            "tips": "Danh từ viết liền “checkout”. Người đứng quầy gọi là “cashier”. Giới từ đi kèm thường là “at”."
+          },
+          {
+            "vocab_id": "a1s-04-vocab-02-cash",
+            "sense_id": "a1s-04-sense-02-v1",
+            "snapshot": {
+              "word": "cash",
+              "pos": "noun",
+              "sense": "Money in coins and notes.",
+              "describe_vi": "tiền mặt",
+              "phonetic": "/kæʃ/",
+              "audio_url": null,
+              "audio_en_url": null,
+              "audio_us_url": null
+            },
+            "samples": [
+              {
+                "text_en": "I only have cash today.",
+                "text_vi": "Hôm nay tôi chỉ có tiền mặt.",
+                "audio_url": null,
+                "is_manual": true
+              },
+              {
+                "text_en": "Do you take cash?",
+                "text_vi": "Bạn có nhận tiền mặt không?",
+                "audio_url": null,
+                "is_manual": true
+              }
+            ],
+            "collocations": [
+              {
+                "text": "pay in cash",
+                "example": {
+                  "en": "Can I pay in cash?",
+                  "vi": "Tôi trả bằng tiền mặt được không?"
+                },
+                "description_vi": "trả bằng tiền mặt (pay + in cash)"
+              }
+            ],
+            "quick_check": {
+              "sentence": {
+                "text_en": "I don't have a card. I can pay in ___.",
+                "meaning_vi": "Tôi không có thẻ. Tôi trả bằng tiền mặt được.",
+                "audio_url": null
+              },
+              "quiz_data": {
+                "question": "I don't have a card. I can pay in ___.",
+                "options": [
+                  "cash",
+                  "change",
+                  "price"
+                ]
+              },
+              "answer_data": {
+                "answer": "cash",
+                "correct_answer": "cash"
+              },
+              "explanation": "“pay in cash” là trả bằng tiền mặt. “change” là tiền thừa, “price” là giá."
+            },
+            "order_index": 2,
+            "tips": "Không đếm được: nói “some cash”, không nói “a cash”. “Cash only” = chỉ nhận tiền mặt."
+          },
+          {
+            "vocab_id": "a1s-04-vocab-03-receipt",
+            "sense_id": "a1s-04-sense-03-v1",
+            "snapshot": {
+              "word": "receipt",
+              "pos": "noun",
+              "sense": "A paper that shows what you bought and how much you paid.",
+              "describe_vi": "hóa đơn, biên lai",
+              "phonetic": "/rɪˈsiːt/",
+              "audio_url": null,
+              "audio_en_url": null,
+              "audio_us_url": null
+            },
+            "samples": [
+              {
+                "text_en": "Can I have a receipt, please?",
+                "text_vi": "Cho tôi xin hóa đơn được không?",
+                "audio_url": null,
+                "is_manual": true
+              },
+              {
+                "text_en": "I lost my receipt.",
+                "text_vi": "Tôi làm mất hóa đơn rồi.",
+                "audio_url": null,
+                "is_manual": true
+              }
+            ],
+            "collocations": [
+              {
+                "text": "keep the receipt",
+                "example": {
+                  "en": "Please keep the receipt.",
+                  "vi": "Hãy giữ lại hóa đơn."
+                },
+                "description_vi": "giữ hóa đơn"
+              }
+            ],
+            "quick_check": {
+              "sentence": {
+                "text_en": "Can I have a ___, please? I want to see what I paid.",
+                "meaning_vi": "Cho tôi xin hóa đơn nhé? Tôi muốn xem mình đã trả gì.",
+                "audio_url": null
+              },
+              "quiz_data": {
+                "question": "Can I have a ___, please? I want to see what I paid.",
+                "options": [
+                  "receipt",
+                  "recipe",
+                  "reception"
+                ]
+              },
+              "answer_data": {
+                "answer": "receipt",
+                "correct_answer": "receipt"
+              },
+              "explanation": "“receipt” là hóa đơn. “recipe” là công thức nấu ăn, còn “reception” là quầy lễ tân."
+            },
+            "order_index": 3,
+            "tips": "Chữ “p” không đọc: /rɪˈsiːt/. Giữ hóa đơn nếu sau này muốn đổi trả hàng."
+          },
+          {
+            "vocab_id": "a1s-04-vocab-04-change",
+            "sense_id": "a1s-04-sense-04-v1",
+            "snapshot": {
+              "word": "change",
+              "pos": "noun",
+              "sense": "The money you get back when you pay more than the price.",
+              "describe_vi": "tiền thừa",
+              "phonetic": "/tʃeɪndʒ/",
+              "audio_url": null,
+              "audio_en_url": null,
+              "audio_us_url": null
+            },
+            "samples": [
+              {
+                "text_en": "Here is your change.",
+                "text_vi": "Đây là tiền thừa của bạn.",
+                "audio_url": null,
+                "is_manual": true
+              },
+              {
+                "text_en": "Keep the change.",
+                "text_vi": "Không cần thối lại.",
+                "audio_url": null,
+                "is_manual": true
+              }
+            ],
+            "collocations": [
+              {
+                "text": "get change",
+                "example": {
+                  "en": "You get one dollar in change.",
+                  "vi": "Bạn nhận lại một đô tiền thừa."
+                },
+                "description_vi": "nhận tiền thừa"
+              }
+            ],
+            "quick_check": {
+              "sentence": {
+                "text_en": "Here is your ___, one dollar.",
+                "meaning_vi": "Đây là tiền thừa của bạn, một đô.",
+                "audio_url": null
+              },
+              "quiz_data": {
+                "question": "Here is your ___, one dollar.",
+                "options": [
+                  "change",
+                  "exchange",
+                  "charge"
+                ]
+              },
+              "answer_data": {
+                "answer": "change",
+                "correct_answer": "change"
+              },
+              "explanation": "“change” là tiền thối lại. “exchange” là đổi, “charge” là phí phải trả."
+            },
+            "order_index": 4,
+            "tips": "Cùng chữ với “change” (thay đổi), nhưng ở quầy tính tiền nghĩa là tiền thối lại. Không đếm được."
+          }
+        ],
+        "expressions": [
+          {
+            "purposes": [
+              {
+                "purpose_en": "Choose how to pay",
+                "purpose_vi": "Chọn cách trả tiền",
+                "order_index": 1,
+                "examples": [
+                  {
+                    "type": "BASIC_SUGGESTION",
+                    "text_en": "Card, please.",
+                    "text_vi": "Thẻ nhé.",
+                    "usage_note": "Trả lời ngắn khi được hỏi “Cash or card?”. Đừng chỉ nói “Yes.”, vì đây là câu hỏi lựa chọn.",
+                    "audio_url": null,
+                    "linked_vocab_ids": [
+                      "a1s-04-vocab-02-cash"
+                    ]
+                  },
+                  {
+                    "type": "POLITE_INQUIRY",
+                    "text_en": "Excuse me, can I pay by card?",
+                    "text_vi": "Xin lỗi, tôi trả bằng thẻ được không?",
+                    "usage_note": "Dùng khi bạn chưa được hỏi. “pay by card”, không nói “pay with card”.",
+                    "audio_url": null,
+                    "linked_vocab_ids": [
+                      "a1s-04-vocab-01-checkout"
+                    ]
+                  },
+                  {
+                    "type": "PLACEHOLDER",
+                    "text_en": "I only have ___ dollars.",
+                    "text_vi": "Tôi chỉ có ___ đô.",
+                    "usage_note": "Điền số tiền. Dùng khi bạn không đủ tiền, để người bán biết và gợi ý hướng xử lý.",
+                    "audio_url": null,
+                    "linked_vocab_ids": [
+                      "a1s-04-vocab-02-cash"
+                    ]
+                  }
+                ]
+              }
+            ],
+            "tips": "Thu ngân thường hỏi “Cash or card?”. Chọn một trong hai bằng câu ngắn, thêm “please”."
+          },
+          {
+            "purposes": [
+              {
+                "purpose_en": "Handle small problems",
+                "purpose_vi": "Xử lý vấn đề nhỏ ở quầy",
+                "order_index": 1,
+                "examples": [
+                  {
+                    "type": "BASIC_SUGGESTION",
+                    "text_en": "Can I have a receipt, please?",
+                    "text_vi": "Cho tôi xin hóa đơn được không?",
+                    "usage_note": "Xin hóa đơn. Nên làm khi mua đồ có thể phải đổi trả.",
+                    "audio_url": null,
+                    "linked_vocab_ids": [
+                      "a1s-04-vocab-03-receipt"
+                    ]
+                  },
+                  {
+                    "type": "POLITE_INQUIRY",
+                    "text_en": "Can I leave this one, please?",
+                    "text_vi": "Tôi để lại món này được không ạ?",
+                    "usage_note": "“leave” = để lại, không mua. Dùng khi tổng tiền vượt khả năng. Nói trước khi trả tiền.",
+                    "audio_url": null,
+                    "linked_vocab_ids": [
+                      "a1s-04-vocab-02-cash"
+                    ]
+                  },
+                  {
+                    "type": "BASIC_SUGGESTION",
+                    "text_en": "Is the card machine working?",
+                    "text_vi": "Máy quẹt thẻ có đang hoạt động không?",
+                    "usage_note": "Hỏi khi bạn chỉ có thẻ. Hỏi trước, tránh phải bỏ lại cả giỏ đồ.",
+                    "audio_url": null,
+                    "linked_vocab_ids": [
+                      "a1s-04-vocab-01-checkout"
+                    ]
+                  }
+                ]
+              }
+            ],
+            "tips": "Có vấn đề thì nói sớm, trước khi thu ngân bấm xong. Người bán thường rất sẵn lòng giúp."
+          }
+        ],
+        "quizzes": [
+          {
+            "quiz_id": "a1s-04-fill-blank",
+            "quiz_type": "FILL_BLANK",
+            "title": "Complete the sentences: Cash or Card?",
+            "instructions": "Choose the word that best completes each sentence.",
+            "order_index": 1,
+            "questions": [
+              {
+                "prompt": "Here is your change and your ___.",
+                "audio_url": null,
+                "options": [
+                  {
+                    "label": "A",
+                    "text_en": "recipe",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "B",
+                    "text_en": "receipt",
+                    "is_correct": true
+                  },
+                  {
+                    "label": "C",
+                    "text_en": "reception",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "D",
+                    "text_en": "result",
+                    "is_correct": false
+                  }
+                ],
+                "correct": "B",
+                "explanation_ok": "“receipt” là hóa đơn người bán đưa sau khi tính tiền.",
+                "explanation_ng": "“recipe” là công thức nấu ăn, “reception” là quầy lễ tân, “result” là kết quả.",
+                "sentence": {
+                  "text_en": "Here is your change and your receipt.",
+                  "meaning_vi": "Đây là tiền thừa và hóa đơn của bạn.",
+                  "audio_url": null,
+                  "audio_url_slow": null
+                },
+                "quiz_data": {
+                  "question_type": "FILL_BLANK",
+                  "word_bank": [
+                    "recipe",
+                    "receipt",
+                    "reception",
+                    "result"
+                  ],
+                  "blank_count": 1
+                },
+                "answer_data": {
+                  "answer": "receipt",
+                  "correct_answer": "receipt",
+                  "correct_option": "B"
+                },
+                "explanation": "“receipt” là hóa đơn người bán đưa sau khi tính tiền. “recipe” là công thức nấu ăn, “reception” là quầy lễ tân, “result” là kết quả.",
+                "tips": "Chữ “p” trong receipt không đọc."
+              },
+              {
+                "prompt": "The card machine is broken, so it's ___ only.",
+                "audio_url": null,
+                "options": [
+                  {
+                    "label": "A",
+                    "text_en": "card",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "B",
+                    "text_en": "price",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "C",
+                    "text_en": "cash",
+                    "is_correct": true
+                  },
+                  {
+                    "label": "D",
+                    "text_en": "change",
+                    "is_correct": false
+                  }
+                ],
+                "correct": "C",
+                "explanation_ok": "Máy thẻ hỏng thì chỉ trả được bằng tiền mặt: “cash only”.",
+                "explanation_ng": "“card only” mâu thuẫn với việc máy thẻ hỏng, còn “price only” và “change only” không phải cách nói.",
+                "sentence": {
+                  "text_en": "The card machine is broken, so it's cash only.",
+                  "meaning_vi": "Máy thẻ hỏng nên chỉ nhận tiền mặt.",
+                  "audio_url": null,
+                  "audio_url_slow": null
+                },
+                "quiz_data": {
+                  "question_type": "FILL_BLANK",
+                  "word_bank": [
+                    "card",
+                    "price",
+                    "cash",
+                    "change"
+                  ],
+                  "blank_count": 1
+                },
+                "answer_data": {
+                  "answer": "cash",
+                  "correct_answer": "cash",
+                  "correct_option": "C"
+                },
+                "explanation": "Máy thẻ hỏng thì chỉ trả được bằng tiền mặt: “cash only”. “card only” mâu thuẫn với việc máy thẻ hỏng, còn “price only” và “change only” không phải cách nói.",
+                "tips": "“cash only” = chỉ nhận tiền mặt."
+              },
+              {
+                "prompt": "Excuse me, can I pay ___ card?",
+                "audio_url": null,
+                "options": [
+                  {
+                    "label": "A",
+                    "text_en": "to",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "B",
+                    "text_en": "in",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "C",
+                    "text_en": "at",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "D",
+                    "text_en": "by",
+                    "is_correct": true
+                  }
+                ],
+                "correct": "D",
+                "explanation_ok": "“pay by card” là cách nói quen thuộc.",
+                "explanation_ng": "“to”, “in” và “at” không đi với “card” trong cụm này.",
+                "sentence": {
+                  "text_en": "Excuse me, can I pay by card?",
+                  "meaning_vi": "Xin lỗi, tôi trả bằng thẻ được không?",
+                  "audio_url": null,
+                  "audio_url_slow": null
+                },
+                "quiz_data": {
+                  "question_type": "FILL_BLANK",
+                  "word_bank": [
+                    "to",
+                    "in",
+                    "at",
+                    "by"
+                  ],
+                  "blank_count": 1
+                },
+                "answer_data": {
+                  "answer": "by",
+                  "correct_answer": "by",
+                  "correct_option": "D"
+                },
+                "explanation": "“pay by card” là cách nói quen thuộc. “to”, “in” và “at” không đi với “card” trong cụm này.",
+                "tips": "pay + by + card."
+              },
+              {
+                "prompt": "I'd like to pay. Where is the ___?",
+                "audio_url": null,
+                "options": [
+                  {
+                    "label": "A",
+                    "text_en": "checkout",
+                    "is_correct": true
+                  },
+                  {
+                    "label": "B",
+                    "text_en": "aisle",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "C",
+                    "text_en": "shelf",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "D",
+                    "text_en": "fitting room",
+                    "is_correct": false
+                  }
+                ],
+                "correct": "A",
+                "explanation_ok": "“checkout” là nơi trả tiền trong cửa hàng.",
+                "explanation_ng": "“aisle”, “shelf” và “fitting room” không phải nơi trả tiền.",
+                "sentence": {
+                  "text_en": "I'd like to pay. Where is the checkout?",
+                  "meaning_vi": "Tôi muốn trả tiền. Quầy tính tiền ở đâu?",
+                  "audio_url": null,
+                  "audio_url_slow": null
+                },
+                "quiz_data": {
+                  "question_type": "FILL_BLANK",
+                  "word_bank": [
+                    "checkout",
+                    "aisle",
+                    "shelf",
+                    "fitting room"
+                  ],
+                  "blank_count": 1
+                },
+                "answer_data": {
+                  "answer": "checkout",
+                  "correct_answer": "checkout",
+                  "correct_option": "A"
+                },
+                "explanation": "“checkout” là nơi trả tiền trong cửa hàng. “aisle”, “shelf” và “fitting room” không phải nơi trả tiền.",
+                "tips": "Muốn trả tiền thì tìm “checkout”."
+              }
+            ]
+          },
+          {
+            "quiz_id": "a1s-04-situation",
+            "quiz_type": "SITUATIONAL_CHOICE",
+            "title": "Respond in context: Cash or Card?",
+            "instructions": "Choose the most appropriate response for the situation.",
+            "order_index": 2,
+            "questions": [
+              {
+                "prompt": "Bạn đáp thế nào?",
+                "audio_url": null,
+                "options": [
+                  {
+                    "label": "A",
+                    "text_en": "Yes.",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "B",
+                    "text_en": "I am card.",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "C",
+                    "text_en": "Card, please.",
+                    "is_correct": true
+                  },
+                  {
+                    "label": "D",
+                    "text_en": "Pay card.",
+                    "is_correct": false
+                  }
+                ],
+                "correct": "C",
+                "explanation_ok": "Bạn chọn rõ một trong hai và thêm “please” cho lịch sự.",
+                "explanation_ng": "“Yes.” không trả lời được câu hỏi lựa chọn, còn “I am card.” và “Pay card.” sai cấu trúc.",
+                "sentence": {
+                  "text_en": "Card, please.",
+                  "meaning_vi": "Thẻ nhé.",
+                  "audio_url": null,
+                  "audio_url_slow": null
+                },
+                "quiz_data": {
+                  "question_type": "SITUATIONAL_CHOICE"
+                },
+                "answer_data": {
+                  "answer": "Card, please.",
+                  "correct_answer": "Card, please.",
+                  "correct_option": "C"
+                },
+                "explanation": "Bạn chọn rõ một trong hai và thêm “please” cho lịch sự. “Yes.” không trả lời được câu hỏi lựa chọn, còn “I am card.” và “Pay card.” sai cấu trúc.",
+                "tips": "Câu hỏi “A or B?” thì trả lời bằng A hoặc B.",
+                "scenario_vi": "Thu ngân hỏi: “Cash or card?” Bạn muốn trả bằng thẻ."
+              },
+              {
+                "prompt": "Bạn nói gì với thu ngân?",
+                "audio_url": null,
+                "options": [
+                  {
+                    "label": "A",
+                    "text_en": "I don't pay.",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "B",
+                    "text_en": "Fifteen dollars is enough.",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "C",
+                    "text_en": "This is too much. Cheaper!",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "D",
+                    "text_en": "Sorry, I only have fifteen dollars. Can I leave this one?",
+                    "is_correct": true
+                  }
+                ],
+                "correct": "D",
+                "explanation_ok": "Bạn nói rõ mình có bao nhiêu và đưa ra giải pháp là để lại một món.",
+                "explanation_ng": "“I don't pay.” nghe như từ chối thanh toán, “Fifteen dollars is enough.” sai sự thật, còn “Cheaper!” nghe như ra lệnh giảm giá.",
+                "sentence": {
+                  "text_en": "Sorry, I only have fifteen dollars. Can I leave this one?",
+                  "meaning_vi": "Xin lỗi, tôi chỉ có mười lăm đô. Tôi để lại món này được không?",
+                  "audio_url": null,
+                  "audio_url_slow": null
+                },
+                "quiz_data": {
+                  "question_type": "SITUATIONAL_CHOICE"
+                },
+                "answer_data": {
+                  "answer": "Sorry, I only have fifteen dollars. Can I leave this one?",
+                  "correct_answer": "Sorry, I only have fifteen dollars. Can I leave this one?",
+                  "correct_option": "D"
+                },
+                "explanation": "Bạn nói rõ mình có bao nhiêu và đưa ra giải pháp là để lại một món. “I don't pay.” nghe như từ chối thanh toán, “Fifteen dollars is enough.” sai sự thật, còn “Cheaper!” nghe như ra lệnh giảm giá.",
+                "tips": "Nói bạn có bao nhiêu rồi đề xuất cách giải quyết.",
+                "scenario_vi": "Máy thẻ hỏng. Bạn chỉ có 15 đô tiền mặt trong khi tổng là 18 đô."
+              },
+              {
+                "prompt": "Bạn nói gì?",
+                "audio_url": null,
+                "options": [
+                  {
+                    "label": "A",
+                    "text_en": "Give me paper.",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "B",
+                    "text_en": "Can I have a receipt, please?",
+                    "is_correct": true
+                  },
+                  {
+                    "label": "C",
+                    "text_en": "I want recipe.",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "D",
+                    "text_en": "Receipt now.",
+                    "is_correct": false
+                  }
+                ],
+                "correct": "B",
+                "explanation_ok": "“Can I have… please?” là cách xin lịch sự và “receipt” là từ đúng cho hóa đơn.",
+                "explanation_ng": "“Give me paper.” và “Receipt now.” nghe như ra lệnh, còn “recipe” là công thức nấu ăn.",
+                "sentence": {
+                  "text_en": "Can I have a receipt, please?",
+                  "meaning_vi": "Cho tôi xin hóa đơn được không?",
+                  "audio_url": null,
+                  "audio_url_slow": null
+                },
+                "quiz_data": {
+                  "question_type": "SITUATIONAL_CHOICE"
+                },
+                "answer_data": {
+                  "answer": "Can I have a receipt, please?",
+                  "correct_answer": "Can I have a receipt, please?",
+                  "correct_option": "B"
+                },
+                "explanation": "“Can I have… please?” là cách xin lịch sự và “receipt” là từ đúng cho hóa đơn. “Give me paper.” và “Receipt now.” nghe như ra lệnh, còn “recipe” là công thức nấu ăn.",
+                "tips": "Không nhầm receipt (hóa đơn) với recipe (công thức).",
+                "scenario_vi": "Bạn đã trả tiền xong và muốn có hóa đơn để lỡ cần đổi trả sau này."
+              },
+              {
+                "prompt": "Bạn nói gì?",
+                "audio_url": null,
+                "options": [
+                  {
+                    "label": "A",
+                    "text_en": "Where is my change?",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "B",
+                    "text_en": "Thanks. Have a nice day!",
+                    "is_correct": true
+                  },
+                  {
+                    "label": "C",
+                    "text_en": "OK, bye.",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "D",
+                    "text_en": "Finish?",
+                    "is_correct": false
+                  }
+                ],
+                "correct": "B",
+                "explanation_ok": "Câu cảm ơn kèm lời chúc là cách kết thúc lịch sự và thân thiện.",
+                "explanation_ng": "“Where is my change?” hỏi tiền thừa trong khi bạn đã nhận rồi, “OK, bye.” hơi cộc, còn “Finish?” sai cấu trúc.",
+                "sentence": {
+                  "text_en": "Thanks. Have a nice day!",
+                  "meaning_vi": "Cảm ơn. Chúc bạn một ngày tốt lành!",
+                  "audio_url": null,
+                  "audio_url_slow": null
+                },
+                "quiz_data": {
+                  "question_type": "SITUATIONAL_CHOICE"
+                },
+                "answer_data": {
+                  "answer": "Thanks. Have a nice day!",
+                  "correct_answer": "Thanks. Have a nice day!",
+                  "correct_option": "B"
+                },
+                "explanation": "Câu cảm ơn kèm lời chúc là cách kết thúc lịch sự và thân thiện. “Where is my change?” hỏi tiền thừa trong khi bạn đã nhận rồi, “OK, bye.” hơi cộc, còn “Finish?” sai cấu trúc.",
+                "tips": "Cảm ơn và chúc một câu là đủ lịch sự.",
+                "scenario_vi": "Thu ngân đã đưa tiền thừa và hóa đơn cho bạn. Bạn muốn kết thúc cuộc trò chuyện lịch sự."
+              }
+            ]
+          }
+        ],
+        "created_at": "2026-10-31T10:00:00.000Z",
+        "updated_at": "2026-10-31T10:00:00.000Z",
+        "published_at": "2026-10-31T10:00:00.000Z"
+      },
+      {
+        "_id": "6a7500000000000000000024",
+        "topic_item_id": "6a7500000000000000000014",
+        "topic_id": "6a7500000000000000000001",
+        "topic_version_id": "6a7500000000000000000002",
+        "version": 1,
+        "change_type": "MAJOR",
+        "previous_item_version_id": null,
+        "title": "I Have a Problem with This",
+        "description": "Hôm sau bạn mang chiếc ấm bị hỏng quay lại cửa hàng. Học cách nêu vấn đề, trả hàng và xin hoàn tiền khi không đổi được.",
+        "order": 5,
+        "status": "PUBLISHED",
+        "duration_minutes": 8,
+        "context": {
+          "prompt": "Chiếc ấm bạn mua hôm qua không dùng được. Bạn mở lời với nhân viên thế nào?",
+          "scenario_description": "Hôm qua bạn mua một chiếc ấm đun nước. Về nhà thì nó không bật được, nên hôm nay bạn quay lại cửa hàng cùng hóa đơn.",
+          "dialogue": [
+            {
+              "speaker": "Partner",
+              "text_en": "Hello. How can I help you?",
+              "text_vi": "Xin chào. Tôi có thể giúp gì cho bạn?",
+              "audio_url": null
+            },
+            {
+              "speaker": "Learner",
+              "text_en": "Hi. I bought this kettle yesterday, but it's broken.",
+              "text_vi": "Chào bạn. Hôm qua tôi mua chiếc ấm này, nhưng nó bị hỏng.",
+              "audio_url": null
+            },
+            {
+              "speaker": "Partner",
+              "text_en": "I'm sorry to hear that. What's wrong with it?",
+              "text_vi": "Tôi rất tiếc. Nó bị sao vậy?",
+              "audio_url": null
+            },
+            {
+              "speaker": "Learner",
+              "text_en": "It doesn't work. Can I return it?",
+              "text_vi": "Nó không chạy. Tôi trả lại được không?",
+              "audio_url": null
+            },
+            {
+              "speaker": "Partner",
+              "text_en": "Yes, of course. Do you have the receipt?",
+              "text_vi": "Được chứ. Bạn có hóa đơn không?",
+              "audio_url": null
+            },
+            {
+              "speaker": "Learner",
+              "text_en": "Yes, here it is.",
+              "text_vi": "Có, đây ạ.",
+              "audio_url": null
+            },
+            {
+              "speaker": "Partner",
+              "text_en": "Thank you. We can give you a new one, but we don't have it in stock today.",
+              "text_vi": "Cảm ơn bạn. Chúng tôi có thể đổi cái mới, nhưng hôm nay hết hàng.",
+              "audio_url": null
+            },
+            {
+              "speaker": "Learner",
+              "text_en": "Oh. Then can I have a refund, please?",
+              "text_vi": "Ồ. Vậy tôi xin hoàn tiền được không?",
+              "audio_url": null
+            },
+            {
+              "speaker": "Partner",
+              "text_en": "Sure. The money goes back to your card in three days.",
+              "text_vi": "Được. Tiền sẽ về thẻ của bạn trong ba ngày.",
+              "audio_url": null
+            },
+            {
+              "speaker": "Learner",
+              "text_en": "OK. Thank you for your help.",
+              "text_vi": "Vâng. Cảm ơn bạn đã giúp.",
+              "audio_url": null
+            }
+          ],
+          "duration_sec": 480,
+          "tips": "Đừng bắt đầu bằng lời trách như “Your kettle is bad”. Mở lời bằng “I have a problem with this…” rồi mới giải thích vấn đề."
+        },
+        "vocabularies": [
+          {
+            "vocab_id": "a1s-05-vocab-01-broken",
+            "sense_id": "a1s-05-sense-01-v1",
+            "snapshot": {
+              "word": "broken",
+              "pos": "adjective",
+              "sense": "Not working, or in pieces.",
+              "describe_vi": "hỏng, vỡ",
+              "phonetic": "/ˈbrəʊkən/",
+              "audio_url": null,
+              "audio_en_url": null,
+              "audio_us_url": null
+            },
+            "samples": [
+              {
+                "text_en": "The cup is broken.",
+                "text_vi": "Cái cốc bị vỡ.",
+                "audio_url": null,
+                "is_manual": true
+              },
+              {
+                "text_en": "My phone is broken.",
+                "text_vi": "Điện thoại của tôi bị hỏng.",
+                "audio_url": null,
+                "is_manual": true
+              }
+            ],
+            "collocations": [
+              {
+                "text": "broken glass",
+                "example": {
+                  "en": "Be careful. There is broken glass.",
+                  "vi": "Cẩn thận. Có mảnh kính vỡ."
+                },
+                "description_vi": "mảnh kính vỡ"
+              }
+            ],
+            "quick_check": {
+              "sentence": {
+                "text_en": "My phone doesn't work. It's ___.",
+                "meaning_vi": "Điện thoại của tôi không chạy. Nó bị hỏng.",
+                "audio_url": null
+              },
+              "quiz_data": {
+                "question": "My phone doesn't work. It's ___.",
+                "options": [
+                  "broken",
+                  "break",
+                  "breaking"
+                ]
+              },
+              "answer_data": {
+                "answer": "broken",
+                "correct_answer": "broken"
+              },
+              "explanation": "Sau “is/are” cần tính từ: “broken” là hỏng. “break” là động từ, còn “breaking” là đang vỡ."
+            },
+            "order_index": 1,
+            "tips": "Dùng cho cả đồ vỡ (a broken cup) và đồ không chạy (a broken kettle). Người Việt hay nói sai “it’s damage”, đúng là “it’s broken”."
+          },
+          {
+            "vocab_id": "a1s-05-vocab-02-wrong",
+            "sense_id": "a1s-05-sense-02-v1",
+            "snapshot": {
+              "word": "wrong",
+              "pos": "adjective",
+              "sense": "Not correct, or not working as it should.",
+              "describe_vi": "sai; có vấn đề",
+              "phonetic": "/rɒŋ/",
+              "audio_url": null,
+              "audio_en_url": null,
+              "audio_us_url": null
+            },
+            "samples": [
+              {
+                "text_en": "I took the wrong bag.",
+                "text_vi": "Tôi lấy nhầm cái túi.",
+                "audio_url": null,
+                "is_manual": true
+              },
+              {
+                "text_en": "What's wrong with the lamp?",
+                "text_vi": "Cái đèn bị sao vậy?",
+                "audio_url": null,
+                "is_manual": true
+              }
+            ],
+            "collocations": [
+              {
+                "text": "the wrong one",
+                "example": {
+                  "en": "I got the wrong one.",
+                  "vi": "Tôi lấy nhầm cái."
+                },
+                "description_vi": "cái nhầm, cái sai"
+              }
+            ],
+            "quick_check": {
+              "sentence": {
+                "text_en": "The lamp doesn't turn on. What's ___ with it?",
+                "meaning_vi": "Cái đèn không bật được. Nó bị sao vậy?",
+                "audio_url": null
+              },
+              "quiz_data": {
+                "question": "The lamp doesn't turn on. What's ___ with it?",
+                "options": [
+                  "wrong",
+                  "bad",
+                  "problem"
+                ]
+              },
+              "answer_data": {
+                "answer": "wrong",
+                "correct_answer": "wrong"
+              },
+              "explanation": "“What's wrong with it?” là cách hỏi quen thuộc để biết vấn đề. “What's bad with it?” không tự nhiên."
+            },
+            "order_index": 2,
+            "tips": "“Something is wrong” = có chuyện không ổn. “What's wrong?” = có vấn đề gì vậy?"
+          },
+          {
+            "vocab_id": "a1s-05-vocab-03-return",
+            "sense_id": "a1s-05-sense-03-v1",
+            "snapshot": {
+              "word": "return",
+              "pos": "verb",
+              "sense": "To take something back to the shop.",
+              "describe_vi": "trả lại (hàng)",
+              "phonetic": "/rɪˈtɜːn/",
+              "audio_url": null,
+              "audio_en_url": null,
+              "audio_us_url": null
+            },
+            "samples": [
+              {
+                "text_en": "I want to return this jacket.",
+                "text_vi": "Tôi muốn trả lại chiếc áo khoác này.",
+                "audio_url": null,
+                "is_manual": true
+              },
+              {
+                "text_en": "Can I return it?",
+                "text_vi": "Tôi trả lại được không?",
+                "audio_url": null,
+                "is_manual": true
+              }
+            ],
+            "collocations": [
+              {
+                "text": "return something to the shop",
+                "example": {
+                  "en": "He returns the lamp to the shop.",
+                  "vi": "Anh ấy mang chiếc đèn trả lại cửa hàng."
+                },
+                "description_vi": "mang trả lại cửa hàng"
+              }
+            ],
+            "quick_check": {
+              "sentence": {
+                "text_en": "This doesn't fit. I want to ___ it.",
+                "meaning_vi": "Cái này không vừa. Tôi muốn trả lại.",
+                "audio_url": null
+              },
+              "quiz_data": {
+                "question": "This doesn't fit. I want to ___ it.",
+                "options": [
+                  "return",
+                  "retire",
+                  "repeat"
+                ]
+              },
+              "answer_data": {
+                "answer": "return",
+                "correct_answer": "return"
+              },
+              "explanation": "“return” là mang trả lại cửa hàng. “retire” là nghỉ hưu, “repeat” là lặp lại."
+            },
+            "order_index": 3,
+            "tips": "Ở đây “return” là mang trả lại, không phải quay về. Thường cần hóa đơn."
+          },
+          {
+            "vocab_id": "a1s-05-vocab-04-refund",
+            "sense_id": "a1s-05-sense-04-v1",
+            "snapshot": {
+              "word": "refund",
+              "pos": "noun",
+              "sense": "Money that a shop gives back to you.",
+              "describe_vi": "hoàn tiền",
+              "phonetic": "/ˈriːfʌnd/",
+              "audio_url": null,
+              "audio_en_url": null,
+              "audio_us_url": null
+            },
+            "samples": [
+              {
+                "text_en": "I would like a refund, please.",
+                "text_vi": "Tôi muốn được hoàn tiền.",
+                "audio_url": null,
+                "is_manual": true
+              },
+              {
+                "text_en": "You can get a refund in three days.",
+                "text_vi": "Bạn có thể được hoàn tiền trong ba ngày.",
+                "audio_url": null,
+                "is_manual": true
+              }
+            ],
+            "collocations": [
+              {
+                "text": "get a refund",
+                "example": {
+                  "en": "Can I get a refund?",
+                  "vi": "Tôi có được hoàn tiền không?"
+                },
+                "description_vi": "được hoàn tiền"
+              }
+            ],
+            "quick_check": {
+              "sentence": {
+                "text_en": "I don't want another one. I want a ___.",
+                "meaning_vi": "Tôi không muốn cái khác. Tôi muốn hoàn tiền.",
+                "audio_url": null
+              },
+              "quiz_data": {
+                "question": "I don't want another one. I want a ___.",
+                "options": [
+                  "refund",
+                  "receipt",
+                  "change"
+                ]
+              },
+              "answer_data": {
+                "answer": "refund",
+                "correct_answer": "refund"
+              },
+              "explanation": "“refund” là tiền hoàn lại khi trả hàng. “receipt” là hóa đơn, “change” là tiền thối."
+            },
+            "order_index": 4,
+            "tips": "Khác “change” (tiền thối lúc mua). Refund là tiền trả lại sau khi bạn trả hàng. Danh từ nhấn âm đầu: REfund."
+          }
+        ],
+        "expressions": [
+          {
+            "purposes": [
+              {
+                "purpose_en": "Explain the problem",
+                "purpose_vi": "Nêu vấn đề với món đã mua",
+                "order_index": 1,
+                "examples": [
+                  {
+                    "type": "BASIC_SUGGESTION",
+                    "text_en": "It's broken.",
+                    "text_vi": "Nó bị hỏng.",
+                    "usage_note": "Nói ngắn gọn vấn đề. Sau đó có thể thêm chi tiết: “It doesn't work.”",
+                    "audio_url": null,
+                    "linked_vocab_ids": [
+                      "a1s-05-vocab-01-broken"
+                    ]
+                  },
+                  {
+                    "type": "POLITE_INQUIRY",
+                    "text_en": "Excuse me, I have a problem with this kettle.",
+                    "text_vi": "Xin lỗi, tôi gặp vấn đề với chiếc ấm này.",
+                    "usage_note": "“have a problem with + món đồ” là cách mở lời không nghe như trách móc. Dùng trước khi giải thích.",
+                    "audio_url": null,
+                    "linked_vocab_ids": [
+                      "a1s-05-vocab-02-wrong"
+                    ]
+                  },
+                  {
+                    "type": "PLACEHOLDER",
+                    "text_en": "I bought this ___ yesterday, but it doesn't work.",
+                    "text_vi": "Hôm qua tôi mua ___ này, nhưng nó không chạy.",
+                    "usage_note": "Điền món đồ: lamp, kettle, phone… Thêm thời gian mua giúp nhân viên tin bạn mới mua.",
+                    "audio_url": null,
+                    "linked_vocab_ids": [
+                      "a1s-05-vocab-01-broken"
+                    ]
+                  }
+                ]
+              }
+            ],
+            "tips": "Nêu vấn đề ngắn gọn và rõ ràng. Nhân viên thường sẽ hỏi thêm “What's wrong with it?”."
+          },
+          {
+            "purposes": [
+              {
+                "purpose_en": "Ask for your options",
+                "purpose_vi": "Hỏi cách giải quyết",
+                "order_index": 1,
+                "examples": [
+                  {
+                    "type": "BASIC_SUGGESTION",
+                    "text_en": "Can I return it?",
+                    "text_vi": "Tôi trả lại được không?",
+                    "usage_note": "Hỏi thẳng. Nhân viên thường hỏi lại “Do you have the receipt?”.",
+                    "audio_url": null,
+                    "linked_vocab_ids": [
+                      "a1s-05-vocab-03-return"
+                    ]
+                  },
+                  {
+                    "type": "POLITE_INQUIRY",
+                    "text_en": "Can I have a refund, please?",
+                    "text_vi": "Cho tôi xin hoàn tiền được không?",
+                    "usage_note": "Dùng khi bạn không muốn đổi hàng. “please” giúp câu nghe mềm hơn.",
+                    "audio_url": null,
+                    "linked_vocab_ids": [
+                      "a1s-05-vocab-04-refund"
+                    ]
+                  },
+                  {
+                    "type": "BASIC_SUGGESTION",
+                    "text_en": "Do you have the receipt?",
+                    "text_vi": "Bạn có hóa đơn không?",
+                    "usage_note": "Nhân viên hay hỏi câu này; bạn cần nghe hiểu. Trả lời: “Yes, here it is.”",
+                    "audio_url": null,
+                    "linked_vocab_ids": [
+                      "a1s-05-vocab-03-return"
+                    ]
+                  }
+                ]
+              }
+            ],
+            "tips": "Có hóa đơn trong tay thì việc trả hàng thường dễ hơn nhiều. Chuẩn bị sẵn khi đến cửa hàng."
+          }
+        ],
+        "quizzes": [
+          {
+            "quiz_id": "a1s-05-fill-blank",
+            "quiz_type": "FILL_BLANK",
+            "title": "Complete the sentences: I Have a Problem with This",
+            "instructions": "Choose the word that best completes each sentence.",
+            "order_index": 1,
+            "questions": [
+              {
+                "prompt": "I bought this lamp yesterday, but it's ___.",
+                "audio_url": null,
+                "options": [
+                  {
+                    "label": "A",
+                    "text_en": "broken",
+                    "is_correct": true
+                  },
+                  {
+                    "label": "B",
+                    "text_en": "break",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "C",
+                    "text_en": "breaks",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "D",
+                    "text_en": "breaking",
+                    "is_correct": false
+                  }
+                ],
+                "correct": "A",
+                "explanation_ok": "Sau “it's” cần tính từ: “broken” nghĩa là hỏng.",
+                "explanation_ng": "“break” và “breaks” là động từ, còn “breaking” là đang vỡ.",
+                "sentence": {
+                  "text_en": "I bought this lamp yesterday, but it's broken.",
+                  "meaning_vi": "Hôm qua tôi mua cái đèn này, nhưng nó bị hỏng.",
+                  "audio_url": null,
+                  "audio_url_slow": null
+                },
+                "quiz_data": {
+                  "question_type": "FILL_BLANK",
+                  "word_bank": [
+                    "broken",
+                    "break",
+                    "breaks",
+                    "breaking"
+                  ],
+                  "blank_count": 1
+                },
+                "answer_data": {
+                  "answer": "broken",
+                  "correct_answer": "broken",
+                  "correct_option": "A"
+                },
+                "explanation": "Sau “it's” cần tính từ: “broken” nghĩa là hỏng. “break” và “breaks” là động từ, còn “breaking” là đang vỡ.",
+                "tips": "Tính từ “broken” mô tả tình trạng hiện tại."
+              },
+              {
+                "prompt": "This is not my bag. I have the ___ one.",
+                "audio_url": null,
+                "options": [
+                  {
+                    "label": "A",
+                    "text_en": "bad",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "B",
+                    "text_en": "wrong",
+                    "is_correct": true
+                  },
+                  {
+                    "label": "C",
+                    "text_en": "false",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "D",
+                    "text_en": "error",
+                    "is_correct": false
+                  }
+                ],
+                "correct": "B",
+                "explanation_ok": "“the wrong one” là cái nhầm, cái không đúng.",
+                "explanation_ng": "“bad” là xấu, “false” là sai (về thông tin), còn “error” là danh từ (lỗi).",
+                "sentence": {
+                  "text_en": "This is not my bag. I have the wrong one.",
+                  "meaning_vi": "Đây không phải túi của tôi. Tôi lấy nhầm cái.",
+                  "audio_url": null,
+                  "audio_url_slow": null
+                },
+                "quiz_data": {
+                  "question_type": "FILL_BLANK",
+                  "word_bank": [
+                    "bad",
+                    "wrong",
+                    "false",
+                    "error"
+                  ],
+                  "blank_count": 1
+                },
+                "answer_data": {
+                  "answer": "wrong",
+                  "correct_answer": "wrong",
+                  "correct_option": "B"
+                },
+                "explanation": "“the wrong one” là cái nhầm, cái không đúng. “bad” là xấu, “false” là sai (về thông tin), còn “error” là danh từ (lỗi).",
+                "tips": "Lấy nhầm = take/have the wrong one."
+              },
+              {
+                "prompt": "Can I ___ it? I have the receipt.",
+                "audio_url": null,
+                "options": [
+                  {
+                    "label": "A",
+                    "text_en": "retire",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "B",
+                    "text_en": "repeat",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "C",
+                    "text_en": "return",
+                    "is_correct": true
+                  },
+                  {
+                    "label": "D",
+                    "text_en": "recall",
+                    "is_correct": false
+                  }
+                ],
+                "correct": "C",
+                "explanation_ok": "“return” là mang trả lại cửa hàng; có hóa đơn thì dễ được chấp nhận hơn.",
+                "explanation_ng": "“retire” là nghỉ hưu, “repeat” là lặp lại, “recall” là nhớ lại.",
+                "sentence": {
+                  "text_en": "Can I return it? I have the receipt.",
+                  "meaning_vi": "Tôi trả lại được không? Tôi có hóa đơn.",
+                  "audio_url": null,
+                  "audio_url_slow": null
+                },
+                "quiz_data": {
+                  "question_type": "FILL_BLANK",
+                  "word_bank": [
+                    "retire",
+                    "repeat",
+                    "return",
+                    "recall"
+                  ],
+                  "blank_count": 1
+                },
+                "answer_data": {
+                  "answer": "return",
+                  "correct_answer": "return",
+                  "correct_option": "C"
+                },
+                "explanation": "“return” là mang trả lại cửa hàng; có hóa đơn thì dễ được chấp nhận hơn. “retire” là nghỉ hưu, “repeat” là lặp lại, “recall” là nhớ lại.",
+                "tips": "Bốn từ cùng bắt đầu bằng re- nhưng nghĩa khác nhau."
+              },
+              {
+                "prompt": "I'd like my money back. Can I have a ___, please?",
+                "audio_url": null,
+                "options": [
+                  {
+                    "label": "A",
+                    "text_en": "refund",
+                    "is_correct": true
+                  },
+                  {
+                    "label": "B",
+                    "text_en": "receipt",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "C",
+                    "text_en": "change",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "D",
+                    "text_en": "discount",
+                    "is_correct": false
+                  }
+                ],
+                "correct": "A",
+                "explanation_ok": "“refund” là tiền hoàn lại cho bạn.",
+                "explanation_ng": "“receipt” là hóa đơn, “change” là tiền thối khi mua, “discount” là giảm giá.",
+                "sentence": {
+                  "text_en": "I'd like my money back. Can I have a refund, please?",
+                  "meaning_vi": "Tôi muốn lấy lại tiền. Cho tôi xin hoàn tiền được không?",
+                  "audio_url": null,
+                  "audio_url_slow": null
+                },
+                "quiz_data": {
+                  "question_type": "FILL_BLANK",
+                  "word_bank": [
+                    "refund",
+                    "receipt",
+                    "change",
+                    "discount"
+                  ],
+                  "blank_count": 1
+                },
+                "answer_data": {
+                  "answer": "refund",
+                  "correct_answer": "refund",
+                  "correct_option": "A"
+                },
+                "explanation": "“refund” là tiền hoàn lại cho bạn. “receipt” là hóa đơn, “change” là tiền thối khi mua, “discount” là giảm giá.",
+                "tips": "Muốn lấy lại tiền thì xin “refund”."
+              }
+            ]
+          },
+          {
+            "quiz_id": "a1s-05-situation",
+            "quiz_type": "SITUATIONAL_CHOICE",
+            "title": "Respond in context: I Have a Problem with This",
+            "instructions": "Choose the most appropriate response for the situation.",
+            "order_index": 2,
+            "questions": [
+              {
+                "prompt": "Bạn nói gì?",
+                "audio_url": null,
+                "options": [
+                  {
+                    "label": "A",
+                    "text_en": "Your kettle is bad!",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "B",
+                    "text_en": "This is broken. You sell broken things.",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "C",
+                    "text_en": "Hello, kettle, problem.",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "D",
+                    "text_en": "Excuse me, I have a problem with this kettle.",
+                    "is_correct": true
+                  }
+                ],
+                "correct": "D",
+                "explanation_ok": "Câu mở lời trung tính, nói rõ có vấn đề mà không trách ai.",
+                "explanation_ng": "“Your kettle is bad!” và “You sell broken things.” nghe như trách móc, còn “Hello, kettle, problem.” thiếu cấu trúc câu.",
+                "sentence": {
+                  "text_en": "Excuse me, I have a problem with this kettle.",
+                  "meaning_vi": "Xin lỗi, tôi gặp vấn đề với chiếc ấm này.",
+                  "audio_url": null,
+                  "audio_url_slow": null
+                },
+                "quiz_data": {
+                  "question_type": "SITUATIONAL_CHOICE"
+                },
+                "answer_data": {
+                  "answer": "Excuse me, I have a problem with this kettle.",
+                  "correct_answer": "Excuse me, I have a problem with this kettle.",
+                  "correct_option": "D"
+                },
+                "explanation": "Câu mở lời trung tính, nói rõ có vấn đề mà không trách ai. “Your kettle is bad!” và “You sell broken things.” nghe như trách móc, còn “Hello, kettle, problem.” thiếu cấu trúc câu.",
+                "tips": "Mở lời nhẹ nhàng trước, giải thích chi tiết sau.",
+                "scenario_vi": "Bạn mang chiếc ấm bị hỏng quay lại cửa hàng và muốn mở lời với nhân viên."
+              },
+              {
+                "prompt": "Bạn trả lời thế nào?",
+                "audio_url": null,
+                "options": [
+                  {
+                    "label": "A",
+                    "text_en": "It no work.",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "B",
+                    "text_en": "Yes, it's wrong.",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "C",
+                    "text_en": "It doesn't work.",
+                    "is_correct": true
+                  },
+                  {
+                    "label": "D",
+                    "text_en": "I am wrong.",
+                    "is_correct": false
+                  }
+                ],
+                "correct": "C",
+                "explanation_ok": "“It doesn't work.” là cách nói ngắn, đúng ngữ pháp để mô tả vật không hoạt động.",
+                "explanation_ng": "“It no work.” thiếu trợ động từ, “Yes, it's wrong.” không trả lời câu hỏi “what”, còn “I am wrong.” nghĩa là bạn sai.",
+                "sentence": {
+                  "text_en": "It doesn't work.",
+                  "meaning_vi": "Nó không chạy.",
+                  "audio_url": null,
+                  "audio_url_slow": null
+                },
+                "quiz_data": {
+                  "question_type": "SITUATIONAL_CHOICE"
+                },
+                "answer_data": {
+                  "answer": "It doesn't work.",
+                  "correct_answer": "It doesn't work.",
+                  "correct_option": "C"
+                },
+                "explanation": "“It doesn't work.” là cách nói ngắn, đúng ngữ pháp để mô tả vật không hoạt động. “It no work.” thiếu trợ động từ, “Yes, it's wrong.” không trả lời câu hỏi “what”, còn “I am wrong.” nghĩa là bạn sai.",
+                "tips": "Phủ định hiện tại: doesn't + động từ.",
+                "scenario_vi": "Nhân viên hỏi: “What's wrong with it?” Bạn muốn nói ấm không chạy."
+              },
+              {
+                "prompt": "Bạn nói gì?",
+                "audio_url": null,
+                "options": [
+                  {
+                    "label": "A",
+                    "text_en": "Then give me my change.",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "B",
+                    "text_en": "I want money back now!",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "C",
+                    "text_en": "Then can I have a refund, please?",
+                    "is_correct": true
+                  },
+                  {
+                    "label": "D",
+                    "text_en": "Then I am sorry.",
+                    "is_correct": false
+                  }
+                ],
+                "correct": "C",
+                "explanation_ok": "“refund” là từ đúng cho tiền hoàn lại khi trả hàng, và câu hỏi nghe lịch sự.",
+                "explanation_ng": "“change” là tiền thối khi mua, “I want money back now!” là đòi hỏi gay gắt, còn “Then I am sorry.” không phải yêu cầu.",
+                "sentence": {
+                  "text_en": "Then can I have a refund, please?",
+                  "meaning_vi": "Vậy tôi xin hoàn tiền được không?",
+                  "audio_url": null,
+                  "audio_url_slow": null
+                },
+                "quiz_data": {
+                  "question_type": "SITUATIONAL_CHOICE"
+                },
+                "answer_data": {
+                  "answer": "Then can I have a refund, please?",
+                  "correct_answer": "Then can I have a refund, please?",
+                  "correct_option": "C"
+                },
+                "explanation": "“refund” là từ đúng cho tiền hoàn lại khi trả hàng, và câu hỏi nghe lịch sự. “change” là tiền thối khi mua, “I want money back now!” là đòi hỏi gay gắt, còn “Then I am sorry.” không phải yêu cầu.",
+                "tips": "Refund ≠ change.",
+                "scenario_vi": "Nhân viên nói họ hết hàng nên không đổi cái mới được. Bạn muốn lấy lại tiền."
+              },
+              {
+                "prompt": "Bạn nói gì?",
+                "audio_url": null,
+                "options": [
+                  {
+                    "label": "A",
+                    "text_en": "OK. Thank you for your help.",
+                    "is_correct": true
+                  },
+                  {
+                    "label": "B",
+                    "text_en": "Three days? Too long!",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "C",
+                    "text_en": "OK. Bye.",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "D",
+                    "text_en": "Why three days? Bad shop.",
+                    "is_correct": false
+                  }
+                ],
+                "correct": "A",
+                "explanation_ok": "Bạn xác nhận và cảm ơn, nghe lịch sự dù vấn đề không hay.",
+                "explanation_ng": "Hai câu phàn nàn nghe như trách móc, còn câu chào tắt thì hơi cộc.",
+                "sentence": {
+                  "text_en": "OK. Thank you for your help.",
+                  "meaning_vi": "Vâng. Cảm ơn bạn đã giúp.",
+                  "audio_url": null,
+                  "audio_url_slow": null
+                },
+                "quiz_data": {
+                  "question_type": "SITUATIONAL_CHOICE"
+                },
+                "answer_data": {
+                  "answer": "OK. Thank you for your help.",
+                  "correct_answer": "OK. Thank you for your help.",
+                  "correct_option": "A"
+                },
+                "explanation": "Bạn xác nhận và cảm ơn, nghe lịch sự dù vấn đề không hay. Hai câu phàn nàn nghe như trách móc, còn câu chào tắt thì hơi cộc.",
+                "tips": "Cảm ơn người giúp bạn dù kết quả chưa như ý.",
+                "scenario_vi": "Nhân viên nói tiền sẽ về thẻ của bạn sau ba ngày. Bạn muốn kết thúc lịch sự."
+              }
+            ]
+          }
+        ],
+        "created_at": "2026-10-31T10:00:00.000Z",
+        "updated_at": "2026-10-31T10:00:00.000Z",
+        "published_at": "2026-10-31T10:00:00.000Z"
+      }
+    ]
+  }
+}
