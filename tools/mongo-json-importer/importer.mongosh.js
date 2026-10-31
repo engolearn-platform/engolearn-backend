@@ -5,6 +5,7 @@
  */
 (function () {
   "use strict";
+  var fs = require("fs");
   function fail(message) { throw new Error(message); }
   function isObject(value) {
     return value !== null && typeof value === "object" && !Array.isArray(value) && !(value instanceof Date);
@@ -18,7 +19,7 @@
     var total = 0;
     files.forEach(function (filePath) {
       var parsed;
-      try { parsed = EJSON.parse(cat(filePath)); }
+      try { parsed = EJSON.parse(fs.readFileSync(filePath, "utf8")); }
       catch (error) { fail("Cannot parse '" + filePath + "': " + error.message); }
       if (!isObject(parsed) || !isObject(parsed.collections)) {
         fail("'" + filePath + "' must contain a top-level collections object.");

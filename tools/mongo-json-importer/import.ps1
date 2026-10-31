@@ -123,9 +123,21 @@ try {
         & docker compose up -d mongodb
         if ($LASTEXITCODE -ne 0) { throw 'docker compose up -d mongodb failed.' }
 
-        $containerId = (& docker compose ps -q mongodb | Select-Object -First 1)
-        if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($containerId)) { throw 'Could not find MongoDB container.' }
-        $inspectOutput = & docker inspect $containerId.Trim()
+        $containerOutput = & docker compose ps -q mongodb
+        $composeExitCode = $LASTEXITCODE
+
+        if ($composeExitCode -ne 0) {
+            throw "Failed to query MongoDB container (exit code: $composeExitCode)."
+        }
+
+        $containerId = @($containerOutput | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -First 1)
+
+        if ($containerId.Count -eq 0) {
+            throw 'Could not find MongoDB container.'
+        }
+
+        $containerId = $containerId[0].Trim()
+        $inspectOutput = & docker inspect $containerId
         if ($LASTEXITCODE -ne 0) { throw 'docker inspect failed for MongoDB container.' }
         $inspect = @($inspectOutput | ConvertFrom-Json)[0]
         $networkName = ($inspect.NetworkSettings.Networks.PSObject.Properties | Select-Object -First 1).Name
