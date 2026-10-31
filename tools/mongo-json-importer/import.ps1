@@ -3,7 +3,8 @@ param([string]$File, [switch]$DryRun)
 
 $ErrorActionPreference = 'Stop'
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
-$envFile = Join-Path $repoRoot '.env'
+$rootEnvFile = Join-Path $repoRoot '.env'
+$toolEnvFile = Join-Path $PSScriptRoot '.env'
 $samplesDirectory = Join-Path $PSScriptRoot 'samples'
 
 function Read-DotEnv([string]$Path) {
@@ -30,13 +31,17 @@ function Get-BooleanSetting([hashtable]$Settings, [string]$Name, [bool]$Default)
     }
 }
 
-if (-not (Test-Path -LiteralPath $envFile -PathType Leaf)) {
-    throw "Cannot find root .env at '$envFile'. Copy .env.example to .env first."
+if (-not (Test-Path -LiteralPath $rootEnvFile -PathType Leaf)) {
+    throw "Cannot find repository root .env at '$rootEnvFile'. Configure the project's MongoDB service first."
 }
-$settings = Read-DotEnv $envFile
+if (-not (Test-Path -LiteralPath $toolEnvFile -PathType Leaf)) {
+    throw "Cannot find importer .env at '$toolEnvFile'. Copy tools/mongo-json-importer/.env.example to tools/mongo-json-importer/.env."
+}
+$rootSettings = Read-DotEnv $rootEnvFile
+$settings = Read-DotEnv $toolEnvFile
 $database = $settings['MONGO_IMPORT_DATABASE']
-if ([string]::IsNullOrWhiteSpace($database)) { $database = $settings['APP_DB'] }
-if ([string]::IsNullOrWhiteSpace($database)) { throw 'Set APP_DB or MONGO_IMPORT_DATABASE in .env.' }
+if ([string]::IsNullOrWhiteSpace($database)) { $database = $rootSettings['APP_DB'] }
+if ([string]::IsNullOrWhiteSpace($database)) { throw 'Set APP_DB in the root .env or MONGO_IMPORT_DATABASE in the importer .env.' }
 if ($database -match '^(admin|config|local)$|(^|[_-])prod(uction)?($|[_-])') {
     throw "Refusing system or production-looking database name: $database"
 }
@@ -57,8 +62,8 @@ $requireConfirmation = Get-BooleanSetting $settings 'MONGO_IMPORT_REQUIRE_CONFIR
 
 $mongoUri = $settings['MONGO_IMPORT_URI']
 if ([string]::IsNullOrWhiteSpace($mongoUri)) {
-    $mongoUser = $settings['MONGO_USER']
-    $mongoPass = $settings['MONGO_PASS']
+    $mongoUser = $rootSettings['MONGO_USER']
+    $mongoPass = $rootSettings['MONGO_PASS']
     if ([string]::IsNullOrWhiteSpace($mongoUser) -or [string]::IsNullOrWhiteSpace($mongoPass)) {
         throw 'MONGO_USER and MONGO_PASS are required when MONGO_IMPORT_URI is empty.'
     }
