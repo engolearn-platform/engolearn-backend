@@ -55,6 +55,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/v1/auth/me").authenticated()
                         .requestMatchers("/api/v1/subscription/admin", "/api/v1/subscription/admin/**").hasRole("ADMIN")
                         .requestMatchers("/api/v1/subscription/me", "/api/v1/subscription/me/**", "/api/v1/quota/me/**").authenticated()
+                        .requestMatchers("/api/v1/assessment", "/api/v1/assessment/**").authenticated()
                         .anyRequest().permitAll()
                 );
 
@@ -108,7 +109,7 @@ public class SecurityConfig {
         ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(status,
                 exception.getMessage() == null ? status.getReasonPhrase() : exception.getMessage());
         problemDetail.setType(URI.create("about:blank"));
-        if (path.startsWith("/api/v1/subscription/") || path.startsWith("/api/v1/quota/")) {
+        if (path.startsWith("/api/v1/assessment/") || path.startsWith("/api/v1/subscription/") || path.startsWith("/api/v1/quota/")) {
             problemDetail.setDetail(status == HttpStatus.UNAUTHORIZED ? "Authentication is required" : "Access is denied");
             problemDetail.setInstance(URI.create(path));
             problemDetail.setProperty("code", status == HttpStatus.UNAUTHORIZED ? "AUTHENTICATION_REQUIRED" : "ACCESS_DENIED");

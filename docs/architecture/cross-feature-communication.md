@@ -54,6 +54,7 @@ A new dependency needs an explicit reason and approval. Keep this table in sync 
 | `topic` | `dictionary` |
 | `user` | `topic` |
 | `subscription` | None |
+| `assessment` | `subscription` (effective entitlements), `quota` (atomic consumption) |
 | `quota` | `subscription` (effective entitlements and after-commit events) |
 | `payment` | None; immutable success/refund fact declarations only |
 
