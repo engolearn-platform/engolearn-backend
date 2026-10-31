@@ -154,7 +154,8 @@
             collection: plan.name,
             batch: Math.floor(offset / batchSize) + 1,
             attempted: operations.length,
-            failed: writeErrors.length,
+            succeeded: Math.max(0, operations.length - failed),
+            failed: failed,
             error: error.message
           });
           report.errors.push({
