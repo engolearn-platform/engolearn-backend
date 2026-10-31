@@ -50,7 +50,8 @@ import tools.jackson.databind.ObjectMapper;
 
 @EnabledIfDockerAvailable
 @Import(PurchaseFlowIntegrationTest.TimeConfig.class)
-@TestPropertySource(properties={"engolearn.messaging.enabled=false","engolearn.subscription.activation-delay-ms=3600000"})
+@TestPropertySource(properties={"engolearn.messaging.enabled=false","engolearn.subscription.activation-delay-ms=3600000",
+        "engolearn.payment.vnpay.enabled=false","engolearn.payment.vnpay.worker-enabled=false"})
 class PurchaseFlowIntegrationTest extends AbstractMongoIntegrationTest {
     static final Instant START=Instant.parse("2027-01-31T03:00:00Z");
     static final String USER="68f8f3a9b9e4a12345678901";
@@ -484,5 +485,139 @@ class PurchaseFlowIntegrationTest extends AbstractMongoIntegrationTest {
         assertThatThrownBy(()->restTemplate.postForEntity(url,new HttpEntity<>("{\"reason\":\"Changed\"}",headers),String.class))
                 .isInstanceOfSatisfying(HttpClientErrorException.class,e->assertThat(e.getStatusCode().value()).isEqualTo(409));
         assertThat(count("subscription_refund_requests")).isEqualTo(1);
+    }
+
+    @Autowired fit.iuh.engolearn.payment.infra.vnpay.VnpaySettings vnSettings;
+    @Autowired fit.iuh.engolearn.payment.service.VnpayService vnpay;
+    @org.springframework.test.context.bean.override.mockito.MockitoBean fit.iuh.engolearn.payment.service.VnpayGateway vnGateway;
+    @AfterEach void disableVnpay(){vnSettings.setEnabled(false);}
+    void vnEnable(){
+        vnSettings.setTmnCode("TEST0001");vnSettings.setHashSecret("isolated-test-secret");
+        vnSettings.setServerIp("127.0.0.1");vnSettings.setReturnUrl("https://merchant.example.test/api/payment/vnpay/return");
+        vnSettings.setWorkerEnabled(false);vnSettings.setEnabled(true);vnSettings.validate();
+    }
+    PurchaseResponse vnCreate(){
+        vnEnable();PurchaseResponse p=purchases.create(USER,key(),MONTH,"127.0.0.1").purchase();drain();vnpay.process();drain();
+        return purchases.detail(USER,p.purchaseReference());
+    }
+    Map<String,String> vnFields(PurchaseResponse p){
+        PaymentTransaction payment=payments.findById(p.paymentId());Map<String,String> fields=new LinkedHashMap<>();
+        fields.put("vnp_TmnCode","TEST0001");fields.put("vnp_TxnRef",payment.getProviderReference());
+        fields.put("vnp_Amount",fit.iuh.engolearn.payment.utils.VnpayProtocol.amount(p.amountVnd()));
+        fields.put("vnp_ResponseCode","00");fields.put("vnp_TransactionStatus","00");
+        fields.put("vnp_TransactionNo","100001");fields.put("vnp_PayDate",fit.iuh.engolearn.payment.utils.VnpayProtocol.date(clock.instant()));
+        fields.put("vnp_OrderInfo","Premium");return fields;
+    }
+    Map<String,List<String>> vnSigned(Map<String,String> fields){
+        fields.put("vnp_SecureHash",fit.iuh.engolearn.payment.utils.VnpayProtocol.hash(vnSettings.getHashSecret(),
+                fit.iuh.engolearn.payment.utils.VnpayProtocol.query(fields)));
+        Map<String,List<String>> result=new LinkedHashMap<>();fields.forEach((name,value)->result.put(name,List.of(value)));return result;
+    }
+    String vnUrl(String path,Map<String,String> fields){
+        vnSigned(fields);
+        return "http://localhost:"+port+path+"?"+fit.iuh.engolearn.payment.utils.VnpayProtocol.query(fields)+"&vnp_SecureHash="+fields.get("vnp_SecureHash");
+    }
+    Map<String,String> vnApi(PurchaseResponse p,boolean refund,String type,String status,Instant at){
+        Map<String,String> fields=vnFields(p);fields.remove("vnp_SecureHash");
+        fields.put("vnp_ResponseId","response1");fields.put("vnp_Command",refund?"refund":"querydr");
+        fields.put("vnp_Message","Result");fields.put("vnp_BankCode","NCB");fields.put("vnp_TransactionType",type);
+        fields.put("vnp_TransactionStatus",status);fields.put("vnp_TransactionNo",type.equals("02")?"900001":"100001");
+        fields.put("vnp_PayDate",fit.iuh.engolearn.payment.utils.VnpayProtocol.date(at));
+        String data=fit.iuh.engolearn.payment.utils.VnpayProtocol.pipe(fields,"ResponseId","Command","ResponseCode","Message","TmnCode","TxnRef","Amount","BankCode","PayDate","TransactionNo","TransactionType","TransactionStatus","OrderInfo");
+        if (!refund) data+="||";
+        fields.put("vnp_SecureHash",fit.iuh.engolearn.payment.utils.VnpayProtocol.hash(vnSettings.getHashSecret(),data));return fields;
+    }
+    @Test void vnpayCheckoutRawIpnRejectsTamperingAndAtomicallyActivatesAtSecondPrecision(){
+        clock.now=START.plusMillis(321);PurchaseResponse p=vnCreate();
+        assertThat(p.checkoutUrl()).startsWith("https://sandbox.vnpayment.vn/paymentv2/vpcpay.html?");
+        assertThat(p.checkoutUrl()).contains("vnp_Amount=10000000","vnp_IpAddr=127.0.0.1","vnp_ReturnUrl=");
+        Map<String,String> fields=vnFields(p);var signed=vnSigned(fields);
+        Map<String,List<String>> tampered=new LinkedHashMap<>(signed);tampered.put("vnp_Amount",List.of("1"));
+        assertThat(vnpay.ipn(tampered).code()).isEqualTo("97");
+        fields=vnFields(p);
+        var returned=restTemplate.getForEntity(vnUrl("/api/payment/vnpay/return",fields),String.class);
+        assertThat(mapper.readTree(returned.getBody()).path("validSignature").asBoolean()).isTrue();
+        assertThat(payments.findById(p.paymentId()).getStatus()).isEqualTo(PaymentStatus.PENDING);
+        doThrow(new IllegalStateException("outbox unavailable")).when(paymentMessages).append(any());
+        assertThat(vnpay.ipn(vnSigned(fields)).code()).isEqualTo("99");
+        assertThat(payments.findById(p.paymentId()).getStatus()).isEqualTo(PaymentStatus.PENDING);
+        assertThat(payments.findById(p.paymentId()).getProviderTransactionNo()).isNull();
+        reset(paymentMessages);
+        var accepted=restTemplate.getForEntity(vnUrl("/api/payment/vnpay/ipn",fields),String.class);
+        var json=mapper.readTree(accepted.getBody());assertThat(json.size()).isEqualTo(2);
+        assertThat(json.path("RspCode").asString()).isEqualTo("00");assertThat(json.has("data")).isFalse();
+        assertThat(accepted.getHeaders().getCacheControl()).isEqualTo("no-store");drain();
+        assertThat(purchases.detail(USER,p.purchaseReference()).status()).isEqualTo("ACTIVE");
+        assertThat(purchases.detail(USER,p.purchaseReference()).paidAt()).isEqualTo(START);
+        assertThat(vnpay.ipn(vnSigned(fields)).code()).isEqualTo("02");
+        fields.put("vnp_Amount","100");assertThat(vnpay.ipn(vnSigned(fields)).code()).isEqualTo("04");
+        assertThat(payments.findById(p.paymentId()).getReviewReason()).isEqualTo("VNPAY_AMOUNT_MISMATCH");
+        fields.put("vnp_Amount","10000000");
+        Map<String,List<String>> duplicates=new LinkedHashMap<>(vnSigned(fields));duplicates.put("vnp_Amount",List.of("10000000","100"));
+        assertThat(vnpay.ipn(duplicates).code()).isEqualTo("99");assertThat(count("subscription_periods")).isEqualTo(1);
+        verifyNoInteractions(vnGateway);
+    }
+    @Test void vnpayTimeoutReconcilesSignedPaymentWithoutExpiringOrExtending(){
+        PurchaseResponse p=vnCreate();clock.now=p.expiresAt().plusSeconds(1);
+        when(vnGateway.post(anyMap())).thenThrow(new IllegalStateException("timeout"));vnpay.process();
+        assertThat(payments.findById(p.paymentId()).getStatus()).isEqualTo(PaymentStatus.UNKNOWN);
+        assertThat(store.findByReference(p.purchaseReference()).isBlocksNewPurchase()).isTrue();
+        clock.now=clock.instant().plus(Duration.ofMinutes(6));
+        doReturn(vnApi(p,false,"01","00",START.plusSeconds(60))).when(vnGateway).post(anyMap());vnpay.process();drain();
+        assertThat(purchases.detail(USER,p.purchaseReference()).status()).isEqualTo("ACTIVE");
+        assertThat(purchases.detail(USER,p.purchaseReference()).paidAt()).isEqualTo(START.plusSeconds(60));
+        var args=org.mockito.ArgumentCaptor.forClass(Map.class);verify(vnGateway,times(2)).post(args.capture());
+        assertThat(args.getValue().get("vnp_TransactionDate")).isEqualTo("20270131100000");
+    }
+    @Test void vnpayRefundProcessingWaitsForSignedFullRefundAndNeverResubmits(){
+        PurchaseResponse p=vnCreate();assertThat(vnpay.ipn(vnSigned(vnFields(p))).code()).isEqualTo("00");drain();
+        var request=subscriptionRefunds.request(ADMIN,p.purchaseReference(),key(),"Full refund").refund();drain();
+        doReturn(vnApi(p,true,"02","05",clock.instant())).when(vnGateway).post(anyMap());vnpay.process();drain();
+        assertThat(refundTransaction(request).getStatus()).isEqualTo(fit.iuh.engolearn.payment.model.enums.RefundStatus.UNKNOWN);
+        assertThat(purchases.detail(USER,p.purchaseReference()).status()).isEqualTo("REFUND_PENDING");
+        assertThat(subscriptions.summary(USER).tier()).isEqualTo("PREMIUM");vnpay.process();verify(vnGateway,times(1)).post(anyMap());
+        clock.now=clock.instant().plus(Duration.ofMinutes(6));
+        doReturn(vnApi(p,false,"02","00",clock.instant())).when(vnGateway).post(anyMap());vnpay.process();drain();
+        assertThat(purchases.detail(USER,p.purchaseReference()).status()).isEqualTo("REFUNDED");
+        var args=org.mockito.ArgumentCaptor.forClass(Map.class);verify(vnGateway,times(2)).post(args.capture());
+        assertThat(args.getAllValues().getFirst().get("vnp_Command")).isEqualTo("refund");
+        assertThat(args.getAllValues().getFirst().get("vnp_RequestId").toString()).matches("[a-f0-9]{32}");
+        assertThat(args.getAllValues().getLast().get("vnp_Command")).isEqualTo("querydr");
+        assertThat(args.getAllValues().getLast().get("vnp_TransactionNo")).isEqualTo("900001");
+    }
+    @Test void vnpayRefundTimeoutOrOriginalPaymentQueryCannotConfirmRefund(){
+        PurchaseResponse p=vnCreate();vnpay.ipn(vnSigned(vnFields(p)));drain();
+        var request=subscriptionRefunds.request(ADMIN,p.purchaseReference(),key(),"Full refund").refund();drain();
+        when(vnGateway.post(anyMap())).thenThrow(new IllegalStateException("timeout"));vnpay.process();
+        clock.now=clock.instant().plus(Duration.ofMinutes(6));
+        doReturn(vnApi(p,false,"01","00",clock.instant())).when(vnGateway).post(anyMap());vnpay.process();drain();
+        assertThat(refundTransaction(request).getStatus()).isEqualTo(fit.iuh.engolearn.payment.model.enums.RefundStatus.UNKNOWN);
+        assertThat(purchases.detail(USER,p.purchaseReference()).status()).isEqualTo("REFUND_PENDING");
+        var args=org.mockito.ArgumentCaptor.forClass(Map.class);verify(vnGateway,times(2)).post(args.capture());
+        assertThat(args.getAllValues()).extracting(x->x.get("vnp_Command")).containsExactly("refund","querydr");
+        clock.now=clock.instant().plus(Duration.ofMinutes(6));
+        doReturn(vnApi(p,false,"02","00",clock.instant())).when(vnGateway).post(anyMap());vnpay.process();drain();
+        assertThat(refundTransaction(request).getStatus()).isEqualTo(fit.iuh.engolearn.payment.model.enums.RefundStatus.UNKNOWN);
+        assertThat(refundTransaction(request).getReviewReason()).isEqualTo("VNPAY_REFUND_ID_REQUIRES_RECONCILIATION");
+        assertThat(purchases.detail(USER,p.purchaseReference()).status()).isEqualTo("REFUND_PENDING");
+    }
+
+    @RepeatedTest(2) void vnpayConcurrentWorkersPrepareAndSubmitRefundOnce()throws Exception{
+        vnEnable();PurchaseResponse p=purchases.create(USER,key(),MONTH,"127.0.0.1").purchase();drain();
+        ExecutorService pool=Executors.newFixedThreadPool(2);
+        try{
+            CountDownLatch start=new CountDownLatch(1);
+            Callable<Boolean> prepare=()->{start.await(10,TimeUnit.SECONDS);vnpay.process();return true;};
+            Future<Boolean> a=pool.submit(prepare),b=pool.submit(prepare);start.countDown();a.get(20,TimeUnit.SECONDS);b.get(20,TimeUnit.SECONDS);drain();
+            assertThat(mongoTemplate.getCollection("payment_outbox").countDocuments(new org.bson.Document("message_type","CHECKOUT_READY"))).isEqualTo(1);
+            PurchaseResponse ready=purchases.detail(USER,p.purchaseReference());vnpay.ipn(vnSigned(vnFields(ready)));drain();
+            var request=subscriptionRefunds.request(ADMIN,p.purchaseReference(),key(),"Concurrent refund").refund();drain();
+            doAnswer(call->{Thread.sleep(80);return vnApi(ready,true,"02","05",clock.instant());}).when(vnGateway).post(anyMap());
+            CountDownLatch refundStart=new CountDownLatch(1);
+            Callable<Boolean> execute=()->{refundStart.await(10,TimeUnit.SECONDS);vnpay.process();return true;};
+            Future<Boolean> x=pool.submit(execute),y=pool.submit(execute);refundStart.countDown();x.get(20,TimeUnit.SECONDS);y.get(20,TimeUnit.SECONDS);
+            verify(vnGateway,times(1)).post(anyMap());
+            assertThat(refundTransaction(request).getStatus()).isEqualTo(fit.iuh.engolearn.payment.model.enums.RefundStatus.UNKNOWN);
+        }finally{pool.shutdownNow();}
     }
 }

@@ -13,6 +13,11 @@ import org.springframework.transaction.support.TransactionTemplate;
 public class MongoMessageTransactions {
     private final ObjectProvider<MongoTransactionManager> managers;
     public boolean available() { return managers.getIfAvailable() != null; }
+    public <T> T required(Supplier<T> action) {
+        MongoTransactionManager manager=managers.getIfAvailable();
+        if (manager==null) throw new IllegalStateException("Durable messaging requires Mongo transactions");
+        return new TransactionTemplate(manager).execute(status->action.get());
+    }
     public <T> T independent(Supplier<T> action) {
         MongoTransactionManager manager = managers.getIfAvailable();
         if (manager == null) throw new IllegalStateException("Durable messaging requires Mongo transactions");

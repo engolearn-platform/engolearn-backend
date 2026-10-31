@@ -21,7 +21,7 @@ public class PaymentOutcomeServiceImpl implements PaymentOutcomeService {
         MessageValidation.money(amountVnd,currency);
         if (paidAt == null) throw new IllegalArgumentException("Verified paidAt is required");
         Instant paid = Instant.ofEpochMilli(paidAt.toEpochMilli());
-        transactions.independent(() -> {
+        transactions.required(() -> {
             PaymentTransaction payment = required(paymentId);
             if (payment.getAmountVnd() != amountVnd || !payment.getCurrency().equals(currency) || paid.isAfter(clock.instant())) {
                 review(payment,"PAYMENT_SUCCESS_MISMATCH",Map.of("amountVnd",amountVnd,"currency",currency,"paidAt",paid)); return null;
@@ -42,7 +42,7 @@ public class PaymentOutcomeServiceImpl implements PaymentOutcomeService {
     }
     public void confirmFailure(String paymentId,String failureCode) {
         MessageValidation.text(failureCode);
-        transactions.independent(() -> {
+        transactions.required(() -> {
             PaymentTransaction payment=required(paymentId);
             if (!unresolved(payment)) return null;
             payment.setStatus(PaymentStatus.FAILED);payments.save(payment);
@@ -52,7 +52,7 @@ public class PaymentOutcomeServiceImpl implements PaymentOutcomeService {
         });
     }
     public void confirmUnpaidExpiry(String paymentId) {
-        transactions.independent(() -> {
+        transactions.required(() -> {
             PaymentTransaction payment=required(paymentId);
             if (!unresolved(payment)) return null;
             if (clock.instant().isBefore(payment.getExpiresAt())) throw new IllegalStateException("Checkout has not expired");
@@ -63,7 +63,7 @@ public class PaymentOutcomeServiceImpl implements PaymentOutcomeService {
         });
     }
     public void markUnknown(String paymentId) {
-        transactions.independent(() -> {
+        transactions.required(() -> {
             PaymentTransaction payment=required(paymentId);
             if (unresolved(payment)) {payment.setStatus(PaymentStatus.UNKNOWN);payments.save(payment);}
             return null;

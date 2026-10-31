@@ -22,13 +22,14 @@ public class CheckoutServiceImpl implements CheckoutService {
         PaymentTransaction existing = payments.findByPurchase(command.purchaseReference());
         if (existing != null) {
             if (!existing.getUserId().equals(command.userId()) || existing.getAmountVnd() != command.amountVnd() ||
-                    !existing.getCurrency().equals(command.currency()) || !existing.getExpiresAt().equals(command.expiresAt()))
+                    !existing.getCurrency().equals(command.currency()) || !existing.getExpiresAt().equals(command.expiresAt()) ||
+                    !java.util.Objects.equals(existing.getClientIp(),command.clientIp()))
                 messages.review(envelope, "CHECKOUT_PAYLOAD_CONFLICT");
             return;
         }
         PaymentTransaction payment = PaymentTransaction.builder().id(UUID.randomUUID().toString())
                 .purchaseReference(command.purchaseReference()).userId(command.userId()).amountVnd(command.amountVnd())
-                .currency(command.currency()).expiresAt(command.expiresAt()).status(PaymentStatus.CHECKOUT_SETUP_PENDING).build();
+                .currency(command.currency()).expiresAt(command.expiresAt()).clientIp(command.clientIp()).intentCreatedAt(command.occurredAt()).status(PaymentStatus.CHECKOUT_SETUP_PENDING).build();
         payments.insert(payment);
         if (!clock.instant().isBefore(command.expiresAt())) {
             payment.setStatus(PaymentStatus.EXPIRED);
@@ -41,7 +42,7 @@ public class CheckoutServiceImpl implements CheckoutService {
         }
     }
     public void prepared(String paymentId, String checkoutUrl, Instant expiresAt) {
-        transactions.independent(() -> {
+        transactions.required(() -> {
             PaymentTransaction payment = payments.findById(paymentId);
             if (payment == null) throw new IllegalArgumentException("Payment not found");
             if (payment.getStatus() == PaymentStatus.PENDING && checkoutUrl.equals(payment.getCheckoutUrl()) &&

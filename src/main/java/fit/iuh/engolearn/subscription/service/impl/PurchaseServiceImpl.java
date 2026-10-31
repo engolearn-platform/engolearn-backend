@@ -31,6 +31,9 @@ public class PurchaseServiceImpl implements PurchaseService {
     @Value("${engolearn.payment.checkout-lifetime:PT15M}") private Duration checkoutLifetime;
 
     public Creation create(String userId, String key, CreatePurchaseRequest request) {
+        return create(userId,key,request,null);
+    }
+    public Creation create(String userId, String key, CreatePurchaseRequest request, String clientIp) {
         if (request == null || !"PREMIUM".equals(request.planCode()) ||
                 request.billingPeriod() == null || !Set.of("MONTHLY", "ANNUAL").contains(request.billingPeriod()))
             throw error(400, "INVALID_REQUEST", "A Premium billing option is required");
@@ -40,7 +43,7 @@ public class PurchaseServiceImpl implements PurchaseService {
             if (!intentKey.equalsIgnoreCase(key)) throw new IllegalArgumentException();
         } catch (RuntimeException invalid) { throw error(400, "INVALID_REQUEST", "A UUID Idempotency-Key is required"); }
         for (int attempt = 0; attempt < 3; attempt++) {
-            try { return transactions.execute(() -> createOwned(userId, intentKey, request)); }
+            try { return transactions.execute(() -> createOwned(userId, intentKey, request, clientIp)); }
             catch (SubscriptionRequestException | SubscriptionUnavailableException failure) { throw failure; }
             catch (RuntimeException failure) {
                 PremiumPurchase accepted = purchases.findByIntent(userId, intentKey);
@@ -52,7 +55,7 @@ public class PurchaseServiceImpl implements PurchaseService {
         throw new SubscriptionUnavailableException();
     }
 
-    private Creation createOwned(String userId, String key, CreatePurchaseRequest request) {
+    private Creation createOwned(String userId, String key, CreatePurchaseRequest request, String clientIp) {
         PremiumPurchase accepted = purchases.findByIntent(userId, key);
         if (accepted != null) return replay(accepted, request);
         Instant now = Instant.ofEpochMilli(clock.millis());
@@ -92,7 +95,7 @@ public class PurchaseServiceImpl implements PurchaseService {
         purchases.insert(purchase);
         String messageId = UUID.randomUUID().toString();
         CreateCheckoutCommandDto command = new CreateCheckoutCommandDto(messageId, 1, now, reference, userId,
-                purchase.getAmountVnd(), purchase.getCurrency(), purchase.getExpiresAt());
+                purchase.getAmountVnd(), purchase.getCurrency(), purchase.getExpiresAt(), clientIp);
         messages.append(new MessageEnvelopeDto(messageId, "CREATE_CHECKOUT", 1, reference, "payment.checkout", now,
                 mapper.writeValueAsString(command)));
         return new Creation(response(purchase), true);

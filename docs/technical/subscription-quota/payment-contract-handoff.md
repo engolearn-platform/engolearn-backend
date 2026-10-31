@@ -1,5 +1,7 @@
 # Payment contract handoff
 
+P07 configurable source update (2026-10-31): optional VNPay PAY 2.1.0 checkout, raw signed IPN, read-only Return, QueryDR and full-refund adapter/worker are implemented, disabled by default. Real merchant/Sandbox end-to-end verification remains pending user configuration. Handoff: [VNPay setup](vnpay-setup.md), GET /api/payment/vnpay/ipn, backend 8080. Merge blank example keys into the ignored .env; do not replace existing config or expose secrets. Refund processing/uncertainty does not imply completion; unresolved QueryDR evidence requires manual/provider reconciliation, never automatic resubmission. Preserve the user's uncommitted sample JSON and ngrok-ipn-policy.yml; they are outside this slice. Older dated implementation snapshots below are provenance.
+
 Updated 2026-10-30 for P01-P02. Contracts and persistence/delivery foundation exist; this does not implement charging, checkout, purchase APIs, paid activation, refunds or VNPay.
 
 ## Current public types

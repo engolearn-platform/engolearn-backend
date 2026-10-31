@@ -96,7 +96,7 @@ public class SubscriptionRefundServiceImpl implements SubscriptionRefundService 
                 !userId.equals(request.getUserId()) || !userId.equals(purchase.getUserId()) ||
                 !paymentId.equals(request.getPaymentId()) || !paymentId.equals(purchase.getPaymentId()) ||
                 request.getRefundId()!=null && !refundId.equals(request.getRefundId()) ||
-                completed.isBefore(request.getRequestedAt()) || completed.isAfter(clock.instant())) {
+                completed.isBefore(request.getRequestedAt().truncatedTo(java.time.temporal.ChronoUnit.SECONDS)) || completed.isAfter(clock.instant())) {
             messages.review(envelope,"REFUND_CORRELATION_CONFLICT");return;
         }
         PurchaseRefundStatus target=success?PurchaseRefundStatus.SUCCEEDED:PurchaseRefundStatus.FAILED;

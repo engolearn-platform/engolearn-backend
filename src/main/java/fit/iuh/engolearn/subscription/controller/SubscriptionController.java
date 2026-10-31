@@ -33,9 +33,9 @@ public class SubscriptionController {
     public ApiResponse<PurchaseResponse> createPurchase(
             @RequestHeader(value="Idempotency-Key", required=false) String key,
             @Valid @RequestBody fit.iuh.engolearn.subscription.dto.request.CreatePurchaseRequest body,
-            HttpServletResponse response) {
+            jakarta.servlet.http.HttpServletRequest request, HttpServletResponse response) {
         response.setHeader("Cache-Control", "no-store");
-        var result = purchases.create(users.requireCurrentUserId(), key, body);
+        var result = purchases.create(users.requireCurrentUserId(), key, body, request.getRemoteAddr());
         response.setStatus(result.created() ? 201 : 200);
         return ApiResponse.ok(result.purchase());
     }

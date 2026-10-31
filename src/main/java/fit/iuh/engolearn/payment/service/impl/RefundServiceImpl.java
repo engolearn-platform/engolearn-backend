@@ -62,7 +62,7 @@ public class RefundServiceImpl implements RefundService {
         });
     }
     public void markUnknown(String refundId) {
-        transactions.independent(()->{
+        transactions.required(()->{
             RefundTransaction refund=required(refundId);payments.guardRefund(refund.getPaymentId());
             if (unresolved(refund)) {refund.setStatus(RefundStatus.UNKNOWN);refunds.save(refund);}return null;
         });
@@ -77,10 +77,10 @@ public class RefundServiceImpl implements RefundService {
     private void complete(String refundId,boolean success,long amount,String currency,String code,Instant completedAt) {
         if (completedAt==null) throw new IllegalArgumentException("Verified refund result time is required");
         Instant completed=Instant.ofEpochMilli(completedAt.toEpochMilli());
-        transactions.independent(()->{
+        transactions.required(()->{
             RefundTransaction refund=required(refundId);payments.guardRefund(refund.getPaymentId());
             PaymentTransaction payment=payments.findById(refund.getPaymentId());
-            if (completed.isBefore(refund.getRequestedAt()) || completed.isAfter(clock.instant()) ||
+            if (completed.isBefore(refund.getRequestedAt().truncatedTo(java.time.temporal.ChronoUnit.SECONDS)) || completed.isAfter(clock.instant()) ||
                     success && (payment==null || payment.getStatus()!=PaymentStatus.SUCCEEDED || amount!=refund.getAmountVnd() ||
                     !currency.equals(refund.getCurrency()) || amount!=payment.getAmountVnd() || !currency.equals(payment.getCurrency()))) {
                 review(refund,"REFUND_OUTCOME_MISMATCH",success,amount,currency,code,completed);return null;

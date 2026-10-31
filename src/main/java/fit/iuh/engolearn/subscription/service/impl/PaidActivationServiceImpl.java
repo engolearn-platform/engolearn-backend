@@ -27,7 +27,7 @@ public class PaidActivationServiceImpl implements PaidActivationService {
                 !event.purchaseReference().equals(envelope.aggregateId()) || !event.userId().equals(purchase.getUserId()) ||
                 event.amountVnd()!=purchase.getAmountVnd() || !event.currency().equals(purchase.getCurrency()) ||
                 purchase.getPaymentId()!=null && !purchase.getPaymentId().equals(event.paymentId()) ||
-                paid.isBefore(requested) || paid.isAfter(clock.instant())) {review(purchase,envelope,"PAYMENT_SUCCESS_MISMATCH");return;}
+                paid.isBefore(requested.truncatedTo(java.time.temporal.ChronoUnit.SECONDS)) || paid.isAfter(clock.instant())) {review(purchase,envelope,"PAYMENT_SUCCESS_MISMATCH");return;}
         if (purchase.getPeriodId()!=null) {
             if (!paid.equals(purchase.getPaidAt())) review(purchase,envelope,"CONFLICTING_PAID_AT");
             return;
