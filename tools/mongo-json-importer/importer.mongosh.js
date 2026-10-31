@@ -18,11 +18,10 @@
     return raw.split(",").map(function (pattern) {
       pattern = pattern.trim();
       if (!pattern) return null;
-      var escaped = pattern.replace(/[.+?^${}()|[\]\\]/g, "\\  function idKey(value) { return EJSON.stringify(value, null, 0, { relaxed: false }); }
-  function printReport(report) { print("\nIMPORT REPORT"); printjson(report); }
-
-  function loadDatasets(files) {").replace(/\*/g, ".*");
-      return new RegExp("^" + escaped + "$", "i");
+      if (!/^[A-Za-z0-9_*]+$/.test(pattern)) {
+        fail("Invalid ObjectId field pattern '" + pattern + "'. Use letters, numbers, underscores, and * only.");
+      }
+      return new RegExp("^" + pattern.replace(/\*/g, ".*") + "$", "i");
     }).filter(Boolean);
   }
 
