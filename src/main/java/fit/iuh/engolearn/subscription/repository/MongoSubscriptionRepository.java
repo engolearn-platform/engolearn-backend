@@ -50,6 +50,11 @@ public class MongoSubscriptionRepository implements SubscriptionRepository {
         return mongo.updateFirst(Query.query(Criteria.where("_id").is(account.getId()).and("revision").is(account.getRevision()).and("trial_used").is(false)),
             new Update().set("trial_used",true).inc("revision",1),SubscriptionAccount.class).getModifiedCount()==1;
     }
+    public void refundPeriod(String periodId) {
+        if (mongo.updateFirst(Query.query(Criteria.where("_id").is(periodId).and("kind").ne("TRIAL")),
+                new Update().set("state","REFUNDED"),SubscriptionPeriod.class).getMatchedCount()!=1)
+            throw new IllegalStateException("Refund period not found");
+    }
     public void supersedeTrial(String periodId, Instant paidAt) {
         mongo.updateFirst(Query.query(Criteria.where("_id").is(periodId).and("kind").is("TRIAL")),
                 new Update().set("state","SUPERSEDED").set("superseded_at",paidAt),SubscriptionPeriod.class);

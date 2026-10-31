@@ -12,11 +12,15 @@ import tools.jackson.databind.ObjectMapper;
 @Service @RequiredArgsConstructor
 public class PurchaseResultServiceImpl implements PurchaseResultService {
     private final PurchaseRepository purchases;
+    private final fit.iuh.engolearn.subscription.service.SubscriptionRefundService refunds;
     private final SubscriptionMessageRepository reviews;
     private final ObjectMapper mapper;
     private final Clock clock;
     private final fit.iuh.engolearn.subscription.service.PaidActivationService activation;
     public void apply(MessageEnvelopeDto envelope) {
+        if ("PAYMENT_REFUND_SUCCEEDED".equals(envelope.messageType()) || "PAYMENT_REFUND_FAILED".equals(envelope.messageType())) {
+            refunds.apply(envelope);return;
+        }
         PremiumPurchase purchase = purchases.findByReference(envelope.aggregateId());
         if (purchase == null) { reviews.review(envelope, "PURCHASE_NOT_FOUND"); return; }
         switch (envelope.messageType()) {

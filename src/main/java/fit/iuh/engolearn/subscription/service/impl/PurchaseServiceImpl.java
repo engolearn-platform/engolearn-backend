@@ -22,6 +22,7 @@ import tools.jackson.databind.ObjectMapper;
 @Service @RequiredArgsConstructor
 public class PurchaseServiceImpl implements PurchaseService {
     private final PurchaseRepository purchases;
+    private final SubscriptionRefundRepository refunds;
     private final SubscriptionRepository subscriptions;
     private final SubscriptionMessageRepository messages;
     private final SubscriptionTransactions transactions;
@@ -58,6 +59,7 @@ public class PurchaseServiceImpl implements PurchaseService {
         SubscriptionAccount account = subscriptions.findAccount(userId);
         if (account == null || account.getProvenance() == null) throw new SubscriptionUnavailableException();
         if (!purchases.guardAccount(account)) throw new OptimisticLockingFailureException("Account changed");
+        if (refunds.findPending(userId)!=null) throw error(409,"REFUND_PENDING","An earlier refund is unresolved");
         for (SubscriptionPeriod period : subscriptions.findPeriodsNewestFirst(userId))
             if (period.getState() == PeriodState.ACTIVE && period.getKind() != PeriodKind.TRIAL &&
                     !now.isBefore(period.getPeriodStartAt()) && now.isBefore(period.getPeriodEndAt()))

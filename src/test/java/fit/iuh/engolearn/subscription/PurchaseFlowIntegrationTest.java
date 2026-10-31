@@ -72,7 +72,7 @@ class PurchaseFlowIntegrationTest extends AbstractMongoIntegrationTest {
     @Autowired PaymentTransactionRepository payments;
     @Autowired CheckoutService checkout;
     @Autowired CheckoutMessageConsumer checkoutConsumer;
-    @Autowired PaymentMessageRepository paymentMessages;
+    @MockitoSpyBean PaymentMessageRepository paymentMessages;
     @Autowired MongoMessageTransactions messageTransactions;
     @Autowired ObjectMapper mapper;
 
@@ -306,5 +306,183 @@ class PurchaseFlowIntegrationTest extends AbstractMongoIntegrationTest {
         assertThat(store.findByReference(second.purchaseReference()).isBlocksNewPurchase()).isTrue();
         assertThat(store.findBlocking(USER).getPurchaseReference()).isEqualTo(second.purchaseReference());
         assertThat(count("subscription_message_reviews")).isEqualTo(1);
+    }
+
+    @Autowired SubscriptionRefundService subscriptionRefunds;
+    @Autowired SubscriptionRefundRepository refundRequests;
+    @Autowired fit.iuh.engolearn.payment.service.RefundService refundOutcomes;
+    @Autowired fit.iuh.engolearn.payment.repository.RefundTransactionRepository refundStore;
+    @Autowired fit.iuh.engolearn.payment.infra.event.RefundMessageConsumer refundConsumer;
+    static final String ADMIN="68f8f3a9b9e4a12345678903";
+    PurchaseResponse paidPurchase(String billing){
+        PurchaseResponse p=purchases.create(USER,key(),new CreatePurchaseRequest("PREMIUM",billing)).purchase();drain();
+        outcomes.confirmSuccess(paymentId(p),p.amountVnd(),"VND",clock.instant());drain();
+        return purchases.detail(USER,p.purchaseReference());
+    }
+    fit.iuh.engolearn.payment.model.RefundTransaction refundTransaction(RefundResponse request){
+        return refundStore.findByReference(request.refundReference());
+    }
+    MessageEnvelopeDto refundEnvelope(String type,Object event,String id,String reference){
+        return new MessageEnvelopeDto(id,type,1,reference,"subscription.payment",clock.instant(),mapper.writeValueAsString(event));
+    }
+    @Test void refundSuccessIsAtomicRetainsUsageAndDoesNotRestoreTrial(){
+        subscriptions.activateTrial(USER,key());
+        consumption.consume(new UsageCommandDto(USER,"TEST",1,"TEST","usage","refund-r",null));
+        PurchaseResponse p=paidPurchase("MONTHLY");
+        long outbox=count("subscription_outbox");
+        assertThatThrownBy(()->transactions.execute(()->{subscriptionRefunds.request(ADMIN,p.purchaseReference(),key(),"Rollback");
+            throw new IllegalStateException("rollback");})).isInstanceOf(IllegalStateException.class);
+        assertThat(count("subscription_refund_requests")).isZero();assertThat(count("subscription_outbox")).isEqualTo(outbox);
+        var request=subscriptionRefunds.request(ADMIN,p.purchaseReference(),key(),"Requested by learner").refund();drain();
+        assertThat(subscriptions.summary(USER).tier()).isEqualTo("PREMIUM");
+        var refund=refundTransaction(request);
+        assertThat(refund.getAmountVnd()).isEqualTo(p.amountVnd());assertThat(refund.getRequestedBy()).isEqualTo(ADMIN);
+        assertThat(refundOutcomes.startProcessing(refund.getId())).isTrue();
+        assertThat(refundOutcomes.startProcessing(refund.getId())).isFalse();refundOutcomes.markUnknown(refund.getId());
+        assertThat(refundOutcomes.startProcessing(refund.getId())).isFalse();
+        assertThatThrownBy(()->subscriptionRefunds.request(ADMIN,p.purchaseReference(),key(),"Again"))
+                .isInstanceOfSatisfying(SubscriptionRequestException.class,e->assertThat(e.code()).isEqualTo("REFUND_PENDING"));
+        refundOutcomes.confirmSuccess(refund.getId(),1,"VND",clock.instant());
+        assertThat(refundStore.findById(refund.getId()).getStatus()).isEqualTo(fit.iuh.engolearn.payment.model.enums.RefundStatus.UNKNOWN);
+        doThrow(new IllegalStateException("outbox failure")).when(paymentMessages).append(any());
+        assertThatThrownBy(()->refundOutcomes.confirmSuccess(refund.getId(),p.amountVnd(),"VND",clock.instant()))
+                .isInstanceOf(IllegalStateException.class);
+        assertThat(refundStore.findById(refund.getId()).getStatus()).isEqualTo(fit.iuh.engolearn.payment.model.enums.RefundStatus.UNKNOWN);
+        reset(paymentMessages);
+        refundOutcomes.confirmSuccess(refund.getId(),p.amountVnd(),"VND",clock.instant());
+        var delivery=paymentMessages.claim(Set.of("subscription.payment"),clock.instant(),clock.instant().plusSeconds(30));
+        doThrow(new IllegalStateException("receipt failure")).when(receipts).recordReceipt(any(),any());
+        long before=count("subscription_outbox");
+        assertThatThrownBy(()->consumer.consume(delivery.envelope())).isInstanceOf(IllegalStateException.class);
+        assertThat(store.findByReference(p.purchaseReference()).getStatus()).isEqualTo(PurchaseStatus.REFUND_PENDING);
+        assertThat(mongoTemplate.findById(p.periodId(),SubscriptionPeriod.class).getState()).isEqualTo(PeriodState.ACTIVE);
+        assertThat(count("subscription_outbox")).isEqualTo(before);
+        reset(receipts);consumer.consume(delivery.envelope());consumer.consume(delivery.envelope());drain();
+        assertThat(purchases.detail(USER,p.purchaseReference()).status()).isEqualTo("REFUNDED");
+        assertThat(mongoTemplate.findById(p.periodId(),SubscriptionPeriod.class).getState()).isEqualTo(PeriodState.REFUNDED);
+        assertThat(subscriptions.summary(USER).tier()).isEqualTo("FREE");
+        assertThat(availability.checkAvailability(USER,"TEST").used()).isEqualTo(1);
+        assertThat(availability.checkAvailability(USER,"TEST").limit()).isEqualTo(2);
+        assertThat(mongoTemplate.findById(USER,SubscriptionAccount.class).isTrialUsed()).isTrue();
+        assertThat(mongoTemplate.findAll(SubscriptionPeriod.class)).filteredOn(x->x.getKind()==PeriodKind.TRIAL)
+                .extracting(SubscriptionPeriod::getState).containsExactly(PeriodState.SUPERSEDED);
+        refundOutcomes.confirmFailure(refund.getId(),"LATE",clock.instant());
+        consumer.consume(envelope(success(p,key(),p.paidAt())));
+        assertThat(purchases.detail(USER,p.purchaseReference()).status()).isEqualTo("REFUNDED");
+        assertThat(count("payment_refunds")).isEqualTo(1);
+    }
+    @Test void refundFailureRetryOldFactsAndNaturalExpiryPreserveRights(){
+        PurchaseResponse p=paidPurchase("MONTHLY");String firstKey=key();
+        var first=subscriptionRefunds.request(ADMIN,p.purchaseReference(),firstKey,"First").refund();drain();
+        String firstId=refundTransaction(first).getId();
+        refundOutcomes.confirmFailure(firstId,"DECLINED",clock.instant());drain();
+        assertThat(subscriptions.summary(USER).tier()).isEqualTo("PREMIUM");
+        assertThat(subscriptionRefunds.request(ADMIN,p.purchaseReference(),firstKey,"First").refund().status()).isEqualTo("FAILED");
+        var second=subscriptionRefunds.request(ADMIN,p.purchaseReference(),key(),"Retry").refund();drain();
+        String old=key();var oldFailure=new PaymentRefundFailedEvent(old,1,clock.instant(),first.refundReference(),firstId,
+                p.paymentId(),p.purchaseReference(),USER,"DECLINED",clock.instant());
+        consumer.consume(refundEnvelope("PAYMENT_REFUND_FAILED",oldFailure,old,p.purchaseReference()));
+        String conflict=key();var oldSuccess=new PaymentRefundSucceededEvent(conflict,1,clock.instant(),first.refundReference(),firstId,
+                p.paymentId(),p.purchaseReference(),USER,clock.instant());
+        consumer.consume(refundEnvelope("PAYMENT_REFUND_SUCCEEDED",oldSuccess,conflict,p.purchaseReference()));
+        assertThat(purchases.detail(USER,p.purchaseReference()).refundReference()).isEqualTo(second.refundReference());
+        assertThat(purchases.detail(USER,p.purchaseReference()).refundStatus()).isEqualTo("REQUESTED");
+        refundOutcomes.confirmSuccess(firstId,p.amountVnd(),"VND",clock.instant());
+        assertThat(refundOutcomes.startProcessing(refundTransaction(second).getId())).isFalse();
+        assertThat(refundStore.findById(refundTransaction(second).getId()).getStatus())
+                .isEqualTo(fit.iuh.engolearn.payment.model.enums.RefundStatus.UNKNOWN);
+        clock.now=p.periodEndAt().plusSeconds(1);
+        SubscriptionPeriod period=mongoTemplate.findById(p.periodId(),SubscriptionPeriod.class);
+        period.setState(PeriodState.EXPIRED);mongoTemplate.save(period);
+        assertThatThrownBy(()->create()).isInstanceOfSatisfying(SubscriptionRequestException.class,e->assertThat(e.code()).isEqualTo("REFUND_PENDING"));
+        refundOutcomes.confirmFailure(refundTransaction(second).getId(),"CLOSED",clock.instant());drain();
+        assertThat(mongoTemplate.findById(p.periodId(),SubscriptionPeriod.class).getState()).isEqualTo(PeriodState.EXPIRED);
+        assertThat(subscriptions.summary(USER).tier()).isEqualTo("FREE");
+        assertThat(subscriptionRefunds.request(ADMIN,p.purchaseReference(),firstKey,"First").refund().status()).isEqualTo("FAILED");
+        assertThat(count("payment_refunds")).isEqualTo(2);
+    }
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings={"MONTHLY","ANNUAL"})
+    void refundWindowUsesPinnedPaidAtAndExcludesDeadline(String billing){
+        PurchaseResponse p=paidPurchase(billing);String id=key();
+        Instant end=START.plus(Duration.ofDays(billing.equals("MONTHLY")?7:30));
+        assertThat(store.findByReference(p.purchaseReference()).getRefundEligibleUntil()).isEqualTo(end);
+        clock.now=end.minusMillis(1);
+        var accepted=subscriptionRefunds.request(ADMIN,p.purchaseReference(),id,"At boundary");drain();
+        refundOutcomes.confirmFailure(refundTransaction(accepted.refund()).getId(),"DECLINED",clock.instant());drain();
+        clock.now=end;
+        assertThatThrownBy(()->subscriptionRefunds.request(ADMIN,p.purchaseReference(),key(),"Expired"))
+                .isInstanceOfSatisfying(SubscriptionRequestException.class,e->assertThat(e.code()).isEqualTo("REFUND_INELIGIBLE"));
+        assertThat(subscriptionRefunds.request(ADMIN,p.purchaseReference(),id,"At boundary").created()).isFalse();
+    }
+    @RepeatedTest(2) void refundConcurrentRequestsAndOutcomesProduceOneAttemptAndFact()throws Exception{
+        PurchaseResponse p=paidPurchase("MONTHLY");
+        ExecutorService pool=Executors.newFixedThreadPool(2);CountDownLatch start=new CountDownLatch(1);
+        try{
+            Callable<Boolean> action=()->{start.await(10,TimeUnit.SECONDS);try{
+                return subscriptionRefunds.request(ADMIN,p.purchaseReference(),key(),"Concurrent").created();
+            }catch(SubscriptionRequestException e){assertThat(e.code()).isEqualTo("REFUND_PENDING");return false;}};
+            Future<Boolean> a=pool.submit(action),b=pool.submit(action);start.countDown();
+            assertThat(List.of(a.get(20,TimeUnit.SECONDS),b.get(20,TimeUnit.SECONDS))).containsExactlyInAnyOrder(true,false);
+            drain();assertThat(count("subscription_refund_requests")).isEqualTo(1);assertThat(count("payment_refunds")).isEqualTo(1);
+            var request=refundRequests.findPending(USER);var refund=refundStore.findByReference(request.getRefundReference());
+            CountDownLatch finish=new CountDownLatch(1);
+            Callable<Boolean> outcome=()->{finish.await(10,TimeUnit.SECONDS);try{
+                refundOutcomes.confirmSuccess(refund.getId(),p.amountVnd(),"VND",clock.instant());return true;
+            }catch(DataAccessException | com.mongodb.MongoException contention){return false;}};
+            Future<Boolean> x=pool.submit(outcome),y=pool.submit(outcome);finish.countDown();
+            boolean xx=x.get(20,TimeUnit.SECONDS),yy=y.get(20,TimeUnit.SECONDS);assertThat(xx||yy).isTrue();
+            refundOutcomes.confirmSuccess(refund.getId(),p.amountVnd(),"VND",clock.instant());drain();
+            assertThat(mongoTemplate.getCollection("payment_outbox").countDocuments(new org.bson.Document("message_type","PAYMENT_REFUND_SUCCEEDED"))).isEqualTo(1);
+            assertThat(purchases.detail(USER,p.purchaseReference()).status()).isEqualTo("REFUNDED");
+        }finally{pool.shutdownNow();}
+    }
+    @Test void refundCommandReplayConflictAndSecondFullRefundAreGuarded(){
+        PurchaseResponse p=paidPurchase("MONTHLY");
+        var request=subscriptionRefunds.request(ADMIN,p.purchaseReference(),key(),"Reason").refund();drain();
+        var refund=refundTransaction(request);
+        for(String reason:List.of("Reason","Changed")){
+            String id=key();var command=new fit.iuh.engolearn.payment.contract.dto.FullRefundCommandDto(id,1,clock.instant(),request.refundReference(),
+                    p.paymentId(),p.purchaseReference(),USER,ADMIN,reason);
+            refundConsumer.consume(new MessageEnvelopeDto(id,"FULL_REFUND",1,p.purchaseReference(),"payment.refund",clock.instant(),mapper.writeValueAsString(command)));
+        }
+        assertThat(count("payment_refunds")).isEqualTo(1);assertThat(count("payment_message_reviews")).isEqualTo(1);
+        refundOutcomes.confirmSuccess(refund.getId(),p.amountVnd(),"VND",clock.instant());drain();
+        String id=key(),ref=key();var second=new fit.iuh.engolearn.payment.contract.dto.FullRefundCommandDto(id,1,clock.instant(),ref,p.paymentId(),p.purchaseReference(),USER,ADMIN,"Second full refund");
+        refundConsumer.consume(new MessageEnvelopeDto(id,"FULL_REFUND",1,p.purchaseReference(),"payment.refund",clock.instant(),mapper.writeValueAsString(second)));
+        assertThat(refundStore.findByReference(ref).getStatus()).isEqualTo(fit.iuh.engolearn.payment.model.enums.RefundStatus.FAILED);
+        assertThat(refundStore.findByReference(ref).getFailureCode()).isEqualTo("REFUND_ALREADY_PENDING_OR_SUCCEEDED");
+        assertThat(mongoTemplate.getCollection("payment_refunds").countDocuments(new org.bson.Document("status","SUCCEEDED"))).isEqualTo(1);
+        PaymentTransaction unpaid=payments.insert(PaymentTransaction.builder().id(key()).purchaseReference(key()).userId(USER)
+                .amountVnd(100000).currency("VND").status(PaymentStatus.FAILED).expiresAt(clock.instant()).build());
+        String rejectedRef=key(),rejectedId=key();
+        var invalid=new fit.iuh.engolearn.payment.contract.dto.FullRefundCommandDto(rejectedId,1,clock.instant(),rejectedRef,
+                unpaid.getId(),unpaid.getPurchaseReference(),USER,ADMIN,"Unpaid");
+        refundConsumer.consume(new MessageEnvelopeDto(rejectedId,"FULL_REFUND",1,unpaid.getPurchaseReference(),"payment.refund",
+                clock.instant(),mapper.writeValueAsString(invalid)));
+        assertThat(refundStore.findByReference(rejectedRef).getFailureCode()).isEqualTo("PAYMENT_NOT_SUCCEEDED");
+    }
+    @Test void refundHttpRequiresAdminStrictBodyAndReplaysStableRequest(){
+        PurchaseResponse p=paidPurchase("MONTHLY");
+        String url="http://localhost:"+port+"/api/v1/subscription/admin/purchases/"+p.purchaseReference()+"/refund";
+        HttpHeaders headers=new HttpHeaders();headers.setContentType(MediaType.APPLICATION_JSON);headers.set("Idempotency-Key",key());
+        String body="{\"reason\":\"Requested by learner\"}";
+        assertThatThrownBy(()->restTemplate.postForEntity(url,new HttpEntity<>(body,headers),String.class))
+                .isInstanceOfSatisfying(HttpClientErrorException.class,e->assertThat(e.getStatusCode().value()).isEqualTo(401));
+        for(String user:List.of("dev-user","dev-cm")){
+            headers.set("X-Dev-User-Id",user);
+            assertThatThrownBy(()->restTemplate.postForEntity(url,new HttpEntity<>(body,headers),String.class))
+                    .isInstanceOfSatisfying(HttpClientErrorException.class,e->assertThat(e.getStatusCode().value()).isEqualTo(403));
+        }
+        headers.set("X-Dev-User-Id","dev-admin");
+        for(String invalid:List.of("{\"reason\":\"\"}","{\"reason\":\"x\",\"amountVnd\":1}","{\"reason\":\"x\",\"userId\":\"other\"}"))
+            assertThatThrownBy(()->restTemplate.postForEntity(url,new HttpEntity<>(invalid,headers),String.class))
+                    .isInstanceOfSatisfying(HttpClientErrorException.class,e->assertThat(e.getStatusCode().value()).isEqualTo(400));
+        var accepted=restTemplate.postForEntity(url,new HttpEntity<>(body,headers),String.class);
+        assertThat(accepted.getStatusCode().value()).isEqualTo(202);assertThat(accepted.getHeaders().getCacheControl()).isEqualTo("no-store");
+        assertThat(restTemplate.postForEntity(url,new HttpEntity<>(body,headers),String.class).getStatusCode().value()).isEqualTo(200);
+        assertThatThrownBy(()->restTemplate.postForEntity(url,new HttpEntity<>("{\"reason\":\"Changed\"}",headers),String.class))
+                .isInstanceOfSatisfying(HttpClientErrorException.class,e->assertThat(e.getStatusCode().value()).isEqualTo(409));
+        assertThat(count("subscription_refund_requests")).isEqualTo(1);
     }
 }

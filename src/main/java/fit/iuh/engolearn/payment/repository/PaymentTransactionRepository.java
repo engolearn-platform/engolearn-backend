@@ -5,4 +5,6 @@ public interface PaymentTransactionRepository {
     PaymentTransaction findById(String paymentId);
     PaymentTransaction insert(PaymentTransaction payment);
     void save(PaymentTransaction payment);
+    void guardRefund(String paymentId);
+    void markRefundReview(String paymentId, String reason);
 }

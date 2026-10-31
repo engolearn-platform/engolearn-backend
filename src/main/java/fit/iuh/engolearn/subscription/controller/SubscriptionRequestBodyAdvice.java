@@ -26,7 +26,7 @@ import org.springframework.web.servlet.mvc.method.annotation.RequestBodyAdviceAd
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
-@ControllerAdvice(assignableTypes = {AdminConfigurationController.class, SubscriptionController.class})
+@ControllerAdvice(assignableTypes = {AdminConfigurationController.class, SubscriptionController.class, AdminRefundController.class})
 @RequiredArgsConstructor
 public class SubscriptionRequestBodyAdvice extends RequestBodyAdviceAdapter {
     private final ObjectMapper mapper;
@@ -35,7 +35,8 @@ public class SubscriptionRequestBodyAdvice extends RequestBodyAdviceAdapter {
     @Override
     public boolean supports(MethodParameter parameter, Type targetType,
             Class<? extends HttpMessageConverter<?>> converterType) {
-        return parameter.getContainingClass() == AdminConfigurationController.class && targetType == AdminPublicationRequest.class ||
+        return parameter.getContainingClass() == AdminRefundController.class && targetType == fit.iuh.engolearn.subscription.dto.request.RefundRequest.class ||
+                parameter.getContainingClass() == AdminConfigurationController.class && targetType == AdminPublicationRequest.class ||
                 parameter.getContainingClass() == SubscriptionController.class && (targetType == TrialActivationRequest.class || targetType == fit.iuh.engolearn.subscription.dto.request.CreatePurchaseRequest.class);
     }
 
@@ -59,6 +60,8 @@ public class SubscriptionRequestBodyAdvice extends RequestBodyAdviceAdapter {
         }
         if (admin) {
             shape(node, AdminPublicationRequest.class, "");
+        } else if (targetType == fit.iuh.engolearn.subscription.dto.request.RefundRequest.class) {
+            shape(node, fit.iuh.engolearn.subscription.dto.request.RefundRequest.class, "");
         } else if (targetType == fit.iuh.engolearn.subscription.dto.request.CreatePurchaseRequest.class) {
             shape(node, fit.iuh.engolearn.subscription.dto.request.CreatePurchaseRequest.class, "");
         } else {

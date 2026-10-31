@@ -18,6 +18,9 @@ import org.springframework.data.mongodb.core.index.CompoundIndexes;
 })
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @SuperBuilder @EqualsAndHashCode(callSuper = true)
 public class RefundTransaction extends BaseDocument {
+    @Field("failure_code") private String failureCode;
+    @Field("completed_at") private Instant completedAt;
+    @Field("review_reason") private String reviewReason;
     @Field("refund_reference")
     private String refundReference;
     @Field("payment_id")

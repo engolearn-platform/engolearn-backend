@@ -9,7 +9,7 @@ import java.net.URI;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.annotation.*;
-@RestControllerAdvice(assignableTypes=SubscriptionController.class)
+@RestControllerAdvice(assignableTypes={SubscriptionController.class,AdminRefundController.class})
 public class SubscriptionExceptionHandler {
     @ExceptionHandler({org.springframework.web.bind.MethodArgumentNotValidException.class,SubscriptionRequestException.class,SubscriptionUnavailableException.class,UnauthenticatedException.class,HttpMessageNotReadableException.class,org.springframework.web.HttpMediaTypeNotSupportedException.class})
     public ProblemDetail handle(Exception ex,HttpServletRequest request,HttpServletResponse response) {

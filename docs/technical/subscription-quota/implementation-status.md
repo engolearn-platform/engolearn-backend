@@ -1,10 +1,18 @@
 # Subscription and Quota implementation status
 
+## P06 refund core (2026-10-31)
+
+ADMIN full-refund intent API, per-purchase request-key replay and retained attempt history, pinned 7/30-day window checks, durable command intake, Payment full-amount/identity guards and verified result handling are implemented. Account revision serializes Subscription changes; a payment-row write and refund uniqueness indexes serialize Payment attempts/outcomes. Pending/UNKNOWN retains rights and blocks new attempts/purchases. Only matching success revokes the bound period and refreshes durable entitlement; failure leaves the period unchanged. Late/contradictory facts are reviewed without overwriting newer attempts, restoring Trial or resetting usage. Financial review holds prevent starting another provider operation. See [purchase/refund API](purchase-api.md).
+
+Verification: the initial focused run passed 8 refund cases (including twice-run concurrency and both window boundaries) plus 9 architecture checks, zero failures/errors/skips; Maven 1:33. Self-review added review holds for financial contradictions and expanded rollback/financial assertions; only the 3 affected refund methods were rerun, all passing with zero failures/errors/skips (Maven 1:24). Evidence: workspace `.artifacts/subscription-payment-p06/tests.log`, `recheck.log` and `report.md`. No full suite was run under the user's focused-testing budget. The running dev BE returned plans 200 and ADMIN refund of a nonexistent purchase 404 PURCHASE_NOT_FOUND. No dev purchase/refund/usage data was seeded or reset.
+
+P07 remains absent: no provider network calls, signatures, work scheduler, automatic reconciliation or real refund execution. Durable REQUESTED work awaits that integration; PROCESSING/UNKNOWN must reconcile the same provider attempt rather than repeat the call. Subscription projects REQUESTED until a final Payment fact; intermediate Payment states stay Payment-local. Contradictory/inapplicable facts require manual review; operational replay/cleanup tooling is not implemented. Earlier dated implementation snapshots below are provenance.
+
 ## P05 history list
 
 Observed: both focused integration methods passed, zero failures/errors/skips, on the first run (Maven total 1:04). No earlier test groups or full suite were rerun. Logs: workspace `.artifacts/subscription-payment-p05/tests.log`.
 
-GET /api/v1/subscription/me/purchases now returns the authenticated learner's purchase projections with bounded cursor pagination, default 20/max 50, sorted by persisted creation timestamp and ID descending. One existing purchase yields one row regardless of its payment/refund status. No cross-module query, account provisioning or lifecycle write is introduced. P06-P07 are deferred by user request. Verification is limited to two focused isolated integration methods for owner isolation, tied timestamps, insertion between pages, stored refund projection, expired URL hiding, empty history and HTTP authentication/bounds/cursor validation.
+GET /api/v1/subscription/me/purchases now returns the authenticated learner's purchase projections with bounded cursor pagination, default 20/max 50, sorted by persisted creation timestamp and ID descending. One existing purchase yields one row regardless of its payment/refund status. No cross-module query, account provisioning or lifecycle write is introduced. P06 was subsequently authorized and implemented above; P07 remains deferred. Verification is limited to two focused isolated integration methods for owner isolation, tied timestamps, insertion between pages, stored refund projection, expired URL hiding, empty history and HTTP authentication/bounds/cursor validation.
 
 ## P04 paid activation (2026-10-30)
 

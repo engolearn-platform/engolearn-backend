@@ -15,7 +15,7 @@ public class MongoSubscriptionMessageRepository extends MongoDurableMessageRepos
     }
     public MongoSubscriptionMessageRepository(MongoTemplate mongo) {
         super(mongo, SubscriptionOutboxMessage.class, SubscriptionMessageReceipt.class,
-                SubscriptionOutboxMessage::new, SubscriptionMessageReceipt::new, PremiumPurchase.class, SubscriptionPeriod.class, SubscriptionMessageReview.class);
+                SubscriptionOutboxMessage::new, SubscriptionMessageReceipt::new, PremiumPurchase.class, SubscriptionRefundRequest.class, SubscriptionPeriod.class, SubscriptionMessageReview.class);
         this.mongo = mongo;
     }
 }
