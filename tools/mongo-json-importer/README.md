@@ -1,12 +1,13 @@
 # Generic MongoDB JSON Importer
 
-A domain-agnostic development tool for importing JSON datasets into MongoDB. It uses the repository root .env, PowerShell, Docker Compose, and mongosh. No application-specific schema or collection names are hard-coded.
+A domain-agnostic development tool for importing JSON datasets into MongoDB. It uses a tool-local .env for importer options and reads only shared MongoDB credentials/database defaults from the repository root .env. No application-specific schema or collection names are hard-coded.
 
 ## Quick start
 
 Run commands from the repository root:
 
     Copy-Item .env.example .env
+    Copy-Item .\tools\mongo-json-importer\.env.example .\tools\mongo-json-importer\.env
 
     # Check every JSON file in samples/; writes nothing
     .\tools\mongo-json-importer\import.ps1 -DryRun
@@ -41,12 +42,12 @@ Each file contains a top-level collections object. Each property name is a Mongo
 
 ## Configuration
 
-All settings live in the repository root .env. See the commented importer section in .env.example.
+Importer-specific settings live in tools/mongo-json-importer/.env. Create it by copying tools/mongo-json-importer/.env.example. Shared connection settings remain in the repository root .env: MONGO_USER, MONGO_PASS, and APP_DB. The importer-local file can override the URI or target database.
 
 | Variable | Default | Purpose |
 |---|---|---|
-| MONGO_IMPORT_URI | derived from MONGO_USER / MONGO_PASS | Optional URI override reachable from Docker network |
-| MONGO_IMPORT_DATABASE | APP_DB | Target database |
+| MONGO_IMPORT_URI | derived from root MONGO_USER / MONGO_PASS | Optional URI override reachable from Docker network |
+| MONGO_IMPORT_DATABASE | root APP_DB | Target database |
 | MONGO_IMPORT_CONFLICT_POLICY | skip | skip, fail, or replace |
 | MONGO_IMPORT_BATCH_SIZE | 500 | Documents per bulk-write batch |
 | MONGO_IMPORT_CONTINUE_ON_ERROR | false | Continue after a failed batch |
@@ -75,7 +76,7 @@ replace is destructive. Use -DryRun first and inspect the report.
 
 ## Troubleshooting
 
-- Missing .env: copy .env.example to .env and configure MongoDB credentials.
+- Missing root .env: configure the project's MongoDB credentials. Missing importer .env: copy tools/mongo-json-importer/.env.example to tools/mongo-json-importer/.env.
 - Docker unavailable: start Docker Desktop and retry.
 - Empty samples/: add one or more JSON files or pass -File.
 - Invalid JSON, missing collections, or missing _id: fix the input file before retrying.
