@@ -9,7 +9,7 @@
   function isObject(value) {
     return value !== null && typeof value === "object" && !Array.isArray(value) && !(value instanceof Date);
   }
-  function idKey(value) { return EJSON.stringify(value, { relaxed: false }); }
+  function idKey(value) { return EJSON.stringify(value, null, 0, { relaxed: false }); }
   function printReport(report) { print("\nIMPORT REPORT"); printjson(report); }
 
   function loadDatasets(files) {
