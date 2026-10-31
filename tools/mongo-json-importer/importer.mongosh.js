@@ -13,7 +13,42 @@
   function idKey(value) { return EJSON.stringify(value, null, 0, { relaxed: false }); }
   function printReport(report) { print("\nIMPORT REPORT"); printjson(report); }
 
-  function loadDatasets(files) {
+  function compileFieldPatterns(raw) {
+    if (!raw || raw.trim().toLowerCase() === "none") return [];
+    return raw.split(",").map(function (pattern) {
+      pattern = pattern.trim();
+      if (!pattern) return null;
+      if (!/^[A-Za-z0-9_*]+$/.test(pattern)) {
+        fail("Invalid ObjectId field pattern '" + pattern + "'. Use letters, numbers, underscores, and * only.");
+      }
+      return new RegExp("^" + pattern.replace(/\*/g, ".*") + "$", "i");
+    }).filter(Boolean);
+  }
+
+  function normalizeObjectIdFields(value, fieldName, patterns, stats) {
+    var matches = fieldName && patterns.some(function (pattern) { return pattern.test(fieldName); });
+    if (matches && typeof value === "string" && /^[0-9a-fA-F]{24}$/.test(value)) {
+      stats.converted++;
+      return ObjectId(value);
+    }
+    if (Array.isArray(value)) {
+      return value.map(function (item) {
+        if (matches && typeof item === "string" && /^[0-9a-fA-F]{24}$/.test(item)) {
+          stats.converted++;
+          return ObjectId(item);
+        }
+        return normalizeObjectIdFields(item, null, patterns, stats);
+      });
+    }
+    if (isObject(value)) {
+      Object.keys(value).forEach(function (key) {
+        value[key] = normalizeObjectIdFields(value[key], key, patterns, stats);
+      });
+    }
+    return value;
+  }
+
+  function loadDatasets(files, patterns, stats) {
     var groups = new Map();
     var seen = new Map();
     var total = 0;
@@ -24,6 +59,7 @@
       if (!isObject(parsed) || !isObject(parsed.collections)) {
         fail("'" + filePath + "' must contain a top-level collections object.");
       }
+      parsed = normalizeObjectIdFields(parsed, null, patterns, stats);
       Object.keys(parsed.collections).forEach(function (name) {
         if (!name || name.indexOf("\0") >= 0 || name.indexOf("$") >= 0 || /^system\./i.test(name)) {
           fail("Unsupported collection name '" + name + "' in " + filePath + ".");
@@ -65,6 +101,9 @@
     var batchSize = Number(process.env.MONGO_IMPORT_BATCH_SIZE || "500");
     var continueOnError = process.env.MONGO_IMPORT_CONTINUE_ON_ERROR === "true";
     var apply = process.env.MONGO_IMPORT_APPLY === "1";
+    var objectIdFieldSetting = process.env.MONGO_IMPORT_OBJECT_ID_FIELDS || "_id,*_id,*_ids";
+    var objectIdPatterns = compileFieldPatterns(objectIdFieldSetting);
+    var objectIdStats = { converted: 0 };
     if (!uri || !databaseName) fail("MongoDB URI or database is missing.");
     if (["skip", "fail", "replace"].indexOf(policy) < 0) fail("Conflict policy must be skip, fail, or replace.");
     if (!Number.isInteger(batchSize) || batchSize < 1) fail("Batch size must be a positive integer.");
@@ -74,7 +113,7 @@
 
     var files = JSON.parse(process.env.MONGO_IMPORT_FILES_JSON || "[]");
     if (!Array.isArray(files) || files.length === 0) fail("No input files were provided.");
-    var loaded = loadDatasets(files);
+    var loaded = loadDatasets(files, objectIdPatterns, objectIdStats);
     var db = new Mongo(uri).getDB(databaseName);
 
     // Complete read-only preflight for every file and collection before the first write.
@@ -93,6 +132,8 @@
       files: files,
       conflictPolicy: policy,
       batchSize: batchSize,
+      objectIdFields: objectIdFieldSetting,
+      convertedObjectIdValues: objectIdStats.converted,
       totals: {
         collections: plans.length,
         documents: loaded.total,
@@ -151,6 +192,7 @@
           });
         } catch (error) {
           var writeErrors = Array.isArray(error.writeErrors) ? error.writeErrors : [];
+          var failed = writeErrors.length > 0 ? writeErrors.length : operations.length;
           report.writeResults.push({
             collection: plan.name,
             batch: Math.floor(offset / batchSize) + 1,
