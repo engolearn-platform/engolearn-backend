@@ -38,6 +38,8 @@ Each file contains a top-level collections object. Each property name is a Mongo
 - Collection names are dynamic; no application domain is assumed.
 - Every document must have a non-null _id. IDs are never generated automatically.
 - MongoDB Extended JSON supports ObjectId, Date, Decimal128, and binary values.
+- By default, 24-character hexadecimal strings in fields named _id, ending in _id, or ending in _ids are converted to BSON ObjectId. Arrays in matching *_ids fields are converted element by element. Other strings are unchanged.
+- Set MONGO_IMPORT_OBJECT_ID_FIELDS in the tool-local .env to a comma-separated list of exact field names or wildcard patterns. Use "none" to disable conversion. This lets datasets with string-based identifiers opt out or define their own conventions.
 - The importer validates the JSON envelope, document shape, and duplicate input IDs. It does not validate domain schemas or cross-collection references.
 
 ## Configuration
@@ -49,6 +51,7 @@ Importer-specific settings live in tools/mongo-json-importer/.env. Create it by 
 | MONGO_IMPORT_URI | derived from root MONGO_USER / MONGO_PASS | Optional URI override reachable from Docker network |
 | MONGO_IMPORT_DATABASE | root APP_DB | Target database |
 | MONGO_IMPORT_CONFLICT_POLICY | skip | skip, fail, or replace |
+| MONGO_IMPORT_OBJECT_ID_FIELDS | _id,*_id,*_ids | Field names/patterns whose 24-hex string values are converted to ObjectId; "none" disables |
 | MONGO_IMPORT_BATCH_SIZE | 500 | Documents per bulk-write batch |
 | MONGO_IMPORT_CONTINUE_ON_ERROR | false | Continue after a failed batch |
 | MONGO_IMPORT_REQUIRE_CONFIRMATION | true | Require typing IMPORT before writes |
