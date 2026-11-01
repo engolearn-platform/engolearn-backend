@@ -74,8 +74,11 @@ public final class SpeakingDraftValidator {
 
     public ValidatedTurnProposal validate(String rawJson, ValidationContext context) {
         SpeakingAiDraftResponseV1 draft = validateSchema(rawJson);
-        if (draft.assessment().turnValidityProposal() != SpeakingAiDraftResponseV1.TurnValidity.VALID) {
-            return new ValidatedTurnProposal(false, List.of(), List.of(), List.of(), null, null);
+        if (draft.assessment().turnValidityProposal() == SpeakingAiDraftResponseV1.TurnValidity.INVALID) {
+            return ValidatedTurnProposal.invalid();
+        }
+        if (draft.assessment().turnValidityProposal() == SpeakingAiDraftResponseV1.TurnValidity.UNCERTAIN) {
+            return ValidatedTurnProposal.evaluationFailed();
         }
         Set<String> goalIds = new HashSet<>();
         List<SpeakingAssessmentRecord.GoalEvidence> acceptedGoals = new ArrayList<>();
@@ -115,8 +118,9 @@ public final class SpeakingDraftValidator {
         if (dialogue != null && (dialogue.proposedAct() == DialogueAct.WRAP_UP || invalidTarget)) {
             dialogue = null;
         }
-        return new ValidatedTurnProposal(true, List.copyOf(acceptedGoals), List.copyOf(acceptedResources),
-                acceptedCorrections, draft.assessment().hintVi(), dialogue);
+        return new ValidatedTurnProposal(ValidatedTurnProposal.ValidityOutcome.VALID,
+                List.copyOf(acceptedGoals), List.copyOf(acceptedResources), acceptedCorrections,
+                draft.assessment().hintVi(), dialogue, draft.assessment().userIntent(), List.of());
     }
 
     private SpeakingAiDraftResponseV1.Dialogue dialogue(JsonNode node) {

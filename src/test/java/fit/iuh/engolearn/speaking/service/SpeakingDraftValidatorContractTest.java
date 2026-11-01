@@ -26,11 +26,20 @@ class SpeakingDraftValidatorContractTest {
 
     @BeforeAll
     static void loadFixtures() throws IOException {
-        Path path = Path.of(System.getProperty("user.dir"), "..", "Note", "speaking-with-AI",
-                "redesign-inside", "03-speaking-ai-contract-fixtures.json").normalize();
+        Path path = findWorkspaceFixture("03-speaking-ai-contract-fixtures.json");
         var loaded = new ArrayList<JsonNode>();
         MAPPER.readTree(Files.readString(path)).withArray("fixtures").forEach(loaded::add);
         fixtures = List.copyOf(loaded);
+    }
+
+    private static Path findWorkspaceFixture(String fileName) {
+        Path current = Path.of(System.getProperty("user.dir")).toAbsolutePath();
+        while (current != null) {
+            Path candidate = current.resolve(Path.of("Note", "speaking-with-AI", "redesign-inside", fileName));
+            if (Files.isRegularFile(candidate)) return candidate;
+            current = current.getParent();
+        }
+        throw new IllegalStateException("Cannot locate workspace fixture: " + fileName);
     }
 
     @ParameterizedTest(name = "{0} follows the reviewed schema expectation")
