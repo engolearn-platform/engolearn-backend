@@ -21,6 +21,10 @@ import org.springframework.data.mongodb.core.index.CompoundIndexes;
 })
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @SuperBuilder @EqualsAndHashCode(callSuper = true)
 public class PremiumPurchase extends BaseDocument {
+    @Field("dev_reset_at") private Instant devResetAt;
+    @Field("dev_reset_by") private String devResetBy;
+    @Field("dev_reset_previous_status") private PurchaseStatus devResetPreviousStatus;
+    @Field("dev_reset_previous_review_reason") private String devResetPreviousReviewReason;
     @Field("intent_created_at") private Instant intentCreatedAt;
     @Field("period_end_at") private Instant periodEndAt;
     @Field("checkout_url") private String checkoutUrl;

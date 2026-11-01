@@ -28,6 +28,7 @@ public class PurchaseServiceImpl implements PurchaseService {
     private final SubscriptionTransactions transactions;
     private final ObjectMapper mapper;
     private final Clock clock;
+    private final org.springframework.beans.factory.ObjectProvider<DevPurchaseResetService> devResets;
     @Value("${engolearn.payment.checkout-lifetime:PT15M}") private Duration checkoutLifetime;
 
     public Creation create(String userId, String key, CreatePurchaseRequest request) {
@@ -145,7 +146,8 @@ public class PurchaseServiceImpl implements PurchaseService {
                 purchase.getAmountVnd(), purchase.getCurrency(), purchase.getPaymentId(), url, purchase.getExpiresAt(),
                 purchase.getPaidAt(), purchase.getPeriodId(), purchase.getIntentCreatedAt() == null ? purchase.getCreatedAt() : purchase.getIntentCreatedAt(),
                 purchase.getFailureCode(), purchase.getPeriodEndAt(), purchase.getRefundReference(), purchase.getRefundId(),
-                purchase.getRefundStatus() == null ? null : purchase.getRefundStatus().name());
+                purchase.getRefundStatus() == null ? null : purchase.getRefundStatus().name(),
+                devResets.getIfAvailable()!=null && devResets.getIfAvailable().canReset(purchase),purchase.getDevResetAt());
     }
     private String fingerprint(CreatePurchaseRequest request) { return request.planCode() + ":" + request.billingPeriod(); }
     private SubscriptionRequestException error(int status, String code, String message) {

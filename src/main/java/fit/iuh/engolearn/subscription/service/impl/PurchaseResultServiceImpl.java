@@ -23,6 +23,7 @@ public class PurchaseResultServiceImpl implements PurchaseResultService {
         }
         PremiumPurchase purchase = purchases.findByReference(envelope.aggregateId());
         if (purchase == null) { reviews.review(envelope, "PURCHASE_NOT_FOUND"); return; }
+        if (purchase.getDevResetAt()!=null) {reviews.review(envelope,"RESULT_AFTER_DEV_RESET");return;}
         switch (envelope.messageType()) {
             case "PAYMENT_SUCCEEDED" -> activation.apply(mapper.readValue(envelope.payload(),PaymentSucceededEvent.class),envelope);
             case "CHECKOUT_READY" -> {

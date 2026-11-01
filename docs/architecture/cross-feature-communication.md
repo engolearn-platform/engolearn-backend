@@ -8,6 +8,8 @@ This document owns communication mechanisms, caller/provider obligations and the
 
 ## Allowed communication
 
+Dev operator exception (2026-11-01, explicitly user-approved): Subscription may synchronously invoke payment.contract.DevPaymentReset while both dev-only capabilities join one local Mongo transaction to release an unresolved test purchase. Both are absent unless dev is active, prod is absent and the explicit flag is enabled. Payment retains ownership of financial eligibility/audit; Subscription retains ownership of source/account guards. No financial outcome fact or entitlement change is fabricated. Ordinary purchase/refund/entitlement flows retain durable Outbox boundaries. See [dev release](../technical/subscription-quota/dev-purchase-reset.md).
+
 1. **Contract call** — call the provider's public capability interface; callers must not access its entities or repositories.
 2. **Event** — publish a fact owned by the publishing feature and let the receiving feature react. Prefer events when a direct call would create a backwards dependency.
 3. **ID reference** — store another feature's ID as a plain value, not as a cross-feature object relationship. Request details through that feature's contract when needed.

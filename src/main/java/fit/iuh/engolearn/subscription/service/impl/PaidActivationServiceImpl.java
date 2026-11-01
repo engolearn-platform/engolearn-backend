@@ -21,6 +21,7 @@ public class PaidActivationServiceImpl implements PaidActivationService {
     public void apply(PaymentSucceededEvent event,MessageEnvelopeDto envelope) {
         PremiumPurchase purchase=purchases.findByReference(event.purchaseReference());
         if (purchase==null) {reviews.review(envelope,"PURCHASE_NOT_FOUND");return;}
+        if (purchase.getDevResetAt()!=null) {reviews.review(envelope,"PAYMENT_AFTER_DEV_RESET");return;}
         Instant paid=Instant.ofEpochMilli(event.paidAt().toEpochMilli());
         Instant requested=purchase.getIntentCreatedAt()==null?purchase.getCreatedAt():purchase.getIntentCreatedAt();
         if (!event.eventId().equals(envelope.messageId()) || !event.occurredAt().equals(envelope.occurredAt()) ||

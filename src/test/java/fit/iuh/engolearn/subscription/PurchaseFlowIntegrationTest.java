@@ -51,7 +51,7 @@ import tools.jackson.databind.ObjectMapper;
 @EnabledIfDockerAvailable
 @Import(PurchaseFlowIntegrationTest.TimeConfig.class)
 @TestPropertySource(properties={"engolearn.messaging.enabled=false","engolearn.subscription.activation-delay-ms=3600000",
-        "engolearn.payment.vnpay.enabled=false","engolearn.payment.vnpay.worker-enabled=false"})
+        "engolearn.payment.vnpay.enabled=false","engolearn.payment.vnpay.worker-enabled=false","engolearn.payment.dev-reset.enabled=true"})
 class PurchaseFlowIntegrationTest extends AbstractMongoIntegrationTest {
     static final Instant START=Instant.parse("2027-01-31T03:00:00Z");
     static final String USER="68f8f3a9b9e4a12345678901";
@@ -66,6 +66,7 @@ class PurchaseFlowIntegrationTest extends AbstractMongoIntegrationTest {
     @Autowired MutableClock clock;
     @Autowired List<DurableMessageRepository> repositories;
     @Autowired PurchaseService purchases;
+    @Autowired DevPurchaseResetService devResets;
     @Autowired PurchaseRepository store;
     @Autowired SubscriptionPublicationService publication;
     @Autowired SubscriptionTransactions transactions;
@@ -93,6 +94,51 @@ class PurchaseFlowIntegrationTest extends AbstractMongoIntegrationTest {
                         List.of(new PlanBenefitResponse("TEST","Test","Test benefit",null,0))));
     }
     String key(){return UUID.randomUUID().toString();}
+    @Test void devResetRetainsUsageAndHistoryAndLateFactsCannotActivateOrReblock(){
+        subscriptions.activateTrial(USER,key());
+        consumption.consume(new UsageCommandDto(USER,"TEST",1,"TEST","dev-reset-usage","r",null));
+        PurchaseResponse p=vnCreate();var before=subscriptions.summary(USER);
+        assertThat(purchases.detail(USER,p.purchaseReference()).devResetAllowed()).isTrue();
+        clock.now=START.plusNanos(123456789);
+        var reset=devResets.reset(USER,p.purchaseReference());
+        assertThat(reset.resetAt()).isEqualTo(Instant.ofEpochMilli(clock.millis()));
+        assertThat(devResets.reset(USER,p.purchaseReference())).isEqualTo(reset);
+        var released=store.findByReference(p.purchaseReference());
+        assertThat(released.isBlocksNewPurchase()).isFalse();assertThat(released.getCheckoutUrl()).isNull();
+        assertThat(released.getDevResetBy()).isEqualTo(USER);
+        assertThat(released.getDevResetPreviousStatus()).isEqualTo(PurchaseStatus.PAYMENT_PENDING);
+        assertThat(payments.findById(p.paymentId()).getStatus()).isEqualTo(PaymentStatus.REVIEW_REQUIRED);
+        assertThat(payments.findById(p.paymentId()).getDevResetAt()).isEqualTo(reset.resetAt());
+        assertThat(subscriptions.summary(USER)).isEqualTo(before);
+        assertThat(purchases.detail(USER,p.purchaseReference()).devResetAllowed()).isFalse();
+        assertThat(vnpay.ipn(vnSigned(vnFields(p))).code()).isEqualTo("99");
+        var event=success(p,key(),START);paymentEvent(event.eventId(),"PAYMENT_SUCCEEDED",p.purchaseReference(),event);drain();
+        assertThat(store.findByReference(p.purchaseReference()).isBlocksNewPurchase()).isFalse();
+        var next=create();drain();
+        var another=success(p,key(),START);paymentEvent(another.eventId(),"PAYMENT_SUCCEEDED",p.purchaseReference(),another);drain();
+        assertThat(store.findBlocking(USER).getPurchaseReference()).isEqualTo(next.purchaseReference());
+        assertThat(count("subscription_periods")).isEqualTo(1);
+        assertThat(subscriptions.summary(USER)).isEqualTo(before);
+        assertThat(count("subscription_purchases")).isEqualTo(2);
+        verifyNoInteractions(vnGateway);
+    }
+    @Test void devResetHttpEnforcesOwnerAndRejectsPaidFactsAndRollsBackFailure(){
+        PurchaseResponse p=vnCreate();String url="http://localhost:"+port+"/api/v1/subscription/me/purchases/"+p.purchaseReference()+"/dev-reset";
+        assertThatThrownBy(()->restTemplate.postForEntity(url,null,String.class)).isInstanceOfSatisfying(HttpClientErrorException.class,e->assertThat(e.getStatusCode().value()).isEqualTo(401));
+        HttpHeaders headers=new HttpHeaders();headers.set("X-Dev-User-Id","dev-cm");
+        assertThatThrownBy(()->restTemplate.exchange(url,HttpMethod.POST,new HttpEntity<>(headers),String.class)).isInstanceOfSatisfying(HttpClientErrorException.class,e->assertThat(e.getStatusCode().value()).isEqualTo(404));
+        // The purchase write failure must roll back the Payment write in the same transaction.
+        doThrow(new IllegalStateException("source write failed")).when(resetStore).save(any());
+        assertThatThrownBy(()->devResets.reset(USER,p.purchaseReference())).isInstanceOf(IllegalStateException.class);
+        assertThat(payments.findById(p.paymentId()).getStatus()).isEqualTo(PaymentStatus.PENDING);
+        assertThat(store.findByReference(p.purchaseReference()).isBlocksNewPurchase()).isTrue();
+        doCallRealMethod().when(resetStore).save(any());
+        outcomes.confirmSuccess(p.paymentId(),p.amountVnd(),"VND",START);
+        assertThatThrownBy(()->devResets.reset(USER,p.purchaseReference())).isInstanceOfSatisfying(SubscriptionRequestException.class,e->assertThat(e.code()).isEqualTo("DEV_RESET_NOT_ALLOWED"));
+        assertThat(store.findByReference(p.purchaseReference()).getDevResetAt()).isNull();
+        assertThat(store.findByReference(p.purchaseReference()).isBlocksNewPurchase()).isTrue();
+    }
+    @MockitoSpyBean PurchaseRepository resetStore;
     PurchaseResponse create(){return purchases.create(USER,key(),MONTH).purchase();}
     void drain(){for(int hop=0;hop<4;hop++)dispatcher.dispatch();}
     long count(String collection){return mongoTemplate.getCollection(collection).countDocuments();}
