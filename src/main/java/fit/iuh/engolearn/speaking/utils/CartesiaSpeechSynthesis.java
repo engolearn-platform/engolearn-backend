@@ -2,6 +2,7 @@ package fit.iuh.engolearn.speaking.utils;
 
 import fit.iuh.engolearn.speaking.utils.port.SpeechSynthesisPort;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import tools.jackson.databind.ObjectMapper;
 
@@ -22,18 +23,25 @@ public class CartesiaSpeechSynthesis implements SpeechSynthesisPort {
     private final String endpoint;
     private final String apiVersion;
 
+    @Autowired
     public CartesiaSpeechSynthesis(ObjectMapper mapper,
             @Value("${engolearn.speaking.cartesia.api-key:}") String apiKey,
             @Value("${engolearn.speaking.cartesia.voice:db6b0ed5-d5d3-463d-ae85-518a07d3c2b4}") String voice,
             @Value("${engolearn.speaking.cartesia.model:sonic-3.6}") String model,
             @Value("${engolearn.speaking.cartesia.endpoint:https://api.cartesia.ai/tts/bytes}") String endpoint,
             @Value("${engolearn.speaking.cartesia.api-version:2026-08-14}") String apiVersion) {
+        this(mapper, apiKey, voice, model, endpoint, apiVersion, null);
+    }
+
+    CartesiaSpeechSynthesis(ObjectMapper mapper, String apiKey, String voice, String model,
+            String endpoint, String apiVersion, HttpClient client) {
         this.mapper = mapper;
         this.apiKey = apiKey;
         this.voice = voice;
         this.model = model;
         this.endpoint = endpoint;
         this.apiVersion = apiVersion;
+        this.client = client;
     }
 
     @Override

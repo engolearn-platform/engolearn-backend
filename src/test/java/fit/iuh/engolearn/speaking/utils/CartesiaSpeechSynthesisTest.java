@@ -1,47 +1,71 @@
 package fit.iuh.engolearn.speaking.utils;
 
-import com.sun.net.httpserver.HttpServer;
 import org.junit.jupiter.api.Test;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
-import java.net.InetSocketAddress;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Flow;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 class CartesiaSpeechSynthesisTest {
     @Test void sendsVoiceIdAndMp3FormatToBytesApi() throws Exception {
         ObjectMapper mapper = new ObjectMapper();
-        AtomicReference<JsonNode> payload = new AtomicReference<>();
-        AtomicReference<String> authorization = new AtomicReference<>();
+        HttpClient client = mock(HttpClient.class);
+        HttpResponse<byte[]> response = mock(HttpResponse.class);
         byte[] audio = {1, 2, 3};
-        HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
-        server.createContext("/tts/bytes", exchange -> {
-            try {
-                authorization.set(exchange.getRequestHeaders().getFirst("Authorization"));
-                payload.set(mapper.readTree(new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8)));
-                exchange.sendResponseHeaders(200, audio.length);
-                exchange.getResponseBody().write(audio);
-            } finally {
-                exchange.close();
-            }
-        });
-        server.start();
-        try {
-            CartesiaSpeechSynthesis synthesis = new CartesiaSpeechSynthesis(mapper, "test-key", "voice-id",
-                    "sonic-3.6", "http://127.0.0.1:" + server.getAddress().getPort() + "/tts/bytes",
-                    "2026-08-14");
+        when(response.statusCode()).thenReturn(200);
+        when(response.body()).thenReturn(audio);
+        AtomicReference<HttpRequest> request = new AtomicReference<>();
+        when(client.send(any(HttpRequest.class), any(HttpResponse.BodyHandler.class)))
+                .thenAnswer(invocation -> {
+                    request.set(invocation.getArgument(0));
+                    return response;
+                });
 
-            assertArrayEquals(audio, synthesis.synthesize("Hello!"));
-            assertEquals("Bearer test-key", authorization.get());
-            assertEquals("voice-id", payload.get().path("voice").asText());
-            assertEquals("mp3", payload.get().path("output_format").path("container").asText());
-            assertEquals("Hello!", payload.get().path("transcript").asText());
-        } finally {
-            server.stop(0);
-        }
+        CartesiaSpeechSynthesis synthesis = new CartesiaSpeechSynthesis(mapper, "test-key", "voice-id",
+                "sonic-3.6", "http://cartesia.test/tts/bytes", "2026-08-14", client);
+
+        assertArrayEquals(audio, synthesis.synthesize("Hello!"));
+        assertEquals("http://cartesia.test/tts/bytes", request.get().uri().toString());
+        assertEquals("Bearer test-key", request.get().headers().firstValue("Authorization").orElseThrow());
+        JsonNode payload = mapper.readTree(readBody(request.get().bodyPublisher().orElseThrow()));
+        assertEquals("voice-id", payload.path("voice").asText());
+        assertEquals("mp3", payload.path("output_format").path("container").asText());
+        assertEquals("Hello!", payload.path("transcript").asText());
+    }
+
+    private String readBody(HttpRequest.BodyPublisher publisher) {
+        CompletableFuture<String> body = new CompletableFuture<>();
+        publisher.subscribe(new Flow.Subscriber<>() {
+            private final StringBuilder content = new StringBuilder();
+
+            @Override public void onSubscribe(Flow.Subscription subscription) {
+                subscription.request(Long.MAX_VALUE);
+            }
+
+            @Override public void onNext(ByteBuffer item) {
+                byte[] bytes = new byte[item.remaining()];
+                item.get(bytes);
+                content.append(new String(bytes, StandardCharsets.UTF_8));
+            }
+
+            @Override public void onError(Throwable throwable) { body.completeExceptionally(throwable); }
+
+            @Override public void onComplete() { body.complete(content.toString()); }
+        });
+        return body.join();
     }
 }
