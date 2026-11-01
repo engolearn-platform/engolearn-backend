@@ -39,7 +39,7 @@ public record ConversationStateView(
         Set<String> projectedGoals = new LinkedHashSet<>(achievedGoalIds);
         if (additionalGoalIds != null) projectedGoals.addAll(additionalGoalIds);
         return new ConversationStateView(status, finalizedTurnCount,
-                validTurnCount + additionalValidTurns, consecutiveEvaluationErrors,
+                validTurnCount + additionalValidTurns, 0,
                 projectedGoals, closingStartedAt, closingReason, controllerEpoch, revision);
     }
 

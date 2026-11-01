@@ -35,7 +35,8 @@ public final class ConversationManager {
             return decision(DialogueDecision.Outcome.REJECT, DialogueDecision.ReasonCode.REJECTED_TERMINAL,
                     state, base, null, null, null, null, null);
         }
-        if (trigger != null && trigger != DialogueDecision.SystemTrigger.NONE) {
+        if (trigger == DialogueDecision.SystemTrigger.SERVICE_UNAVAILABLE
+                || (proposal == null && trigger != null && trigger != DialogueDecision.SystemTrigger.NONE)) {
             return lifecycleDecision(state, base, trigger);
         }
         if (proposal == null) {
@@ -55,9 +56,15 @@ public final class ConversationManager {
                     state.validTurnCount(), errors, state.achievedGoalIds(), state.closingStartedAt(),
                     state.closingReason(), state.controllerEpoch(), state.revision());
             ConversationStateView.Completion completion = projected.completionFor(snapshot);
+            DialogueDecision.SystemTrigger closingTrigger = effectiveClosingTrigger(state, trigger);
+            if (closingTrigger != DialogueDecision.SystemTrigger.NONE) {
+                return lifecycleDecision(projected, completion, closingTrigger, List.of());
+            }
             return decision(errors >= 3 ? DialogueDecision.Outcome.TERMINAL : DialogueDecision.Outcome.RECOVERY,
                     reason, projected, completion, null, null, null,
-                    errors >= 3 ? SpeakingSession.Status.INCOMPLETE : SpeakingSession.Status.ACTIVE, null);
+                    errors >= 3
+                            ? (completion.completionEligible() ? SpeakingSession.Status.COMPLETED : SpeakingSession.Status.INCOMPLETE)
+                            : SpeakingSession.Status.ACTIVE, null);
         }
 
         Set<String> pinnedGoalIds = snapshot.goals().stream().map(SpeakingGoal::id).collect(java.util.stream.Collectors.toCollection(LinkedHashSet::new));
@@ -66,6 +73,11 @@ public final class ConversationManager {
                 .filter(pinnedGoalIds::contains).filter(id -> !previous.contains(id)).distinct().toList();
         ConversationStateView projected = state.projected(1, newlyAchieved);
         ConversationStateView.Completion completion = projected.completionFor(snapshot);
+
+        DialogueDecision.SystemTrigger closingTrigger = effectiveClosingTrigger(state, trigger);
+        if (closingTrigger != DialogueDecision.SystemTrigger.NONE) {
+            return lifecycleDecision(projected, completion, closingTrigger, newlyAchieved);
+        }
 
         if (completion.autoEndEligible()) {
             return decision(DialogueDecision.Outcome.TERMINAL,
@@ -98,14 +110,19 @@ public final class ConversationManager {
                 == SpeakingAiDraftResponseV1.UserIntent.CLOSING_UTTERANCE
                 ? DialogueDecision.ReasonCode.SPOKEN_STOP_NOT_END : DialogueDecision.ReasonCode.NORMAL;
         return decision(DialogueDecision.Outcome.NORMAL, reason, projected, completion, dialogue.proposedAct(),
-                dialogue.spokenReply(), newlyAchieved, SpeakingSession.Status.ACTIVE, null);
+                dialogue.spokenReply(), dialogue.targetGoalId(), newlyAchieved, SpeakingSession.Status.ACTIVE, null);
     }
 
     private DialogueDecision lifecycleDecision(ConversationStateView state, ConversationStateView.Completion completion,
             DialogueDecision.SystemTrigger trigger) {
+        return lifecycleDecision(state, completion, trigger, List.of());
+    }
+
+    private DialogueDecision lifecycleDecision(ConversationStateView state, ConversationStateView.Completion completion,
+            DialogueDecision.SystemTrigger trigger, List<String> newlyAchieved) {
         if (trigger == DialogueDecision.SystemTrigger.SERVICE_UNAVAILABLE) {
             return decision(DialogueDecision.Outcome.TERMINAL, DialogueDecision.ReasonCode.SERVICE_UNAVAILABLE,
-                    state, completion, null, null, List.of(), SpeakingSession.Status.INTERRUPTED, trigger);
+                    state, completion, null, null, null, newlyAchieved, SpeakingSession.Status.INTERRUPTED, trigger);
         }
         DialogueDecision.ReasonCode reason = switch (trigger) {
             case USER_END -> DialogueDecision.ReasonCode.USER_END_ACTION;
@@ -118,14 +135,44 @@ public final class ConversationManager {
         };
         SpeakingSession.Status status = completion.completionEligible()
                 ? SpeakingSession.Status.COMPLETED : SpeakingSession.Status.INCOMPLETE;
-        return decision(DialogueDecision.Outcome.TERMINAL, reason, state, completion, null, null, List.of(), status, trigger);
+        return decision(DialogueDecision.Outcome.TERMINAL, reason, state, completion, null, null, null,
+                newlyAchieved, status, trigger);
+    }
+
+    private DialogueDecision.SystemTrigger effectiveClosingTrigger(ConversationStateView state,
+            DialogueDecision.SystemTrigger explicitTrigger) {
+        if (explicitTrigger != null && explicitTrigger != DialogueDecision.SystemTrigger.NONE) {
+            return explicitTrigger;
+        }
+        if (state.closingStartedAt() == null) {
+            return DialogueDecision.SystemTrigger.NONE;
+        }
+        if (state.closingReason() == null) {
+            return DialogueDecision.SystemTrigger.RECOVERY_EXPIRED;
+        }
+        return switch (state.closingReason()) {
+            case LEARNER_ENDED -> DialogueDecision.SystemTrigger.USER_END;
+            case TURN_LIMIT -> DialogueDecision.SystemTrigger.FINALIZED_TURN_LIMIT;
+            case SESSION_AGE -> DialogueDecision.SystemTrigger.SESSION_AGE;
+            case DAILY_QUOTA -> DialogueDecision.SystemTrigger.DAILY_QUOTA;
+            case RECOVERY_EXPIRED -> DialogueDecision.SystemTrigger.RECOVERY_EXPIRED;
+            case SERVICE_RESTART -> DialogueDecision.SystemTrigger.SERVICE_RESTART;
+            default -> DialogueDecision.SystemTrigger.RECOVERY_EXPIRED;
+        };
     }
 
     private DialogueDecision decision(DialogueDecision.Outcome outcome, DialogueDecision.ReasonCode reason,
             ConversationStateView state, ConversationStateView.Completion completion, DialogueAct act,
             String reply, List<String> newlyAchieved, SpeakingSession.Status resultingStatus,
             DialogueDecision.SystemTrigger trigger) {
-        return new DialogueDecision(outcome, reason, act, reply, null, trigger, resultingStatus,
+        return decision(outcome, reason, state, completion, act, reply, null, newlyAchieved, resultingStatus, trigger);
+    }
+
+    private DialogueDecision decision(DialogueDecision.Outcome outcome, DialogueDecision.ReasonCode reason,
+            ConversationStateView state, ConversationStateView.Completion completion, DialogueAct act,
+            String reply, String targetGoalId, List<String> newlyAchieved, SpeakingSession.Status resultingStatus,
+            DialogueDecision.SystemTrigger trigger) {
+        return new DialogueDecision(outcome, reason, act, reply, targetGoalId, trigger, resultingStatus,
                 state.finalizedTurnCount(), state.validTurnCount(), state.consecutiveEvaluationErrors(),
                 newlyAchieved, completion.requiredMilestoneMet(), completion.completionEligible(),
                 completion.allGoalsMet(), completion.autoEndEligible());

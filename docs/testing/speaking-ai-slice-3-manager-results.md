@@ -1,9 +1,9 @@
 # Speaking AI Slice 3 — Conversation Manager Results
 
-**Branch:** `feat/speaking-ai-slice-3-conversation-manager`  
-**Baseline:** `29cbc09` (`chore(speaking): snapshot slice 0 and slice 1 baseline`)  
+**Branch:** `feat/speaking-ai-slice-3-conversation-manager`
+**Baseline:** `29cbc09` (`chore(speaking): snapshot slice 0 and slice 1 baseline`)
 **Scope:** immutable conversation state view, shared completion policy, pure
-`ConversationManager`, and deterministic CM fixture inventory/decision tests.
+`ConversationManager`, and deterministic CM fixture inventory plus pure decision tests.
 
 ## Implemented
 
@@ -22,12 +22,17 @@
 
 ## Verification
 
+The loader verifies metadata for all CM-01–CM-30 fixtures. Pure manager behavior
+is executed against CM-01, CM-05, CM-07–CM-15, CM-17–CM-21, and CM-27, plus
+dedicated regression cases for timely pending evidence after UI End, target
+retention, and completion/error-counter edge cases.
+
 | Command | Result |
 |---|---|
-| `./mvnw.cmd -q -Dtest=ConversationStateViewTest,SpeakingSessionServiceTest test` | PASS |
-| `./mvnw.cmd -q -Dtest=ConversationManagerTest,SpeakingDraftValidatorContractTest,ConversationStateViewTest,SpeakingSessionServiceTest test` | PASS; manager test reports 40 cases, validator contract 28 cases |
-| `./mvnw.cmd verify` | BUILD SUCCESS; 254 tests, 0 failures, 0 errors, 14 skipped |
-| `git diff --check` | PASS |
+| `./mvnw.cmd -q -Dtest=ConversationManagerTest test` | PASS; 62 cases |
+| `./mvnw.cmd -q -Dtest=ConversationStateViewTest,ConversationManagerTest,SpeakingDraftValidatorContractTest,SpeakingSessionServiceTest test` | PASS; 100 cases |
+| `./mvnw.cmd verify` | BUILD SUCCESS; 276 tests, 0 failures, 0 errors, 14 skipped |
+| `git diff --check 29cbc09..HEAD` | PASS after committing the final patch |
 
 The skipped tests require Docker/Testcontainers. The environment reported
 `AccessDeniedException` for `\\.\pipe\docker_engine`; Spring context checks also
@@ -38,4 +43,7 @@ integration evidence is claimed from this run.
 
 Slice 3 does not add persistence transactions, finalization ledgers, delivery
 events, WebSocket behavior, TTS behavior, provider calls, or Slice 2 gateway
-files. Those remain Slice 4/5 work.
+files. CM-23–CM-26 and CM-28–CM-30 require orchestration, reconciliation,
+idempotency, controller, or external lifecycle state and are deferred to Slice
+4/5; CM-22's pure pending-evidence decision is covered, while its commit and
+delivery guarantees remain deferred.
