@@ -1,6 +1,8 @@
 # Quota Engine — Technical Design (Draft)
 
-> Status: **Implementation baseline — MVP decisions recorded**. The core Quota behavior and event-delivery trade-off below are agreed. REST path/shape validation against existing controllers and ledger retention remain review items; they do not block implementation of the Quota core.
+> P02 implementation update (2026-10-30): Trial and scheduled Free activation now use producer Outbox plus Quota receipt/effect transactions. The old after-commit-only listener is removed. Sections describing event loss without Outbox below are retained as historical context; new deliveries are recoverable through persisted leases/retry. This change does not backfill pre-migration lost events or change quota reset/usage rules. See [current implementation status](implementation-status.md).
+
+> Status: **Current implementation baseline with an agreed delivery target (2026-10-30)**. Core Quota behavior remains unchanged. Current in-process delivery below is historical/actual; future work must use durable Outbox/recipient receipts under [ADR-0002](../../architecture/decisions/ADR-0002-durable-subscription-payment-quota-delivery.md) and the [canonical Subscription/Payment design](subscription-payment-technical-design.md). That migration is not implemented here. REST path/shape validation against existing controllers and ledger retention remain review items.
 >
 > Scope: Subscription/Quota backend contracts, MongoDB usage data, event handling, consistency, and the narrow REST read APIs needed by the package/usage UI.
 
@@ -151,7 +153,7 @@ Emit/process it when a policy actually becomes effective, not merely when Admin 
 - Scope membership alone is insufficient to reset old snapshot holders. Do not reset existing Premium/Trial snapshots or unrelated quota types.
 - A tier change alone is not a policy activation and does not reset usage.
 
-The activation receipt is durable for duplicate detection, but the MVP does not guarantee replay or recovery for an event that was never applied. Section 7 and the ADR describe this accepted limitation.
+The current activation receipt is durable for duplicate detection, but current runtime does not guarantee replay or recovery for an event that was never applied. Section 7 distinguishes this historical limitation from the agreed durable target.
 
 ## 5. MongoDB model proposal
 
@@ -278,11 +280,40 @@ Follow the existing backend response envelope (`ApiResponse`) and error pattern 
 - An entitlement/tier change or new Subscription period never resets a counter. The applicable limit may change; if existing usage is equal to or above the new limit, future `consume` calls are rejected and availability returns zero remaining.
 - Policy activation and reset must be ordered per scope; a stale activation must never overwrite a newer snapshot/reset.
 
-### Event delivery without Outbox
+### Current event delivery without Outbox
 
 MVP uses in-process events after the Subscription transaction commits, including scheduled Free activation. It does not promise durable delivery, retry, or recovery of events that were not applied. If the process fails after Subscription commits but before Quota commits the event-handler transaction, an `EntitlementChanged` projection update or `QuotaPolicyActivated` reset can be missed. This risk is explicitly accepted for MVP. No Outbox, startup replay, or reconciliation is implemented, and Quota must not read Subscription collections directly. Conditional entitlement lookup on missing/expired projections is normal request-time resolution, not event recovery. In particular, a missed early refund event can leave an unexpired projection stale until its `validUntil`; a missed activation can leave an allowance unreset. Both risks remain accepted. Activation receipts guard duplicate handling and cannot detect an unapplied event.
 
-This is a deliberately limited same-application MVP choice, detailed in the separate ADR. It does not relax the transaction requirement for usage counter + ledger writes.
+This historical same-application MVP choice is preserved in [ADR-0001](../../architecture/decisions/ADR-0001-no-outbox-for-quota-mvp.md). It does not relax the transaction requirement for usage counter + ledger writes. The accepted risk describes current runtime, not permission to keep that loss window in future paid-lifecycle implementation.
+
+### Agreed durable delivery target (2026-10-30; not implemented)
+
+[ADR-0002](../../architecture/decisions/ADR-0002-durable-subscription-payment-quota-delivery.md)
+supersedes ADR-0001 for future work. Subscription must atomically write its state
+and Outbox facts for all entitlement and actual policy activations, including
+existing Trial activation and scheduled Free-policy activation. Dispatch happens
+after commit; Quota atomically commits a recipient receipt and projection/reset
+effects. No permanent parallel after-commit-only path is intended. No broker or
+cross-module transaction is required.
+
+Use explicit Quota recipient routing with delivery/receipt identity scoped by
+consumer; Payment commands and Quota facts cannot claim or acknowledge each
+other's work. Lost acknowledgment redelivers the same message. Recover producer
+crashes and failed consumer transactions through the durable path; current
+activation receipts alone cannot do so. Allocate strictly monotonic per-user
+entitlement versions atomically across Subscription writers and reconcile existing
+composite user/policy freshness with that sequence. Quota must ignore older
+versions and stale policy activations while preserving effective-time reset rules.
+
+Trial-to-Premium conversion supersedes Trial at verified paidAt in Subscription's
+activation transaction and emits the same durable entitlement fact. Premium
+calendar-month/year clamping uses Asia/Ho_Chi_Minh and UTC storage. Neither paid
+activation, new period, expiry, refund nor a tier change resets same-window usage.
+Selective actual Free-policy activation remains the distinct reset cause; retain
+ledger and unaffected snapshot holders. Request-time entitlement lookup still
+handles absent/expired projections but does not replace durable policy delivery.
+Retention/cleanup is separate from checkout expiry; no new TTL or retry duration
+is selected. See the canonical design for contracts and P02 migration acceptance.
 
 ## 8. Verification checklist for implementation
 
@@ -301,7 +332,8 @@ This is a deliberately limited same-application MVP choice, detailed in the sepa
 - [ ] Usage ledger remains intact across calendar/policy resets.
 - [ ] Daily, Monday-based weekly, and calendar-month windows use `Asia/Ho_Chi_Minh`.
 - [ ] Missing projection uses the effective-entitlement contract, including active Premium/Trial; never assume Free. Expired `validUntil` triggers time-based contract resolution even with a delayed status job. Lookup failure returns unavailable.
-- [ ] Conditional lookup introduces no Subscription -> Quota dependency or event replay/reconciliation; missed early refund and missed reset remain documented accepted risks.
+- [ ] Conditional lookup introduces no Subscription -> Quota dependency; current missed-event risks are documented separately from the durable P02 migration target.
+- [ ] Future P02 migration proves producer-crash and lost-ack recovery, recipient isolation, monotonic versions and durable existing Trial/Free-policy publication without duplicate resets.
 - [ ] REST usage summary returns all current quota items and does not turn unavailable data into zero.
 - [ ] Transaction/concurrency tests use a MongoDB replica-set test environment.
 

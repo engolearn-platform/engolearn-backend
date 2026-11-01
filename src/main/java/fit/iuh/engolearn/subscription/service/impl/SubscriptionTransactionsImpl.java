@@ -21,6 +21,13 @@ public class SubscriptionTransactionsImpl implements SubscriptionTransactions {
         if(manager==null) throw new SubscriptionUnavailableException();
         return new TransactionTemplate(manager).execute(status -> action.get());
     }
+    public <T> T independent(Supplier<T> action) {
+        MongoTransactionManager manager = managers.getIfAvailable();
+        if (manager == null) throw new SubscriptionUnavailableException();
+        TransactionTemplate transaction = new TransactionTemplate(manager);
+        transaction.setPropagationBehavior(org.springframework.transaction.TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+        return transaction.execute(status -> action.get());
+    }
     public void afterCommit(Runnable action) {
         TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
             @Override public void afterCommit() { action.run(); }

@@ -1,12 +1,75 @@
 # Subscription and Quota implementation status
 
+## Reconciliation failure fix (2026-10-31)
+
+Verified PAY failure is now classified by terminal transaction status 02 plus a valid non-success response code, rather than a fixed code whitelist. Signed/correlated IPN code 15 is covered; Return, API errors, unverifiable responses, reversal/fraud/pending and checkout deadline cannot unlock an order. Payment metadata, accepted result diagnostics and fact Outbox commit together. Bounded Payment-owned last-check metadata distinguishes query/API/signature/correlation/transport errors with source/time/request ID/code/status/signature validity, without storing secret/signature/raw payload in that summary.
+
+Verification: one focused batch passed all 16 cases (9 architecture and 7 integration executions), zero failures/errors/skips, Maven 1:42. Includes code 15 failure/deduplication/new-purchase eligibility, Return non-mutation, tampering rejection, unsigned99/invalid signature retaining the lock, signed QueryDR recovery, retained 01/04/07, transport diagnostics, existing success and Outbox rollback. No full suite or live payment/refund. See workspace .artifacts/subscription-payment-reconciliation/tests.log and report.md.
+
+The official Java QueryDR sample agrees with current field/checksum structure; no malformed request field has been confirmed. One prior approved live query returned unsigned API 99. Public unsigned IPN reachability returned HTTP200/RspCode97, but no matching-order IPN was found in retained tunnel logs. A supplemental signed-query diagnostic was rejected by automatic review as outside the earlier single-request approval; it was not sent. Actual pending order, merchant registration and ReturnURL remain unchanged. Further real-provider diagnosis/recovery is pending an authorized authoritative result.
+
+## P07 configurable adapter (2026-10-31; merchant validation pending)
+
+The optional VNPay adapter now prepares signed PAY checkout, verifies raw IPN, serves a read-only browser Return, queries uncertain payment outcomes and processes full-refund intents using persisted provider metadata. It is disabled by default. Exact handoff: [VNPay setup](vnpay-setup.md), GET /api/payment/vnpay/ipn on backend 8080; blank merchant example keys are in .env.vnpay.example. No real credentials or provider calls were used. The existing dev BE returned HTTP 200 with raw {RspCode:99,Message:"VNPay is disabled"} on the new IPN route, without authentication or dev-data mutation.
+
+Provider metadata and Payment outcome/Outbox now join one owned transaction. Local outcome methods still create a transaction when called alone. Checkout commands add optional clientIp while preserving the old constructor/queued JSON; HTTP captures remoteAddr and a legacy unsent intent missing client IP is safely setup-rejected. Provider amount encoding, merchant/reference checks, second-precision dates, raw protocol response shape and signed-query/full-refund semantics are isolated in Payment. A next-check timestamp is persisted with the work lease, and refund PROCESSING/UNKNOWN never causes a blind resend. QueryDR describing only the original payment cannot confirm a refund; a timeout without a known provider refund ID requires manual reconciliation even if a later full-refund observation is signed.
+
+Verification ledger: initial scoped run executed 19 cases with 2 fixture errors at Mockito restubbing after simulated timeout; 9 architecture checks, 3 protocol checks and the other 5 integration cases passed. Corrected the mock restubbing, expanded the loopback-only HTTP check and reviewed durable conflict/claim handling; the focused recheck passed all 8 cases (4 protocol/HTTP and 4 VNPay integration), zero failures/errors/skips, Maven 1:14. A new worker concurrency case ran twice, both passed (Maven 51.407 seconds). Logs: workspace .artifacts/subscription-payment-p07/. The receipt/Outbox rollback, owner purchase HTTP and P06 refund regression cases passed in the initial batch; their unchanged evidence is reused. The final refund-attempt correlation check passed 1 case with zero failures/errors/skips (Maven 1:21), keeping an unbound signed refund observation UNKNOWN/manual-review. No full suite was run per user budget.
+
+Real Sandbox payment/refund, public callback reachability, merchant-specific refund QueryDR behavior and production readiness remain unverified until configuration. No operational manual-review/replay UI or cleanup is added. The user's modified sample JSON and untracked ngrok policy are preserved outside this commit. Older dated snapshots below are provenance.
+
+## P06 refund core (2026-10-31)
+
+ADMIN full-refund intent API, per-purchase request-key replay and retained attempt history, pinned 7/30-day window checks, durable command intake, Payment full-amount/identity guards and verified result handling are implemented. Account revision serializes Subscription changes; a payment-row write and refund uniqueness indexes serialize Payment attempts/outcomes. Pending/UNKNOWN retains rights and blocks new attempts/purchases. Only matching success revokes the bound period and refreshes durable entitlement; failure leaves the period unchanged. Late/contradictory facts are reviewed without overwriting newer attempts, restoring Trial or resetting usage. Financial review holds prevent starting another provider operation. See [purchase/refund API](purchase-api.md).
+
+Verification: the initial focused run passed 8 refund cases (including twice-run concurrency and both window boundaries) plus 9 architecture checks, zero failures/errors/skips; Maven 1:33. Self-review added review holds for financial contradictions and expanded rollback/financial assertions; only the 3 affected refund methods were rerun, all passing with zero failures/errors/skips (Maven 1:24). Evidence: workspace `.artifacts/subscription-payment-p06/tests.log`, `recheck.log` and `report.md`. No full suite was run under the user's focused-testing budget. The running dev BE returned plans 200 and ADMIN refund of a nonexistent purchase 404 PURCHASE_NOT_FOUND. No dev purchase/refund/usage data was seeded or reset.
+
+P07 remains absent: no provider network calls, signatures, work scheduler, automatic reconciliation or real refund execution. Durable REQUESTED work awaits that integration; PROCESSING/UNKNOWN must reconcile the same provider attempt rather than repeat the call. Subscription projects REQUESTED until a final Payment fact; intermediate Payment states stay Payment-local. Contradictory/inapplicable facts require manual review; operational replay/cleanup tooling is not implemented. Earlier dated implementation snapshots below are provenance.
+
+## P05 history list
+
+Observed: both focused integration methods passed, zero failures/errors/skips, on the first run (Maven total 1:04). No earlier test groups or full suite were rerun. Logs: workspace `.artifacts/subscription-payment-p05/tests.log`.
+
+GET /api/v1/subscription/me/purchases now returns the authenticated learner's purchase projections with bounded cursor pagination, default 20/max 50, sorted by persisted creation timestamp and ID descending. One existing purchase yields one row regardless of its payment/refund status. No cross-module query, account provisioning or lifecycle write is introduced. P06 was subsequently authorized and implemented above; P07 remains deferred. Verification is limited to two focused isolated integration methods for owner isolation, tied timestamps, insertion between pages, stored refund projection, expired URL hiding, empty history and HTTP authentication/bounds/cursor validation.
+
+## P04 paid activation (2026-10-30)
+
+Internal Payment outcome operations commit normalized verified facts and result Outbox atomically; future provider adapters must authenticate/verify provider evidence before using them. No HTTP endpoint or fake provider can force success. Subscription result handling validates pinned correlation/amount/currency and atomically supersedes eligible Trial, creates one Premium period, records receipt, updates purchase and emits current effective entitlement. Monthly/yearly duration uses calendar arithmetic in Asia/Ho_Chi_Minh with UTC millisecond storage; late delivery does not extend the interval. Original Trial scheduled end is retained for audit; SUPERSEDED/supersededAt describe its actual termination. Usage is preserved. Contradictions are retained for review without clearing another purchase's lock.
+
+Verification: nine architecture checks passed. Seven P04 cases passed, including twice-run concurrent success, receipt-failure rollback, month-end/leap-year, retained usage, expiry and late facts. A test-framework condition failed before these cases could run through an inherited fixture; the cases were moved into the already-verified isolated fixture and only P04 methods rerun. Earlier P03 passing evidence was reused. Full-project verify was not run under the focused budget. BE read checks: plans 200 and an authenticated missing purchase returned 404 PURCHASE_NOT_FOUND. No dev purchases, payments or usage were fabricated. P05 history list, P06 refund and P07 provider integration remain unimplemented.
+
+## P03 purchase orchestration (2026-10-30)
+
+Create/detail learner purchase APIs, pinned matching plan/policy/price snapshots, request idempotency, account revision serialization and one-blocking-purchase constraints are implemented. Payment intake commits a setup-pending transaction and receipt; actual checkout preparation/provider execution is not automatic. Checkout/definitive-failure/expiry projections use durable result receipts, with conflict review evidence. See [purchase API](purchase-api.md). Paid activation, history list, refund and VNPay remain later slices.
+
+Verification: nine architecture checks passed; the purchase suite ran seven cases (including repeated concurrency) with one HTTP fixture identity error. That fixture was corrected to the real dev-auth account ID; the single HTTP rerun passed. Two test corrections were used (initial fixture compilation, then identity mapping); no application assertion was weakened and no full-project suite was run.
+
+## P01-P02 source update (2026-10-30)
+
+Observed verification: the initial critical batch ran 26 tests with one concurrent Trial error; all nine architecture checks, two selected Quota checks and nine new durable checks passed. After bounded retry waits and test storage setup were corrected, the focused rerun passed all 10 tests (nine durable checks plus the failed Trial case), with no failures/errors/skips. No assertions were weakened. Normal dev BE started on 8080 and public plans returned 200 with two items and no-store. One correction rerun was used; full-project verify was not run under the user's explicit focused-testing budget. Exact logs are in `.artifacts/subscription-payment-p01-p02/` at the workspace root.
+
+Payment command/result records now live in `payment.contract.dto` / `payment.contract.event`, with schema/identity metadata, VND integer validation and refundReference. Purchase/Payment/Refund persistence models and uniqueness indexes are present; no purchase API, provider execution, paid activation or refund orchestration is added.
+
+Durable module-owned Outboxes/receipts and an internal recipient-scoped dispatcher are implemented. Existing Trial and scheduled Free activation enqueue typed snapshots atomically; Quota applies effects with its receipt in a separate transaction. The old in-memory listener is removed. Shared transport is feature-neutral; Payment business handlers remain absent until later slices. Entitlement fingerprints lazily advance existing account versions with revision CAS, preserving policy freshness and account/trial history; public Subscription resolution commits independently of a Quota transaction. No database reset or historical event backfill is performed.
+
+Delivery defaults: 1-second poll, 30-second lease, 5-second exponential retry base capped at 64 times base, 20 messages per outbox per tick; all are configurable under `engolearn.messaging`. These are development defaults, not measured production tuning. No message/receipt TTL is introduced. Future Payment routes are not claimed without a registered consumer. Verification evidence and limits are recorded in workspace `.artifacts/subscription-payment-p01-p02/`; earlier execution results below are historical.
+
 Updated: 2026-10-29. Scope: M1 + M2 + M4-contract, M3 declarations and M5 Admin configuration.
+
+Design update 2026-10-30: the [canonical Subscription/Payment design](subscription-payment-technical-design.md)
+and [ADR-0002](../../architecture/decisions/ADR-0002-durable-subscription-payment-quota-delivery.md)
+record the agreed future durable delivery baseline, Trial supersede at paidAt,
+calendar Premium periods, refundReference contracts and safe checkout expiry handling.
+These decisions supersede ADR-0001 for future implementation, not the actual runtime
+or historic test evidence below. Outbox/receipts delivery, paid lifecycle and provider
+integration remain unimplemented. The earlier Trial-conversion question is resolved
+in design; payment methods/return UX remain open. P01-P07 are proposed work only.
 
 ## Current outcome
 
 Subscription and Quota source implementations, learner read APIs, one-time Trial activation and test-only caller contracts are present. Live local learner API reads and browser Trial activation have been observed against a separate real replica-set database. M5 now has typed ADMIN-only configuration reads, history, preview and atomic append-only bundle publication in source; its new execution evidence is tracked separately below. M3 adds only Payment fact declarations and a compile-only consumer example. Actual Speaking/Proficiency and Payment runtime remain deferred. Previous full backend verification failed in existing Topic expectations and the unavailable-database context; this ledger does not claim whole-project green or production readiness.
 
-Business documentation remains the policy authority. [Technical design](quota-engine-design.md), [OpenAPI](quota-api.openapi.yaml) and [ADR-0001](../../architecture/decisions/ADR-0001-no-outbox-for-quota-mvp.md) define the implementation baseline. OpenAPI now carries IMPLEMENTATION_CONTRACT, not the former draft-read-only status.
+Business documentation remains the policy authority. [Quota design](quota-engine-design.md), [OpenAPI](quota-api.openapi.yaml) and historical [ADR-0001](../../architecture/decisions/ADR-0001-no-outbox-for-quota-mvp.md) describe the current implementation baseline; the dated target above governs future delivery work. OpenAPI now carries IMPLEMENTATION_CONTRACT, not the former draft-read-only status.
 
 ## Capability ledger
 

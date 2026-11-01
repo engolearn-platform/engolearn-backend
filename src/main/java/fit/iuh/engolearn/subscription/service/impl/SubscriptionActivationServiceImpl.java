@@ -11,7 +11,6 @@ import fit.iuh.engolearn.subscription.repository.SubscriptionRepository;
 import java.time.Clock;
 import java.util.*;
 
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -20,7 +19,7 @@ public class SubscriptionActivationServiceImpl implements SubscriptionActivation
     private final SubscriptionRepository store;
     private final SubscriptionTransactions transactions;
     private final Clock clock;
-    private final ApplicationEventPublisher events;
+    private final SubscriptionMessagePublisher messages;
 
     public void activateDue() {
         for (PolicyState observed : store.findDuePolicyStates(clock.instant()))
@@ -50,7 +49,7 @@ public class SubscriptionActivationServiceImpl implements SubscriptionActivation
                                                      state.getId(), next.getVersion(),
                                                      state.getActivationSequence() + 1, next.getEffectiveAt(), changed,
                                                      SubscriptionModelMapper.toDto(next.getSnapshot()));
-                    transactions.afterCommit(() -> events.publishEvent(event));
+                    messages.policyActivated(event);
                 }
                 return null;
             });

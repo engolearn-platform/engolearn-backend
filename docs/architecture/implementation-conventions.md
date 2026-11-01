@@ -24,6 +24,7 @@ Names MUST describe the responsibility; a generic `Helper`, `Manager` or `Proces
 ## 2. Controllers, validation and exceptions
 
 - Every public endpoint method of a `@RestController` MUST return `ApiResponse<T>`, with an explicit web response DTO as its payload. MUST NOT use persistence entities, BSON documents or `Map` as the endpoint payload. A DTO may contain a typed map when the contract needs dynamic keys.
+- Provider callbacks are external protocol adapters, not frontend REST APIs. VNPay uses `@Controller`/`@ResponseBody` in `payment.infra.web` with the required raw `RspCode`/`Message` DTO and read-only return DTO; its provider-defined wire shape cannot be wrapped in `ApiResponse`. Controllers still delegate all business effects to service interfaces. Frontend `@RestController` envelope rules remain unchanged.
 - Known request shapes MUST use typed DTOs; validate bodies with `@Valid` and Bean Validation constraints. HTTP shape validation failures return `400` `ProblemDetail`.
 - Controllers adapt HTTP details such as headers/status and invoke business interfaces. Follow the [dependency policy](package-structure.md#dependency-policy).
 - Controllers validate input shape; business logic enforces preconditions and transitions. MUST NOT repeat HTTP null/blank/range validation in business logic. Non-HTTP entry points still enforce their own input invariants.

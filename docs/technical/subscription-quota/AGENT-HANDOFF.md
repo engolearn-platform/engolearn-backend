@@ -1,6 +1,35 @@
 # Subscription / Quota handoff
 
+Temporary dev purchase-release continuation (2026-11-01): implementation and cleanup tracking are in [DEV-PAYMENT-RESET-01](dev-purchase-reset.md#removal-tracking-dev-payment-reset-01). It is an explicitly enabled dev-without-prod tool, not payment cancellation or an authoritative result. The user reported Sandbox payment success and Premium activation after integration changes; provider refund end-to-end is still unverified. Do not resume testing or issue a refund without a new request. Retain reset audit/history and late-event safeguards when retiring the temporary UI/endpoint.
+
+Reconciliation continuation (2026-10-31): verified PAY status 02/non-success codes no longer depend on a short whitelist. Payment provider_last_check/provider_check_count retain bounded error/result diagnostics; see [setup diagnostics](vnpay-setup.md). Focused 16-case batch passed; follow-up HTTP/timeout diagnostics and architecture batch passed all 11 executions. No speculative QueryDR payload change or Return-based unlock. Live order remains unresolved after prior unsigned API99 and absent matching IPN evidence. Do not replay browser Return as IPN or change the live lifecycle manually. Additional signed external queries need specific approval after automatic review rejected a supplemental request. User ReturnURL changes are deferred; preserve .env.example and ngrok-ipn-policy.yml.
+
+P07 configurable source update (2026-10-31): optional VNPay PAY 2.1.0 checkout, raw signed IPN, read-only Return, QueryDR and full-refund adapter/worker are implemented, disabled by default. Real merchant/Sandbox end-to-end verification remains pending user configuration. Handoff: [VNPay setup](vnpay-setup.md), GET /api/payment/vnpay/ipn, backend 8080. Merge blank example keys into the ignored .env; do not replace existing config or expose secrets. Refund processing/uncertainty does not imply completion; unresolved QueryDR evidence requires manual/provider reconciliation, never automatic resubmission. Preserve the user's uncommitted sample JSON and ngrok-ipn-policy.yml; they are outside this slice. Older dated implementation snapshots below are provenance.
+
+P06 continuation (2026-10-31): ADMIN full-refund request, per-attempt idempotency/history, account/payment serialization, Payment financial guards, durable results and atomic Subscription revocation are implemented. See [purchase/refund API](purchase-api.md) and current [status](implementation-status.md). Pending/UNKNOWN retains rights and blocks another attempt; only verified success revokes, without usage reset or Trial restoration. No provider/fake adapter is wired. Continue next with P07 only when requested: scan durable intents and reconcile uncertain calls using the same stable attempt ID, honoring review holds. No dev purchases/payments/refunds were seeded or provider money moved. Older dated snapshots below are provenance.
+
+P05 continuation: learner purchase history list now supports owner-filtered keyset pagination, stable newest-first ordering and stored refund projections. See [purchase API](purchase-api.md). P06 was subsequently authorized and implemented; see the newer continuation above. P07 remains deferred. No dev purchases or usage were seeded for verification.
+
+P03-P04 continuation 2026-10-30: purchase create/detail APIs, Payment checkout-intent intake and Subscription paid activation are now implemented. See [purchase API](purchase-api.md) and the latest [status](implementation-status.md). Real provider adapters, history list and refund orchestration remain absent. Never wire a fake success adapter into runtime. Payment outcomes are internal trusted adapter capabilities; provider signatures/reconciliation must be implemented in P07. Trial SUPERSEDED retains its original scheduled end plus actual supersededAt. Continue from the separate completed commits on feat/payment; do not reset or seed dev history.
+
+## P01-P02 continuation (2026-10-30)
+
+The backend now contains Payment contracts/core models and durable Outbox/receipt infrastructure. Trial and Free policy activation use the durable Subscription -> Quota route; the previous in-memory event listener is removed. Each module owns its collections. The dispatcher uses recipient-scoped leases/fencing and consumer acknowledgments after local receipt/effect commit. Payment checkout/result handlers, purchase endpoints, paid activation and refund/provider execution are still future P03-P07 work.
+
+Read the latest P01-P02 section in [implementation status](implementation-status.md) and the workspace evidence `.artifacts/subscription-payment-p01-p02/` before continuing. Legacy account versions are advanced lazily using a nullable entitlement fingerprint; do not reset accounts, history, counters or receipts. The migration does not reconstruct events lost before Outbox existed. No provisioning manifest is needed for a normal backend restart. No commit/push is included in this work.
+
 Updated2026-10-30. Continue from the current implementation; do not restart exploration or redesign the environment.
+
+Design synchronization 2026-10-30: read the [canonical Subscription/Payment target](subscription-payment-technical-design.md)
+and [ADR-0002](../../architecture/decisions/ADR-0002-durable-subscription-payment-quota-delivery.md)
+before future paid-lifecycle work. They agree durable Outbox delivery for commands,
+results and Subscription -> Quota facts (including existing Trial/Free activation),
+atomic Trial supersede at verified paidAt, calendar Premium duration, refundReference
+on both results and provider-confirmed checkout closure before unlocking. Tier changes
+retain current-window usage. These are unimplemented target decisions; no Outbox or
+paid runtime was added, no historic verification result below is changed, and P01-P07
+are proposed implementation slices. Trial termination is resolved; provider/return UX
+and operational tuning remain open. Provider fake adapters stay test-only until P07.
 
 ## User working preference
 
@@ -35,7 +64,7 @@ Do the requested task directly and narrowly. Prefer existing tools and a minimal
 ## Seed data and sharing
 
 - Baseline: [dev-main-manifest.json](../../../tools/subscription/dev-main-manifest.json), published once through the operator runner; accounts have explicit NEW_ACCOUNT provenance. See [setup commands](../../../tools/subscription/README.md).
-- Latest richer data: [seed-dev-catalog.mongosh.js](../../../tools/subscription/seed-dev-catalog.mongosh.js). This is the actual self-contained script applied to the main DB; run commands are at its top. It REQUIRES the baseline and deliberately rejects conflicting existing versions/states. Do not blindly reset data when that guard fires.
+- Latest richer data was applied using `tools/subscription/seed-dev-catalog.mongosh.js`. That historical script is absent from the current checkout, so this is provenance, not executable setup instructions. It required the baseline and deliberately rejected conflicting existing versions/states. Preserve the observed seeded data; do not recreate or blindly reset it from this note.
 - Free:3600seconds/day and1 assessment/month. Trial:3600seconds/day and2/month. Premium:7200seconds/day and5/month;199000VND monthly,1590000VND annually. These are invented DEV fixtures, not approved production prices/policy.
 - Latest script updates named demo catalog records, introduces Premium and replaces old verification placeholder copy with Vietnamese descriptions. It also patches display metadata on the known dev-admin Trial fixture, preserving its dates/IDs/rules/history. This direct dev fixture replacement is NOT normal immutable-policy business behavior.
 - No fake usage or paid purchase was inserted. Last observed dev-user and dev-cm:Free/Trial-eligible. dev-admin:Trial2026-10-30T00:54:55.372Z through2026-11-06T00:54:55.372Z. Preserve existing account/Trial history unless user explicitly requests a reset.
