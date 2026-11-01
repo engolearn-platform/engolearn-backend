@@ -151,12 +151,58 @@ class AssessmentMongoIntegrationTest {
         assertThat(next.current().number()).isEqualTo(32);assertThat(next.deadline()).isEqualTo(START.plusSeconds(2475));
         assertThatThrownBy(()->service.audio(USER,a.id(),binding,request)).isInstanceOf(AssessmentException.class);
     }
-    @Test void passageWaitsAfterFiveAnswersAndDoesNotMarkNextGroupCurrent() {
-        var a=start();clock.at=START.plusSeconds(3000);assertThat(service.state(USER,a.id(),binding).phase()).isEqualTo("LISTENING_LEAD");
-        for(int q=41;q<=45;q++) service.answer(USER,a.id(),binding,answer(q,q,1),true);
-        var waiting=service.state(USER,a.id(),binding);assertThat(waiting.current()).isNull();
-        assertThat(waiting.progress().stream().filter(c->c.status().equals("CURRENT"))).isEmpty();
-        clock.at=START.plusSeconds(3120);assertThat(service.state(USER,a.id(),binding).unitIndex()).isEqualTo(25);
+    @Test void completedListeningGroupsAdvanceImmediatelyAndFinalRetryDoesNotRegrade() {
+        var a=start();clock.at=START.plusSeconds(3000);
+        assertThat(service.state(USER,a.id(),binding).phase()).isEqualTo("LISTENING_LEAD");
+        for(int q=41;q<=44;q++) service.answer(USER,a.id(),binding,answer(q,q,1),true);
+        var lastOfGroup=answer(45,45,1);
+        var next=service.answer(USER,a.id(),binding,lastOfGroup,true);
+        assertThat(next.current().number()).isEqualTo(46);assertThat(next.unitIndex()).isEqualTo(25);
+        assertThat(next.deadline()).isEqualTo(clock.at.plusSeconds(120));
+        assertThat(service.answer(USER,a.id(),binding,lastOfGroup,true).current().number()).isEqualTo(46);
+        for(int q=46;q<=49;q++) service.answer(USER,a.id(),binding,answer(q,q,1),true);
+        var finalNext=answer(50,50,0);
+        assertThat(service.answer(USER,a.id(),binding,finalNext,true).status()).isEqualTo("READY");
+        assertThat(service.answer(USER,a.id(),binding,finalNext,true).status()).isEqualTo("READY");
+        var result=service.result(USER,a.id());
+        assertThat(result.submittedAt()).isEqualTo(clock.at);assertThat(result.correct()).isEqualTo(9);
+        assertThat(service.review(USER,a.id()).questions().getLast().selected()).isZero();
+        assertThat(service.review(USER,a.id()).questions().getLast().correct()).isEqualTo(1);
+        assertThat(service.history(USER,0,20)).hasSize(1);assertThat(remaining()).isZero();
+    }
+    @Test void readingPreviewEarlyFinishIsScopedIdempotentAndKeepsSharedDeadline() {
+        var a=start();for(int q=1;q<=10;q++) service.answer(USER,a.id(),binding,answer(q,q,null),true);
+        for(int index=10;index<=13;index++) {
+            var command=new AssessmentFinishStageRequest(index,"READING_PREVIEW",UUID.randomUUID().toString());
+            clock.at=clock.at.plusSeconds(5);var after=service.finishStage(USER,a.id(),binding,command);
+            assertThat(after.phase()).isEqualTo("ANSWER");assertThat(after.deadline()).isEqualTo(clock.at.plusSeconds(300));
+            clock.at=clock.at.plusSeconds(1);
+            assertThat(service.finishStage(USER,a.id(),binding,command).deadline()).isEqualTo(after.deadline());
+            for(int q=11+(index-10)*5;q<=15+(index-10)*5;q++) service.answer(USER,a.id(),binding,answer(q,q,1),true);
+            var current=service.state(USER,a.id(),binding);
+            assertThat(service.finishStage(USER,a.id(),binding,command).deadline()).isEqualTo(current.deadline());
+            assertThat(service.state(USER,a.id(),binding).phase()).isEqualTo(current.phase());
+        }
+        assertThat(service.state(USER,a.id(),binding).current().number()).isEqualTo(31);assertThat(remaining()).isZero();
+    }
+    @Test void stalePreviewCommandDoesNotExtendExpiredWindow() {
+        var a=start();for(int q=1;q<=10;q++) service.answer(USER,a.id(),binding,answer(q,q,null),true);
+        clock.at=START.plusSeconds(90);
+        assertThatThrownBy(()->service.finishStage(USER,a.id(),binding,new AssessmentFinishStageRequest(10,"READING_PREVIEW",UUID.randomUUID().toString())))
+                .isInstanceOfSatisfying(AssessmentException.class,e->assertThat(e.code()).isEqualTo("STAGE_CLOSED"));
+        assertThat(service.state(USER,a.id(),binding).deadline()).isEqualTo(START.plusSeconds(390));
+    }
+    @Test void finishStageWebValidationOwnershipAndBindingAreEnforced() throws Exception {
+        var a=start();for(int q=1;q<=10;q++) service.answer(USER,a.id(),binding,answer(q,q,null),true);
+        String path="/api/v1/assessment/attempts/"+a.id()+"/finish-stage";
+        String body=mapper.writeValueAsString(new AssessmentFinishStageRequest(10,"READING_PREVIEW",UUID.randomUUID().toString()));
+        mvc.perform(post(path).contentType("application/json").content(body)).andExpect(status().isUnauthorized());
+        mvc.perform(post(path).header("X-Dev-User-Id","dev-admin").header("X-Assessment-Binding",binding).contentType("application/json").content(body)).andExpect(status().isNotFound());
+        mvc.perform(post(path).header("X-Dev-User-Id","dev-user").header("X-Assessment-Binding",UUID.randomUUID()).contentType("application/json").content(body)).andExpect(status().isConflict());
+        for(String invalid:List.of(body.replace("READING_PREVIEW","LISTENING_LEAD"),body.replace("10","24"),body.replace("10","10.5"),"{}"))
+            mvc.perform(post(path).header("X-Dev-User-Id","dev-user").header("X-Assessment-Binding",binding).contentType("application/json").content(invalid)).andExpect(status().isBadRequest());
+        mvc.perform(post(path).header("X-Dev-User-Id","dev-user").header("X-Assessment-Binding",binding).contentType("application/json").content(body))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.data.phase").value("ANSWER")).andExpect(jsonPath("$.data.current.number").value(11));
     }
     @Test void zeroScoreIsValidAndReviewUsesOriginalPaperEvenAfterReplacement() {
         var a=start();save(a,1,1,0);service.submit(USER,a.id(),binding);

@@ -49,14 +49,42 @@ class AssessmentRulesTest {
         AssessmentTimeline.next(a,START.plusSeconds(250));assertThat(a.getCursor()).isEqualTo(31);
         assertThat(a.getNextDueAt()).isEqualTo(START.plusSeconds(310));
     }
-    @Test void listeningPassageAnsweredEarlyWaitsFullLeadButDoesNotForceUnusedAnswerTime() {
+    @ParameterizedTest @CsvSource({"10,11", "11,16", "12,21", "13,26"})
+    void readingPreviewCanEndEarlyWithFreshSharedWindow(int index,int firstQuestion) {
+        var a=attempt();AssessmentTimeline.open(a,index,START);
+        AssessmentTimeline.finishStage(a,START.plusSeconds(5));
+        assertThat(a.getPhase()).isEqualTo(AssessmentPhase.ANSWER);
+        assertThat(a.getCursor()).isEqualTo(firstQuestion);
+        assertThat(a.getNextDueAt()).isEqualTo(START.plusSeconds(305));
+        AssessmentTimeline.next(a,START.plusSeconds(10));
+        assertThat(a.getNextDueAt()).isEqualTo(START.plusSeconds(305));
+    }
+    @Test void listeningLeadCannotBeManuallyEnded() {
+        var a=attempt();AssessmentTimeline.open(a,24,START);
+        assertThatThrownBy(()->AssessmentTimeline.finishStage(a,START.plusSeconds(5))).isInstanceOf(IllegalArgumentException.class);
+        assertThat(a.getPhase()).isEqualTo(AssessmentPhase.LISTENING_LEAD);
+        assertThat(a.getNextDueAt()).isEqualTo(START.plusSeconds(120));
+    }
+    @Test void listeningPassageAnsweredEarlyOpensQuestion46ImmediatelyWithFreshLead() {
         var a=attempt();AssessmentTimeline.open(a,24,START);
         for(int n=0;n<5;n++) {a.getAnswers().put(""+a.getCursor(),1);AssessmentTimeline.next(a,START.plusSeconds(15));}
-        assertThat(a.getUnitIndex()).isEqualTo(24);assertThat(a.getCursor()).isEqualTo(46);
+        assertThat(a.getUnitIndex()).isEqualTo(25);assertThat(a.getCursor()).isEqualTo(46);
+        assertThat(a.getNextDueAt()).isEqualTo(START.plusSeconds(135));
         var state=AssessmentMapper.state(a,START.plusSeconds(15),true);
-        assertThat(state.current()).isNull();assertThat(state.progress().stream().filter(c->c.status().equals("CURRENT"))).isEmpty();
-        AssessmentTimeline.settle(a,START.plusSeconds(119));assertThat(a.getUnitIndex()).isEqualTo(24);
-        AssessmentTimeline.settle(a,START.plusSeconds(120));assertThat(a.getUnitIndex()).isEqualTo(25);
+        assertThat(state.current().number()).isEqualTo(46);
+        assertThat(state.progress().stream().filter(c->c.status().equals("CURRENT"))).hasSize(1);
+    }
+    @Test void completedLegacyListeningWaitSettlesImmediatelyWithoutChangingAnswers() {
+        var a=attempt();AssessmentTimeline.open(a,24,START);a.setCursor(46);a.getAnswers().put("45",1);
+        AssessmentTimeline.settle(a,START.plusSeconds(15));
+        assertThat(a.getUnitIndex()).isEqualTo(25);assertThat(a.getCursor()).isEqualTo(46);
+        assertThat(a.getAnswers()).containsEntry("45",1);
+    }
+    @Test void finalListeningNextFinishesImmediatelyAtTheClickTime() {
+        var a=attempt();AssessmentTimeline.open(a,25,START);a.setCursor(50);
+        AssessmentTimeline.next(a,START.plusSeconds(15));
+        assertThat(a.getPhase()).isEqualTo(AssessmentPhase.FINISHED);
+        assertThat(a.getNextDueAt()).isEqualTo(START.plusSeconds(15));
     }
     @Test void incompleteListeningPassageGetsExactly180SecondsAfterLead() {
         var a=attempt();AssessmentTimeline.open(a,24,START);AssessmentTimeline.settle(a,START.plusSeconds(120));

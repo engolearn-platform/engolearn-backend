@@ -4,6 +4,10 @@ Scope: preparation, transactional start, forward-only taking, submission, gradin
 history, result and immutable review. Business sources: BR-PFC-F1.1–11 and
 BR-PFC-F2.1–6 in the supplied business-docs bundle. User-approved clarification:
 a single listening question may advance while its audio is playing; the old audio stops.
+The learner may end the reading preview early at questions 11, 16, 21 and 26.
+Completing question 45 advances immediately to 46; question 50 opens the existing
+submission confirmation in FE, and confirmed final Next saves and grades immediately.
+Listening lead cannot be manually skipped. These transitions replace the completed-group wait.
 Premium is two assessment starts per month, supplied by Subscription/Quota policy.
 
 ## Structure and ownership
@@ -52,6 +56,7 @@ above 4 KiB. This parser is limited to assessment, without changing other featur
 | GET /attempts/{id} | Taking state, requires binding |
 | PUT /attempts/{id}/answer | question 1..50, sequence 0..JS-safe integer, choice null/0..3, UUID commandId |
 | POST /attempts/{id}/next | Same answer body; final save, lock and advance atomically |
+| POST /attempts/{id}/finish-stage | unitIndex 10..13, phase READING_PREVIEW, UUID commandId; binding; end the current reading preview once |
 | POST /attempts/{id}/submit | confirmed=true, binding; grade at most once |
 | POST /attempts/{id}/abandon | confirmed=true, owner; also usable for old active conflicts |
 | POST /attempts/{id}/audio | unitIndex 0..25, UUID issueId, binding; one issuance/unit, identical retry allowed |
@@ -62,7 +67,13 @@ above 4 KiB. This parser is limited to assessment, without changing other featur
 
 Server deadlines are authoritative, normalized to Mongo millisecond precision. Timing is
 60s/single, reading preview 90/120/150/240s then shared 300s, listening passage 120s lead
-then 180s if unfinished. Answering its five questions early waits only the full lead.
+then 180s if unfinished. Ending a reading preview early starts a fresh shared 300s
+answer window. Listening lead still expires naturally into its existing shared 180s
+answer window if unfinished. Unused preview time is discarded.
+Final Next on a group advances immediately regardless of remaining lead/answer time;
+confirmed final Next on question 50 saves, locks and grades immediately without a waiting screen.
+Finish-stage is scoped to the exact unit/phase and idempotent command; a replay cannot
+extend a deadline or end a later group's lead. Expired stages settle before commands.
 No carry-forward time. Scheduler/reads/actions catch up using actual elapsed deadlines;
 a late abandon cannot replace a result. No answers means NO_RESULT; saved wrong answers
 can produce a valid zero/A1. Latest current level changes on valid completion, highest

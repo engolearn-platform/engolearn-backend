@@ -9,6 +9,7 @@ public interface AssessmentService {
     AssessmentStateResponse start(String user,AssessmentStartRequest command);
     AssessmentStateResponse state(String user,String id,String binding);
     AssessmentStateResponse answer(String user,String id,String binding,AssessmentAnswerRequest request,boolean advance);
+    AssessmentStateResponse finishStage(String user,String id,String binding,AssessmentFinishStageRequest request);
     AssessmentStateResponse submit(String user,String id,String binding);
     AssessmentStateResponse abandon(String user,String id);
     AssessmentMediaResponse audio(String user,String id,String binding,AssessmentAudioRequest command);

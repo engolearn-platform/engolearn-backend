@@ -122,6 +122,23 @@ public class AssessmentServiceImpl implements AssessmentService {
             return AssessmentMapper.state(a,at,development());
         });
     }
+    public AssessmentStateResponse finishStage(String user,String id,String binding,AssessmentFinishStageRequest request) {
+        return taking(user,id,binding,(a,at)->{
+            if(!AssessmentStatus.ACTIVE.equals(a.getStatus())) return AssessmentMapper.state(a,at,development());
+            String fingerprint="finish-stage:"+request.unitIndex()+":"+request.phase();
+            String previous=a.getCommands().get(request.commandId());
+            if(previous!=null) {
+                if(!fingerprint.equals(previous)) fail(409,"COMMAND_CONFLICT","Yêu cầu lặp có nội dung khác.");
+                return AssessmentMapper.state(a,at,development());
+            }
+            if(request.unitIndex()!=a.getUnitIndex()||!request.phase().equals(a.getPhase().name())
+                    ||!AssessmentPhase.READING_PREVIEW.equals(a.getPhase()))
+                fail(409,"STAGE_CLOSED","Giai đoạn này đã kết thúc. Hãy tiếp tục theo trạng thái hiện tại.");
+            a.getCommands().put(request.commandId(),fingerprint);
+            AssessmentTimeline.finishStage(a,at);
+            return AssessmentMapper.state(a,at,development());
+        });
+    }
     public AssessmentStateResponse submit(String user,String id,String binding) {
         return taking(user,id,binding,(a,at)->{
             if(AssessmentStatus.ACTIVE.equals(a.getStatus())) finish(a,at);

@@ -28,6 +28,8 @@ public final class AssessmentTimeline {
         }
     }
     public static void settle(AssessmentAttempt a, Instant now) {
+        if (AssessmentPhase.LISTENING_LEAD.equals(a.getPhase()) && a.getCursor()>last(a))
+            open(a,a.getUnitIndex()+1,now.isBefore(a.getNextDueAt())?now:a.getNextDueAt());
         while (!AssessmentPhase.FINISHED.equals(a.getPhase()) && !now.isBefore(a.getNextDueAt())) {
             Instant due=a.getNextDueAt();
             switch (a.getPhase()) {
@@ -42,7 +44,13 @@ public final class AssessmentTimeline {
     }
     public static void next(AssessmentAttempt a, Instant now) {
         a.setCursor(a.getCursor()+1);
-        if (a.getCursor()>last(a) && !AssessmentPhase.LISTENING_LEAD.equals(a.getPhase())) open(a,a.getUnitIndex()+1,now);
+        if (a.getCursor()>last(a)) open(a,a.getUnitIndex()+1,now);
+    }
+    public static void finishStage(AssessmentAttempt a, Instant now) {
+        switch (a.getPhase()) {
+            case READING_PREVIEW -> { a.setPhase(AssessmentPhase.ANSWER); a.setNextDueAt(now.plusSeconds(300)); }
+            default -> throw new IllegalArgumentException("No reading preview to finish");
+        }
     }
     public static AssessmentUnitVo unit(AssessmentAttempt a) { return a.getPaper().getUnits().get(a.getUnitIndex()); }
     public static int last(AssessmentAttempt a) { return unit(a).getQuestions().getLast().getNumber(); }
