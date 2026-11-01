@@ -59,6 +59,8 @@ if (-not [int]::TryParse($batchSizeRaw, [ref]$batchSize) -or $batchSize -lt 1) {
 }
 $continueOnError = Get-BooleanSetting $settings 'MONGO_IMPORT_CONTINUE_ON_ERROR' $false
 $requireConfirmation = Get-BooleanSetting $settings 'MONGO_IMPORT_REQUIRE_CONFIRMATION' $true
+$objectIdFields = $settings['MONGO_IMPORT_OBJECT_ID_FIELDS']
+if ([string]::IsNullOrWhiteSpace($objectIdFields)) { $objectIdFields = '_id,*_id,*_ids' }
 
 $mongoUri = $settings['MONGO_IMPORT_URI']
 if ([string]::IsNullOrWhiteSpace($mongoUri)) {
@@ -103,7 +105,7 @@ Write-Host "Batch    : $batchSize"
 Write-Host "Files    : $($resolvedFiles.Count)"
 foreach ($filePath in $resolvedFiles) { Write-Host "  - $($filePath.Substring($repoRoot.Length).TrimStart('\', '/'))" }
 
-$environmentNames = @('MONGO_IMPORT_URI','MONGO_IMPORT_DATABASE','MONGO_IMPORT_FILES_JSON','MONGO_IMPORT_CONFLICT_POLICY','MONGO_IMPORT_BATCH_SIZE','MONGO_IMPORT_CONTINUE_ON_ERROR','MONGO_IMPORT_APPLY')
+$environmentNames = @('MONGO_IMPORT_URI','MONGO_IMPORT_DATABASE','MONGO_IMPORT_FILES_JSON','MONGO_IMPORT_CONFLICT_POLICY','MONGO_IMPORT_BATCH_SIZE','MONGO_IMPORT_CONTINUE_ON_ERROR','MONGO_IMPORT_OBJECT_ID_FIELDS','MONGO_IMPORT_APPLY')
 $oldEnvironment = @{}
 foreach ($name in $environmentNames) { $oldEnvironment[$name] = [Environment]::GetEnvironmentVariable($name, 'Process') }
 
@@ -114,6 +116,7 @@ try {
     $env:MONGO_IMPORT_CONFLICT_POLICY = $policy
     $env:MONGO_IMPORT_BATCH_SIZE = [string]$batchSize
     $env:MONGO_IMPORT_CONTINUE_ON_ERROR = ([string]$continueOnError).ToLowerInvariant()
+    $env:MONGO_IMPORT_OBJECT_ID_FIELDS = $objectIdFields
     Remove-Item Env:MONGO_IMPORT_APPLY -ErrorAction SilentlyContinue
 
     Push-Location $repoRoot
@@ -153,7 +156,7 @@ try {
                 '--mount',$mount,'--workdir','/workspace',
                 '-e','MONGO_IMPORT_URI','-e','MONGO_IMPORT_DATABASE','-e','MONGO_IMPORT_FILES_JSON',
                 '-e','MONGO_IMPORT_CONFLICT_POLICY','-e','MONGO_IMPORT_BATCH_SIZE',
-                '-e','MONGO_IMPORT_CONTINUE_ON_ERROR','-e','MONGO_IMPORT_APPLY',
+                '-e','MONGO_IMPORT_CONTINUE_ON_ERROR','-e','MONGO_IMPORT_OBJECT_ID_FIELDS','-e','MONGO_IMPORT_APPLY',
                 'mongo:8.0.29-noble','mongosh','--nodb','--file',
                 '/workspace/tools/mongo-json-importer/importer.mongosh.js'
             )
