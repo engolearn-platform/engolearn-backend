@@ -464,20 +464,11 @@ public class SpeakingSessionService {
     }
 
     private boolean complete(SpeakingSession session) {
-        if (session.getValidTurnCount() < session.getContent().minimumValidTurns()) return false;
-        if (session.getContent().legacyRatioPolicy()) {
-            return session.getAchievedGoalIds().size() >= session.getContent().requiredGoalCount();
-        }
-        Set<String> achieved = new HashSet<>(session.getAchievedGoalIds());
-        return session.getContent().goals().stream()
-                .filter(goal -> goal.priority() == SpeakingGoal.Priority.REQUIRED)
-                .allMatch(goal -> achieved.contains(goal.id()));
+        return ConversationStateView.from(session).completionFor(session.getContent()).completionEligible();
     }
 
     private boolean allGoalsAndTurns(SpeakingSession session) {
-        return session.getContent().goals().stream()
-                .allMatch(goal -> session.getAchievedGoalIds().contains(goal.id()))
-                && session.getValidTurnCount() >= session.getContent().minimumValidTurns();
+        return ConversationStateView.from(session).completionFor(session.getContent()).autoEndEligible();
     }
 
     private synchronized void finish(SpeakingSession session, SpeakingSession.EndReason reason) {
