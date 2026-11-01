@@ -410,6 +410,21 @@ class ConversationManagerTest {
     }
 
     @Test
+    void closingWithoutPendingProposalUsesPinnedClosingReason() {
+        SpeakingContentSnapshot snapshot = v2(goal("g1", SpeakingGoal.Priority.REQUIRED));
+        ConversationStateView closingState = new ConversationStateView(SpeakingSession.Status.ACTIVE, 3, 4, 0,
+                Set.of(), Instant.parse("2026-11-01T00:00:00Z"), SpeakingSession.EndReason.LEARNER_ENDED,
+                1L, 1L);
+
+        DialogueDecision decision = manager.decide(null, closingState, snapshot,
+                ConversationManager.SystemTrigger.NONE);
+
+        assertEquals(DialogueDecision.Outcome.TERMINAL, decision.outcome());
+        assertEquals(DialogueDecision.ReasonCode.USER_END_ACTION, decision.reasonCode());
+        assertEquals(SpeakingSession.Status.INCOMPLETE, decision.resultingStatus());
+    }
+
+    @Test
     void thirdEvaluationFailurePreservesAlreadyEligibleCompletion() {
         SpeakingContentSnapshot snapshot = v2(goal("g1", SpeakingGoal.Priority.REQUIRED),
                 goal("g2", SpeakingGoal.Priority.OPTIONAL));

@@ -36,8 +36,8 @@ public final class ConversationManager {
                     state, base, null, null, null, null, null);
         }
         if (trigger == DialogueDecision.SystemTrigger.SERVICE_UNAVAILABLE
-                || (proposal == null && trigger != null && trigger != DialogueDecision.SystemTrigger.NONE)) {
-            return lifecycleDecision(state, base, trigger);
+                || (proposal == null && effectiveClosingTrigger(state, trigger) != DialogueDecision.SystemTrigger.NONE)) {
+            return lifecycleDecision(state, base, effectiveClosingTrigger(state, trigger));
         }
         if (proposal == null) {
             return decision(DialogueDecision.Outcome.REJECT, DialogueDecision.ReasonCode.REJECTED_NO_PROPOSAL,

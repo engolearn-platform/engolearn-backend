@@ -30,8 +30,8 @@ retention, and completion/error-counter edge cases.
 | Command | Result |
 |---|---|
 | `./mvnw.cmd -q -Dtest=ConversationManagerTest test` | PASS; 62 cases |
-| `./mvnw.cmd -q -Dtest=ConversationStateViewTest,ConversationManagerTest,SpeakingDraftValidatorContractTest,SpeakingSessionServiceTest test` | PASS; 100 cases |
-| `./mvnw.cmd verify` | BUILD SUCCESS; 276 tests, 0 failures, 0 errors, 14 skipped |
+| `./mvnw.cmd -q -Dtest=ConversationStateViewTest,ConversationManagerTest,SpeakingDraftValidatorContractTest,SpeakingSessionServiceTest test` | PASS; 101 cases |
+| `./mvnw.cmd verify` | BUILD SUCCESS; 277 tests, 0 failures, 0 errors, 14 skipped |
 | `git diff --check 29cbc09..HEAD` | PASS after committing the final patch |
 
 The skipped tests require Docker/Testcontainers. The environment reported
