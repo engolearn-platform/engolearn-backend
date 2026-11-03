@@ -19,6 +19,8 @@ import java.lang.reflect.Proxy;
 import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiFunction;
 
@@ -104,6 +106,47 @@ class SpeakingDemoRuntimeTest {
         terminal.session.setCommittedTurnCount(1);
         assertFalse(settle(terminal.service(), "session", "terminal", validAssessment()));
         assertEquals(SpeakingTurn.EvaluationState.PENDING, terminal.turns.get(0).getEvaluationState());
+    }
+
+    @Test
+    void replacedConnectionDuringDemoCompositionDoesNotSettleOrDeliver() throws Exception {
+        AtomicInteger gatewayCalls = new AtomicInteger();
+        CountDownLatch compositionStarted = new CountDownLatch(1);
+        CountDownLatch allowCompletion = new CountDownLatch(1);
+        SpeakingDemoComposer composer = blockingComposer(gatewayCalls, compositionStarted, allowCompletion);
+        FakeRealtimeSessionService sessions = FakeRealtimeSessionService.active();
+        CountingTts tts = new CountingTts();
+        SpeakingRealtimeService realtime = realtime(sessions, (content, transcript, history, achieved) ->
+                new ConversationEvaluator.Result(true, "legacy", List.of(), List.of(), List.of(), null, List.of()),
+                tts, composer, true);
+
+        realtime.open("connection", "session", "ticket", sessions.events::add).join();
+        realtime.start("connection", "turn-1", 7);
+        realtime.end("connection", "turn-1", 7);
+        assertTrue(compositionStarted.await(1, TimeUnit.SECONDS));
+
+        realtime.open("replacement", "session", "ticket", sessions.events::add).join();
+        allowCompletion.countDown();
+        assertTrue(sessions.awaitSettlementIdle());
+
+        assertEquals(1, gatewayCalls.get());
+        assertEquals(0, sessions.settlementCalls.get());
+        assertEquals(0, tts.calls.get());
+        assertTrue(sessions.events.stream().noneMatch(event -> "TURN_RESULT".equals(event.get("type"))));
+        assertTrue(sessions.events.stream().noneMatch(event -> "AI_AUDIO_READY".equals(event.get("type"))));
+    }
+
+    @Test
+    void demoSettlementRechecksExpiryBeforeCommittingLateGatewayResult() {
+        SettlementFixture fixture = SettlementFixture.active();
+        fixture.turns.add(fixture.pendingTurn("expired", 1));
+        fixture.session.setCommittedTurnCount(1);
+        fixture.session.setExpiresAt(Instant.now().minusSeconds(1));
+
+        assertFalse(settle(fixture.service(), "session", "expired", validAssessment()));
+        assertEquals(SpeakingTurn.EvaluationState.PENDING, fixture.turns.get(0).getEvaluationState());
+        assertEquals(0, fixture.session.getValidTurnCount());
+        assertTrue(fixture.assessments.isEmpty());
     }
 
     @Test
@@ -274,6 +317,30 @@ class SpeakingDemoRuntimeTest {
         return new SpeakingDemoComposer(gateway, new SpeakingDraftValidator(MAPPER), new ConversationManager());
     }
 
+    private static SpeakingDemoComposer blockingComposer(AtomicInteger gatewayCalls,
+            CountDownLatch compositionStarted, CountDownLatch allowCompletion) {
+        SpeakingAiGateway gateway = request -> {
+            gatewayCalls.incrementAndGet();
+            compositionStarted.countDown();
+            try {
+                assertTrue(allowCompletion.await(1, TimeUnit.SECONDS));
+            } catch (InterruptedException exception) {
+                Thread.currentThread().interrupt();
+                throw new IllegalStateException("composition interrupted", exception);
+            }
+            return new GatewayOutcome.Success(new ProviderRawDraft(
+                    "{\"contractVersion\":\"speaking.ai.draft.v1\","
+                            + "\"assessment\":{\"turnValidityProposal\":\"VALID\","
+                            + "\"userIntent\":\"STATEMENT\",\"goalEvidence\":[],"
+                            + "\"resourceEvidence\":[],\"corrections\":[],\"hintVi\":null},"
+                            + "\"dialogue\":{\"proposedAct\":\"REACT_AND_ASK\","
+                            + "\"spokenReply\":\"Keep going.\",\"continuationType\":\"QUESTION\","
+                            + "\"primaryQuestion\":\"Why?\",\"targetGoalId\":null}}",
+                    new ProviderRawDraft.ProviderMetadata("test", 200, "id", "STOP", 1L, 1L, 2L)));
+        };
+        return new SpeakingDemoComposer(gateway, new SpeakingDraftValidator(MAPPER), new ConversationManager());
+    }
+
     private static SpeakingDemoAssessment validAssessment() {
         ValidatedTurnProposal proposal = ValidatedTurnProposal.valid(
                 SpeakingAiDraftResponseV1.UserIntent.STATEMENT, List.of("goal-1"),
@@ -389,6 +456,10 @@ class SpeakingDemoRuntimeTest {
         static FakeRealtimeSessionService active() { return new FakeRealtimeSessionService(); }
         void resetEvents() { events.clear(); }
         void resetTurn() { currentState.setControllerEpoch(7); }
+        boolean awaitSettlementIdle() throws InterruptedException {
+            Thread.sleep(100);
+            return true;
+        }
         public SpeakingSession consumeTicket(String ticket, String sessionId) { return session; }
         public SpeakingSessionResponse socketSnapshot(String id, String learnerId) { return snapshot; }
         public SpeakingSession requireSocketController(String id, String learnerId, long epoch) { return session; }
@@ -400,6 +471,10 @@ class SpeakingDemoRuntimeTest {
                 String contentType, byte[] bytes) {}
         public SpeakingSession demoState(String sessionId, String learnerId) { return currentState; }
         public boolean settleDemo(String sessionId, String turnId, SpeakingDemoAssessment assessment) {
+            settlementCalls.incrementAndGet();
+            return true;
+        }
+        public boolean settleDemo(String sessionId, String turnId, long epoch, SpeakingDemoAssessment assessment) {
             settlementCalls.incrementAndGet();
             return true;
         }

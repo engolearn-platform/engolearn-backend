@@ -243,9 +243,12 @@ public class SpeakingRealtimeService {
             if (!eligibleController(authoritative, c)) return;
             SpeakingSessionResponse snapshot = sessions.socketSnapshot(c.sessionId, c.learnerId);
             SpeakingDemoAssessment assessment = demoComposer.assess(authoritative, snapshot, turn.getTranscript());
-            if (!sessions.settleDemo(c.sessionId, turnId, assessment)) return;
+            if (!eligibleController(sessions.demoState(c.sessionId, c.learnerId), c)
+                    || !sessions.settleDemo(c.sessionId, turnId, c.epoch, assessment)) return;
             sessions.recordUsage(c.sessionId, turnId, SpeakingUsageSegment.Kind.AI_WAIT,
                     waitStarted, min(Instant.now(), waitStarted.plusSeconds(10)));
+
+            if (!eligibleController(sessions.demoState(c.sessionId, c.learnerId), c)) return;
 
             DialogueDecision decision = assessment.decision();
             Map<String, Object> diagnostic = new java.util.LinkedHashMap<>();
@@ -291,7 +294,7 @@ public class SpeakingRealtimeService {
     }
 
     private boolean eligibleController(SpeakingSession session, Connection connection) {
-        return session != null && session.isOpen() && session.getClosingAt() == null
+        return connection.active && session != null && session.isOpen() && session.getClosingAt() == null
                 && session.getControllerEpoch() == connection.epoch;
     }
 

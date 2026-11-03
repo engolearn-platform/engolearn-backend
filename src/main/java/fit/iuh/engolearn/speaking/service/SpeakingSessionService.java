@@ -382,11 +382,24 @@ public class SpeakingSessionService {
 
     public synchronized boolean settleDemo(String sessionId, String turnId,
             SpeakingDemoAssessment assessment) {
+        return settleDemo(sessionId, turnId, null, assessment);
+    }
+
+    public synchronized boolean settleDemo(String sessionId, String turnId, long controllerEpoch,
+            SpeakingDemoAssessment assessment) {
+        return settleDemo(sessionId, turnId, Long.valueOf(controllerEpoch), assessment);
+    }
+
+    private boolean settleDemo(String sessionId, String turnId, Long expectedControllerEpoch,
+            SpeakingDemoAssessment assessment) {
         SpeakingSession session = sessions.findById(sessionId).orElseThrow();
+        expireIfNeeded(session);
         Optional<SpeakingTurn> found = turns.findByIdAndSessionId(turnId, sessionId);
         if (found.isEmpty()) return false;
         SpeakingTurn turn = found.get();
         if (session.getDeletedAt() != null || !session.isOpen() || session.getClosingAt() != null
+                || (expectedControllerEpoch != null
+                && session.getControllerEpoch() != expectedControllerEpoch)
                 || turn.getEvaluationState() != SpeakingTurn.EvaluationState.PENDING) return false;
 
         DialogueDecision decision = assessment.decision();
