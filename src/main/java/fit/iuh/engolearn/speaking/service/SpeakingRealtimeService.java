@@ -1,15 +1,21 @@
 package fit.iuh.engolearn.speaking.service;
 
 import fit.iuh.engolearn.speaking.dto.response.SpeakingSessionResponse;
+import fit.iuh.engolearn.speaking.model.DialogueDecision;
 import fit.iuh.engolearn.speaking.model.SpeakingAudioAsset;
+import fit.iuh.engolearn.speaking.model.SpeakingDemoAssessment;
 import fit.iuh.engolearn.speaking.model.SpeakingSession;
 import fit.iuh.engolearn.speaking.model.SpeakingTurn;
 import fit.iuh.engolearn.speaking.model.SpeakingUsageSegment;
+import fit.iuh.engolearn.speaking.model.ValidatedTurnProposal;
 import fit.iuh.engolearn.speaking.utils.port.ConversationEvaluator;
 import fit.iuh.engolearn.speaking.utils.port.SpeechStreamPort;
 import fit.iuh.engolearn.speaking.utils.port.SpeechSynthesisPort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Service;
 import org.springframework.context.event.EventListener;
 
@@ -38,6 +44,8 @@ public class SpeakingRealtimeService {
     private final SpeechSynthesisPort tts;
     private final ExecutorService workers = Executors.newFixedThreadPool(8);
     private final Map<String, Connection> connections = new ConcurrentHashMap<>();
+    private volatile SpeakingDemoComposer demoComposer;
+    private volatile boolean demoManagerEnabled;
 
     private static final class Connection {
         private final String sessionId;
@@ -59,12 +67,31 @@ public class SpeakingRealtimeService {
         }
     }
 
+    @Autowired
     public SpeakingRealtimeService(SpeakingSessionService sessions, SpeechStreamPort stt,
                                    ConversationEvaluator evaluator, SpeechSynthesisPort tts) {
+        this(sessions, stt, evaluator, tts, null, false);
+    }
+
+    SpeakingRealtimeService(SpeakingSessionService sessions, SpeechStreamPort stt,
+                            ConversationEvaluator evaluator, SpeechSynthesisPort tts,
+                            SpeakingDemoComposer demoComposer, boolean demoManagerEnabled) {
         this.sessions = sessions;
         this.stt = stt;
         this.evaluator = evaluator;
         this.tts = tts;
+        this.demoComposer = demoComposer;
+        this.demoManagerEnabled = demoManagerEnabled;
+    }
+
+    @Autowired(required = false)
+    void configureDemo(Environment environment,
+                       @Value("${engolearn.speaking.demo.enabled:false}") boolean demoEnabled,
+                       @Value("${engolearn.speaking.demo.manager.enabled:false}") boolean managerEnabled,
+                       SpeakingDemoComposer composer) {
+        this.demoManagerEnabled = demoEnabled && managerEnabled
+                && java.util.Arrays.stream(environment.getActiveProfiles()).noneMatch("prod"::equals);
+        this.demoComposer = composer;
     }
 
     public CompletableFuture<Void> open(String connectionId, String sessionId, String ticket,
@@ -160,6 +187,10 @@ public class SpeakingRealtimeService {
 
     private void evaluate(Connection c, SpeakingTurn turn, byte[] recording) {
         String turnId = turn.getId();
+        if (demoManagerEnabled && demoComposer != null) {
+            evaluateDemo(c, turn, recording);
+            return;
+        }
         SpeakingSessionResponse snapshot = sessions.socketSnapshot(c.sessionId, c.learnerId);
         List<ConversationEvaluator.Exchange> history = new ArrayList<>();
         for (SpeakingSessionResponse.Turn previous : snapshot.turns()) {
@@ -202,6 +233,66 @@ public class SpeakingRealtimeService {
             send(c, "PROCESSING_ERROR", turnId, Map.of("message", "Assessment is unavailable",
                     "snapshot", sessions.socketSnapshot(c.sessionId, c.learnerId)));
         }
+    }
+
+    private void evaluateDemo(Connection c, SpeakingTurn turn, byte[] recording) {
+        String turnId = turn.getId();
+        Instant waitStarted = Instant.now();
+        try {
+            SpeakingSession authoritative = sessions.demoState(c.sessionId, c.learnerId);
+            if (!eligibleController(authoritative, c)) return;
+            SpeakingSessionResponse snapshot = sessions.socketSnapshot(c.sessionId, c.learnerId);
+            SpeakingDemoAssessment assessment = demoComposer.assess(authoritative, snapshot, turn.getTranscript());
+            if (!sessions.settleDemo(c.sessionId, turnId, assessment)) return;
+            sessions.recordUsage(c.sessionId, turnId, SpeakingUsageSegment.Kind.AI_WAIT,
+                    waitStarted, min(Instant.now(), waitStarted.plusSeconds(10)));
+
+            DialogueDecision decision = assessment.decision();
+            Map<String, Object> diagnostic = new java.util.LinkedHashMap<>();
+            diagnostic.put("demoDecision", SpeakingDemoDecisionEvent.from(decision));
+            if (assessment.proposal().validityOutcome() == ValidatedTurnProposal.ValidityOutcome.EVALUATION_FAILED) {
+                diagnostic.put("message", "Assessment is unavailable");
+                diagnostic.put("snapshot", sessions.socketSnapshot(c.sessionId, c.learnerId));
+                send(c, "PROCESSING_ERROR", turnId, diagnostic);
+            } else {
+                diagnostic.put("snapshot", sessions.socketSnapshot(c.sessionId, c.learnerId));
+                send(c, "TURN_RESULT", turnId, diagnostic);
+            }
+            try {
+                sessions.saveAudio(c.sessionId, turnId, SpeakingAudioAsset.Kind.LEARNER_RECORDING,
+                        "wav", "audio/wav", wav(recording));
+            } catch (Exception ex) {
+                send(c, "AUDIO_ERROR", turnId, Map.of("kind", "LEARNER_RECORDING"));
+            }
+            if (decision.outcome() == DialogueDecision.Outcome.NORMAL
+                    && decision.spokenReplyToDeliver() != null
+                    && !decision.spokenReplyToDeliver().isBlank()
+                    && eligibleController(sessions.demoState(c.sessionId, c.learnerId), c)) {
+                Instant replyStarted = Instant.now();
+                try {
+                    byte[] spoken = tts.synthesize(decision.spokenReplyToDeliver());
+                    if (spoken.length == 0) throw new IllegalStateException("Cartesia returned empty audio");
+                    sessions.saveAudio(c.sessionId, turnId, SpeakingAudioAsset.Kind.AI_REPLY,
+                            "mp3", "audio/mpeg", spoken);
+                    sessions.recordUsage(c.sessionId, turnId, SpeakingUsageSegment.Kind.AI_REPLY,
+                            replyStarted, Instant.now());
+                    send(c, "AI_AUDIO_READY", turnId, Map.of());
+                } catch (Exception ex) {
+                    log.warn("AI audio failed for session {} turn {}", c.sessionId, turnId, ex);
+                    send(c, "TTS_ERROR", turnId, Map.of("message", "AI audio is unavailable"));
+                }
+            }
+        } catch (Exception ex) {
+            log.warn("Speaking demo assessment failed for session {} turn {}", c.sessionId, turnId, ex);
+            sessions.assessmentFailed(c.sessionId, turnId);
+            send(c, "PROCESSING_ERROR", turnId, Map.of("message", "Assessment is unavailable",
+                    "snapshot", sessions.socketSnapshot(c.sessionId, c.learnerId)));
+        }
+    }
+
+    private boolean eligibleController(SpeakingSession session, Connection connection) {
+        return session != null && session.isOpen() && session.getClosingAt() == null
+                && session.getControllerEpoch() == connection.epoch;
     }
 
     public void close(String connectionId) {

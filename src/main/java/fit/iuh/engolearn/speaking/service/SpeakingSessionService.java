@@ -277,6 +277,15 @@ public class SpeakingSessionService {
         return response(expireIfNeeded(session));
     }
 
+    public SpeakingSession demoState(String id, String learnerId) {
+        SpeakingSession session = sessions.findById(id).orElseThrow(() ->
+                problem(HttpStatus.NOT_FOUND, "SESSION_NOT_FOUND", "Session not found"));
+        if (!learnerId.equals(session.getLearnerId()) || session.getDeletedAt() != null) {
+            throw problem(HttpStatus.FORBIDDEN, "SESSION_FORBIDDEN", "Session is not available");
+        }
+        return expireIfNeeded(session);
+    }
+
     public SpeakingSession requireController(String id, long epoch) {
         SpeakingSession session = owned(id);
         return checkController(session, epoch);
@@ -369,6 +378,68 @@ public class SpeakingSessionService {
             }
             else if (session.getCommittedTurnCount() >= 30) finish(session, SpeakingSession.EndReason.TURN_LIMIT);
         }
+    }
+
+    public synchronized boolean settleDemo(String sessionId, String turnId,
+            SpeakingDemoAssessment assessment) {
+        SpeakingSession session = sessions.findById(sessionId).orElseThrow();
+        Optional<SpeakingTurn> found = turns.findByIdAndSessionId(turnId, sessionId);
+        if (found.isEmpty()) return false;
+        SpeakingTurn turn = found.get();
+        if (session.getDeletedAt() != null || !session.isOpen() || session.getClosingAt() != null
+                || turn.getEvaluationState() != SpeakingTurn.EvaluationState.PENDING) return false;
+
+        DialogueDecision decision = assessment.decision();
+        if (decision.finalizedTurnCount() != session.getCommittedTurnCount()) return false;
+        ValidatedTurnProposal proposal = assessment.proposal();
+        if (proposal.validityOutcome() == ValidatedTurnProposal.ValidityOutcome.VALID) {
+            if (decision.validTurnCount() != session.getValidTurnCount() + 1) return false;
+            turn.setValid(true);
+            turn.setAiReply(decision.spokenReplyToDeliver());
+            turn.setEvaluationState(SpeakingTurn.EvaluationState.SUCCEEDED);
+            SpeakingAssessmentRecord assessmentRecord = SpeakingAssessmentRecordAdapter.toRecord(sessionId,
+                    session.getLearnerId(), turn.getTranscript(), proposal);
+            assessmentRecord.setId(turnId);
+            assessments.save(assessmentRecord);
+            session.setValidTurnCount(decision.validTurnCount());
+            Set<String> achieved = new LinkedHashSet<>(session.getAchievedGoalIds() == null
+                    ? List.of() : session.getAchievedGoalIds());
+            achieved.addAll(decision.newlyAchievedGoalIds());
+            session.setAchievedGoalIds(new ArrayList<>(achieved));
+            session.setConsecutiveEvaluationFailures(decision.consecutiveEvaluationErrors());
+        } else if (proposal.validityOutcome() == ValidatedTurnProposal.ValidityOutcome.INVALID) {
+            turn.setValid(false);
+            turn.setAiReply(null);
+            turn.setEvaluationState(SpeakingTurn.EvaluationState.INVALID);
+            session.setConsecutiveEvaluationFailures(decision.consecutiveEvaluationErrors());
+        } else {
+            turn.setValid(false);
+            turn.setAiReply(null);
+            turn.setEvaluationState(SpeakingTurn.EvaluationState.FAILED);
+            session.setConsecutiveEvaluationFailures(decision.consecutiveEvaluationErrors());
+        }
+        turns.save(turn);
+        sessions.save(session);
+        settleDemoLifecycle(session, decision);
+        return true;
+    }
+
+    private void settleDemoLifecycle(SpeakingSession session, DialogueDecision decision) {
+        if (decision.resultingStatus() != SpeakingSession.Status.COMPLETED
+                && decision.resultingStatus() != SpeakingSession.Status.INCOMPLETE
+                && decision.outcome() != DialogueDecision.Outcome.TERMINAL) return;
+        SpeakingSession.EndReason reason = switch (decision.reasonCode()) {
+            case EVALUATION_ERRORS_3 -> SpeakingSession.EndReason.EVALUATION_FAILURES;
+            case AUTO_ALL_GOALS_AND_MIN_TURNS, TARGET_ALREADY_ACHIEVED -> SpeakingSession.EndReason.GOALS_REACHED;
+            case FINALIZED_TURN_LIMIT -> SpeakingSession.EndReason.TURN_LIMIT;
+            case SESSION_AGE_LIMIT -> SpeakingSession.EndReason.SESSION_AGE;
+            case DAILY_QUOTA_EXHAUSTED -> SpeakingSession.EndReason.DAILY_QUOTA;
+            case USER_END_ACTION -> SpeakingSession.EndReason.LEARNER_ENDED;
+            case RECOVERY_EXPIRED -> SpeakingSession.EndReason.RECOVERY_EXPIRED;
+            case SERVICE_RESTART -> SpeakingSession.EndReason.SERVICE_RESTART;
+            default -> SpeakingSession.EndReason.GOALS_REACHED;
+        };
+        finish(session, reason);
     }
 
     public synchronized void assessmentFailed(String sessionId, String turnId) {

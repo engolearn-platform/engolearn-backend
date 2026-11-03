@@ -48,6 +48,28 @@ The JSON import is for actual published Topic item versions and business-approve
 
 To use the fixed fixture, start MongoDB, run the backend with the `dev` profile, then open the FE development route. No `SPEAKING_DEV_SEED_FILE` is required for this fixture. Provider credentials and Cloudinary configuration are still needed for live audio turns.
 
+## Slice 0–3 manager demo
+
+The manager runtime is disabled by default. Run the isolated backend with the
+existing Speaking demo gate and the manager flag explicitly enabled:
+
+```powershell
+.\mvnw.cmd spring-boot:run -Dspring-boot.run.profiles=dev `
+  -Dspring-boot.run.arguments="--engolearn.speaking.demo.manager.enabled=true"
+```
+
+The flag is effective only when `engolearn.speaking.demo.enabled=true` and the
+active profile is not `prod`. The manager path keeps the existing REST and
+WebSocket event names, adds optional `demoDecision` diagnostics to committed
+`TURN_RESULT`/evaluation-failure `PROCESSING_ERROR` events, and suppresses
+normal speech for recovery, invalid, terminal, unavailable, or rejected turns.
+This demo is single-instance and intentionally does not claim Slice 4
+transaction, CAS, outbox, or delivery guarantees.
+
+Rollback is the default behavior: restart with
+`--engolearn.speaking.demo.manager.enabled=false` (or omit the flag) to select
+the legacy evaluator path.
+
 ## Known gaps before acceptance
 
 - Full provider/browser and 10–20 concurrent-session tests need a running MongoDB, real test item/configuration, credentials, and Chrome/Edge/Safari. No p95 claim is made.
