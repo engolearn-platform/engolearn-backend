@@ -380,17 +380,7 @@ public class SpeakingSessionService {
         }
     }
 
-    public synchronized boolean settleDemo(String sessionId, String turnId,
-            SpeakingDemoAssessment assessment) {
-        return settleDemo(sessionId, turnId, null, assessment);
-    }
-
     public synchronized boolean settleDemo(String sessionId, String turnId, long controllerEpoch,
-            SpeakingDemoAssessment assessment) {
-        return settleDemo(sessionId, turnId, Long.valueOf(controllerEpoch), assessment);
-    }
-
-    private boolean settleDemo(String sessionId, String turnId, Long expectedControllerEpoch,
             SpeakingDemoAssessment assessment) {
         SpeakingSession session = sessions.findById(sessionId).orElseThrow();
         expireIfNeeded(session);
@@ -398,8 +388,7 @@ public class SpeakingSessionService {
         if (found.isEmpty()) return false;
         SpeakingTurn turn = found.get();
         if (session.getDeletedAt() != null || !session.isOpen() || session.getClosingAt() != null
-                || (expectedControllerEpoch != null
-                && session.getControllerEpoch() != expectedControllerEpoch)
+                || session.getControllerEpoch() != controllerEpoch
                 || turn.getEvaluationState() != SpeakingTurn.EvaluationState.PENDING) return false;
 
         DialogueDecision decision = assessment.decision();
@@ -455,20 +444,11 @@ public class SpeakingSessionService {
         finish(session, reason);
     }
 
-    public synchronized void assessmentFailed(String sessionId, String turnId) {
-        assessmentFailed(sessionId, turnId, null);
-    }
-
     public synchronized void assessmentFailed(String sessionId, String turnId, long controllerEpoch) {
-        assessmentFailed(sessionId, turnId, Long.valueOf(controllerEpoch));
-    }
-
-    private void assessmentFailed(String sessionId, String turnId, Long expectedControllerEpoch) {
         SpeakingSession session = sessions.findById(sessionId).orElseThrow();
         SpeakingTurn turn = turns.findByIdAndSessionId(turnId, sessionId).orElseThrow();
         if (!session.isOpen() || session.getDeletedAt() != null
-                || (expectedControllerEpoch != null
-                && session.getControllerEpoch() != expectedControllerEpoch)
+                || session.getControllerEpoch() != controllerEpoch
                 || turn.getEvaluationState() != SpeakingTurn.EvaluationState.PENDING) return;
         if (session.getClosingAt() != null
                 && !Instant.now().isBefore(session.getClosingAt().plusSeconds(10))) return;

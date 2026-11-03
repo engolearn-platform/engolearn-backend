@@ -132,7 +132,7 @@ class SpeakingSessionServiceTest {
 
         fixture.turns.add(pendingTurn("failed", 2));
         fixture.savedSession.setCommittedTurnCount(2);
-        service.assessmentFailed("session", "failed");
+        service.assessmentFailed("session", "failed", 1);
         assertEquals(SpeakingTurn.EvaluationState.FAILED, fixture.turns.get(1).getEvaluationState());
         assertEquals(2, fixture.savedSession.getCommittedTurnCount());
         assertEquals(0, fixture.savedSession.getValidTurnCount());

@@ -14,6 +14,7 @@ import org.springframework.mock.env.MockEnvironment;
 import tools.jackson.databind.ObjectMapper;
 
 import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.time.Instant;
@@ -21,9 +22,13 @@ import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiFunction;
+import java.util.function.Consumer;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -162,7 +167,6 @@ class SpeakingDemoRuntimeTest {
         assertEquals(1, gatewayCalls.get());
         assertEquals(0, sessions.settlementCalls.get());
         assertEquals(0, sessions.failureCalls.get());
-        assertEquals(0, sessions.legacyFailureCalls.get());
         assertTrue(sessions.failureEpochs.isEmpty());
         assertEquals(0, sessions.currentState.getConsecutiveEvaluationFailures());
         assertTrue(sessions.events.stream().noneMatch(event -> "PROCESSING_ERROR".equals(event.get("type"))));
@@ -189,7 +193,6 @@ class SpeakingDemoRuntimeTest {
         assertEquals(1, gatewayCalls.get());
         assertEquals(1, sessions.failureCalls.get());
         assertEquals(List.of(7L), sessions.failureEpochs);
-        assertEquals(0, sessions.legacyFailureCalls.get());
         assertTrue(sessions.events.stream().anyMatch(event -> "PROCESSING_ERROR".equals(event.get("type"))));
     }
 
@@ -216,6 +219,113 @@ class SpeakingDemoRuntimeTest {
         assertEquals(SpeakingTurn.EvaluationState.PENDING, fixture.turns.get(0).getEvaluationState());
         assertEquals(0, fixture.session.getValidTurnCount());
         assertTrue(fixture.assessments.isEmpty());
+    }
+
+    @Test
+    void concurrentOpensLeaveExactlyOneCurrentController() throws Exception {
+        FakeRealtimeSessionService sessions = FakeRealtimeSessionService.active();
+        SpeakingRealtimeService realtime = realtime(sessions, (content, transcript, history, achieved) ->
+                new ConversationEvaluator.Result(true, "legacy", List.of(), List.of(), List.of(), null, List.of()),
+                new CountingTts(), composer(new AtomicInteger()), false);
+        int openCount = 32;
+        ExecutorService opens = Executors.newFixedThreadPool(openCount);
+        CountDownLatch ready = new CountDownLatch(openCount);
+        CountDownLatch release = new CountDownLatch(1);
+        List<Future<?>> tasks = new ArrayList<>();
+        try {
+            for (int i = 0; i < openCount; i++) {
+                int connection = i;
+                tasks.add(opens.submit(() -> {
+                    ready.countDown();
+                    assertTrue(release.await(1, TimeUnit.SECONDS));
+                    realtime.open("connection-" + connection, "session", "ticket-" + connection,
+                            sessions.events::add).join();
+                    return null;
+                }));
+            }
+            assertTrue(ready.await(1, TimeUnit.SECONDS));
+            release.countDown();
+            for (Future<?> task : tasks) task.get(2, TimeUnit.SECONDS);
+        } finally {
+            opens.shutdownNow();
+        }
+
+        Map<?, ?> currentControllers = privateMap(realtime, "currentControllers");
+        assertEquals(1, currentControllers.size());
+        assertTrue(privateBoolean(currentControllers.values().iterator().next(), "active"));
+    }
+
+    @Test
+    void inactiveReplacedEntryDoesNotPreventDisconnectInterruption() throws Exception {
+        FakeRealtimeSessionService sessions = FakeRealtimeSessionService.active();
+        SpeakingRealtimeService realtime = realtime(sessions, (content, transcript, history, achieved) ->
+                new ConversationEvaluator.Result(true, "legacy", List.of(), List.of(), List.of(), null, List.of()),
+                new CountingTts(), composer(new AtomicInteger()), false);
+
+        realtime.open("old", "session", "ticket-old", sessions.events::add).join();
+        realtime.open("new", "session", "ticket-new", sessions.events::add).join();
+        realtime.close("new");
+        invokeCleanup(realtime, "session", "learner", 7);
+
+        assertEquals(1, sessions.interruptCalls.get());
+        assertEquals(List.of(7L), sessions.interruptEpochs);
+    }
+
+    @Test
+    void replacementDuringResultDeliveryCompletesAfterTheOldEventIsSerialized() throws Exception {
+        FakeRealtimeSessionService sessions = FakeRealtimeSessionService.active();
+        SpeakingRealtimeService realtime = realtime(sessions, (content, transcript, history, achieved) ->
+                new ConversationEvaluator.Result(true, "legacy", List.of(), List.of(), List.of(), null, List.of()),
+                new CountingTts(), composer(new AtomicInteger()), true);
+        List<String> order = new CopyOnWriteArrayList<>();
+        CountDownLatch emitStarted = new CountDownLatch(1);
+        CountDownLatch allowEmit = new CountDownLatch(1);
+        Consumer<Map<String, Object>> oldEmit = event -> {
+            if ("TURN_RESULT".equals(event.get("type"))) {
+                emitStarted.countDown();
+                try {
+                    assertTrue(allowEmit.await(1, TimeUnit.SECONDS));
+                } catch (InterruptedException exception) {
+                    Thread.currentThread().interrupt();
+                    throw new AssertionError(exception);
+                }
+            }
+            order.add("old:" + event.get("type"));
+        };
+
+        realtime.open("old", "session", "ticket-old", oldEmit).join();
+        realtime.start("old", "turn-1", 7);
+        realtime.end("old", "turn-1", 7);
+        assertTrue(emitStarted.await(1, TimeUnit.SECONDS));
+
+        CountDownLatch replacementStarted = new CountDownLatch(1);
+        CompletableFuture<Void> replacement = CompletableFuture.runAsync(() -> {
+            replacementStarted.countDown();
+            realtime.open("new", "session", "ticket-new", event -> order.add("new:" + event.get("type"))).join();
+        });
+        assertTrue(replacementStarted.await(1, TimeUnit.SECONDS));
+        try {
+            replacement.get(100, TimeUnit.MILLISECONDS);
+            fail("replacement must wait for the in-flight event delivery");
+        } catch (java.util.concurrent.TimeoutException expected) {
+            // The old event owns the per-session delivery slot until emit returns.
+        }
+
+        allowEmit.countDown();
+        replacement.join();
+
+        int resultIndex = order.indexOf("old:TURN_RESULT");
+        int replacementIndex = order.indexOf("new:CONNECTED");
+        assertTrue(resultIndex >= 0);
+        assertTrue(replacementIndex > resultIndex);
+    }
+
+    @Test
+    void demoSettlementAndFailureHaveNoPublicEpochBypass() {
+        assertThrows(NoSuchMethodException.class, () -> SpeakingSessionService.class.getMethod("settleDemo",
+                String.class, String.class, SpeakingDemoAssessment.class));
+        assertThrows(NoSuchMethodException.class, () -> SpeakingSessionService.class.getMethod("assessmentFailed",
+                String.class, String.class));
     }
 
     @Test
@@ -335,6 +445,27 @@ class SpeakingDemoRuntimeTest {
         } catch (ReflectiveOperationException exception) {
             throw new AssertionError("demo settlement API is missing", exception);
         }
+    }
+
+    private static void invokeCleanup(SpeakingRealtimeService realtime, String sessionId, String learnerId,
+            long epoch) throws Exception {
+        Method method = SpeakingRealtimeService.class.getDeclaredMethod("cleanupDisconnectedSession",
+                String.class, String.class, long.class);
+        method.setAccessible(true);
+        method.invoke(realtime, sessionId, learnerId, epoch);
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Map<?, ?> privateMap(Object target, String fieldName) throws Exception {
+        Field field = target.getClass().getDeclaredField(fieldName);
+        field.setAccessible(true);
+        return (Map<?, ?>) field.get(target);
+    }
+
+    private static boolean privateBoolean(Object target, String fieldName) throws Exception {
+        Field field = target.getClass().getDeclaredField(fieldName);
+        field.setAccessible(true);
+        return field.getBoolean(target);
     }
 
     private static SpeakingRealtimeService realtime(SpeakingSessionService sessions,
@@ -540,8 +671,9 @@ class SpeakingDemoRuntimeTest {
         private final List<Map<String, Object>> events = new CopyOnWriteArrayList<>();
         private final AtomicInteger settlementCalls = new AtomicInteger();
         private final AtomicInteger failureCalls = new AtomicInteger();
-        private final AtomicInteger legacyFailureCalls = new AtomicInteger();
         private final List<Long> failureEpochs = new CopyOnWriteArrayList<>();
+        private final AtomicInteger interruptCalls = new AtomicInteger();
+        private final List<Long> interruptEpochs = new CopyOnWriteArrayList<>();
         private FakeRealtimeSessionService() { super(null, null, null, null, null, null, null, null, null); }
         static FakeRealtimeSessionService active() { return new FakeRealtimeSessionService(); }
         void resetEvents() { events.clear(); }
@@ -556,10 +688,6 @@ class SpeakingDemoRuntimeTest {
         public SpeakingTurn commit(String sessionId, String learnerId, long epoch, String turnId, String transcript) { return turn; }
         public void recordUsage(String sessionId, String turnId, SpeakingUsageSegment.Kind kind, Instant started, Instant ended) {}
         public void assessed(String sessionId, String turnId, ConversationEvaluator.Result result) {}
-        public void assessmentFailed(String sessionId, String turnId) {
-            legacyFailureCalls.incrementAndGet();
-            currentState.setConsecutiveEvaluationFailures(currentState.getConsecutiveEvaluationFailures() + 1);
-        }
         public void assessmentFailed(String sessionId, String turnId, long epoch) {
             if (epoch != currentState.getControllerEpoch() || !currentState.isOpen()) return;
             failureCalls.incrementAndGet();
@@ -569,13 +697,14 @@ class SpeakingDemoRuntimeTest {
         public void saveAudio(String sessionId, String turnId, SpeakingAudioAsset.Kind kind, String format,
                 String contentType, byte[] bytes) {}
         public SpeakingSession demoState(String sessionId, String learnerId) { return currentState; }
-        public boolean settleDemo(String sessionId, String turnId, SpeakingDemoAssessment assessment) {
-            throw new AssertionError("demo runtime must use epoch-aware settlement");
-        }
         public boolean settleDemo(String sessionId, String turnId, long epoch, SpeakingDemoAssessment assessment) {
             if (epoch != currentState.getControllerEpoch() || !currentState.isOpen()) return false;
             settlementCalls.incrementAndGet();
             return true;
+        }
+        public void interruptIfDisconnected(String sessionId, String learnerId, long epoch) {
+            interruptCalls.incrementAndGet();
+            interruptEpochs.add(epoch);
         }
     }
 

@@ -44,10 +44,13 @@ public class SpeakingRealtimeService {
     private final SpeechSynthesisPort tts;
     private final ExecutorService workers = Executors.newFixedThreadPool(8);
     private final Map<String, Connection> connections = new ConcurrentHashMap<>();
+    private final Map<String, Connection> currentControllers = new ConcurrentHashMap<>();
+    private final Map<String, Object> controllerLocks = new ConcurrentHashMap<>();
     private volatile SpeakingDemoComposer demoComposer;
     private volatile boolean demoManagerEnabled;
 
     private static final class Connection {
+        private final String connectionId;
         private final String sessionId;
         private final String learnerId;
         private final long epoch;
@@ -58,8 +61,9 @@ public class SpeakingRealtimeService {
         private volatile boolean processing;
         private volatile boolean active = true;
 
-        private Connection(String sessionId, String learnerId, long epoch,
+        private Connection(String connectionId, String sessionId, String learnerId, long epoch,
                            Consumer<Map<String, Object>> emit) {
+            this.connectionId = connectionId;
             this.sessionId = sessionId;
             this.learnerId = learnerId;
             this.epoch = epoch;
@@ -97,15 +101,17 @@ public class SpeakingRealtimeService {
     public CompletableFuture<Void> open(String connectionId, String sessionId, String ticket,
                                         Consumer<Map<String, Object>> emit) {
         SpeakingSession session = sessions.consumeTicket(ticket, sessionId);
-        Connection connection = new Connection(sessionId, session.getLearnerId(),
+        Connection connection = new Connection(connectionId, sessionId, session.getLearnerId(),
                 session.getControllerEpoch(), emit);
-        connections.values().stream().filter(other -> other.sessionId.equals(sessionId))
-                .forEach(other -> {
-                    synchronized (other) {
-                        other.active = false;
-                    }
-                });
-        connections.put(connectionId, connection);
+        synchronized (controllerLock(sessionId)) {
+            Connection previous = currentControllers.get(sessionId);
+            if (previous != null) {
+                previous.active = false;
+                connections.remove(previous.connectionId, previous);
+            }
+            connections.put(connectionId, connection);
+            currentControllers.put(sessionId, connection);
+        }
         return stt.open(sessionId, new SpeechStreamPort.Listener() {
             @Override public void onInterim(String text) {
                 if (connection.turnId != null) send(connection, "INTERIM_TRANSCRIPT",
@@ -233,7 +239,7 @@ public class SpeakingRealtimeService {
             }
         } catch (Exception ex) {
             log.warn("Speaking assessment failed for session {} turn {}", c.sessionId, turnId, ex);
-            sessions.assessmentFailed(c.sessionId, turnId);
+            sessions.assessmentFailed(c.sessionId, turnId, c.epoch);
             send(c, "PROCESSING_ERROR", turnId, Map.of("message", "Assessment is unavailable",
                     "snapshot", sessions.socketSnapshot(c.sessionId, c.learnerId)));
         }
@@ -247,7 +253,7 @@ public class SpeakingRealtimeService {
             if (!eligibleController(authoritative, c)) return;
             SpeakingSessionResponse snapshot = sessions.socketSnapshot(c.sessionId, c.learnerId);
             SpeakingDemoAssessment assessment = demoComposer.assess(authoritative, snapshot, turn.getTranscript());
-            synchronized (c) {
+            synchronized (controllerLock(c.sessionId)) {
                 if (!eligibleController(sessions.demoState(c.sessionId, c.learnerId), c)
                         || !sessions.settleDemo(c.sessionId, turnId, c.epoch, assessment)) return;
             }
@@ -275,25 +281,12 @@ public class SpeakingRealtimeService {
             }
             if (decision.outcome() == DialogueDecision.Outcome.NORMAL
                     && decision.spokenReplyToDeliver() != null
-                    && !decision.spokenReplyToDeliver().isBlank()
-                    && eligibleController(sessions.demoState(c.sessionId, c.learnerId), c)) {
-                Instant replyStarted = Instant.now();
-                try {
-                    byte[] spoken = tts.synthesize(decision.spokenReplyToDeliver());
-                    if (spoken.length == 0) throw new IllegalStateException("Cartesia returned empty audio");
-                    sessions.saveAudio(c.sessionId, turnId, SpeakingAudioAsset.Kind.AI_REPLY,
-                            "mp3", "audio/mpeg", spoken);
-                    sessions.recordUsage(c.sessionId, turnId, SpeakingUsageSegment.Kind.AI_REPLY,
-                            replyStarted, Instant.now());
-                    send(c, "AI_AUDIO_READY", turnId, Map.of());
-                } catch (Exception ex) {
-                    log.warn("AI audio failed for session {} turn {}", c.sessionId, turnId, ex);
-                    send(c, "TTS_ERROR", turnId, Map.of("message", "AI audio is unavailable"));
-                }
+                    && !decision.spokenReplyToDeliver().isBlank()) {
+                deliverDemoReply(c, turnId, decision.spokenReplyToDeliver());
             }
         } catch (Exception ex) {
             log.warn("Speaking demo assessment failed for session {} turn {}", c.sessionId, turnId, ex);
-            synchronized (c) {
+            synchronized (controllerLock(c.sessionId)) {
                 if (!eligibleController(sessions.demoState(c.sessionId, c.learnerId), c)) return;
                 sessions.assessmentFailed(c.sessionId, turnId, c.epoch);
                 if (!eligibleController(sessions.demoState(c.sessionId, c.learnerId), c)) return;
@@ -303,28 +296,85 @@ public class SpeakingRealtimeService {
         }
     }
 
+    private void deliverDemoReply(Connection c, String turnId, String reply) {
+        if (!eligibleController(sessions.demoState(c.sessionId, c.learnerId), c)) return;
+        Instant replyStarted = Instant.now();
+        try {
+            byte[] spoken = tts.synthesize(reply);
+            if (spoken.length == 0) throw new IllegalStateException("Cartesia returned empty audio");
+            synchronized (controllerLock(c.sessionId)) {
+                if (!eligibleController(sessions.demoState(c.sessionId, c.learnerId), c)) return;
+                sessions.saveAudio(c.sessionId, turnId, SpeakingAudioAsset.Kind.AI_REPLY,
+                        "mp3", "audio/mpeg", spoken);
+                sessions.recordUsage(c.sessionId, turnId, SpeakingUsageSegment.Kind.AI_REPLY,
+                        replyStarted, Instant.now());
+                sendLocked(c, "AI_AUDIO_READY", turnId, Map.of());
+            }
+        } catch (Exception ex) {
+            log.warn("AI audio failed for session {} turn {}", c.sessionId, turnId, ex);
+            synchronized (controllerLock(c.sessionId)) {
+                if (eligibleController(sessions.demoState(c.sessionId, c.learnerId), c)) {
+                    sendLocked(c, "TTS_ERROR", turnId, Map.of("message", "AI audio is unavailable"));
+                }
+            }
+        }
+    }
+
     private boolean eligibleController(SpeakingSession session, Connection connection) {
-        return connection.active && session != null && session.isOpen() && session.getClosingAt() == null
+        return connectionIsCurrent(connection) && session != null && session.isOpen()
+                && session.getClosingAt() == null
                 && session.getControllerEpoch() == connection.epoch;
     }
 
     public void close(String connectionId) {
         Connection c = connections.get(connectionId);
-        if (c != null) {
-            boolean wasActive;
-            synchronized (c) {
-                wasActive = c.active;
-                c.active = false;
-            }
+        if (c == null) return;
+        boolean closeSpeechStream;
+        boolean scheduleCleanup;
+        synchronized (controllerLock(c.sessionId)) {
             if (!connections.remove(connectionId, c)) return;
-            if (wasActive && connections.values().stream().noneMatch(other ->
-                    other.active && other.sessionId.equals(c.sessionId))) stt.close(c.sessionId);
-            CompletableFuture.delayedExecutor(10, TimeUnit.SECONDS).execute(() -> {
-                boolean reconnected = connections.values().stream()
-                        .anyMatch(other -> other.sessionId.equals(c.sessionId));
-                if (!reconnected) sessions.interruptIfDisconnected(c.sessionId, c.learnerId, c.epoch);
-            });
+            c.active = false;
+            boolean wasCurrent = currentControllers.remove(c.sessionId, c);
+            purgeInactiveConnections(c.sessionId);
+            boolean hasActivePeer = hasActiveConnection(c.sessionId);
+            closeSpeechStream = wasCurrent && !hasActivePeer;
+            scheduleCleanup = wasCurrent;
         }
+        if (closeSpeechStream) stt.close(c.sessionId);
+        if (scheduleCleanup) {
+            CompletableFuture.delayedExecutor(10, TimeUnit.SECONDS).execute(() ->
+                    cleanupDisconnectedSession(c.sessionId, c.learnerId, c.epoch));
+        }
+    }
+
+    void cleanupDisconnectedSession(String sessionId, String learnerId, long epoch) {
+        boolean disconnected;
+        synchronized (controllerLock(sessionId)) {
+            purgeInactiveConnections(sessionId);
+            Connection current = currentControllers.get(sessionId);
+            if (current != null && !current.active) currentControllers.remove(sessionId, current);
+            disconnected = !hasActiveConnection(sessionId);
+            if (disconnected) currentControllers.remove(sessionId);
+        }
+        if (disconnected) sessions.interruptIfDisconnected(sessionId, learnerId, epoch);
+    }
+
+    private Object controllerLock(String sessionId) {
+        return controllerLocks.computeIfAbsent(sessionId, ignored -> new Object());
+    }
+
+    private boolean connectionIsCurrent(Connection connection) {
+        return connection.active && currentControllers.get(connection.sessionId) == connection;
+    }
+
+    private boolean hasActiveConnection(String sessionId) {
+        return connections.values().stream()
+                .anyMatch(connection -> connection.active && connection.sessionId.equals(sessionId));
+    }
+
+    private void purgeInactiveConnections(String sessionId) {
+        connections.entrySet().removeIf(entry -> entry.getValue().sessionId.equals(sessionId)
+                && !entry.getValue().active);
     }
 
     @EventListener
@@ -343,10 +393,17 @@ public class SpeakingRealtimeService {
     }
 
     private void send(Connection c, String type, String turnId, Map<String, Object> extra) {
-        if (!c.active) return;
+        synchronized (controllerLock(c.sessionId)) {
+            sendLocked(c, type, turnId, extra);
+        }
+    }
+
+    private void sendLocked(Connection c, String type, String turnId, Map<String, Object> extra) {
+        if (!connectionIsCurrent(c)) return;
         SpeakingSessionResponse current;
         try { current = sessions.socketSnapshot(c.sessionId, c.learnerId); }
         catch (fit.iuh.engolearn.speaking.exception.SpeakingException ex) { return; }
+        if (!connectionIsCurrent(c) || current.controllerEpoch() != c.epoch) return;
         Map<String, Object> event = new java.util.LinkedHashMap<>(extra);
         event.put("type", type);
         event.put("turnId", turnId);
