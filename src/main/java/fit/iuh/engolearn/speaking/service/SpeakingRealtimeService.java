@@ -270,7 +270,7 @@ public class SpeakingRealtimeService {
             sessions.recordUsage(c.sessionId, turnId, SpeakingUsageSegment.Kind.AI_WAIT,
                     waitStarted, min(Instant.now(), waitStarted.plusSeconds(10)));
 
-            if (!eligibleController(sessions.demoState(c.sessionId, c.learnerId), c)) return;
+            if (!eligibleSettledDelivery(sessions.demoState(c.sessionId, c.learnerId), c)) return;
 
             DialogueDecision decision = assessment.decision();
             Map<String, Object> diagnostic = new java.util.LinkedHashMap<>();
@@ -327,6 +327,11 @@ public class SpeakingRealtimeService {
     private boolean eligibleController(SpeakingSession session, Connection connection) {
         return connectionIsCurrent(connection) && session != null && session.isOpen()
                 && session.getClosingAt() == null
+                && session.getControllerEpoch() == connection.epoch;
+    }
+
+    private boolean eligibleSettledDelivery(SpeakingSession session, Connection connection) {
+        return connectionIsCurrent(connection) && session != null && session.getDeletedAt() == null
                 && session.getControllerEpoch() == connection.epoch;
     }
 
@@ -389,7 +394,15 @@ public class SpeakingRealtimeService {
         workers.execute(() -> connections.values().stream()
                 .filter(connection -> connection.active && connection.sessionId.equals(event.sessionId())
                         && connection.learnerId.equals(event.learnerId()))
-                .forEach(connection -> send(connection, "SESSION_ENDED", null, Map.of())));
+                .forEach(connection -> {
+                    try {
+                        SpeakingSessionResponse snapshot = sessions.socketSnapshot(connection.sessionId,
+                                connection.learnerId);
+                        send(connection, "SESSION_ENDED", null, Map.of("snapshot", snapshot));
+                    } catch (fit.iuh.engolearn.speaking.exception.SpeakingException ignored) {
+                        // The session may have been deleted before the terminal event was delivered.
+                    }
+                }));
     }
 
     private Connection require(String connectionId) {

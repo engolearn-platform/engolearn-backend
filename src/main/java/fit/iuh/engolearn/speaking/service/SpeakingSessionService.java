@@ -387,7 +387,8 @@ public class SpeakingSessionService {
         Optional<SpeakingTurn> found = turns.findByIdAndSessionId(turnId, sessionId);
         if (found.isEmpty()) return false;
         SpeakingTurn turn = found.get();
-        if (session.getDeletedAt() != null || !session.isOpen() || session.getClosingAt() != null
+        if (session.getDeletedAt() != null || !session.isOpen()
+                || !demoSettlementAllowedDuringClosing(session)
                 || session.getControllerEpoch() != controllerEpoch
                 || turn.getEvaluationState() != SpeakingTurn.EvaluationState.PENDING) return false;
 
@@ -427,6 +428,10 @@ public class SpeakingSessionService {
     }
 
     private void settleDemoLifecycle(SpeakingSession session, DialogueDecision decision) {
+        if (session.getClosingAt() != null) {
+            finish(session, session.getClosingReason());
+            return;
+        }
         if (decision.resultingStatus() != SpeakingSession.Status.COMPLETED
                 && decision.resultingStatus() != SpeakingSession.Status.INCOMPLETE
                 && decision.outcome() != DialogueDecision.Outcome.TERMINAL) return;
@@ -442,6 +447,14 @@ public class SpeakingSessionService {
             default -> SpeakingSession.EndReason.GOALS_REACHED;
         };
         finish(session, reason);
+    }
+
+    private boolean demoSettlementAllowedDuringClosing(SpeakingSession session) {
+        if (session.getClosingAt() == null) return true;
+        SpeakingSession.EndReason reason = session.getClosingReason();
+        return (reason == SpeakingSession.EndReason.LEARNER_ENDED
+                || reason == SpeakingSession.EndReason.TURN_LIMIT)
+                && Instant.now().isBefore(session.getClosingAt().plusSeconds(10));
     }
 
     public synchronized boolean recoverDemoTurn(String sessionId, String turnId, long controllerEpoch) {

@@ -83,6 +83,6 @@ the legacy evaluator path.
 
 - `mvnw.cmd -q -DskipTests compile`: passed after provider, WebSocket, REST, and Cloudinary code.
 - `mvnw.cmd -q '-Dtest=ArchitectureTest,SpeakingItemConfigTest,SpeakingSessionServiceTest' test`: passed. An earlier Mockito-based service test stalled because dynamic JVM attachment was denied on this host; it was replaced by interface fakes, then passed. No test was disabled.
-- `mvnw.cmd verify`: a prior attempt stalled after Docker detection failure and was stopped. A final full-suite result is still required.
+- `.\mvnw.cmd -q verify`: BUILD SUCCESS; 327 tests ran with 0 failures and 0 errors, and 14 Docker-dependent tests were skipped because no Docker environment was available. Spring context checks also logged the expected unavailable MongoDB connection to `localhost:1`; the full Maven verification still completed successfully.
 
 `SpeakingMongoIndexes` ensures the three uniqueness indexes at startup. A deployment with duplicate existing data must reconcile those records before startup can succeed.

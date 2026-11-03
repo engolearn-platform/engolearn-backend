@@ -100,7 +100,7 @@ class SpeakingDemoRuntimeTest {
         SettlementFixture closing = SettlementFixture.active();
         closing.turns.add(closing.pendingTurn("late", 1));
         closing.session.setCommittedTurnCount(1);
-        closing.session.setClosingAt(Instant.now());
+        closing.session.setClosingAt(Instant.now().minusSeconds(11));
         closing.session.setClosingReason(SpeakingSession.EndReason.LEARNER_ENDED);
         assertFalse(settle(closing.service(), "session", "late", 7, validAssessment()));
         assertEquals(SpeakingTurn.EvaluationState.PENDING, closing.turns.get(0).getEvaluationState());
@@ -112,6 +112,40 @@ class SpeakingDemoRuntimeTest {
         terminal.session.setCommittedTurnCount(1);
         assertFalse(settle(terminal.service(), "session", "terminal", 7, validAssessment()));
         assertEquals(SpeakingTurn.EvaluationState.PENDING, terminal.turns.get(0).getEvaluationState());
+    }
+
+    @Test
+    void explicitEndKeepsCommittedPendingDemoAssessmentEligibleDuringClosingWindow() throws Exception {
+        SettlementFixture fixture = SettlementFixture.active();
+        fixture.turns.add(fixture.pendingTurn("pending-end", 1));
+        fixture.session.setCommittedTurnCount(1);
+
+        Future<SpeakingSessionResponse> ending = CompletableFuture.supplyAsync(() ->
+                fixture.service().end("session", 7, "end-request"));
+        awaitClosing(fixture);
+
+        assertTrue(settle(fixture.service(), "session", "pending-end", 7, validAssessment()));
+        assertEquals(SpeakingTurn.EvaluationState.SUCCEEDED, fixture.turns.get(0).getEvaluationState());
+        assertEquals(SpeakingSession.EndReason.LEARNER_ENDED, fixture.session.getEndReason());
+        assertEquals(SpeakingSession.Status.INCOMPLETE, ending.get(1, TimeUnit.SECONDS).status());
+    }
+
+    @Test
+    void turnLimitClosingKeepsCommittedPendingDemoAssessmentEligible() {
+        SettlementFixture fixture = SettlementFixture.active();
+        fixture.session.setCommittedTurnCount(29);
+        fixture.session.setValidTurnCount(1);
+
+        SpeakingSessionService service = fixture.service();
+        service.commit("session", "learner", 7, "turn-30", "Thank you");
+        assertEquals(SpeakingTurn.EvaluationState.PENDING,
+                fixture.turns.get(0).getEvaluationState());
+        assertThrows(fit.iuh.engolearn.speaking.exception.SpeakingException.class,
+                () -> service.commit("session", "learner", 7, "new-turn", "Too late"));
+        assertTrue(settle(service, "session", "turn-30", 7,
+                validAssessment(30, 2, List.of("goal-1"))));
+        assertEquals(SpeakingSession.EndReason.TURN_LIMIT, fixture.session.getEndReason());
+        assertEquals(SpeakingSession.Status.INCOMPLETE, fixture.session.getStatus());
     }
 
     @Test
@@ -487,6 +521,28 @@ class SpeakingDemoRuntimeTest {
     }
 
     @Test
+    void thirdEvaluationFailureEmitsSettledTerminalSnapshotAndSuppressesSpeech() throws Exception {
+        AtomicInteger gatewayCalls = new AtomicInteger();
+        SpeakingDemoComposer composer = failingComposer(gatewayCalls);
+        FakeRealtimeSessionService sessions = FakeRealtimeSessionService.active();
+        sessions.currentState.setConsecutiveEvaluationFailures(2);
+        CountingTts tts = new CountingTts();
+
+        SpeakingRealtimeService realtime = realtime(sessions, (content, transcript, history, achieved) ->
+                new ConversationEvaluator.Result(true, "legacy", List.of(), List.of(), List.of(), null, List.of()),
+                tts, composer, true);
+        runTurn(realtime, sessions);
+
+        Map<String, Object> error = sessions.events.stream()
+                .filter(event -> "PROCESSING_ERROR".equals(event.get("type"))).findFirst().orElseThrow();
+        assertEquals(DialogueDecision.Outcome.TERMINAL,
+                ((SpeakingDemoDecisionEvent) error.get("demoDecision")).outcome());
+        assertEquals(SpeakingSession.Status.INCOMPLETE,
+                ((SpeakingSessionResponse) error.get("snapshot")).status());
+        assertEquals(0, tts.calls.get());
+    }
+
+    @Test
     void terminalManagerDecisionCommitsDiagnosticsButSuppressesSpeech() throws Exception {
         AtomicInteger gatewayCalls = new AtomicInteger();
         SpeakingDemoComposer composer = composer(gatewayCalls);
@@ -504,7 +560,33 @@ class SpeakingDemoRuntimeTest {
         assertEquals(1, gatewayCalls.get());
         assertEquals(DialogueDecision.Outcome.TERMINAL,
                 ((SpeakingDemoDecisionEvent) result.get("demoDecision")).outcome());
+        assertEquals(SpeakingSession.Status.COMPLETED,
+                ((SpeakingSessionResponse) result.get("snapshot")).status());
         assertEquals(0, tts.calls.get());
+    }
+
+    @Test
+    void sessionEndedEventCarriesTerminalSnapshotForManagerOffAndOnPaths() throws Exception {
+        for (boolean managerEnabled : List.of(false, true)) {
+            FakeRealtimeSessionService sessions = FakeRealtimeSessionService.active();
+            sessions.currentState.setStatus(SpeakingSession.Status.INCOMPLETE);
+            sessions.currentState.setEndReason(SpeakingSession.EndReason.LEARNER_ENDED);
+            SpeakingRealtimeService realtime = realtime(sessions,
+                    (content, transcript, history, achieved) -> null,
+                    new CountingTts(), composer(new AtomicInteger()), managerEnabled);
+
+            realtime.open("connection", "session", "ticket", sessions.events::add).join();
+            realtime.onSessionEnded(new SpeakingSessionService.SessionEndedEvent("session", "learner"));
+
+            for (int i = 0; i < 100 && sessions.events.stream().noneMatch(event ->
+                    "SESSION_ENDED".equals(event.get("type"))); i++) {
+                Thread.sleep(10);
+            }
+            Map<String, Object> ended = sessions.events.stream()
+                    .filter(event -> "SESSION_ENDED".equals(event.get("type"))).findFirst().orElseThrow();
+            assertEquals(SpeakingSession.Status.INCOMPLETE,
+                    ((SpeakingSessionResponse) ended.get("snapshot")).status());
+        }
     }
 
     private static boolean effectiveFlag(boolean demo, boolean manager, String profile) throws Exception {
@@ -560,6 +642,13 @@ class SpeakingDemoRuntimeTest {
             }
         }
         throw new AssertionError("demo realtime constructor is missing");
+    }
+
+    private static void awaitClosing(SettlementFixture fixture) throws InterruptedException {
+        for (int i = 0; i < 100 && fixture.session.getClosingAt() == null; i++) {
+            Thread.sleep(10);
+        }
+        assertNotNull(fixture.session.getClosingAt());
     }
 
     private static void runTurn(SpeakingRealtimeService realtime, FakeRealtimeSessionService sessions) {
@@ -652,14 +741,19 @@ class SpeakingDemoRuntimeTest {
     }
 
     private static SpeakingDemoAssessment validAssessment() {
+        return validAssessment(1, 1, List.of("goal-1"));
+    }
+
+    private static SpeakingDemoAssessment validAssessment(int finalizedTurns, int validTurns,
+            List<String> achievedGoals) {
         ValidatedTurnProposal proposal = ValidatedTurnProposal.valid(
                 SpeakingAiDraftResponseV1.UserIntent.STATEMENT, List.of("goal-1"),
                 new SpeakingAiDraftResponseV1.Dialogue(DialogueAct.REACT_AND_ASK, "Keep going.",
                         SpeakingAiDraftResponseV1.ContinuationType.QUESTION, "Why?", null));
         return new SpeakingDemoAssessment(proposal, new DialogueDecision(DialogueDecision.Outcome.NORMAL,
                 DialogueDecision.ReasonCode.NORMAL, DialogueAct.REACT_AND_ASK, "Keep going.", null,
-                DialogueDecision.SystemTrigger.NONE, SpeakingSession.Status.ACTIVE, 1, 1, 0,
-                List.of("goal-1"), false, false, false, false));
+                DialogueDecision.SystemTrigger.NONE, SpeakingSession.Status.ACTIVE, finalizedTurns, validTurns, 0,
+                achievedGoals, false, false, false, false));
     }
 
     private static SpeakingDemoAssessment invalidAssessment() {
@@ -726,7 +820,11 @@ class SpeakingDemoRuntimeTest {
                         .filter(turn -> turn.getId().equals(args[0]) && turn.getSessionId().equals(args[1])).findFirst();
                 if (name.equals("findById")) return turns.stream().filter(turn -> turn.getId().equals(args[0])).findFirst();
                 if (name.equals("findBySessionIdOrderBySequenceAsc")) return turns;
-                if (name.equals("save")) return args[0];
+                if (name.equals("save")) {
+                    SpeakingTurn saved = (SpeakingTurn) args[0];
+                    if (turns.stream().noneMatch(existing -> existing.getId().equals(saved.getId()))) turns.add(saved);
+                    return saved;
+                }
                 return Optional.empty();
             });
             SpeakingAssessmentRepository assessmentRepository = proxy(SpeakingAssessmentRepository.class,
@@ -803,7 +901,13 @@ class SpeakingDemoRuntimeTest {
                     .count();
         }
         public SpeakingSession consumeTicket(String ticket, String sessionId) { return currentState; }
-        public SpeakingSessionResponse socketSnapshot(String id, String learnerId) { return snapshot; }
+        public SpeakingSessionResponse socketSnapshot(String id, String learnerId) {
+            return new SpeakingSessionResponse("session", currentState.getContent(), currentState.getStatus(),
+                    currentState.getEndReason(), currentState.getStartedAt(), currentState.getExpiresAt(),
+                    currentState.getEndedAt(), currentState.getValidTurnCount(), currentState.getCommittedTurnCount(),
+                    currentState.getAchievedGoalIds(), List.of(), false, false, currentState.getControllerEpoch(),
+                    1L, currentState.isOpen(), null, List.of());
+        }
         public SpeakingSession requireSocketController(String id, String learnerId, long epoch) { return currentState; }
         public SpeakingTurn commit(String sessionId, String learnerId, long epoch, String turnId, String transcript) {
             if (persistCommits) {
@@ -878,6 +982,16 @@ class SpeakingDemoRuntimeTest {
             if (persistCommits) {
                 persistedTurns.stream().filter(candidate -> turnId.equals(candidate.getId())).findFirst()
                         .ifPresent(candidate -> candidate.setEvaluationState(SpeakingTurn.EvaluationState.SUCCEEDED));
+            }
+            if (assessment.decision().resultingStatus() == SpeakingSession.Status.COMPLETED
+                    || assessment.decision().resultingStatus() == SpeakingSession.Status.INCOMPLETE) {
+                currentState.setStatus(assessment.decision().resultingStatus());
+                currentState.setEndReason(assessment.decision().reasonCode()
+                        == DialogueDecision.ReasonCode.EVALUATION_ERRORS_3
+                        ? SpeakingSession.EndReason.EVALUATION_FAILURES
+                        : SpeakingSession.EndReason.GOALS_REACHED);
+                currentState.setEndedAt(Instant.now());
+                currentState.setOpenLearnerId(null);
             }
             return true;
         }
