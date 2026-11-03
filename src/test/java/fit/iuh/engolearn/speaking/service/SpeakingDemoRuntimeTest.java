@@ -174,6 +174,35 @@ class SpeakingDemoRuntimeTest {
     }
 
     @Test
+    void replacementWaitsForBlockedCommitAndRecoversItsPendingTurn() throws Exception {
+        FakeRealtimeSessionService sessions = FakeRealtimeSessionService.active();
+        sessions.persistCommitsAndHoldCommit();
+        SpeakingRealtimeService realtime = realtime(sessions, (content, transcript, history, achieved) ->
+                new ConversationEvaluator.Result(true, "legacy", List.of(), List.of(), List.of(), null, List.of()),
+                new CountingTts(), composer(new AtomicInteger()), true);
+
+        realtime.open("old", "session", "ticket-old", sessions.events::add).join();
+        realtime.start("old", "turn-1", 7);
+        realtime.end("old", "turn-1", 7);
+        assertTrue(sessions.commitEntered.await(1, TimeUnit.SECONDS));
+
+        Future<?> replacement = CompletableFuture.runAsync(() ->
+                realtime.open("replacement", "session", "ticket-new", sessions.events::add).join());
+        assertFalse(sessions.replacementReady(replacement, 100, TimeUnit.MILLISECONDS));
+
+        sessions.releaseCommit.countDown();
+        replacement.get(1, TimeUnit.SECONDS);
+
+        assertEquals(1, sessions.recoveryCalls.get());
+        assertEquals(0, sessions.pendingTurnCount());
+
+        realtime.start("replacement", "turn-2", 7);
+        realtime.end("replacement", "turn-2", 7);
+        assertTrue(awaitEvent(sessions, "TURN_RESULT"));
+        assertEquals(0, sessions.pendingTurnCount());
+    }
+
+    @Test
     void sessionEndedDeliveryDoesNotWaitOnControllerLockWhileSettlementHoldsSessionLock() throws Exception {
         FakeRealtimeSessionService sessions = FakeRealtimeSessionService.active();
         sessions.holdSettlement();
@@ -740,21 +769,64 @@ class SpeakingDemoRuntimeTest {
         private final List<Long> interruptEpochs = new CopyOnWriteArrayList<>();
         private final CountDownLatch settlementEntered = new CountDownLatch(1);
         private final CountDownLatch releaseSettlement = new CountDownLatch(1);
+        private final CountDownLatch commitEntered = new CountDownLatch(1);
+        private final CountDownLatch releaseCommit = new CountDownLatch(1);
+        private final List<SpeakingTurn> persistedTurns = new CopyOnWriteArrayList<>();
         private volatile boolean holdSettlement;
+        private volatile boolean persistCommits;
+        private volatile boolean holdCommit;
         private boolean recovered;
         private FakeRealtimeSessionService() { super(null, null, null, null, null, null, null, null, null); }
         static FakeRealtimeSessionService active() { return new FakeRealtimeSessionService(); }
         void holdSettlement() { holdSettlement = true; }
+        void persistCommitsAndHoldCommit() {
+            persistCommits = true;
+            holdCommit = true;
+        }
         void resetEvents() { events.clear(); }
         void resetTurn() { currentState.setControllerEpoch(7); }
         boolean awaitSettlementIdle() throws InterruptedException {
             Thread.sleep(100);
             return true;
         }
+        boolean replacementReady(Future<?> replacement, long timeout, TimeUnit unit) throws Exception {
+            try {
+                replacement.get(timeout, unit);
+                return true;
+            } catch (java.util.concurrent.TimeoutException expected) {
+                return false;
+            }
+        }
+        int pendingTurnCount() {
+            return (int) persistedTurns.stream()
+                    .filter(candidate -> candidate.getEvaluationState() == SpeakingTurn.EvaluationState.PENDING)
+                    .count();
+        }
         public SpeakingSession consumeTicket(String ticket, String sessionId) { return currentState; }
         public SpeakingSessionResponse socketSnapshot(String id, String learnerId) { return snapshot; }
         public SpeakingSession requireSocketController(String id, String learnerId, long epoch) { return currentState; }
         public SpeakingTurn commit(String sessionId, String learnerId, long epoch, String turnId, String transcript) {
+            if (persistCommits) {
+                if (holdCommit) {
+                    commitEntered.countDown();
+                    try {
+                        assertTrue(releaseCommit.await(1, TimeUnit.SECONDS));
+                    } catch (InterruptedException exception) {
+                        Thread.currentThread().interrupt();
+                        throw new AssertionError(exception);
+                    }
+                    holdCommit = false;
+                }
+                if (persistedTurns.stream().anyMatch(candidate ->
+                        candidate.getEvaluationState() == SpeakingTurn.EvaluationState.PENDING)) {
+                    throw new IllegalStateException("TURN_BUSY");
+                }
+                SpeakingTurn committed = SpeakingTurn.builder().id(turnId).sessionId(sessionId)
+                        .sequence(persistedTurns.size() + 1).transcript(transcript).committedAt(Instant.now())
+                        .evaluationState(SpeakingTurn.EvaluationState.PENDING).build();
+                persistedTurns.add(committed);
+                return committed;
+            }
             if (recovered && "turn-2".equals(turnId)) {
                 recovered = false;
                 return SpeakingTurn.builder().id(turnId).sessionId(sessionId).sequence(2).transcript(transcript)
@@ -774,6 +846,15 @@ class SpeakingDemoRuntimeTest {
                 String contentType, byte[] bytes) {}
         public SpeakingSession demoState(String sessionId, String learnerId) { return currentState; }
         public synchronized boolean recoverDemoTurn(String sessionId, String turnId, long epoch) {
+            if (persistCommits) {
+                SpeakingTurn persisted = persistedTurns.stream()
+                        .filter(candidate -> turnId.equals(candidate.getId())).findFirst().orElse(null);
+                if (epoch != currentState.getControllerEpoch() || !currentState.isOpen() || persisted == null
+                        || persisted.getEvaluationState() != SpeakingTurn.EvaluationState.PENDING) return false;
+                recoveryCalls.incrementAndGet();
+                persisted.setEvaluationState(SpeakingTurn.EvaluationState.FAILED);
+                return true;
+            }
             if (epoch != currentState.getControllerEpoch() || !currentState.isOpen()
                     || !turnId.equals(turn.getId())
                     || turn.getEvaluationState() != SpeakingTurn.EvaluationState.PENDING) return false;
@@ -794,6 +875,10 @@ class SpeakingDemoRuntimeTest {
                 }
             }
             settlementCalls.incrementAndGet();
+            if (persistCommits) {
+                persistedTurns.stream().filter(candidate -> turnId.equals(candidate.getId())).findFirst()
+                        .ifPresent(candidate -> candidate.setEvaluationState(SpeakingTurn.EvaluationState.SUCCEEDED));
+            }
             return true;
         }
         public void interruptIfDisconnected(String sessionId, String learnerId, long epoch) {

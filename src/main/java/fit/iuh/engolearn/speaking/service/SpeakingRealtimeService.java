@@ -171,7 +171,7 @@ public class SpeakingRealtimeService {
                     send(c, "TURN_EMPTY", turnId, Map.of());
                     return;
                 }
-                SpeakingTurn turn = sessions.commit(c.sessionId, c.learnerId, epoch, turnId, transcript);
+                SpeakingTurn turn = commitCurrentTurn(c, epoch, turnId, transcript);
                 sessions.recordUsage(c.sessionId, turnId, SpeakingUsageSegment.Kind.LEARNER_SPEECH,
                         c.turnStarted, ended);
                 send(c, "TURN_ACCEPTED", turnId, Map.of("text", transcript));
@@ -184,6 +184,16 @@ public class SpeakingRealtimeService {
                 c.pcm.reset();
             }
         }, workers);
+    }
+
+    private SpeakingTurn commitCurrentTurn(Connection connection, long epoch, String turnId, String transcript) {
+        synchronized (controllerLock(connection.sessionId)) {
+            if (!connectionIsCurrent(connection)) {
+                throw new IllegalStateException("Socket no longer controls this session");
+            }
+            sessions.requireSocketController(connection.sessionId, connection.learnerId, epoch);
+            return sessions.commit(connection.sessionId, connection.learnerId, epoch, turnId, transcript);
+        }
     }
 
     public void cancel(String connectionId, String turnId, long epoch) {
