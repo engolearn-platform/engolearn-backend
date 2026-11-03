@@ -444,6 +444,24 @@ public class SpeakingSessionService {
         finish(session, reason);
     }
 
+    public synchronized boolean recoverDemoTurn(String sessionId, String turnId, long controllerEpoch) {
+        SpeakingSession session = sessions.findById(sessionId).orElseThrow();
+        expireIfNeeded(session);
+        Optional<SpeakingTurn> found = turns.findByIdAndSessionId(turnId, sessionId);
+        if (found.isEmpty()) return false;
+        SpeakingTurn turn = found.get();
+        if (session.getDeletedAt() != null || !session.isOpen()
+                || session.getControllerEpoch() != controllerEpoch
+                || turn.getEvaluationState() != SpeakingTurn.EvaluationState.PENDING) return false;
+        turn.setValid(false);
+        turn.setAiReply(null);
+        turn.setEvaluationState(SpeakingTurn.EvaluationState.FAILED);
+        turns.save(turn);
+        sessions.save(session);
+        if (session.getClosingAt() != null) finish(session, session.getClosingReason());
+        return true;
+    }
+
     public synchronized void assessmentFailed(String sessionId, String turnId, long controllerEpoch) {
         SpeakingSession session = sessions.findById(sessionId).orElseThrow();
         SpeakingTurn turn = turns.findByIdAndSessionId(turnId, sessionId).orElseThrow();

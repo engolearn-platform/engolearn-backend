@@ -11,6 +11,7 @@ import fit.iuh.engolearn.speaking.utils.port.ConversationEvaluator;
 import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Proxy;
+import java.lang.reflect.Method;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.*;
@@ -159,6 +160,22 @@ class SpeakingSessionServiceTest {
         assertEquals(SpeakingSession.Status.ACTIVE, fixture.savedSession.getStatus());
     }
 
+    @Test void demoRecoveryReleasesPendingTurnWithoutChangingFailureSemantics() {
+        Fixture fixture = activeFixture("REQUIRED_GOALS_V2", null, 3);
+        fixture.savedSession.setConsecutiveEvaluationFailures(2);
+        fixture.turns.add(pendingTurn("replaced", 1));
+        fixture.savedSession.setCommittedTurnCount(1);
+        SpeakingSessionService service = fixture.service();
+
+        assertTrue(invokeDemoRecovery(service, "session", "replaced", 1));
+
+        assertEquals(SpeakingTurn.EvaluationState.FAILED, fixture.turns.get(0).getEvaluationState());
+        assertEquals(2, fixture.savedSession.getConsecutiveEvaluationFailures());
+        assertEquals(SpeakingSession.Status.ACTIVE, fixture.savedSession.getStatus());
+        SpeakingTurn next = service.commit("session", "learner", 1, "next", "Hello again");
+        assertEquals(2, next.getSequence());
+    }
+
     @Test void pendingFinalizedTurnWithinClosingWindowCanCompleteWithoutReplacingFirstReason() {
         Fixture fixture = activeFixture("REQUIRED_GOALS_V2", null, 3);
         fixture.savedSession.setCommittedTurnCount(29);
@@ -203,6 +220,17 @@ class SpeakingSessionServiceTest {
         return new ConversationEvaluator.Result(true, null,
                 Arrays.stream(goalIds).map(id -> new SpeakingAssessmentRecord.GoalEvidence(id, "Hello")).toList(),
                 List.of(), List.of(), null, List.of());
+    }
+
+    private static boolean invokeDemoRecovery(SpeakingSessionService service, String sessionId, String turnId,
+            long controllerEpoch) {
+        try {
+            Method method = SpeakingSessionService.class.getMethod("recoverDemoTurn",
+                    String.class, String.class, long.class);
+            return (boolean) method.invoke(service, sessionId, turnId, controllerEpoch);
+        } catch (ReflectiveOperationException exception) {
+            throw new AssertionError("demo recovery API is missing", exception);
+        }
     }
 
     private static final class Fixture {

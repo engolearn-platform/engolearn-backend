@@ -144,6 +144,58 @@ class SpeakingDemoRuntimeTest {
     }
 
     @Test
+    void replacementDuringDemoCompositionRecoversPendingTurnForSubsequentTurn() throws Exception {
+        AtomicInteger gatewayCalls = new AtomicInteger();
+        CountDownLatch compositionStarted = new CountDownLatch(1);
+        CountDownLatch allowCompletion = new CountDownLatch(1);
+        SpeakingDemoComposer composer = blockingComposer(gatewayCalls, compositionStarted, allowCompletion);
+        FakeRealtimeSessionService sessions = FakeRealtimeSessionService.active();
+        CountingTts tts = new CountingTts();
+        SpeakingRealtimeService realtime = realtime(sessions, (content, transcript, history, achieved) ->
+                new ConversationEvaluator.Result(true, "legacy", List.of(), List.of(), List.of(), null, List.of()),
+                tts, composer, true);
+
+        realtime.open("old", "session", "ticket-old", sessions.events::add).join();
+        realtime.start("old", "turn-1", 7);
+        realtime.end("old", "turn-1", 7);
+        assertTrue(compositionStarted.await(1, TimeUnit.SECONDS));
+
+        realtime.open("replacement", "session", "ticket-new", sessions.events::add).join();
+        assertEquals(1, sessions.recoveryCalls.get());
+        assertEquals(SpeakingTurn.EvaluationState.FAILED, sessions.turn.getEvaluationState());
+
+        allowCompletion.countDown();
+        assertTrue(sessions.awaitSettlementIdle());
+        realtime.start("replacement", "turn-2", 7);
+        realtime.end("replacement", "turn-2", 7);
+        assertTrue(awaitEvent(sessions, "TURN_RESULT"));
+        assertEquals(1, sessions.settlementCalls.get());
+        assertEquals(1, tts.calls.get());
+    }
+
+    @Test
+    void sessionEndedDeliveryDoesNotWaitOnControllerLockWhileSettlementHoldsSessionLock() throws Exception {
+        FakeRealtimeSessionService sessions = FakeRealtimeSessionService.active();
+        sessions.holdSettlement();
+        SpeakingRealtimeService realtime = realtime(sessions, (content, transcript, history, achieved) ->
+                new ConversationEvaluator.Result(true, "legacy", List.of(), List.of(), List.of(), null, List.of()),
+                new CountingTts(), composer(new AtomicInteger()), true);
+        realtime.open("connection", "session", "ticket", sessions.events::add).join();
+        realtime.start("connection", "turn-1", 7);
+        realtime.end("connection", "turn-1", 7);
+        assertTrue(sessions.settlementEntered.await(1, TimeUnit.SECONDS));
+
+        Future<?> delivery = CompletableFuture.runAsync(() ->
+                realtime.onSessionEnded(new SpeakingSessionService.SessionEndedEvent("session", "learner")));
+        try {
+            delivery.get(200, TimeUnit.MILLISECONDS);
+        } finally {
+            sessions.releaseSettlement.countDown();
+        }
+        delivery.get(1, TimeUnit.SECONDS);
+    }
+
+    @Test
     void closedConnectionDuringDemoCompositionDoesNotSettleOrFailTheSession() throws Exception {
         AtomicInteger gatewayCalls = new AtomicInteger();
         CountDownLatch compositionStarted = new CountDownLatch(1);
@@ -494,6 +546,17 @@ class SpeakingDemoRuntimeTest {
         }
     }
 
+    private static boolean awaitEvent(FakeRealtimeSessionService sessions, String type) {
+        for (int i = 0; i < 100; i++) {
+            if (sessions.events.stream().anyMatch(event -> type.equals(event.get("type")))) return true;
+            try { Thread.sleep(10); } catch (InterruptedException exception) {
+                Thread.currentThread().interrupt();
+                fail(exception);
+            }
+        }
+        return false;
+    }
+
     private static SpeakingDemoComposer composer(AtomicInteger gatewayCalls) {
         SpeakingAiGateway gateway = request -> {
             gatewayCalls.incrementAndGet();
@@ -670,12 +733,18 @@ class SpeakingDemoRuntimeTest {
                 false, false, 7, 1L, true, null, List.of());
         private final List<Map<String, Object>> events = new CopyOnWriteArrayList<>();
         private final AtomicInteger settlementCalls = new AtomicInteger();
+        private final AtomicInteger recoveryCalls = new AtomicInteger();
         private final AtomicInteger failureCalls = new AtomicInteger();
         private final List<Long> failureEpochs = new CopyOnWriteArrayList<>();
         private final AtomicInteger interruptCalls = new AtomicInteger();
         private final List<Long> interruptEpochs = new CopyOnWriteArrayList<>();
+        private final CountDownLatch settlementEntered = new CountDownLatch(1);
+        private final CountDownLatch releaseSettlement = new CountDownLatch(1);
+        private volatile boolean holdSettlement;
+        private boolean recovered;
         private FakeRealtimeSessionService() { super(null, null, null, null, null, null, null, null, null); }
         static FakeRealtimeSessionService active() { return new FakeRealtimeSessionService(); }
+        void holdSettlement() { holdSettlement = true; }
         void resetEvents() { events.clear(); }
         void resetTurn() { currentState.setControllerEpoch(7); }
         boolean awaitSettlementIdle() throws InterruptedException {
@@ -685,7 +754,14 @@ class SpeakingDemoRuntimeTest {
         public SpeakingSession consumeTicket(String ticket, String sessionId) { return currentState; }
         public SpeakingSessionResponse socketSnapshot(String id, String learnerId) { return snapshot; }
         public SpeakingSession requireSocketController(String id, String learnerId, long epoch) { return currentState; }
-        public SpeakingTurn commit(String sessionId, String learnerId, long epoch, String turnId, String transcript) { return turn; }
+        public SpeakingTurn commit(String sessionId, String learnerId, long epoch, String turnId, String transcript) {
+            if (recovered && "turn-2".equals(turnId)) {
+                recovered = false;
+                return SpeakingTurn.builder().id(turnId).sessionId(sessionId).sequence(2).transcript(transcript)
+                        .committedAt(Instant.now()).evaluationState(SpeakingTurn.EvaluationState.PENDING).build();
+            }
+            return turn;
+        }
         public void recordUsage(String sessionId, String turnId, SpeakingUsageSegment.Kind kind, Instant started, Instant ended) {}
         public void assessed(String sessionId, String turnId, ConversationEvaluator.Result result) {}
         public void assessmentFailed(String sessionId, String turnId, long epoch) {
@@ -697,8 +773,26 @@ class SpeakingDemoRuntimeTest {
         public void saveAudio(String sessionId, String turnId, SpeakingAudioAsset.Kind kind, String format,
                 String contentType, byte[] bytes) {}
         public SpeakingSession demoState(String sessionId, String learnerId) { return currentState; }
-        public boolean settleDemo(String sessionId, String turnId, long epoch, SpeakingDemoAssessment assessment) {
+        public synchronized boolean recoverDemoTurn(String sessionId, String turnId, long epoch) {
+            if (epoch != currentState.getControllerEpoch() || !currentState.isOpen()
+                    || !turnId.equals(turn.getId())
+                    || turn.getEvaluationState() != SpeakingTurn.EvaluationState.PENDING) return false;
+            recoveryCalls.incrementAndGet();
+            recovered = true;
+            turn.setEvaluationState(SpeakingTurn.EvaluationState.FAILED);
+            return true;
+        }
+        public synchronized boolean settleDemo(String sessionId, String turnId, long epoch, SpeakingDemoAssessment assessment) {
             if (epoch != currentState.getControllerEpoch() || !currentState.isOpen()) return false;
+            if (holdSettlement) {
+                settlementEntered.countDown();
+                try {
+                    assertTrue(releaseSettlement.await(1, TimeUnit.SECONDS));
+                } catch (InterruptedException exception) {
+                    Thread.currentThread().interrupt();
+                    throw new AssertionError(exception);
+                }
+            }
             settlementCalls.incrementAndGet();
             return true;
         }
