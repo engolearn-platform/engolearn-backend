@@ -456,9 +456,19 @@ public class SpeakingSessionService {
     }
 
     public synchronized void assessmentFailed(String sessionId, String turnId) {
+        assessmentFailed(sessionId, turnId, null);
+    }
+
+    public synchronized void assessmentFailed(String sessionId, String turnId, long controllerEpoch) {
+        assessmentFailed(sessionId, turnId, Long.valueOf(controllerEpoch));
+    }
+
+    private void assessmentFailed(String sessionId, String turnId, Long expectedControllerEpoch) {
         SpeakingSession session = sessions.findById(sessionId).orElseThrow();
         SpeakingTurn turn = turns.findByIdAndSessionId(turnId, sessionId).orElseThrow();
         if (!session.isOpen() || session.getDeletedAt() != null
+                || (expectedControllerEpoch != null
+                && session.getControllerEpoch() != expectedControllerEpoch)
                 || turn.getEvaluationState() != SpeakingTurn.EvaluationState.PENDING) return;
         if (session.getClosingAt() != null
                 && !Instant.now().isBefore(session.getClosingAt().plusSeconds(10))) return;

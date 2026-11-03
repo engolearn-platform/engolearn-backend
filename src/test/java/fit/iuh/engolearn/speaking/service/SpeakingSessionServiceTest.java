@@ -147,6 +147,18 @@ class SpeakingSessionServiceTest {
         assertEquals(3, service.get("session").turns().size());
     }
 
+    @Test void staleControllerEpochCannotRecordDemoAssessmentFailure() {
+        Fixture fixture = activeFixture("REQUIRED_GOALS_V2", null, 3);
+        fixture.turns.add(pendingTurn("stale-failure", 1));
+        fixture.savedSession.setCommittedTurnCount(1);
+
+        fixture.service().assessmentFailed("session", "stale-failure", 0);
+
+        assertEquals(SpeakingTurn.EvaluationState.PENDING, fixture.turns.get(0).getEvaluationState());
+        assertEquals(0, fixture.savedSession.getConsecutiveEvaluationFailures());
+        assertEquals(SpeakingSession.Status.ACTIVE, fixture.savedSession.getStatus());
+    }
+
     @Test void pendingFinalizedTurnWithinClosingWindowCanCompleteWithoutReplacingFirstReason() {
         Fixture fixture = activeFixture("REQUIRED_GOALS_V2", null, 3);
         fixture.savedSession.setCommittedTurnCount(29);

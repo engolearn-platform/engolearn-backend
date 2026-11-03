@@ -100,7 +100,11 @@ public class SpeakingRealtimeService {
         Connection connection = new Connection(sessionId, session.getLearnerId(),
                 session.getControllerEpoch(), emit);
         connections.values().stream().filter(other -> other.sessionId.equals(sessionId))
-                .forEach(other -> other.active = false);
+                .forEach(other -> {
+                    synchronized (other) {
+                        other.active = false;
+                    }
+                });
         connections.put(connectionId, connection);
         return stt.open(sessionId, new SpeechStreamPort.Listener() {
             @Override public void onInterim(String text) {
@@ -243,8 +247,10 @@ public class SpeakingRealtimeService {
             if (!eligibleController(authoritative, c)) return;
             SpeakingSessionResponse snapshot = sessions.socketSnapshot(c.sessionId, c.learnerId);
             SpeakingDemoAssessment assessment = demoComposer.assess(authoritative, snapshot, turn.getTranscript());
-            if (!eligibleController(sessions.demoState(c.sessionId, c.learnerId), c)
-                    || !sessions.settleDemo(c.sessionId, turnId, c.epoch, assessment)) return;
+            synchronized (c) {
+                if (!eligibleController(sessions.demoState(c.sessionId, c.learnerId), c)
+                        || !sessions.settleDemo(c.sessionId, turnId, c.epoch, assessment)) return;
+            }
             sessions.recordUsage(c.sessionId, turnId, SpeakingUsageSegment.Kind.AI_WAIT,
                     waitStarted, min(Instant.now(), waitStarted.plusSeconds(10)));
 
@@ -287,7 +293,11 @@ public class SpeakingRealtimeService {
             }
         } catch (Exception ex) {
             log.warn("Speaking demo assessment failed for session {} turn {}", c.sessionId, turnId, ex);
-            sessions.assessmentFailed(c.sessionId, turnId);
+            synchronized (c) {
+                if (!eligibleController(sessions.demoState(c.sessionId, c.learnerId), c)) return;
+                sessions.assessmentFailed(c.sessionId, turnId, c.epoch);
+                if (!eligibleController(sessions.demoState(c.sessionId, c.learnerId), c)) return;
+            }
             send(c, "PROCESSING_ERROR", turnId, Map.of("message", "Assessment is unavailable",
                     "snapshot", sessions.socketSnapshot(c.sessionId, c.learnerId)));
         }
@@ -299,9 +309,15 @@ public class SpeakingRealtimeService {
     }
 
     public void close(String connectionId) {
-        Connection c = connections.remove(connectionId);
+        Connection c = connections.get(connectionId);
         if (c != null) {
-            if (c.active && connections.values().stream().noneMatch(other ->
+            boolean wasActive;
+            synchronized (c) {
+                wasActive = c.active;
+                c.active = false;
+            }
+            if (!connections.remove(connectionId, c)) return;
+            if (wasActive && connections.values().stream().noneMatch(other ->
                     other.active && other.sessionId.equals(c.sessionId))) stt.close(c.sessionId);
             CompletableFuture.delayedExecutor(10, TimeUnit.SECONDS).execute(() -> {
                 boolean reconnected = connections.values().stream()

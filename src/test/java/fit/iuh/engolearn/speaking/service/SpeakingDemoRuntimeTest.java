@@ -20,6 +20,7 @@ import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiFunction;
@@ -43,8 +44,8 @@ class SpeakingDemoRuntimeTest {
         fixture.turns.add(fixture.pendingTurn("turn-1", 1));
         fixture.session.setCommittedTurnCount(1);
 
-        boolean first = settle(fixture.service(), "session", "turn-1", validAssessment());
-        boolean repeated = settle(fixture.service(), "session", "turn-1", validAssessment());
+        boolean first = settle(fixture.service(), "session", "turn-1", 7, validAssessment());
+        boolean repeated = settle(fixture.service(), "session", "turn-1", 7, validAssessment());
 
         assertTrue(first);
         assertFalse(repeated);
@@ -60,7 +61,7 @@ class SpeakingDemoRuntimeTest {
         fixture.turns.add(fixture.pendingTurn("turn-quiet", 1));
         fixture.session.setCommittedTurnCount(1);
 
-        assertTrue(settle(fixture.service(), "session", "turn-quiet", validNoReplyAssessment()));
+        assertTrue(settle(fixture.service(), "session", "turn-quiet", 7, validNoReplyAssessment()));
         assertEquals(SpeakingTurn.EvaluationState.SUCCEEDED, fixture.turns.get(0).getEvaluationState());
         assertNull(fixture.turns.get(0).getAiReply());
         assertEquals(1, fixture.assessments.size());
@@ -72,7 +73,7 @@ class SpeakingDemoRuntimeTest {
         SettlementFixture fixture = SettlementFixture.active();
         fixture.turns.add(fixture.pendingTurn("invalid", 1));
         fixture.session.setCommittedTurnCount(1);
-        assertTrue(settle(fixture.service(), "session", "invalid", invalidAssessment()));
+        assertTrue(settle(fixture.service(), "session", "invalid", 7, invalidAssessment()));
         assertEquals(SpeakingTurn.EvaluationState.INVALID, fixture.turns.get(0).getEvaluationState());
         assertEquals(0, fixture.session.getValidTurnCount());
 
@@ -80,7 +81,7 @@ class SpeakingDemoRuntimeTest {
             String id = "failed-" + i;
             fixture.turns.add(fixture.pendingTurn(id, i + 1));
             fixture.session.setCommittedTurnCount(i + 1);
-            assertTrue(settle(fixture.service(), "session", id, failureAssessment(i)));
+            assertTrue(settle(fixture.service(), "session", id, 7, failureAssessment(i)));
         }
 
         assertEquals(3, fixture.session.getConsecutiveEvaluationFailures());
@@ -96,7 +97,7 @@ class SpeakingDemoRuntimeTest {
         closing.session.setCommittedTurnCount(1);
         closing.session.setClosingAt(Instant.now());
         closing.session.setClosingReason(SpeakingSession.EndReason.LEARNER_ENDED);
-        assertFalse(settle(closing.service(), "session", "late", validAssessment()));
+        assertFalse(settle(closing.service(), "session", "late", 7, validAssessment()));
         assertEquals(SpeakingTurn.EvaluationState.PENDING, closing.turns.get(0).getEvaluationState());
         assertEquals(0, closing.session.getValidTurnCount());
 
@@ -104,7 +105,7 @@ class SpeakingDemoRuntimeTest {
         terminal.session.setStatus(SpeakingSession.Status.INCOMPLETE);
         terminal.turns.add(terminal.pendingTurn("terminal", 1));
         terminal.session.setCommittedTurnCount(1);
-        assertFalse(settle(terminal.service(), "session", "terminal", validAssessment()));
+        assertFalse(settle(terminal.service(), "session", "terminal", 7, validAssessment()));
         assertEquals(SpeakingTurn.EvaluationState.PENDING, terminal.turns.get(0).getEvaluationState());
     }
 
@@ -125,6 +126,7 @@ class SpeakingDemoRuntimeTest {
         realtime.end("connection", "turn-1", 7);
         assertTrue(compositionStarted.await(1, TimeUnit.SECONDS));
 
+        sessions.currentState.setControllerEpoch(8);
         realtime.open("replacement", "session", "ticket", sessions.events::add).join();
         allowCompletion.countDown();
         assertTrue(sessions.awaitSettlementIdle());
@@ -137,13 +139,80 @@ class SpeakingDemoRuntimeTest {
     }
 
     @Test
+    void closedConnectionDuringDemoCompositionDoesNotSettleOrFailTheSession() throws Exception {
+        AtomicInteger gatewayCalls = new AtomicInteger();
+        CountDownLatch compositionStarted = new CountDownLatch(1);
+        CountDownLatch allowCompletion = new CountDownLatch(1);
+        SpeakingDemoComposer composer = blockingFailingComposer(gatewayCalls, compositionStarted, allowCompletion);
+        FakeRealtimeSessionService sessions = FakeRealtimeSessionService.active();
+        CountingTts tts = new CountingTts();
+        SpeakingRealtimeService realtime = realtime(sessions, (content, transcript, history, achieved) ->
+                new ConversationEvaluator.Result(true, "legacy", List.of(), List.of(), List.of(), null, List.of()),
+                tts, composer, true);
+
+        realtime.open("connection", "session", "ticket", sessions.events::add).join();
+        realtime.start("connection", "turn-1", 7);
+        realtime.end("connection", "turn-1", 7);
+        assertTrue(compositionStarted.await(1, TimeUnit.SECONDS));
+
+        realtime.close("connection");
+        allowCompletion.countDown();
+        assertTrue(sessions.awaitSettlementIdle());
+
+        assertEquals(1, gatewayCalls.get());
+        assertEquals(0, sessions.settlementCalls.get());
+        assertEquals(0, sessions.failureCalls.get());
+        assertEquals(0, sessions.legacyFailureCalls.get());
+        assertTrue(sessions.failureEpochs.isEmpty());
+        assertEquals(0, sessions.currentState.getConsecutiveEvaluationFailures());
+        assertTrue(sessions.events.stream().noneMatch(event -> "PROCESSING_ERROR".equals(event.get("type"))));
+    }
+
+    @Test
+    void compositionExceptionUsesEpochAwareFailurePathWhileControllerIsActive() throws Exception {
+        AtomicInteger gatewayCalls = new AtomicInteger();
+        CountDownLatch compositionStarted = new CountDownLatch(1);
+        CountDownLatch allowCompletion = new CountDownLatch(1);
+        SpeakingDemoComposer composer = blockingFailingComposer(gatewayCalls, compositionStarted, allowCompletion);
+        FakeRealtimeSessionService sessions = FakeRealtimeSessionService.active();
+        SpeakingRealtimeService realtime = realtime(sessions, (content, transcript, history, achieved) ->
+                new ConversationEvaluator.Result(true, "legacy", List.of(), List.of(), List.of(), null, List.of()),
+                new CountingTts(), composer, true);
+
+        realtime.open("connection", "session", "ticket", sessions.events::add).join();
+        realtime.start("connection", "turn-1", 7);
+        realtime.end("connection", "turn-1", 7);
+        assertTrue(compositionStarted.await(1, TimeUnit.SECONDS));
+        allowCompletion.countDown();
+        assertTrue(sessions.awaitSettlementIdle());
+
+        assertEquals(1, gatewayCalls.get());
+        assertEquals(1, sessions.failureCalls.get());
+        assertEquals(List.of(7L), sessions.failureEpochs);
+        assertEquals(0, sessions.legacyFailureCalls.get());
+        assertTrue(sessions.events.stream().anyMatch(event -> "PROCESSING_ERROR".equals(event.get("type"))));
+    }
+
+    @Test
+    void staleControllerEpochCannotSettleDemoTurn() {
+        SettlementFixture fixture = SettlementFixture.active();
+        fixture.turns.add(fixture.pendingTurn("stale", 1));
+        fixture.session.setCommittedTurnCount(1);
+
+        assertFalse(settle(fixture.service(), "session", "stale", 6, validAssessment()));
+        assertEquals(SpeakingTurn.EvaluationState.PENDING, fixture.turns.get(0).getEvaluationState());
+        assertEquals(0, fixture.session.getValidTurnCount());
+        assertTrue(fixture.assessments.isEmpty());
+    }
+
+    @Test
     void demoSettlementRechecksExpiryBeforeCommittingLateGatewayResult() {
         SettlementFixture fixture = SettlementFixture.active();
         fixture.turns.add(fixture.pendingTurn("expired", 1));
         fixture.session.setCommittedTurnCount(1);
         fixture.session.setExpiresAt(Instant.now().minusSeconds(1));
 
-        assertFalse(settle(fixture.service(), "session", "expired", validAssessment()));
+        assertFalse(settle(fixture.service(), "session", "expired", 7, validAssessment()));
         assertEquals(SpeakingTurn.EvaluationState.PENDING, fixture.turns.get(0).getEvaluationState());
         assertEquals(0, fixture.session.getValidTurnCount());
         assertTrue(fixture.assessments.isEmpty());
@@ -188,13 +257,15 @@ class SpeakingDemoRuntimeTest {
         AtomicInteger gatewayCalls = new AtomicInteger();
         SpeakingDemoComposer composer = composer(gatewayCalls);
         FakeRealtimeSessionService sessions = FakeRealtimeSessionService.active();
-        sessions.currentState.setControllerEpoch(99);
         CountingTts tts = new CountingTts();
         SpeakingRealtimeService realtime = realtime(sessions, (content, transcript, history, achieved) ->
                 new ConversationEvaluator.Result(true, "legacy", List.of(), List.of(), List.of(), null, List.of()),
                 tts, composer, true);
 
-        runTurn(realtime, sessions);
+        realtime.open("connection", "session", "ticket", sessions.events::add).join();
+        sessions.currentState.setControllerEpoch(99);
+        realtime.start("connection", "turn-1", 7);
+        realtime.end("connection", "turn-1", 7);
 
         assertEquals(0, gatewayCalls.get());
         assertEquals(0, sessions.settlementCalls.get());
@@ -256,11 +327,11 @@ class SpeakingDemoRuntimeTest {
     }
 
     private static boolean settle(SpeakingSessionService service, String sessionId, String turnId,
-            SpeakingDemoAssessment assessment) {
+            long epoch, SpeakingDemoAssessment assessment) {
         try {
             Method method = SpeakingSessionService.class.getMethod("settleDemo", String.class, String.class,
-                    SpeakingDemoAssessment.class);
-            return (boolean) method.invoke(service, sessionId, turnId, assessment);
+                    long.class, SpeakingDemoAssessment.class);
+            return (boolean) method.invoke(service, sessionId, turnId, epoch, assessment);
         } catch (ReflectiveOperationException exception) {
             throw new AssertionError("demo settlement API is missing", exception);
         }
@@ -337,6 +408,22 @@ class SpeakingDemoRuntimeTest {
                             + "\"spokenReply\":\"Keep going.\",\"continuationType\":\"QUESTION\","
                             + "\"primaryQuestion\":\"Why?\",\"targetGoalId\":null}}",
                     new ProviderRawDraft.ProviderMetadata("test", 200, "id", "STOP", 1L, 1L, 2L)));
+        };
+        return new SpeakingDemoComposer(gateway, new SpeakingDraftValidator(MAPPER), new ConversationManager());
+    }
+
+    private static SpeakingDemoComposer blockingFailingComposer(AtomicInteger gatewayCalls,
+            CountDownLatch compositionStarted, CountDownLatch allowCompletion) {
+        SpeakingAiGateway gateway = request -> {
+            gatewayCalls.incrementAndGet();
+            compositionStarted.countDown();
+            try {
+                assertTrue(allowCompletion.await(1, TimeUnit.SECONDS));
+            } catch (InterruptedException exception) {
+                Thread.currentThread().interrupt();
+                throw new IllegalStateException("composition interrupted", exception);
+            }
+            throw new IllegalStateException("offline");
         };
         return new SpeakingDemoComposer(gateway, new SpeakingDraftValidator(MAPPER), new ConversationManager());
     }
@@ -450,8 +537,11 @@ class SpeakingDemoRuntimeTest {
         private final SpeakingSessionResponse snapshot = new SpeakingSessionResponse("session", session.getContent(),
                 SpeakingSession.Status.ACTIVE, null, Instant.EPOCH, Instant.EPOCH, null, 0, 1, List.of(), List.of(),
                 false, false, 7, 1L, true, null, List.of());
-        private final List<Map<String, Object>> events = new ArrayList<>();
+        private final List<Map<String, Object>> events = new CopyOnWriteArrayList<>();
         private final AtomicInteger settlementCalls = new AtomicInteger();
+        private final AtomicInteger failureCalls = new AtomicInteger();
+        private final AtomicInteger legacyFailureCalls = new AtomicInteger();
+        private final List<Long> failureEpochs = new CopyOnWriteArrayList<>();
         private FakeRealtimeSessionService() { super(null, null, null, null, null, null, null, null, null); }
         static FakeRealtimeSessionService active() { return new FakeRealtimeSessionService(); }
         void resetEvents() { events.clear(); }
@@ -460,21 +550,30 @@ class SpeakingDemoRuntimeTest {
             Thread.sleep(100);
             return true;
         }
-        public SpeakingSession consumeTicket(String ticket, String sessionId) { return session; }
+        public SpeakingSession consumeTicket(String ticket, String sessionId) { return currentState; }
         public SpeakingSessionResponse socketSnapshot(String id, String learnerId) { return snapshot; }
-        public SpeakingSession requireSocketController(String id, String learnerId, long epoch) { return session; }
+        public SpeakingSession requireSocketController(String id, String learnerId, long epoch) { return currentState; }
         public SpeakingTurn commit(String sessionId, String learnerId, long epoch, String turnId, String transcript) { return turn; }
         public void recordUsage(String sessionId, String turnId, SpeakingUsageSegment.Kind kind, Instant started, Instant ended) {}
         public void assessed(String sessionId, String turnId, ConversationEvaluator.Result result) {}
-        public void assessmentFailed(String sessionId, String turnId) {}
+        public void assessmentFailed(String sessionId, String turnId) {
+            legacyFailureCalls.incrementAndGet();
+            currentState.setConsecutiveEvaluationFailures(currentState.getConsecutiveEvaluationFailures() + 1);
+        }
+        public void assessmentFailed(String sessionId, String turnId, long epoch) {
+            if (epoch != currentState.getControllerEpoch() || !currentState.isOpen()) return;
+            failureCalls.incrementAndGet();
+            failureEpochs.add(epoch);
+            currentState.setConsecutiveEvaluationFailures(currentState.getConsecutiveEvaluationFailures() + 1);
+        }
         public void saveAudio(String sessionId, String turnId, SpeakingAudioAsset.Kind kind, String format,
                 String contentType, byte[] bytes) {}
         public SpeakingSession demoState(String sessionId, String learnerId) { return currentState; }
         public boolean settleDemo(String sessionId, String turnId, SpeakingDemoAssessment assessment) {
-            settlementCalls.incrementAndGet();
-            return true;
+            throw new AssertionError("demo runtime must use epoch-aware settlement");
         }
         public boolean settleDemo(String sessionId, String turnId, long epoch, SpeakingDemoAssessment assessment) {
+            if (epoch != currentState.getControllerEpoch() || !currentState.isOpen()) return false;
             settlementCalls.incrementAndGet();
             return true;
         }
