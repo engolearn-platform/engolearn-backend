@@ -12,7 +12,10 @@ public record ValidatedTurnProposal(
         String hint,
         SpeakingAiDraftResponseV1.Dialogue dialogue,
         SpeakingAiDraftResponseV1.UserIntent userIntent,
-        List<String> validationReasons
+        List<String> validationReasons,
+        String hintExampleEn,
+        String hintLeadVi,
+        String criteriaVersion
 ) {
     public enum ValidityOutcome { VALID, INVALID, EVALUATION_FAILED }
 
@@ -23,7 +26,18 @@ public record ValidatedTurnProposal(
             String hint,
             SpeakingAiDraftResponseV1.Dialogue dialogue) {
         this(valid ? ValidityOutcome.VALID : ValidityOutcome.INVALID, goalEvidence, resourceEvidence,
-                corrections, hint, dialogue, SpeakingAiDraftResponseV1.UserIntent.UNKNOWN, List.of());
+                corrections, hint, dialogue, SpeakingAiDraftResponseV1.UserIntent.UNKNOWN, List.of(), null, null,
+                "speaking-v1");
+    }
+
+    public ValidatedTurnProposal(ValidityOutcome validityOutcome,
+            List<SpeakingAssessmentRecord.GoalEvidence> goalEvidence,
+            List<SpeakingAssessmentRecord.ResourceEvidence> resourceEvidence,
+            List<SpeakingAssessmentRecord.Correction> corrections,
+            String hint, SpeakingAiDraftResponseV1.Dialogue dialogue,
+            SpeakingAiDraftResponseV1.UserIntent userIntent, List<String> validationReasons) {
+        this(validityOutcome, goalEvidence, resourceEvidence, corrections, hint, dialogue, userIntent,
+                validationReasons, null, null, "speaking-v1");
     }
 
     public ValidatedTurnProposal {
@@ -40,12 +54,13 @@ public record ValidatedTurnProposal(
 
     public static ValidatedTurnProposal invalid() {
         return new ValidatedTurnProposal(ValidityOutcome.INVALID, List.of(), List.of(), List.of(), null, null,
-                SpeakingAiDraftResponseV1.UserIntent.UNKNOWN, List.of("INVALID_TURN"));
+                SpeakingAiDraftResponseV1.UserIntent.UNKNOWN, List.of("INVALID_TURN"), null, null, "speaking-v1");
     }
 
     public static ValidatedTurnProposal evaluationFailed() {
         return new ValidatedTurnProposal(ValidityOutcome.EVALUATION_FAILED, List.of(), List.of(), List.of(), null,
-                null, SpeakingAiDraftResponseV1.UserIntent.UNKNOWN, List.of("EVALUATION_FAILED"));
+                null, SpeakingAiDraftResponseV1.UserIntent.UNKNOWN, List.of("EVALUATION_FAILED"), null, null,
+                "speaking-v1");
     }
 
     public static ValidatedTurnProposal valid(SpeakingAiDraftResponseV1.UserIntent intent,
@@ -54,6 +69,6 @@ public record ValidatedTurnProposal(
                 .map(id -> new SpeakingAssessmentRecord.GoalEvidence(id, "validated"))
                 .toList();
         return new ValidatedTurnProposal(ValidityOutcome.VALID, evidence, List.of(), List.of(), null, dialogue,
-                intent, List.of());
+                intent, List.of(), null, null, "speaking-v1");
     }
 }

@@ -20,7 +20,7 @@ class PromptV2BuilderTest {
                 "What is the price?"));
 
         assertTrue(prompt.contains("speaking.ai.prompt.v2"));
-        assertTrue(prompt.contains("speaking.ai.draft.v1"));
+        assertTrue(prompt.contains("speaking.ai.draft.v2"));
         assertTrue(prompt.contains("PINNED_SNAPSHOT_DATA_BEGIN"));
         assertTrue(prompt.contains("item-v1"));
         assertTrue(prompt.contains("Cafe <manager>"));
@@ -59,7 +59,8 @@ class PromptV2BuilderTest {
         assertTrue(prompt.contains("assessment.goalEvidence"));
         assertTrue(prompt.contains("assessment.resourceEvidence"));
         assertTrue(prompt.contains("assessment.corrections"));
-        assertTrue(prompt.contains("assessment.hintVi"));
+        assertTrue(prompt.contains("assessment.hintExampleEn"));
+        assertTrue(prompt.contains("assessment.hintLeadVi"));
         assertTrue(prompt.contains("dialogue.proposedAct"));
         assertTrue(prompt.contains("dialogue.spokenReply"));
         assertTrue(prompt.contains("dialogue.continuationType"));

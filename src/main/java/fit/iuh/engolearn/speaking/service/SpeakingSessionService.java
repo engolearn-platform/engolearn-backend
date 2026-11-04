@@ -401,7 +401,9 @@ public class SpeakingSessionService {
             turn.setAiReply(decision.spokenReplyToDeliver());
             turn.setEvaluationState(SpeakingTurn.EvaluationState.SUCCEEDED);
             SpeakingAssessmentRecord assessmentRecord = SpeakingAssessmentRecordAdapter.toRecord(sessionId,
-                    session.getLearnerId(), turn.getTranscript(), proposal);
+                    session.getLearnerId(), turn.getTranscript(), proposal,
+                    decision.outcome() == DialogueDecision.Outcome.NORMAL
+                            && proposal.userIntent() != fit.iuh.engolearn.speaking.model.SpeakingAiDraftResponseV1.UserIntent.CLOSING_UTTERANCE);
             assessmentRecord.setId(turnId);
             assessments.save(assessmentRecord);
             session.setValidTurnCount(decision.validTurnCount());
@@ -633,7 +635,8 @@ public class SpeakingSessionService {
                     SpeakingSessionResponse.Assessment assessment = record == null ? null
                             : new SpeakingSessionResponse.Assessment(record.getId(), record.getTranscript(),
                             record.getCriteriaVersion(), record.getGoalEvidence(), record.getResourceEvidence(),
-                            record.getCorrections(), record.getHint(), record.getFeedback());
+                            record.getCorrections(), record.getHint(), record.getFeedback(),
+                            record.getHintExampleEn(), record.getHintLeadVi());
                     return new SpeakingSessionResponse.Turn(turn.getId(), turn.getSequence(),
                             turn.getTranscript(), turn.getCommittedAt(), turn.isValid(),
                             turn.getEvaluationState(), turn.getAiReply(), assessment, recording, reply);

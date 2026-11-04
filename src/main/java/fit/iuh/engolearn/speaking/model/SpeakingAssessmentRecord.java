@@ -24,5 +24,7 @@ public class SpeakingAssessmentRecord extends BaseDocument {
     @Field("resource_evidence") private List<ResourceEvidence> resourceEvidence;
     @Field("corrections") private List<Correction> corrections;
     @Field("hint") private String hint;
+    @Field("hint_example_en") private String hintExampleEn;
+    @Field("hint_lead_vi") private String hintLeadVi;
     @Field("feedback") private List<String> feedback;
 }

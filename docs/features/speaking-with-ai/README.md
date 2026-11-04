@@ -50,6 +50,14 @@ To use the fixed fixture, start MongoDB, run the backend with the `dev` profile,
 
 ## Slice 0–3 manager demo
 
+The approved response-policy proposal adds the dev/demo-only draft contract
+`speaking.ai.draft.v2`. It keeps v1 readers and historical `hint` values,
+while new assessments may persist nullable `hintExampleEn` and `hintLeadVi`.
+The manager answers the learner's current meaning before connected goal
+guidance; an unsuitable candidate falls back to clarification. Closing turns
+use a short goodbye and suppress both hint fields. Shared validation and live
+conversation quality evidence remain required before production activation.
+
 The manager runtime is disabled by default. Run the isolated backend with the
 existing Speaking demo gate and the manager flag explicitly enabled:
 

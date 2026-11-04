@@ -120,8 +120,9 @@ class SpeakingDemoComposerTest {
         SpeakingDemoAssessment answerFirst = composer(successGateway(validDraft("QUESTION", "GUIDE_GOAL",
                 "Would you like coffee?", "QUESTION", "goal-coffee", "goal-coffee", "coffee", null, null, null, null, null, null)))
                 .assess(session, emptyHistory(), "What do you recommend?");
-        assertEquals(DialogueDecision.ReasonCode.ANSWER_FIRST_REQUIRED, answerFirst.decision().reasonCode());
-        assertNull(answerFirst.decision().spokenReplyToDeliver());
+        assertEquals(DialogueDecision.ReasonCode.CLARIFICATION_FALLBACK, answerFirst.decision().reasonCode());
+        assertEquals(DialogueAct.CLARIFY, answerFirst.decision().acceptedAct());
+        assertEquals("Could you clarify what you mean?", answerFirst.decision().spokenReplyToDeliver());
 
         SpeakingDemoAssessment achievedTarget = composer(successGateway(validDraft("STATEMENT", "GUIDE_GOAL",
                 "Would you like coffee?", "QUESTION", "goal-coffee", "goal-coffee", "coffee", null, null, null,

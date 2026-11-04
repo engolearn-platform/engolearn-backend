@@ -279,9 +279,9 @@ class ConversationManagerTest {
         DialogueDecision decision = manager.decide(proposal, state, snapshot, ConversationManager.SystemTrigger.NONE);
 
         assertEquals(DialogueDecision.Outcome.NORMAL, decision.outcome());
-        assertEquals(DialogueDecision.ReasonCode.ANSWER_FIRST_REQUIRED, decision.reasonCode());
-        assertNull(decision.acceptedAct());
-        assertNull(decision.spokenReplyToDeliver());
+        assertEquals(DialogueDecision.ReasonCode.CLARIFICATION_FALLBACK, decision.reasonCode());
+        assertEquals(DialogueAct.CLARIFY, decision.acceptedAct());
+        assertEquals("Could you clarify what you mean?", decision.spokenReplyToDeliver());
     }
 
     @Test
@@ -309,6 +309,7 @@ class ConversationManagerTest {
         assertEquals(DialogueDecision.Outcome.NORMAL, decision.outcome());
         assertEquals(DialogueDecision.ReasonCode.WRAP_UP_NOT_AUTHORIZED, decision.reasonCode());
         assertNull(decision.acceptedAct());
+        assertNull(decision.spokenReplyToDeliver());
         assertNull(decision.systemTrigger());
     }
 
@@ -374,6 +375,22 @@ class ConversationManagerTest {
         assertEquals(DialogueDecision.ReasonCode.SPOKEN_STOP_NOT_END, decision.reasonCode());
         assertNull(decision.systemTrigger());
         assertEquals(SpeakingSession.Status.ACTIVE, decision.resultingStatus());
+        assertEquals(DialogueAct.REACT_AND_INVITE, decision.acceptedAct());
+        assertEquals("Thanks for practicing with me. Goodbye.", decision.spokenReplyToDeliver());
+    }
+
+    @Test
+    void missingPartnerReplyKeepsAssessmentAndLeavesExplicitMissingReplyNoticeToRuntime() {
+        SpeakingContentSnapshot snapshot = v2(goal("g1", SpeakingGoal.Priority.REQUIRED));
+        ValidatedTurnProposal proposal = valid(SpeakingAiDraftResponseV1.UserIntent.STATEMENT, null);
+
+        DialogueDecision decision = manager.decide(proposal, state(snapshot, List.of(), 1, 1, 0), snapshot,
+                ConversationManager.SystemTrigger.NONE);
+
+        assertEquals(DialogueDecision.Outcome.NORMAL, decision.outcome());
+        assertEquals(DialogueDecision.ReasonCode.DIALOGUE_NOT_AVAILABLE, decision.reasonCode());
+        assertNull(decision.acceptedAct());
+        assertNull(decision.spokenReplyToDeliver());
     }
 
     @Test

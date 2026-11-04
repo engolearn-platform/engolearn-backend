@@ -65,8 +65,11 @@ public final class SpeakingDemoComposer {
             List<String> achievedGoalIds) {
         if (!(outcome instanceof GatewayOutcome.Success success)) return ValidatedTurnProposal.evaluationFailed();
         try {
-            return validator.validate(success.draft().candidateJson(),
-                    new SpeakingDraftValidator.ValidationContext(transcript, snapshot, resources, achievedGoalIds));
+            String candidate = success.draft().candidateJson();
+            var context = new SpeakingDraftValidator.ValidationContext(transcript, snapshot, resources, achievedGoalIds);
+            return candidate.contains("speaking.ai.draft.v2")
+                    ? validator.validateV2(candidate, context)
+                    : validator.validate(candidate, context);
         } catch (SpeakingDraftValidationException exception) {
             return ValidatedTurnProposal.evaluationFailed();
         }

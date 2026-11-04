@@ -151,6 +151,22 @@ class SpeakingDraftValidatorContractTest {
     }
 
     @Test
+    void acceptsAtMostOneConservativeCorrectionAndRejectsLikelySttSubstitution() {
+        var validator = new SpeakingDraftValidator(MAPPER);
+        var context = context("I need two tickets.", List.of(), Map.of());
+        String response = fixture("ACT-01").path("response").toString()
+                .replace("\"corrections\":[]", "\"corrections\":["
+                        + "{\"original\":\"tickets\",\"suggestedEnglish\":\"ticket\",\"explanationVi\":\"Số nhiều\"},"
+                        + "{\"original\":\"two\",\"suggestedEnglish\":\"too\",\"explanationVi\":\"Word\"},"
+                        + "{\"original\":\"hello\",\"suggestedEnglish\":\"hallo\",\"explanationVi\":\"Sound\"}]");
+
+        var proposal = validator.validate(response, context);
+
+        assertTrue(proposal.corrections().size() <= 1);
+        assertTrue(proposal.corrections().stream().noneMatch(item -> item.original().equals("hello")));
+    }
+
+    @Test
     void omitsDialogueTargetOutsidePinnedSnapshotOrAlreadyAchieved() {
         var validator = new SpeakingDraftValidator(MAPPER);
         var context = new SpeakingDraftValidator.ValidationContext("I can pay by card.",
@@ -172,6 +188,40 @@ class SpeakingDraftValidatorContractTest {
 
         assertTrue(proposal.valid());
         assertNull(proposal.dialogue());
+    }
+
+    @Test
+    void validatesV2EnglishHintAndVietnameseLeadAsSeparateNullableFields() {
+        var validator = new SpeakingDraftValidator(MAPPER);
+        String response = """
+                {"contractVersion":"speaking.ai.draft.v2","assessment":{"turnValidityProposal":"VALID","userIntent":"STATEMENT","goalEvidence":[],"resourceEvidence":[],"corrections":[],"hintExampleEn":"I would like to check my gate.","hintLeadVi":"Bạn có thể nói:"},"dialogue":{"proposedAct":"REACT_AND_INVITE","spokenReply":"I can help with that.","continuationType":"INVITATION","primaryQuestion":null,"targetGoalId":null}}
+                """;
+
+        var proposal = assertDoesNotThrow(() -> validator.validateV2(response,
+                context("I need help.", List.of(), Map.of())));
+
+        assertEquals("I would like to check my gate.", proposal.hintExampleEn());
+        assertEquals("Bạn có thể nói:", proposal.hintLeadVi());
+        assertEquals("speaking-v2", proposal.criteriaVersion());
+
+        var record = SpeakingAssessmentRecordAdapter.toRecord("session", "learner", "I need help.", proposal);
+        assertEquals("I would like to check my gate.", record.getHintExampleEn());
+        assertEquals("Bạn có thể nói:", record.getHintLeadVi());
+        assertEquals("speaking-v2", record.getCriteriaVersion());
+    }
+
+    @Test
+    void v2ClosingTurnSuppressesHintFieldsWithoutRejectingAssessment() {
+        var validator = new SpeakingDraftValidator(MAPPER);
+        String response = """
+                {"contractVersion":"speaking.ai.draft.v2","assessment":{"turnValidityProposal":"VALID","userIntent":"CLOSING_UTTERANCE","goalEvidence":[],"resourceEvidence":[],"corrections":[],"hintExampleEn":"Please ask about the gate.","hintLeadVi":"Bạn có thể nói:"},"dialogue":{"proposedAct":"REACT_AND_INVITE","spokenReply":"Goodbye.","continuationType":"INVITATION","primaryQuestion":null,"targetGoalId":null}}
+                """;
+
+        var proposal = validator.validateV2(response, context("That's all.", List.of(), Map.of()));
+
+        assertTrue(proposal.valid());
+        assertNull(proposal.hintExampleEn());
+        assertNull(proposal.hintLeadVi());
     }
 
     private static Stream<String> reviewedFixtureIds() {

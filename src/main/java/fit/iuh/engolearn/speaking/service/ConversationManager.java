@@ -86,6 +86,11 @@ public final class ConversationManager {
         }
 
         SpeakingAiDraftResponseV1.Dialogue dialogue = proposal.dialogue();
+        if (proposal.userIntent() == SpeakingAiDraftResponseV1.UserIntent.CLOSING_UTTERANCE) {
+            return decision(DialogueDecision.Outcome.NORMAL, DialogueDecision.ReasonCode.SPOKEN_STOP_NOT_END,
+                    projected, completion, DialogueAct.REACT_AND_INVITE,
+                    "Thanks for practicing with me. Goodbye.", newlyAchieved, SpeakingSession.Status.ACTIVE, null);
+        }
         if (dialogue == null) {
             return decision(DialogueDecision.Outcome.NORMAL, DialogueDecision.ReasonCode.DIALOGUE_NOT_AVAILABLE,
                     projected, completion, null, null, newlyAchieved, SpeakingSession.Status.ACTIVE, null);
@@ -94,11 +99,11 @@ public final class ConversationManager {
             return decision(DialogueDecision.Outcome.NORMAL, DialogueDecision.ReasonCode.WRAP_UP_NOT_AUTHORIZED,
                     projected, completion, null, null, newlyAchieved, SpeakingSession.Status.ACTIVE, null);
         }
-        if (proposal.userIntent() == SpeakingAiDraftResponseV1.UserIntent.QUESTION
+        if (!nonBlank(dialogue.spokenReply())
+                || (proposal.userIntent() == SpeakingAiDraftResponseV1.UserIntent.QUESTION
                 && dialogue.proposedAct() != DialogueAct.ANSWER_AND_ASK
-                && dialogue.proposedAct() != DialogueAct.CLARIFY) {
-            return decision(DialogueDecision.Outcome.NORMAL, DialogueDecision.ReasonCode.ANSWER_FIRST_REQUIRED,
-                    projected, completion, null, null, newlyAchieved, SpeakingSession.Status.ACTIVE, null);
+                && dialogue.proposedAct() != DialogueAct.CLARIFY)) {
+            return clarificationFallback(projected, completion, newlyAchieved);
         }
         if (dialogue.proposedAct() == DialogueAct.GUIDE_GOAL
                 && (dialogue.targetGoalId() == null || !pinnedGoalIds.contains(dialogue.targetGoalId())
@@ -111,6 +116,17 @@ public final class ConversationManager {
                 ? DialogueDecision.ReasonCode.SPOKEN_STOP_NOT_END : DialogueDecision.ReasonCode.NORMAL;
         return decision(DialogueDecision.Outcome.NORMAL, reason, projected, completion, dialogue.proposedAct(),
                 dialogue.spokenReply(), dialogue.targetGoalId(), newlyAchieved, SpeakingSession.Status.ACTIVE, null);
+    }
+
+    private DialogueDecision clarificationFallback(ConversationStateView state,
+            ConversationStateView.Completion completion, List<String> newlyAchieved) {
+        return decision(DialogueDecision.Outcome.NORMAL, DialogueDecision.ReasonCode.CLARIFICATION_FALLBACK,
+                state, completion, DialogueAct.CLARIFY, "Could you clarify what you mean?", newlyAchieved,
+                SpeakingSession.Status.ACTIVE, null);
+    }
+
+    private boolean nonBlank(String value) {
+        return value != null && !value.isBlank();
     }
 
     private DialogueDecision lifecycleDecision(ConversationStateView state, ConversationStateView.Completion completion,

@@ -16,6 +16,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Predicate;
+import java.util.regex.Pattern;
 
 public final class SpeakingDraftValidator {
     private static final String CONTRACT_VERSION = "speaking.ai.draft.v1";
@@ -108,8 +109,9 @@ public final class SpeakingDraftValidator {
         List<SpeakingAssessmentRecord.Correction> acceptedCorrections = draft.assessment().corrections().stream()
                 .filter(correction -> contains(context.currentTranscript(), correction.original()))
                 .filter(correction -> !meaningBreaking(correction.original(), correction.suggestedEnglish()))
+                .filter(correction -> !likelySttSubstitution(correction.original(), correction.suggestedEnglish()))
                 .map(correction -> new SpeakingAssessmentRecord.Correction(correction.original(),
-                        correction.suggestedEnglish(), correction.explanationVi())).toList();
+                        correction.suggestedEnglish(), correction.explanationVi())).limit(1).toList();
 
         var dialogue = draft.dialogue();
         String targetGoalId = dialogue == null ? null : dialogue.targetGoalId();
@@ -120,7 +122,42 @@ public final class SpeakingDraftValidator {
         }
         return new ValidatedTurnProposal(ValidatedTurnProposal.ValidityOutcome.VALID,
                 List.copyOf(acceptedGoals), List.copyOf(acceptedResources), acceptedCorrections,
-                draft.assessment().hintVi(), dialogue, draft.assessment().userIntent(), List.of());
+                draft.assessment().hintVi(), dialogue, draft.assessment().userIntent(), List.of(), null, null,
+                "speaking-v1");
+    }
+
+    public ValidatedTurnProposal validateV2(String rawJson, ValidationContext context) {
+        JsonNode root;
+        try {
+            root = mapper.readTree(rawJson);
+        } catch (Exception exception) {
+            throw new SpeakingDraftValidationException("Draft is not valid JSON", exception);
+        }
+        requireObject(root, "root");
+        requireFields(root, ROOT_FIELDS, "root");
+        requireText(root, "contractVersion", "root");
+        if (!"speaking.ai.draft.v2".equals(root.path("contractVersion").asText())) {
+            throw invalid("Unsupported contractVersion");
+        }
+        JsonNode assessment = root.path("assessment");
+        requireObject(assessment, "assessment");
+        Set<String> v2Fields = Set.of("turnValidityProposal", "userIntent", "goalEvidence", "resourceEvidence",
+                "corrections", "hintExampleEn", "hintLeadVi");
+        requireFields(assessment, v2Fields, "assessment");
+        String hintExampleEn = nullableText(assessment.path("hintExampleEn"), "hintExampleEn");
+        String hintLeadVi = nullableText(assessment.path("hintLeadVi"), "hintLeadVi");
+        String normalized = Pattern.compile(",\\s*\\\"hintLeadVi\\\"\\s*:\\s*(?:null|\\\"(?:\\\\.|[^\\\"\\\\])*\\\")")
+                .matcher(rawJson).replaceFirst("");
+        normalized = normalized.replace("speaking.ai.draft.v2", "speaking.ai.draft.v1")
+                .replace("hintExampleEn", "hintVi");
+        ValidatedTurnProposal proposal = validate(normalized, context);
+        if (proposal.userIntent() == SpeakingAiDraftResponseV1.UserIntent.CLOSING_UTTERANCE) {
+            hintExampleEn = null;
+            hintLeadVi = null;
+        }
+        return new ValidatedTurnProposal(proposal.validityOutcome(), proposal.goalEvidence(), proposal.resourceEvidence(),
+                proposal.corrections(), proposal.hint(), proposal.dialogue(), proposal.userIntent(),
+                proposal.validationReasons(), hintExampleEn, hintLeadVi, "speaking-v2");
     }
 
     private SpeakingAiDraftResponseV1.Dialogue dialogue(JsonNode node) {
@@ -180,6 +217,29 @@ public final class SpeakingDraftValidator {
 
     private boolean meaningBreaking(String original, String suggested) {
         return negated(original) != negated(suggested);
+    }
+
+    private boolean likelySttSubstitution(String original, String suggested) {
+        String left = normalized(original);
+        String right = normalized(suggested);
+        if (left.equals(right)) return true;
+        if (left.contains(" ") || right.contains(" ")) return false;
+        return editDistanceAtMostOne(left, right);
+    }
+
+    private boolean editDistanceAtMostOne(String left, String right) {
+        if (Math.abs(left.length() - right.length()) > 1) return false;
+        int differences = 0;
+        int i = 0;
+        int j = 0;
+        while (i < left.length() && j < right.length()) {
+            if (left.charAt(i) == right.charAt(j)) { i++; j++; continue; }
+            if (++differences > 1) return false;
+            if (left.length() > right.length()) i++;
+            else if (right.length() > left.length()) j++;
+            else { i++; j++; }
+        }
+        return differences + (left.length() - i) + (right.length() - j) <= 1;
     }
 
     private boolean isNegatedOrQuoted(String text, String quote) {

@@ -29,5 +29,6 @@ public record SpeakingSessionResponse(
                              List<SpeakingAssessmentRecord.GoalEvidence> goalEvidence,
                              List<SpeakingAssessmentRecord.ResourceEvidence> resourceEvidence,
                              List<SpeakingAssessmentRecord.Correction> corrections,
-                             String hint, List<String> feedback) {}
+                             String hint, List<String> feedback,
+                             String hintExampleEn, String hintLeadVi) {}
 }
