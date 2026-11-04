@@ -27,7 +27,7 @@ import fit.iuh.engolearn.topic.repository.UserTopicAttemptRepository;
 import fit.iuh.engolearn.topic.repository.UserTopicItemAttemptRepository;
 import fit.iuh.engolearn.topic.repository.UserTopicItemProgressRepository;
 import fit.iuh.engolearn.topic.repository.UserTopicProgressRepository;
-import fit.iuh.engolearn.topic.utils.LearnerLevelProvider;
+import fit.iuh.engolearn.user.contract.UserLevelLookup;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -98,7 +98,7 @@ class TopicLearningServiceConcurrencyTest {
     private UserTopicItemAttemptRepository userTopicItemAttemptRepository;
 
     @Mock
-    private LearnerLevelProvider learnerLevelProvider;
+    private UserLevelLookup userLevels;
 
     private TopicLearningServiceImpl service;
 
@@ -109,7 +109,7 @@ class TopicLearningServiceConcurrencyTest {
     void setUp() {
         service = new TopicLearningServiceImpl(topicRepository, topicVersionRepository, topicItemRepository,
                 topicItemVersionRepository, userTopicProgressRepository, userTopicItemProgressRepository,
-                userTopicAttemptRepository, userTopicItemAttemptRepository, learnerLevelProvider, generations);
+                userTopicAttemptRepository, userTopicItemAttemptRepository, userLevels, generations);
     }
 
     @Test

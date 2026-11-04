@@ -1,7 +1,7 @@
 package fit.iuh.engolearn.topic.service.impl;
 
 import fit.iuh.engolearn.topic.exception.TopicRequestException;
-import fit.iuh.engolearn.topic.infra.dev.LocalLearnerProvider;
+import fit.iuh.engolearn.user.contract.UserLevelLookup;
 import fit.iuh.engolearn.topic.mapper.*;
 import fit.iuh.engolearn.topic.model.TopicRetryLocator;
 import fit.iuh.engolearn.topic.model.enums.RetryLocatorKind;
@@ -22,7 +22,7 @@ class TopicRetryOwnershipTest {
         var persistence = mock(TopicRetryPersistenceRepository.class);
         var generations = mock(TopicGenerationService.class);
         var catalog = mock(TopicLearnerCatalogService.class);
-        var service = new TopicRetryServiceImpl(mock(LocalLearnerProvider.class), catalog,
+        var service = new TopicRetryServiceImpl(mock(UserLevelLookup.class), catalog,
                 mock(TopicItemRepository.class), mock(TopicItemVersionRepository.class), mock(TopicRepository.class),
                 mock(TopicVersionRepository.class), persistence, mock(TopicQuizMapper.class), mock(TopicAttemptMapper.class),
                 generations, mock(TopicQuizProgressService.class), mock(TopicRetrySessionMapper.class));

@@ -46,7 +46,7 @@ import fit.iuh.engolearn.topic.repository.UserTopicAttemptRepository;
 import fit.iuh.engolearn.topic.repository.UserTopicItemAttemptRepository;
 import fit.iuh.engolearn.topic.repository.UserTopicItemProgressRepository;
 import fit.iuh.engolearn.topic.repository.UserTopicProgressRepository;
-import fit.iuh.engolearn.topic.utils.LearnerLevelProvider;
+import fit.iuh.engolearn.user.contract.UserLevelLookup;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -118,7 +118,7 @@ class TopicLearningServiceImplTest {
     private UserTopicItemAttemptRepository userTopicItemAttemptRepository;
 
     @Mock
-    private LearnerLevelProvider learnerLevelProvider;
+    private UserLevelLookup userLevels;
 
     private TopicLearningServiceImpl service;
 
@@ -126,7 +126,7 @@ class TopicLearningServiceImplTest {
     void setUp() {
         service = new TopicLearningServiceImpl(topicRepository, topicVersionRepository, topicItemRepository,
                 topicItemVersionRepository, userTopicProgressRepository, userTopicItemProgressRepository,
-                userTopicAttemptRepository, userTopicItemAttemptRepository, learnerLevelProvider, generations);
+                userTopicAttemptRepository, userTopicItemAttemptRepository, userLevels, generations);
     }
 
     // --- content ------------------------------------------------------------------------
@@ -525,7 +525,7 @@ class TopicLearningServiceImplTest {
         stubPublishedRelease();
         stubTopicItems();
         stubSignedIn();
-        when(learnerLevelProvider.getCurrentLevel()).thenReturn(CefrLevel.A1);
+        when(userLevels.findLevel(USER)).thenReturn(java.util.Optional.of(CefrLevel.A1));
         when(userTopicItemProgressRepository.findByUserId(USER)).thenReturn(List.of());
         when(userTopicItemAttemptRepository.findByUserIdAndTopicItemId(USER, ITEM_ONE)).thenReturn(List.of());
 
@@ -691,7 +691,7 @@ class TopicLearningServiceImplTest {
     }
 
     private void stubLearnerLevel() {
-        when(learnerLevelProvider.getCurrentLevel()).thenReturn(CefrLevel.C2);
+        when(userLevels.findLevel(USER)).thenReturn(java.util.Optional.of(CefrLevel.C2));
     }
 
     /** No progress and no running attempt yet, so the item counts as not started. */

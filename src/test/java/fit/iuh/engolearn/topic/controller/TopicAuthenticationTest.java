@@ -34,7 +34,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest({TopicBrowseController.class, TopicLearningController.class, TopicAttemptController.class,
-        TopicRetryController.class, TopicResetController.class, TopicViewerController.class, LocalLearnerController.class})
+        TopicRetryController.class, TopicResetController.class, TopicViewerController.class})
 @Import({SecurityConfig.class, JwtTokenService.class})
 class TopicAuthenticationTest {
     @Autowired private MockMvc mvc;
@@ -45,7 +45,6 @@ class TopicAuthenticationTest {
     @MockitoBean private TopicRetryService retries;
     @MockitoBean private TopicResetService resets;
     @MockitoBean private TopicViewerService viewers;
-    @MockitoBean private LocalLearnerService profiles;
     @MockitoBean private UserRepository users;
     @MockitoBean private RefreshSessionRepository sessions;
     @Autowired private org.springframework.web.context.WebApplicationContext context;
@@ -80,7 +79,7 @@ class TopicAuthenticationTest {
         mvc.perform(put("/api/v1/topic-items/i1/position").contentType("application/json")
                 .content("{\"stage\":\"CONTEXT\",\"itemIndex\":0}"))
                 .andExpect(status().isUnauthorized());
-        verifyNoInteractions(catalog, learning, attempts, retries, resets, viewers, profiles);
+        verifyNoInteractions(catalog, learning, attempts, retries, resets, viewers);
     }
 
     @ParameterizedTest
