@@ -1,6 +1,9 @@
 package fit.iuh.engolearn.topic.controller;
 
 import lombok.RequiredArgsConstructor;
+import fit.iuh.engolearn.shared.security.impl.AuthenticatedUserPrincipal;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 import fit.iuh.engolearn.shared.web.ApiResponse;
 import fit.iuh.engolearn.topic.dto.request.CreateLocalLearnerRequest;
@@ -17,6 +20,7 @@ import org.springframework.web.server.ResponseStatusException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 
+@PreAuthorize("hasAnyRole('USER', 'CONTENT_MANAGER', 'ADMIN')")
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/topic-learning/local-profiles")

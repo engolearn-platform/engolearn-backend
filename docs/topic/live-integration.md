@@ -1,5 +1,11 @@
 # Live integration — public catalog slice
 
+## Topic authentication migration status (2026-11-04)
+
+The current source requires real access-cookie authentication and USER, CONTENT_MANAGER or ADMIN for topic operations. Only GET `/api/v1/topics` and GET `/api/v1/topics/{topicId}` are public; `/topics/mine` is protected. Controllers pass the authenticated account ID explicitly, and topic services no longer use the selected local profile as actor identity. Existing attempts/progress remain owned by their stored IDs; no ownership migration is performed.
+
+This migration is incomplete: the local profile still supplies CEFR and viewer display data temporarily. The agreed business rule is A1 for a new user profile, updated later by entry assessment, but the user-owned profile/contract design is not implemented here. Do not treat selecting `TOPIC_LOCAL_LEARNER_ID` as authentication or as a production profile solution. The local-profiles endpoint now also requires an allowed role and retains its loopback guard. Historical local-profile instructions and evidence below describe earlier revisions.
+
 ## Current implementation and required rollout (2026-10-29)
 
 Source adds generation reset, reached-question navigation and mandatory item-retry resume. Earlier live evidence below applies to its recorded older service revisions and does not verify these changes. No service has been restarted by this implementation task.
@@ -47,7 +53,6 @@ Context/Vocab/Expressions trả snapshot đã pin. IDs purpose/example được 
 - Personal catalog hiện đọc tập published để tính/filter/cursor trước phân trang; chưa tối ưu truy vấn cho catalog lớn.
 
 Cách chọn hồ sơ: POST /api/v1/topic-learning/local-profiles với displayName và cefrLevel thật, lưu learnerId trả về vào TOPIC_LOCAL_LEARNER_ID trong .env rồi restart BE. Endpoint tạo hồ sơ chỉ nhận loopback. Không commit .env.
-
 
 ## Planning kế tiếp — chưa triển khai
 

@@ -4,5 +4,5 @@ import fit.iuh.engolearn.topic.dto.request.ResetTopicRequest;
 import fit.iuh.engolearn.topic.dto.response.ResetTopicResponse;
 
 public interface TopicResetService {
-    ResetTopicResponse reset(String topicId, ResetTopicRequest body, String key);
+    ResetTopicResponse reset(String userId, String topicId, ResetTopicRequest body, String key);
 }

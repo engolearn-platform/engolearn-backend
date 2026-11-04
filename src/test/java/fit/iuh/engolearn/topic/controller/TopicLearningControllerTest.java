@@ -1,19 +1,9 @@
 package fit.iuh.engolearn.topic.controller;
 
-import fit.iuh.engolearn.topic.dto.request.GetTopicItemContentRequest;
 import fit.iuh.engolearn.topic.dto.request.GetTopicItemPositionRequest;
-import fit.iuh.engolearn.topic.dto.request.GetTopicProgressRequest;
-import fit.iuh.engolearn.topic.dto.request.SaveTopicItemPositionRequest;
-import fit.iuh.engolearn.topic.dto.response.TopicContextResponse;
-import fit.iuh.engolearn.topic.dto.response.TopicExpressionBlockResponse;
-import fit.iuh.engolearn.topic.dto.response.TopicExpressionExampleResponse;
-import fit.iuh.engolearn.topic.dto.response.TopicExpressionPurposeResponse;
-import fit.iuh.engolearn.topic.dto.response.TopicItemContentResponse;
 import fit.iuh.engolearn.topic.dto.response.TopicItemPositionResponse;
 import fit.iuh.engolearn.topic.dto.response.TopicItemProgressResponse;
 import fit.iuh.engolearn.topic.dto.response.TopicProgressResponse;
-import fit.iuh.engolearn.topic.dto.response.TopicVocabularyResponse;
-import fit.iuh.engolearn.topic.exception.LearningPreconditionFailedException;
 import fit.iuh.engolearn.topic.exception.TopicItemNotFoundException;
 import fit.iuh.engolearn.topic.exception.TopicNotFoundException;
 import fit.iuh.engolearn.topic.model.enums.ItemProgressStatus;
@@ -23,7 +13,6 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
-import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -51,9 +40,16 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * learning rules themselves, covered by the service tests.
  */
 @WebMvcTest(TopicLearningController.class)
+@org.springframework.context.annotation.Import(fit.iuh.engolearn.config.SecurityConfig.class)
 class TopicLearningControllerTest {
 
     private static final Instant ACCESSED_AT = Instant.parse("2026-02-03T04:05:06Z");
+
+    @MockitoBean private fit.iuh.engolearn.shared.security.impl.JwtTokenService tokens;
+    @MockitoBean private fit.iuh.engolearn.user.repository.UserRepository users;
+    @MockitoBean private fit.iuh.engolearn.user.repository.RefreshSessionRepository sessions;
+
+    @MockitoBean private fit.iuh.engolearn.topic.service.TopicAttemptService attempts;
 
     @Autowired
     private MockMvc mockMvc;
@@ -64,87 +60,34 @@ class TopicLearningControllerTest {
     // --- content ------------------------------------------------------------------------
 
     @Test
-    void contentReturnsTheContextVocabulariesAndExpressions() throws Exception {
-        when(topicLearningService.getItemContent(any())).thenReturn(TopicItemContentResponse.builder()
-                .topicItemId("i1")
-                .topicItemVersionId("iv1")
-                .version(1)
-                .title("At the airport")
-                .description("Check in for a flight")
-                .context(TopicContextResponse.builder()
-                        .scenarioDescription("At the airport")
-                        .promptingQuestion("Where do you check in?")
-                        .build())
-                .vocabularies(List.of(TopicVocabularyResponse.builder()
-                        .word("airport")
-                        .pronunciation("/eapot/")
-                        .meaningVi("san bay")
-                        .audioUrl("airport.mp3")
-                        .build()))
-                .expressions(List.of(TopicExpressionBlockResponse.builder()
-                        .purposes(List.of(TopicExpressionPurposeResponse.builder()
-                                .purposeEn("Ask for help")
-                                .purposeVi("Hoi xin tro giup")
-                                .orderIndex(1)
-                                .examples(List.of(TopicExpressionExampleResponse.builder()
-                                        .textEn("Could you help me?")
-                                        .textVi("Ban giup toi duoc khong?")
-                                        .build()))
-                                .build()))
-                        .build()))
-                .build());
-
-        mockMvc.perform(get("/api/v1/topic-items/i1/content"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.topicItemId").value("i1"))
-                .andExpect(jsonPath("$.data.topicItemVersionId").value("iv1"))
-                .andExpect(jsonPath("$.data.context.scenarioDescription").value("At the airport"))
-                .andExpect(jsonPath("$.data.vocabularies[0].word").value("airport"))
-                .andExpect(jsonPath("$.data.vocabularies[0].meaningVi").value("san bay"))
-                .andExpect(jsonPath("$.data.vocabularies[0].audioUrl").value("airport.mp3"))
-                .andExpect(jsonPath("$.data.expressions[0].purposes[0].examples[0].textEn")
-                        .value("Could you help me?"))
-                .andExpect(jsonPath("$.timestamp").exists());
-
-        ArgumentCaptor<GetTopicItemContentRequest> request =
-                ArgumentCaptor.forClass(GetTopicItemContentRequest.class);
-        verify(topicLearningService).getItemContent(request.capture());
-        assertThat(request.getValue().getTopicItemId()).isEqualTo("i1");
+    void retiredContentRejectsAuthenticatedReaders() throws Exception {
+        mockMvc.perform(get("/api/v1/topic-items/i1/content").with(fit.iuh.engolearn.topic.support.TopicTestAuthentication.user()))
+                .andExpect(status().isGone())
+                .andExpect(jsonPath("$.code").value("INVALID_REQUEST"));
+        verifyNoInteractions(topicLearningService, attempts);
     }
 
     @Test
-    void contentWithoutTheOptionalPartsIsStillReturned() throws Exception {
-        when(topicLearningService.getItemContent(any())).thenReturn(TopicItemContentResponse.builder()
-                .topicItemId("i1")
-                .topicItemVersionId("iv1")
-                .title("At the airport")
-                .context(TopicContextResponse.builder().scenarioDescription("At the airport").build())
-                .build());
-
-        mockMvc.perform(get("/api/v1/topic-items/i1/content"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.vocabularies").value(nullValue()))
-                .andExpect(jsonPath("$.data.expressions").value(nullValue()));
+    void retiredContentDoesNotConsultOptionalContent() throws Exception {
+        mockMvc.perform(get("/api/v1/topic-items/i1/content").with(fit.iuh.engolearn.topic.support.TopicTestAuthentication.user()))
+                .andExpect(status().isGone())
+                .andExpect(jsonPath("$.code").value("INVALID_REQUEST"));
+        verifyNoInteractions(topicLearningService, attempts);
     }
 
     @Test
-    void contentOfAnUnknownItemIsReportedAsNotFound() throws Exception {
-        when(topicLearningService.getItemContent(any()))
-                .thenThrow(new TopicItemNotFoundException("Topic item nope was not found"));
-
-        mockMvc.perform(get("/api/v1/topic-items/nope/content"))
-                .andExpect(status().isNotFound())
-                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
-                .andExpect(jsonPath("$.title").value("Topic item not found"))
-                .andExpect(jsonPath("$.status").value(404))
-                .andExpect(jsonPath("$.detail").value("Topic item nope was not found"));
+    void retiredContentRejectsUnknownItemsWithGone() throws Exception {
+        mockMvc.perform(get("/api/v1/topic-items/nope/content").with(fit.iuh.engolearn.topic.support.TopicTestAuthentication.user()))
+                .andExpect(status().isGone())
+                .andExpect(jsonPath("$.code").value("INVALID_REQUEST"));
+        verifyNoInteractions(topicLearningService, attempts);
     }
 
     // --- position -----------------------------------------------------------------------
 
     @Test
     void positionReturnsTheStoredStageAndIndex() throws Exception {
-        when(topicLearningService.getItemPosition(any())).thenReturn(TopicItemPositionResponse.builder()
+        when(topicLearningService.getItemPosition(org.mockito.ArgumentMatchers.eq("user-mock-001"), any())).thenReturn(TopicItemPositionResponse.builder()
                 .topicItemId("i1")
                 .topicItemVersionId("iv1")
                 .status(ItemProgressStatus.IN_PROGRESS)
@@ -153,7 +96,7 @@ class TopicLearningControllerTest {
                 .lastAccessedAt(ACCESSED_AT)
                 .build());
 
-        mockMvc.perform(get("/api/v1/topic-items/i1/position"))
+        mockMvc.perform(get("/api/v1/topic-items/i1/position").with(fit.iuh.engolearn.topic.support.TopicTestAuthentication.user()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.topicItemId").value("i1"))
                 .andExpect(jsonPath("$.data.status").value("IN_PROGRESS"))
@@ -164,19 +107,19 @@ class TopicLearningControllerTest {
 
         ArgumentCaptor<GetTopicItemPositionRequest> request =
                 ArgumentCaptor.forClass(GetTopicItemPositionRequest.class);
-        verify(topicLearningService).getItemPosition(request.capture());
+        verify(topicLearningService).getItemPosition(org.mockito.ArgumentMatchers.eq("user-mock-001"), request.capture());
         assertThat(request.getValue().getTopicItemId()).isEqualTo("i1");
     }
 
     @Test
     void positionOfANewItemIsNotStartedAndHasNoResumeMark() throws Exception {
-        when(topicLearningService.getItemPosition(any())).thenReturn(TopicItemPositionResponse.builder()
+        when(topicLearningService.getItemPosition(org.mockito.ArgumentMatchers.eq("user-mock-001"), any())).thenReturn(TopicItemPositionResponse.builder()
                 .topicItemId("i1")
                 .topicItemVersionId("iv1")
                 .status(ItemProgressStatus.NOT_STARTED)
                 .build());
 
-        mockMvc.perform(get("/api/v1/topic-items/i1/position"))
+        mockMvc.perform(get("/api/v1/topic-items/i1/position").with(fit.iuh.engolearn.topic.support.TopicTestAuthentication.user()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.status").value("NOT_STARTED"))
                 .andExpect(jsonPath("$.data.stage").value(nullValue()))
@@ -184,36 +127,18 @@ class TopicLearningControllerTest {
     }
 
     @Test
-    void savingThePositionSendsThePathIdAndTheBodyToTheService() throws Exception {
-        when(topicLearningService.saveItemPosition(any())).thenReturn(TopicItemPositionResponse.builder()
-                .topicItemId("i1")
-                .topicItemVersionId("iv1")
-                .status(ItemProgressStatus.IN_PROGRESS)
-                .stage(LearningStage.VOCAB)
-                .itemIndex(2)
-                .lastAccessedAt(ACCESSED_AT)
-                .build());
-
-        mockMvc.perform(put("/api/v1/topic-items/i1/position")
+    void retiredPositionWriteRejectsValidBodies() throws Exception {
+        mockMvc.perform(put("/api/v1/topic-items/i1/position").with(fit.iuh.engolearn.topic.support.TopicTestAuthentication.user())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"stage\":\"VOCAB\",\"itemIndex\":2}"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.status").value("IN_PROGRESS"))
-                .andExpect(jsonPath("$.data.stage").value("VOCAB"))
-                .andExpect(jsonPath("$.data.itemIndex").value(2))
-                .andExpect(jsonPath("$.timestamp").exists());
-
-        ArgumentCaptor<SaveTopicItemPositionRequest> request =
-                ArgumentCaptor.forClass(SaveTopicItemPositionRequest.class);
-        verify(topicLearningService).saveItemPosition(request.capture());
-        assertThat(request.getValue().getTopicItemId()).isEqualTo("i1");
-        assertThat(request.getValue().getStage()).isEqualTo(LearningStage.VOCAB);
-        assertThat(request.getValue().getItemIndex()).isEqualTo(2);
+                .andExpect(status().isGone())
+                .andExpect(jsonPath("$.code").value("INVALID_REQUEST"));
+        verifyNoInteractions(topicLearningService, attempts);
     }
 
     @Test
     void savingThePositionWithoutABodyIsRejectedByControllerValidation() throws Exception {
-        mockMvc.perform(put("/api/v1/topic-items/i1/position")
+        mockMvc.perform(put("/api/v1/topic-items/i1/position").with(fit.iuh.engolearn.topic.support.TopicTestAuthentication.user())
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.title").value("Invalid learning request"));
@@ -222,37 +147,28 @@ class TopicLearningControllerTest {
     }
 
     @Test
-    void savingAPositionThatALearningRuleBlocksIsUnprocessable() throws Exception {
-        when(topicLearningService.saveItemPosition(any())).thenThrow(
-                new LearningPreconditionFailedException("Topic item i1 must be completed first"));
-
-        mockMvc.perform(put("/api/v1/topic-items/i2/position")
+    void retiredPositionWriteDoesNotInvokeLearningRules() throws Exception {
+        mockMvc.perform(put("/api/v1/topic-items/i2/position").with(fit.iuh.engolearn.topic.support.TopicTestAuthentication.user())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"stage\":\"CONTEXT\",\"itemIndex\":0}"))
-                .andExpect(status().isUnprocessableEntity())
-                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
-                .andExpect(jsonPath("$.title").value("Learning precondition failed"))
-                .andExpect(jsonPath("$.status").value(422))
-                .andExpect(jsonPath("$.detail").value("Topic item i1 must be completed first"));
+                .andExpect(status().isGone())
+                .andExpect(jsonPath("$.code").value("INVALID_REQUEST"));
+        verifyNoInteractions(topicLearningService, attempts);
     }
 
     @Test
-    void savingAPositionThatAnotherRequestChangedIsAConflict() throws Exception {
-        when(topicLearningService.saveItemPosition(any())).thenThrow(
-                new OptimisticLockingFailureException("the position was changed by another request"));
-
-        mockMvc.perform(put("/api/v1/topic-items/i1/position")
+    void retiredPositionWriteDoesNotAttemptOptimisticMutation() throws Exception {
+        mockMvc.perform(put("/api/v1/topic-items/i1/position").with(fit.iuh.engolearn.topic.support.TopicTestAuthentication.user())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"stage\":\"VOCAB\",\"itemIndex\":2}"))
-                .andExpect(status().isConflict())
-                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
-                .andExpect(jsonPath("$.title").value("Learning position changed"))
-                .andExpect(jsonPath("$.status").value(409));
+                .andExpect(status().isGone())
+                .andExpect(jsonPath("$.code").value("INVALID_REQUEST"));
+        verifyNoInteractions(topicLearningService, attempts);
     }
 
     @Test
     void anUnknownStageInTheBodyIsABadRequestThatNeverReachesTheService() throws Exception {
-        mockMvc.perform(put("/api/v1/topic-items/i1/position")
+        mockMvc.perform(put("/api/v1/topic-items/i1/position").with(fit.iuh.engolearn.topic.support.TopicTestAuthentication.user())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"stage\":\"NOT_A_STAGE\",\"itemIndex\":0}"))
                 .andExpect(status().isBadRequest())
@@ -264,7 +180,7 @@ class TopicLearningControllerTest {
 
     @Test
     void aBlankItemIdIsABadRequestThatNeverReachesTheService() throws Exception {
-        mockMvc.perform(get("/api/v1/topic-items/ /content"))
+        mockMvc.perform(get("/api/v1/topic-items/ /content").with(fit.iuh.engolearn.topic.support.TopicTestAuthentication.user()))
                 .andExpect(status().isBadRequest())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
                 .andExpect(jsonPath("$.title").value("Invalid learning request"))
@@ -275,7 +191,7 @@ class TopicLearningControllerTest {
 
     @Test
     void aMissingStageInTheBodyIsABadRequestThatNeverReachesTheService() throws Exception {
-        mockMvc.perform(put("/api/v1/topic-items/i1/position")
+        mockMvc.perform(put("/api/v1/topic-items/i1/position").with(fit.iuh.engolearn.topic.support.TopicTestAuthentication.user())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"itemIndex\":0}"))
                 .andExpect(status().isBadRequest())
@@ -288,7 +204,7 @@ class TopicLearningControllerTest {
 
     @Test
     void aNegativeItemIndexInTheBodyIsABadRequestThatNeverReachesTheService() throws Exception {
-        mockMvc.perform(put("/api/v1/topic-items/i1/position")
+        mockMvc.perform(put("/api/v1/topic-items/i1/position").with(fit.iuh.engolearn.topic.support.TopicTestAuthentication.user())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"stage\":\"VOCAB\",\"itemIndex\":-1}"))
                 .andExpect(status().isBadRequest())
@@ -300,22 +216,20 @@ class TopicLearningControllerTest {
     }
 
     @Test
-    void aSavingPositionOfAnUnknownItemIsReportedAsNotFound() throws Exception {
-        when(topicLearningService.saveItemPosition(any()))
-                .thenThrow(new TopicItemNotFoundException("Topic item nope was not found"));
-
-        mockMvc.perform(put("/api/v1/topic-items/nope/position")
+    void retiredPositionWriteRejectsUnknownItemsWithGone() throws Exception {
+        mockMvc.perform(put("/api/v1/topic-items/nope/position").with(fit.iuh.engolearn.topic.support.TopicTestAuthentication.user())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"stage\":\"CONTEXT\",\"itemIndex\":0}"))
-                .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.title").value("Topic item not found"));
+                .andExpect(status().isGone())
+                .andExpect(jsonPath("$.code").value("INVALID_REQUEST"));
+        verifyNoInteractions(topicLearningService, attempts);
     }
 
     // --- topic progress -----------------------------------------------------------------
 
     @Test
     void progressReturnsTheCountsAndTheStatusOfEveryVisibleItem() throws Exception {
-        when(topicLearningService.getTopicProgress(any())).thenReturn(TopicProgressResponse.builder()
+        when(attempts.topicProgress(org.mockito.ArgumentMatchers.eq("user-mock-001"), any())).thenReturn(TopicProgressResponse.builder()
                 .topicId("t1")
                 .status(ItemProgressStatus.IN_PROGRESS)
                 .completedItemCount(1)
@@ -335,7 +249,7 @@ class TopicLearningControllerTest {
                                 .build()))
                 .build());
 
-        mockMvc.perform(get("/api/v1/topics/t1/progress"))
+        mockMvc.perform(get("/api/v1/topics/t1/progress").with(fit.iuh.engolearn.topic.support.TopicTestAuthentication.user()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.topicId").value("t1"))
                 .andExpect(jsonPath("$.data.status").value("IN_PROGRESS"))
@@ -348,18 +262,15 @@ class TopicLearningControllerTest {
                 .andExpect(jsonPath("$.data.items[1].status").value("IN_PROGRESS"))
                 .andExpect(jsonPath("$.timestamp").exists());
 
-        ArgumentCaptor<GetTopicProgressRequest> request =
-                ArgumentCaptor.forClass(GetTopicProgressRequest.class);
-        verify(topicLearningService).getTopicProgress(request.capture());
-        assertThat(request.getValue().getTopicId()).isEqualTo("t1");
+        verify(attempts).topicProgress("user-mock-001", "t1");
     }
 
     @Test
     void progressOfAnUnknownTopicIsReportedAsNotFound() throws Exception {
-        when(topicLearningService.getTopicProgress(any()))
+        when(attempts.topicProgress(org.mockito.ArgumentMatchers.eq("user-mock-001"), any()))
                 .thenThrow(new TopicNotFoundException("Topic nope was not found"));
 
-        mockMvc.perform(get("/api/v1/topics/nope/progress"))
+        mockMvc.perform(get("/api/v1/topics/nope/progress").with(fit.iuh.engolearn.topic.support.TopicTestAuthentication.user()))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.title").value("Topic not found"))
                 .andExpect(jsonPath("$.status").value(404));

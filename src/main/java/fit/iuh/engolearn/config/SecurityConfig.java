@@ -1,6 +1,5 @@
 package fit.iuh.engolearn.config;
 
-
 import fit.iuh.engolearn.user.infra.security.AccessCookieAuthFilter;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Value;
@@ -14,6 +13,7 @@ import org.springframework.http.ProblemDetail;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.AuthenticationEntryPoint;
@@ -32,8 +32,8 @@ import java.util.List;
 
 @Configuration
 @EnableWebSecurity
+@EnableMethodSecurity
 public class SecurityConfig {
-
     @Value("${engolearn.cors.allowed-origins:http://localhost:3000}")
     private String allowedOrigins;
 
@@ -51,12 +51,15 @@ public class SecurityConfig {
                         .authenticationEntryPoint(authenticationEntryPoint)
                         .accessDeniedHandler(accessDeniedHandler))
                 .authorizeHttpRequests(auth -> auth
-                        // Interim (scope decision 2026-10-27): only the auth contract endpoint is
-                        // enforced; legacy feature endpoints keep pre-auth behavior until migrated.
                         .requestMatchers(HttpMethod.GET, "/api/v1/auth/me").authenticated()
                         .requestMatchers(HttpMethod.POST, "/api/v1/auth/register", "/api/v1/auth/login", "/api/v1/auth/refresh", "/api/v1/auth/logout").permitAll()
                         .requestMatchers("/api/v1/subscription/admin", "/api/v1/subscription/admin/**").hasRole("ADMIN")
                         .requestMatchers("/api/v1/subscription/me", "/api/v1/subscription/me/**", "/api/v1/quota/me/**").authenticated()
+                        .requestMatchers("/api/v1/topics/mine").hasAnyRole("USER", "CONTENT_MANAGER", "ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/v1/topics", "/api/v1/topics/{topicId}").permitAll()
+                        .requestMatchers("/api/v1/topics", "/api/v1/topics/**", "/api/v1/topic-items", "/api/v1/topic-items/**",
+                                "/api/v1/topic-attempts", "/api/v1/topic-attempts/**", "/api/v1/topic-retry-sessions", "/api/v1/topic-retry-sessions/**",
+                                "/api/v1/topic-learning", "/api/v1/topic-learning/**").hasAnyRole("USER", "CONTENT_MANAGER", "ADMIN")
                         .anyRequest().permitAll()
                 );
 

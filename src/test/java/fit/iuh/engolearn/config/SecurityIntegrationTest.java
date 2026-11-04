@@ -74,13 +74,12 @@ class SecurityIntegrationTest {
     @MockitoBean private fit.iuh.engolearn.user.repository.RefreshSessionRepository refreshSessionRepository;
 
     @Test
-    void legacyFeatureEndpointsStayUnprotectedUntilMigration() throws Exception {
+    void topicEndpointsRequireAuthenticationWhileLearningPathKeepsItsExistingPolicy() throws Exception {
         mockMvc.perform(get("/api/v1/topic-items/i1/content"))
-                .andExpect(status().isGone())
-                .andExpect(jsonPath("$.code").value("INVALID_REQUEST"));
+                .andExpect(status().isUnauthorized());
 
         mockMvc.perform(get("/api/v1/topics/t1/progress"))
-                .andExpect(status().isOk());
+                .andExpect(status().isUnauthorized());
 
         mockMvc.perform(get("/api/learning-paths")
                         .param("userId", "68f8f3a9b9e4a12345678901"))

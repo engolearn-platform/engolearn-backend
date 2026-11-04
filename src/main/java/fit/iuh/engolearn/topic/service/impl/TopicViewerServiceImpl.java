@@ -14,9 +14,9 @@ public class TopicViewerServiceImpl implements TopicViewerService {
     private final LocalLearnerProvider learners;
 
     @Override
-    public TopicViewerResponse getViewer() {
+    public TopicViewerResponse getViewer(String userId) {
         TopicLearnerProfile profile = learners.selectedProfile();
         return profile == null ? new TopicViewerResponse("GUEST", null, null, null) :
-                new TopicViewerResponse("LEARNER", profile.getId(), profile.getDisplayName(), profile.getCefrLevel());
+                new TopicViewerResponse("LEARNER", userId, profile.getDisplayName(), profile.getCefrLevel());
     }
 }

@@ -1,6 +1,5 @@
 package fit.iuh.engolearn.topic.service.impl;
 
-import fit.iuh.engolearn.topic.infra.dev.LocalLearnerProvider;
 import fit.iuh.engolearn.topic.service.*;
 
 import fit.iuh.engolearn.topic.dto.request.AnswerQuizRequest;
@@ -73,7 +72,6 @@ class TopicQuizAnswerTest {
     @org.mockito.Mock
     private TopicGenerationService generations;
 
-
     private static final String ATTEMPT_ID = "a1";
     private static final String USER_ID = "u1";
     private static final String KEY = "key-1";
@@ -89,9 +87,6 @@ class TopicQuizAnswerTest {
     private static final String SECOND_CORRECT = SECOND + ":option:1";
     private static final String FIRST_SITUATIONAL_CORRECT = FIRST_SITUATIONAL + ":option:2";
     private static final String LAST_CORRECT = LAST + ":option:2";
-
-    @Mock
-    private LocalLearnerProvider learner;
 
     @Mock
     private TopicLearnerCatalogService catalog;
@@ -126,7 +121,7 @@ class TopicQuizAnswerTest {
 
     @BeforeEach
     void setUp() {
-        service = new TopicAttemptServiceImpl(learner, catalog, attempts, versions, new TopicAttemptMutationRepository(mongo), topicItems, learning, quizMapper,
+        service = new TopicAttemptServiceImpl( catalog, attempts, versions, new TopicAttemptMutationRepository(mongo), topicItems, learning, quizMapper,
                 topics, releases, generations, retries, attemptMapper, quizProgress, new TopicRetrySessionMapper());
     }
 
@@ -138,7 +133,7 @@ class TopicQuizAnswerTest {
         when(mongo.findAndModify(any(Query.class), any(Update.class), any(FindAndModifyOptions.class),
                 eq(UserTopicItemAttempt.class))).thenReturn(committed(LearningStage.FILL_BLANK, 1));
 
-        QuizAnswerResponse response = service.answerQuiz(ATTEMPT_ID, FIRST, body(3L, FIRST_CORRECT), KEY);
+        QuizAnswerResponse response = service.answerQuiz(USER_ID, ATTEMPT_ID, FIRST, body(3L, FIRST_CORRECT), KEY);
 
         assertThat(response.quizId()).isEqualTo(FIRST);
         assertThat(response.isCorrect()).isTrue();
@@ -184,7 +179,7 @@ class TopicQuizAnswerTest {
         when(mongo.findAndModify(any(Query.class), any(Update.class), any(FindAndModifyOptions.class),
                 eq(UserTopicItemAttempt.class))).thenReturn(committed(LearningStage.FILL_BLANK, 0));
 
-        QuizAnswerResponse response = service.answerQuiz(ATTEMPT_ID, FIRST, body(3L, FIRST_WRONG), KEY);
+        QuizAnswerResponse response = service.answerQuiz(USER_ID, ATTEMPT_ID, FIRST, body(3L, FIRST_WRONG), KEY);
 
         assertThat(response.isCorrect()).isFalse();
         assertThat(response.feedback()).isNull();
@@ -220,7 +215,7 @@ class TopicQuizAnswerTest {
         when(mongo.findAndModify(any(Query.class), any(Update.class), any(FindAndModifyOptions.class),
                 eq(UserTopicItemAttempt.class))).thenReturn(committed(LearningStage.FILL_BLANK, 1));
 
-        QuizAnswerResponse response = service.answerQuiz(ATTEMPT_ID, FIRST, body(3L, FIRST_CORRECT), KEY);
+        QuizAnswerResponse response = service.answerQuiz(USER_ID, ATTEMPT_ID, FIRST, body(3L, FIRST_CORRECT), KEY);
 
         assertThat(response.isCorrect()).isTrue();
         assertThat(response.feedback()).isNotNull();
@@ -249,7 +244,7 @@ class TopicQuizAnswerTest {
         when(mongo.findAndModify(any(Query.class), any(Update.class), any(FindAndModifyOptions.class),
                 eq(UserTopicItemAttempt.class))).thenReturn(committed(LearningStage.SITUATIONAL_CHOICE, 1));
 
-        QuizAnswerResponse response = service.answerQuiz(ATTEMPT_ID, LAST, body(3L, LAST_CORRECT), KEY);
+        QuizAnswerResponse response = service.answerQuiz(USER_ID, ATTEMPT_ID, LAST, body(3L, LAST_CORRECT), KEY);
 
         assertThat(response.isCorrect()).isTrue();
         assertThat(response.feedback()).isNotNull();
@@ -283,7 +278,7 @@ class TopicQuizAnswerTest {
         when(mongo.findAndModify(any(Query.class), any(Update.class), any(FindAndModifyOptions.class),
                 eq(UserTopicItemAttempt.class))).thenReturn(committed(LearningStage.SITUATIONAL_CHOICE, 0));
 
-        QuizAnswerResponse response = service.answerQuiz(ATTEMPT_ID, SECOND, body(3L, SECOND_CORRECT), KEY);
+        QuizAnswerResponse response = service.answerQuiz(USER_ID, ATTEMPT_ID, SECOND, body(3L, SECOND_CORRECT), KEY);
 
         assertThat(response.isCorrect()).isTrue();
         assertThat(response.attempt().position()).isEqualTo(new TopicCatalogPolicy.Position("SITUATIONAL_CHOICE", 0));
@@ -302,7 +297,7 @@ class TopicQuizAnswerTest {
         givenVisibleItem();
 
         TopicRequestException error = catchThrowableOfType(
-                () -> service.answerQuiz(ATTEMPT_ID, FIRST, body(2L, FIRST_CORRECT), KEY), TopicRequestException.class);
+                () -> service.answerQuiz(USER_ID, ATTEMPT_ID, FIRST, body(2L, FIRST_CORRECT), KEY), TopicRequestException.class);
 
         assertThat(error.getStatus()).isEqualTo(409);
         assertThat(error.getCode()).isEqualTo("STATE_CHANGED");
@@ -316,7 +311,7 @@ class TopicQuizAnswerTest {
         givenVisibleItem();
 
         TopicRequestException error = catchThrowableOfType(
-                () -> service.answerQuiz(ATTEMPT_ID, FIRST, body(3L, FIRST_CORRECT), KEY), TopicRequestException.class);
+                () -> service.answerQuiz(USER_ID, ATTEMPT_ID, FIRST, body(3L, FIRST_CORRECT), KEY), TopicRequestException.class);
 
         assertThat(error.getStatus()).isEqualTo(409);
         assertThat(error.getCode()).isEqualTo("STATE_CHANGED");
@@ -344,7 +339,7 @@ class TopicQuizAnswerTest {
         givenAttempt(attempt);
         when(versions.findById("iv1")).thenReturn(Optional.of(pinned()));
 
-        QuizAnswerResponse response = service.answerQuiz(ATTEMPT_ID, FIRST, body(3L, FIRST_CORRECT), KEY);
+        QuizAnswerResponse response = service.answerQuiz(USER_ID, ATTEMPT_ID, FIRST, body(3L, FIRST_CORRECT), KEY);
 
         assertThat(response.quizId()).isEqualTo(FIRST);
         assertThat(response.isCorrect()).isTrue();
@@ -379,7 +374,7 @@ class TopicQuizAnswerTest {
         givenAttempt(attempt);
         when(versions.findById("iv1")).thenReturn(Optional.of(pinned()));
 
-        QuizAnswerResponse response = service.answerQuiz(ATTEMPT_ID, FIRST, body(3L, FIRST_CORRECT), KEY);
+        QuizAnswerResponse response = service.answerQuiz(USER_ID, ATTEMPT_ID, FIRST, body(3L, FIRST_CORRECT), KEY);
 
         assertThat(response.isCorrect()).isTrue();
         assertThat(response.feedback()).isNotNull();
@@ -413,7 +408,7 @@ class TopicQuizAnswerTest {
         givenAttempt(attempt);
 
         TopicRequestException error = catchThrowableOfType(
-                () -> service.answerQuiz(ATTEMPT_ID, FIRST, body(3L, FIRST_CORRECT), KEY), TopicRequestException.class);
+                () -> service.answerQuiz(USER_ID, ATTEMPT_ID, FIRST, body(3L, FIRST_CORRECT), KEY), TopicRequestException.class);
 
         assertThat(error.getStatus()).isEqualTo(409);
         assertThat(error.getCode()).isEqualTo("IDEMPOTENCY_KEY_REUSED");
@@ -426,11 +421,11 @@ class TopicQuizAnswerTest {
         givenAttempt(attempt(AttemptStatus.IN_PROGRESS, LearningStage.FILL_BLANK, 0, List.of()));
 
         TopicRequestException missing = catchThrowableOfType(
-                () -> service.answerQuiz(ATTEMPT_ID, FIRST, body(3L, FIRST_CORRECT), null), TopicRequestException.class);
+                () -> service.answerQuiz(USER_ID, ATTEMPT_ID, FIRST, body(3L, FIRST_CORRECT), null), TopicRequestException.class);
         TopicRequestException blank = catchThrowableOfType(
-                () -> service.answerQuiz(ATTEMPT_ID, FIRST, body(3L, FIRST_CORRECT), "  "), TopicRequestException.class);
+                () -> service.answerQuiz(USER_ID, ATTEMPT_ID, FIRST, body(3L, FIRST_CORRECT), "  "), TopicRequestException.class);
         TopicRequestException oversized = catchThrowableOfType(
-                () -> service.answerQuiz(ATTEMPT_ID, FIRST, body(3L, FIRST_CORRECT), "k".repeat(129)),
+                () -> service.answerQuiz(USER_ID, ATTEMPT_ID, FIRST, body(3L, FIRST_CORRECT), "k".repeat(129)),
                 TopicRequestException.class);
 
         assertThat(missing.getStatus()).isEqualTo(400);
@@ -445,11 +440,10 @@ class TopicQuizAnswerTest {
     void foreignAttemptIs404WithoutAnyContentRead() {
         UserTopicItemAttempt foreign = attempt(AttemptStatus.IN_PROGRESS, LearningStage.FILL_BLANK, 0, List.of());
         foreign.setUserId("u2");
-        when(learner.getCurrentUserId()).thenReturn(USER_ID);
         when(attempts.findById(ATTEMPT_ID)).thenReturn(Optional.of(foreign));
 
         TopicRequestException error = catchThrowableOfType(
-                () -> service.answerQuiz(ATTEMPT_ID, FIRST, body(3L, FIRST_CORRECT), KEY), TopicRequestException.class);
+                () -> service.answerQuiz(USER_ID, ATTEMPT_ID, FIRST, body(3L, FIRST_CORRECT), KEY), TopicRequestException.class);
 
         assertThat(error.getStatus()).isEqualTo(404);
         assertThat(error.getCode()).isEqualTo("CONTENT_UNAVAILABLE");
@@ -464,7 +458,7 @@ class TopicQuizAnswerTest {
         givenVisibleItem();
 
         TopicRequestException error = catchThrowableOfType(
-                () -> service.answerQuiz(ATTEMPT_ID, "iv1:quiz:9:9", body(3L, "iv1:quiz:9:9:option:0"), KEY),
+                () -> service.answerQuiz(USER_ID, ATTEMPT_ID, "iv1:quiz:9:9", body(3L, "iv1:quiz:9:9:option:0"), KEY),
                 TopicRequestException.class);
 
         assertThat(error.getStatus()).isEqualTo(404);
@@ -479,7 +473,7 @@ class TopicQuizAnswerTest {
         givenVisibleItem();
 
         TopicRequestException error = catchThrowableOfType(
-                () -> service.answerQuiz(ATTEMPT_ID, SECOND, body(3L, SECOND_CORRECT), KEY), TopicRequestException.class);
+                () -> service.answerQuiz(USER_ID, ATTEMPT_ID, SECOND, body(3L, SECOND_CORRECT), KEY), TopicRequestException.class);
 
         assertThat(error.getStatus()).isEqualTo(409);
         assertThat(error.getCode()).isEqualTo("STATE_CHANGED");
@@ -493,11 +487,11 @@ class TopicQuizAnswerTest {
         givenVisibleItem();
 
         TopicRequestException unknownFormat = catchThrowableOfType(
-                () -> service.answerQuiz(ATTEMPT_ID, FIRST, body(3L, "not-an-option"), KEY), TopicRequestException.class);
+                () -> service.answerQuiz(USER_ID, ATTEMPT_ID, FIRST, body(3L, "not-an-option"), KEY), TopicRequestException.class);
         TopicRequestException nonNumeric = catchThrowableOfType(
-                () -> service.answerQuiz(ATTEMPT_ID, FIRST, body(3L, FIRST + ":option:x"), KEY), TopicRequestException.class);
+                () -> service.answerQuiz(USER_ID, ATTEMPT_ID, FIRST, body(3L, FIRST + ":option:x"), KEY), TopicRequestException.class);
         TopicRequestException wrongQuizPrefix = catchThrowableOfType(
-                () -> service.answerQuiz(ATTEMPT_ID, FIRST, body(3L, SECOND + ":option:1"), KEY), TopicRequestException.class);
+                () -> service.answerQuiz(USER_ID, ATTEMPT_ID, FIRST, body(3L, SECOND + ":option:1"), KEY), TopicRequestException.class);
 
         assertThat(unknownFormat.getStatus()).isEqualTo(400);
         assertThat(unknownFormat.getCode()).isEqualTo("INVALID_REQUEST");
@@ -513,7 +507,7 @@ class TopicQuizAnswerTest {
         givenVisibleItem();
 
         TopicRequestException error = catchThrowableOfType(
-                () -> service.answerQuiz(ATTEMPT_ID, FIRST, body(3L, FIRST + ":option:4"), KEY), TopicRequestException.class);
+                () -> service.answerQuiz(USER_ID, ATTEMPT_ID, FIRST, body(3L, FIRST + ":option:4"), KEY), TopicRequestException.class);
 
         assertThat(error.getStatus()).isEqualTo(400);
         assertThat(error.getCode()).isEqualTo("INVALID_REQUEST");
@@ -527,7 +521,7 @@ class TopicQuizAnswerTest {
                 Optional.of(pinned(ContentStatus.HIDDEN, fillBlankModule(0), situationalModule(1))));
 
         TopicRequestException error = catchThrowableOfType(
-                () -> service.answerQuiz(ATTEMPT_ID, FIRST, body(3L, FIRST_CORRECT), KEY), TopicRequestException.class);
+                () -> service.answerQuiz(USER_ID, ATTEMPT_ID, FIRST, body(3L, FIRST_CORRECT), KEY), TopicRequestException.class);
 
         assertThat(error.getStatus()).isEqualTo(410);
         assertThat(error.getCode()).isEqualTo("ITEM_HIDDEN");
@@ -541,7 +535,7 @@ class TopicQuizAnswerTest {
         when(versions.findById("iv1")).thenReturn(Optional.of(pinned()));
 
         TopicRequestException error = catchThrowableOfType(
-                () -> service.answerQuiz(ATTEMPT_ID, FIRST, body(3L, FIRST_CORRECT), KEY), TopicRequestException.class);
+                () -> service.answerQuiz(USER_ID, ATTEMPT_ID, FIRST, body(3L, FIRST_CORRECT), KEY), TopicRequestException.class);
 
         assertThat(error.getStatus()).isEqualTo(409);
         assertThat(error.getCode()).isEqualTo("STATE_CHANGED");
@@ -567,12 +561,11 @@ class TopicQuizAnswerTest {
                         .revision(4L)
                         .accessedAt(SAVED_AT)
                         .build())));
-        when(learner.getCurrentUserId()).thenReturn(USER_ID);
         when(attempts.findById(ATTEMPT_ID)).thenReturn(Optional.of(stale), Optional.of(latest));
         when(versions.findById("iv1")).thenReturn(Optional.of(pinned()));
         givenVisibleItem();
 
-        QuizAnswerResponse response = service.answerQuiz(ATTEMPT_ID, FIRST, body(3L, FIRST_CORRECT), KEY);
+        QuizAnswerResponse response = service.answerQuiz(USER_ID, ATTEMPT_ID, FIRST, body(3L, FIRST_CORRECT), KEY);
 
         assertThat(response.isCorrect()).isTrue();
         assertThat(response.feedback()).isNotNull();
@@ -593,7 +586,7 @@ class TopicQuizAnswerTest {
         givenVisibleItem();
 
         TopicRequestException error = catchThrowableOfType(
-                () -> service.answerQuiz(ATTEMPT_ID, FIRST, body(3L, FIRST_CORRECT), KEY), TopicRequestException.class);
+                () -> service.answerQuiz(USER_ID, ATTEMPT_ID, FIRST, body(3L, FIRST_CORRECT), KEY), TopicRequestException.class);
 
         assertThat(error.getStatus()).isEqualTo(409);
         assertThat(error.getCode()).isEqualTo("STATE_CHANGED");
@@ -604,7 +597,6 @@ class TopicQuizAnswerTest {
     }
 
     private void givenAttempt(UserTopicItemAttempt attempt) {
-        when(learner.getCurrentUserId()).thenReturn(USER_ID);
         when(attempts.findById(ATTEMPT_ID)).thenReturn(Optional.of(attempt));
     }
 

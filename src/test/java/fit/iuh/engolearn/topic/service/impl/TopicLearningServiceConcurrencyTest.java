@@ -27,7 +27,6 @@ import fit.iuh.engolearn.topic.repository.UserTopicAttemptRepository;
 import fit.iuh.engolearn.topic.repository.UserTopicItemAttemptRepository;
 import fit.iuh.engolearn.topic.repository.UserTopicItemProgressRepository;
 import fit.iuh.engolearn.topic.repository.UserTopicProgressRepository;
-import fit.iuh.engolearn.topic.utils.CurrentUserProvider;
 import fit.iuh.engolearn.topic.utils.LearnerLevelProvider;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -68,7 +67,6 @@ class TopicLearningServiceConcurrencyTest {
     @org.mockito.Mock
     private TopicGenerationService generations;
 
-
     private static final String USER = "user-mock-001";
     private static final String TOPIC_ID = "t1";
     private static final String RELEASE_ID = "v1";
@@ -100,9 +98,6 @@ class TopicLearningServiceConcurrencyTest {
     private UserTopicItemAttemptRepository userTopicItemAttemptRepository;
 
     @Mock
-    private CurrentUserProvider currentUserProvider;
-
-    @Mock
     private LearnerLevelProvider learnerLevelProvider;
 
     private TopicLearningServiceImpl service;
@@ -114,8 +109,7 @@ class TopicLearningServiceConcurrencyTest {
     void setUp() {
         service = new TopicLearningServiceImpl(topicRepository, topicVersionRepository, topicItemRepository,
                 topicItemVersionRepository, userTopicProgressRepository, userTopicItemProgressRepository,
-                userTopicAttemptRepository, userTopicItemAttemptRepository, currentUserProvider,
-                learnerLevelProvider, generations);
+                userTopicAttemptRepository, userTopicItemAttemptRepository, learnerLevelProvider, generations);
     }
 
     @Test
@@ -161,7 +155,7 @@ class TopicLearningServiceConcurrencyTest {
                 results.add(pool.submit(() -> {
                     start.await();
                     try {
-                        service.saveItemPosition(request);
+                        service.saveItemPosition(USER, request);
                         return null;
                     } catch (Throwable error) {
                         return error;
@@ -193,7 +187,6 @@ class TopicLearningServiceConcurrencyTest {
         when(topicItemVersionRepository.findAllById(anyList())).thenReturn(List.of(TopicItemVersion.builder()
                 .id(VERSION_ONE).topicItemId(ITEM_ONE).topicId(TOPIC_ID).version(1).order(1)
                 .status(ContentStatus.PUBLISHED).build()));
-        when(currentUserProvider.getCurrentUserId()).thenReturn(USER);
     }
 
     private void stubStore() {

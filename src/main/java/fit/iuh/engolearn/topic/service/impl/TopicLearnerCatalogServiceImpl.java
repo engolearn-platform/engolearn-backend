@@ -34,8 +34,7 @@ public class TopicLearnerCatalogServiceImpl implements TopicLearnerCatalogServic
     private final TopicRetrySessionMapper retrySessionMapper;
 
     @Override
-    public TopicPageResponse discover(GetAvailableTopicRequest request) {
-        String userId = learner.getCurrentUserId();
+    public TopicPageResponse discover(String userId, GetAvailableTopicRequest request) {
         if (userId == null) return browse.getAvailableTopics(request);
         State state = state(userId);
         List<TopicSummaryResponse> rows = readAll(request);
@@ -60,9 +59,8 @@ public class TopicLearnerCatalogServiceImpl implements TopicLearnerCatalogServic
     }
 
     @Override
-    public MyTopicPageResponse mine(String status, Integer requestedLimit, String cursor) {
-        String userId = learner.getCurrentUserId();
-        if (userId == null) throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Select a local learner profile");
+    public MyTopicPageResponse mine(String userId, String status, Integer requestedLimit, String cursor) {
+        if (userId == null) throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Authentication is required");
         if (!Set.of("IN_PROGRESS", "COMPLETED").contains(status)) throw new InvalidBrowseRequestException("Invalid topic status");
         State state = state(userId);
         List<TopicSummaryResponse> owned = readAll(GetAvailableTopicRequest.builder().build());
@@ -94,9 +92,9 @@ public class TopicLearnerCatalogServiceImpl implements TopicLearnerCatalogServic
     }
 
     @Override
-    public TopicDetailResponse detail(String topicId) {
+    public TopicDetailResponse detail(String userId, String topicId) {
         TopicDetailResponse detail = browse.getTopicDetail(GetTopicDetailRequest.builder().topicId(topicId).build());
-        String userId = learner.getCurrentUserId();
+
         if (userId == null) {
             detail.setResetAvailability(new TopicCatalogPolicy.Availability(false, "SIGN_IN_REQUIRED"));
             return detail;
