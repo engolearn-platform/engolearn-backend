@@ -32,7 +32,7 @@ engolearn:
   speaking:
     demo:
       manager:
-        enabled: false
+        enabled: true
     assemblyai:
       api-key: ${ASSEMBLYAI_API_KEY:}
     gemini:
