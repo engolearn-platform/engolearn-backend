@@ -59,8 +59,9 @@ close reason `SUBMITTED`. The response envelope contains `pathId`, `weekNo`,
 
 The endpoint returns 404 for an unknown path, week, or day and 409 when the
 day cannot be submitted, including a repeat submission or an elapsed deadline.
-Weeks 1 and 2 wait until midnight before closing; if all questions in week 3
-have been answered, the final submission closes the week and path immediately.
+Weeks 1 and 2 wait until midnight before closing. In week 3, a submission closes
+the week and path immediately if every practice day has been submitted or
+already closed, regardless of how many questions were answered.
 Submission, draft saves and the lifecycle job use a path revision to detect
 concurrent writes; older documents without a revision are supported.
 
