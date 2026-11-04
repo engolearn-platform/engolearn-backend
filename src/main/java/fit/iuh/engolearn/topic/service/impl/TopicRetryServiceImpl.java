@@ -1,6 +1,6 @@
 package fit.iuh.engolearn.topic.service.impl;
 
-import fit.iuh.engolearn.topic.infra.dev.LocalLearnerProvider;
+import fit.iuh.engolearn.user.contract.UserLevelLookup;
 import fit.iuh.engolearn.topic.service.*;
 import lombok.RequiredArgsConstructor;
 
@@ -25,7 +25,7 @@ import java.util.*;
 @Service
 @RequiredArgsConstructor
 public class TopicRetryServiceImpl implements TopicRetryService {
-    private final LocalLearnerProvider learner;
+    private final UserLevelLookup userLevels;
     private final TopicLearnerCatalogService catalog;
     private final TopicItemRepository items;
     private final TopicItemVersionRepository versions;
@@ -99,7 +99,7 @@ public class TopicRetryServiceImpl implements TopicRetryService {
         TopicItemSummaryResponse item=detail.getItems().stream().filter(v->v.getTopicItemId().equals(itemId)).findFirst()
                 .orElseThrow(()->problem(404,"CONTENT_UNAVAILABLE","Item is unavailable"));
         if(!"COMPLETED".equals(item.getLearningStatus())) throw problem(422,"NOT_COMPLETED","Complete this item before retrying");
-        requireLevel(detail);
+        requireLevel(userId, detail);
         if(active) throw problem(409,"ITEM_RETRY_IN_PROGRESS","Finish the active retry session first");
         List<AttemptItemSnapshotVo> snapshots=List.of(AttemptItemSnapshotVo.builder().topicItemId(itemId)
                 .topicItemVersionId(item.getPublishedVersionId()).orderIndex(0).build());
@@ -245,8 +245,9 @@ public class TopicRetryServiceImpl implements TopicRetryService {
         if(live==null)throw stateChanged();
         return describe(value.getInitialAttempt()==null?live:value.getInitialAttempt());
     }
-    private void requireLevel(TopicDetailResponse detail) {
-        if(learner.getCurrentLevel().ordinal()<detail.getCefrLevel().ordinal())throw problem(422,"LEVEL_TOO_LOW","Level is too low to create a retry");
+    private void requireLevel(String userId, TopicDetailResponse detail) {
+        var learnerLevel = TopicUserLevelResolver.require(userLevels, userId);
+        if(detail.getCefrLevel() != null && learnerLevel.ordinal()<detail.getCefrLevel().ordinal())throw problem(422,"LEVEL_TOO_LOW","Level is too low to create a retry");
     }
     private TopicRetryRuntime fresh(String userId, TopicRetryRuntime previous,String topicId,String sessionId,AttemptScope scope,List<AttemptItemSnapshotVo> snapshots,long generation) {
         return TopicRetryRuntime.builder().id(hash(userId+"|retry-runtime|"+topicId+scope(generation))).generation(generation).userId(userId).topicId(topicId)

@@ -39,7 +39,7 @@ import fit.iuh.engolearn.topic.repository.UserTopicAttemptRepository;
 import fit.iuh.engolearn.topic.repository.UserTopicItemAttemptRepository;
 import fit.iuh.engolearn.topic.repository.UserTopicItemProgressRepository;
 import fit.iuh.engolearn.topic.repository.UserTopicProgressRepository;
-import fit.iuh.engolearn.topic.utils.LearnerLevelProvider;
+import fit.iuh.engolearn.user.contract.UserLevelLookup;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -72,7 +72,7 @@ public class TopicLearningServiceImpl implements TopicLearningService {
     private final UserTopicItemProgressRepository userTopicItemProgressRepository;
     private final UserTopicAttemptRepository userTopicAttemptRepository;
     private final UserTopicItemAttemptRepository userTopicItemAttemptRepository;
-    private final LearnerLevelProvider learnerLevelProvider;
+    private final UserLevelLookup userLevels;
     private final TopicGenerationService generations;
 
     // --- content -----------------------------------------------------------------------
@@ -138,7 +138,7 @@ public class TopicLearningServiceImpl implements TopicLearningService {
         if (progress == null || progress.getStatus() != ItemProgressStatus.IN_PROGRESS) {
             // The level and the sequence are checked when an item is started, never when the
             // learner continues one they already started.
-            requireLevelAllowed(item.topic());
+            requireLevelAllowed(userId, item.topic());
             requireNoOtherItemInProgress(userId, item, topicItemId);
             requirePredecessorsCompleted(userId, item, topicItemId);
         }
@@ -328,12 +328,10 @@ public class TopicLearningServiceImpl implements TopicLearningService {
 
     // --- preconditions -----------------------------------------------------------------
 
-    private void requireLevelAllowed(Topic topic) {
+    private void requireLevelAllowed(String userId, Topic topic) {
         CefrLevel topicLevel = topic.getCefrLevel();
-        CefrLevel learnerLevel = learnerLevelProvider.getCurrentLevel();
-        if (topicLevel == null || learnerLevel == null) {
-            return;
-        }
+        if (topicLevel == null) return;
+        CefrLevel learnerLevel = TopicUserLevelResolver.require(userLevels, userId);
         if (topicLevel.ordinal() > learnerLevel.ordinal()) {
             throw new LearningPreconditionFailedException(
                     "Topic level " + topicLevel + " is above the learner level " + learnerLevel);

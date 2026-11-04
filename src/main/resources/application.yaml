@@ -27,10 +27,6 @@ engolearn:
     cookies:
       secure: ${AUTH_COOKIE_SECURE:false}
 
-
-  topic:
-    local-learner-id: ${TOPIC_LOCAL_LEARNER_ID:}
-
   payment:
     vnpay:
       enabled: ${VNPAY_ENABLED:false}

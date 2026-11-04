@@ -55,8 +55,8 @@ A new dependency needs an explicit reason and approval. Keep this table in sync 
 | Feature | May depend on, through contract |
 |---|---|
 | `dictionary` | None |
-| `topic` | `dictionary` |
-| `user` | `topic` |
+| `topic` | `dictionary`, `user.contract` |
+| `user` | None |
 | `subscription` | `payment.contract` for the approved future purchase/refund command and result contracts; no current production consumer |
 | `quota` | `subscription.contract` (effective entitlements and Subscription-owned facts; current after-commit delivery, durable delivery is the agreed target) |
 | `payment` | None; must never depend on Subscription |

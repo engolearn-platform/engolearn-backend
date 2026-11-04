@@ -4,7 +4,9 @@
 
 The current source requires real access-cookie authentication and USER, CONTENT_MANAGER or ADMIN for topic operations. Only GET `/api/v1/topics` and GET `/api/v1/topics/{topicId}` are public; `/topics/mine` is protected. Controllers pass the authenticated account ID explicitly, and topic services no longer use the selected local profile as actor identity. Existing attempts/progress remain owned by their stored IDs; no ownership migration is performed.
 
-This migration is incomplete: the local profile still supplies CEFR and viewer display data temporarily. The agreed business rule is A1 for a new user profile, updated later by entry assessment, but the user-owned profile/contract design is not implemented here. Do not treat selecting `TOPIC_LOCAL_LEARNER_ID` as authentication or as a production profile solution. The local-profiles endpoint now also requires an allowed role and retains its loopback guard. Historical local-profile instructions and evidence below describe earlier revisions.
+Topic now reads the authenticated user's persisted CEFR level through `user.contract.UserLevelLookup`. Registration creates one `user_profiles` document keyed by the User ID with level A1 in the same Mongo transaction as the account. Viewer responses use the authenticated User ID, return the persisted level, and leave `displayName` null until the user feature has a source for it. Missing profiles return `USER_PROFILE_REQUIRED`; no local profile or silent A1 fallback is used. Anonymous catalog and detail requests remain public and do not query a user profile.
+
+Registration requires a MongoDB replica set or sharded cluster and `engolearn.mongodb.transactions.enabled=true`. Existing accounts created before profile support need explicit targeted initialization or reseeding before authenticated learner-topic operations; no profile data migration or database reset runs automatically. The dated local-profile instructions and evidence below are historical and do not describe the current runtime.
 
 ## Current implementation and required rollout (2026-10-29)
 
