@@ -1,5 +1,13 @@
 # Live integration — public catalog slice
 
+## Topic authentication migration status (2026-11-04)
+
+The current source requires real access-cookie authentication and USER, CONTENT_MANAGER or ADMIN for topic operations. Only GET `/api/v1/topics` and GET `/api/v1/topics/{topicId}` are public; `/topics/mine` is protected. Controllers pass the authenticated account ID explicitly, and topic services no longer use the selected local profile as actor identity. Existing attempts/progress remain owned by their stored IDs; no ownership migration is performed.
+
+Topic now reads the authenticated user's persisted CEFR level through `user.contract.UserLevelLookup`. Registration creates one `user_profiles` document keyed by the User ID with level A1 in the same Mongo transaction as the account. Viewer responses use the authenticated User ID, return the persisted level, and leave `displayName` null until the user feature has a source for it. Missing profiles return `USER_PROFILE_REQUIRED`; no local profile or silent A1 fallback is used. Anonymous catalog and detail requests remain public and do not query a user profile.
+
+Registration requires a MongoDB replica set or sharded cluster and `engolearn.mongodb.transactions.enabled=true`. Existing accounts created before profile support need explicit targeted initialization or reseeding before authenticated learner-topic operations; no profile data migration or database reset runs automatically. The dated local-profile instructions and evidence below are historical and do not describe the current runtime.
+
 ## Current implementation and required rollout (2026-10-29)
 
 Source adds generation reset, reached-question navigation and mandatory item-retry resume. Earlier live evidence below applies to its recorded older service revisions and does not verify these changes. No service has been restarted by this implementation task.
@@ -47,7 +55,6 @@ Context/Vocab/Expressions trả snapshot đã pin. IDs purpose/example được 
 - Personal catalog hiện đọc tập published để tính/filter/cursor trước phân trang; chưa tối ưu truy vấn cho catalog lớn.
 
 Cách chọn hồ sơ: POST /api/v1/topic-learning/local-profiles với displayName và cefrLevel thật, lưu learnerId trả về vào TOPIC_LOCAL_LEARNER_ID trong .env rồi restart BE. Endpoint tạo hồ sơ chỉ nhận loopback. Không commit .env.
-
 
 ## Planning kế tiếp — chưa triển khai
 

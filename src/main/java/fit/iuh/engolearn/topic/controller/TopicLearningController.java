@@ -1,6 +1,9 @@
 package fit.iuh.engolearn.topic.controller;
 
 import lombok.RequiredArgsConstructor;
+import fit.iuh.engolearn.shared.security.impl.AuthenticatedUserPrincipal;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 import fit.iuh.engolearn.shared.web.ApiResponse;
 import fit.iuh.engolearn.topic.dto.request.GetTopicItemContentRequest;
@@ -22,29 +25,29 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+@PreAuthorize("hasAnyRole('USER', 'CONTENT_MANAGER', 'ADMIN')")
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/v1")
 public class TopicLearningController {
-
     private final TopicLearningService topicLearningService;
     private final fit.iuh.engolearn.topic.service.TopicAttemptService attempts;
 
     @GetMapping("/topic-items/{itemId}/content")
-    public ApiResponse<TopicItemContentResponse> getItemContent(
+    public ApiResponse<TopicItemContentResponse> getItemContent(@AuthenticationPrincipal AuthenticatedUserPrincipal principal,
             @Valid @NotBlank @PathVariable("itemId") String itemId) {
         throw new fit.iuh.engolearn.topic.exception.TopicRequestException(410, "INVALID_REQUEST", "Use the owned attempt content endpoint");
     }
 
     @GetMapping("/topic-items/{itemId}/position")
-    public ApiResponse<TopicItemPositionResponse> getItemPosition(
+    public ApiResponse<TopicItemPositionResponse> getItemPosition(@AuthenticationPrincipal AuthenticatedUserPrincipal principal,
             @Valid @NotBlank @PathVariable("itemId") String itemId) {
-        return ApiResponse.ok(topicLearningService.getItemPosition(
+        return ApiResponse.ok(topicLearningService.getItemPosition(principal.getId(),
                 GetTopicItemPositionRequest.builder().topicItemId(itemId).build()));
     }
 
     @PutMapping("/topic-items/{itemId}/position")
-    public ApiResponse<TopicItemPositionResponse> saveItemPosition(
+    public ApiResponse<TopicItemPositionResponse> saveItemPosition(@AuthenticationPrincipal AuthenticatedUserPrincipal principal,
             @Valid @NotBlank @PathVariable("itemId") String itemId,
             @Valid @NotNull @RequestBody UpdateTopicItemPositionRequest body) {
         SaveTopicItemPositionRequest request = SaveTopicItemPositionRequest.builder()
@@ -56,8 +59,8 @@ public class TopicLearningController {
     }
 
     @GetMapping("/topics/{topicId}/progress")
-    public ApiResponse<TopicProgressResponse> getTopicProgress(
+    public ApiResponse<TopicProgressResponse> getTopicProgress(@AuthenticationPrincipal AuthenticatedUserPrincipal principal,
             @Valid @NotBlank @PathVariable("topicId") String topicId) {
-        return ApiResponse.ok(attempts.topicProgress(topicId));
+        return ApiResponse.ok(attempts.topicProgress(principal.getId(), topicId));
     }
 }

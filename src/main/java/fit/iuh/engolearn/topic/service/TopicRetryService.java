@@ -15,21 +15,21 @@ import java.util.Map;
 public interface TopicRetryService {
     boolean isRetry(String id);
 
-    UserTopicItemAttempt owned(String id, boolean result);
+    UserTopicItemAttempt owned(String userId, String id, boolean result);
 
-    TopicAttemptResponse startItem(String itemId,StartTopicAttemptRequest body,String key);
+    TopicAttemptResponse startItem(String userId, String itemId,StartTopicAttemptRequest body,String key);
 
-    TopicRetrySessionResponse startTopic(String topicId,StartTopicRetryRequest body,String key);
+    TopicRetrySessionResponse startTopic(String userId, String topicId,StartTopicRetryRequest body,String key);
 
-    TopicRetrySessionResponse getSession(String id);
+    TopicRetrySessionResponse getSession(String userId, String id);
 
-    TopicAttemptResponse advance(String id,AdvanceTopicContentRequest body,String key);
+    TopicAttemptResponse advance(String userId, String id,AdvanceTopicContentRequest body,String key);
 
-    QuizAnswerResponse answer(String id,String quizId,AnswerQuizRequest body,String key);
+    QuizAnswerResponse answer(String userId, String id,String quizId,AnswerQuizRequest body,String key);
 
-    Map<String,Instant> access(String id,String key);
+    Map<String,Instant> access(String userId, String id,String key);
 
-    TopicRetryRuntime runtime(String topicId);
+    TopicRetryRuntime runtime(String userId, String topicId);
 
-    TopicRetryRuntime runtime(String topicId,long generation);
+    TopicRetryRuntime runtime(String userId, String topicId,long generation);
 }

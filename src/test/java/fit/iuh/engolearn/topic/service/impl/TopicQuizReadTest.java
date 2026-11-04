@@ -1,6 +1,5 @@
 package fit.iuh.engolearn.topic.service.impl;
 
-import fit.iuh.engolearn.topic.infra.dev.LocalLearnerProvider;
 import fit.iuh.engolearn.topic.service.*;
 
 import fit.iuh.engolearn.topic.dto.response.CurrentQuizResponse;
@@ -58,6 +57,25 @@ import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class TopicQuizReadTest {
+    @Test
+    void anotherAccountCannotReadOrMutateAnOwnedAttempt() {
+        when(attempts.findById(ATTEMPT_ID)).thenReturn(Optional.of(attempt(AttemptStatus.IN_PROGRESS, List.of())));
+
+        for (Runnable operation : List.<Runnable>of(
+                () -> service.get("another-account", ATTEMPT_ID),
+                () -> service.content("another-account", ATTEMPT_ID),
+                () -> service.getCurrentQuiz("another-account", ATTEMPT_ID),
+                () -> service.quizNavigation("another-account", ATTEMPT_ID),
+                () -> service.itemResult("another-account", ATTEMPT_ID),
+                () -> service.review("another-account", ATTEMPT_ID),
+                () -> service.access("another-account", ATTEMPT_ID, "key"))) {
+            TopicRequestException failure = catchThrowableOfType(operation::run, TopicRequestException.class);
+            assertThat(failure.getStatus()).isEqualTo(404);
+            assertThat(failure.getCode()).isEqualTo("CONTENT_UNAVAILABLE");
+        }
+        verifyNoInteractions(versions, topics, releases, catalog);
+    }
+
     @org.mockito.Mock
     private TopicAttemptMapper attemptMapper;
 
@@ -66,7 +84,6 @@ class TopicQuizReadTest {
 
     @org.mockito.Mock
     private TopicGenerationService generations;
-
 
     private static final String ATTEMPT_ID = "a1";
     private static final String USER_ID = "u1";
@@ -79,9 +96,6 @@ class TopicQuizReadTest {
             entry("iv1:quiz:0:3", QuizType.FILL_BLANK, 3, 4),
             entry("iv1:quiz:1:0", QuizType.SITUATIONAL_CHOICE, 0, 2),
             entry("iv1:quiz:1:1", QuizType.SITUATIONAL_CHOICE, 1, 2));
-
-    @Mock
-    private LocalLearnerProvider learner;
 
     @Mock
     private TopicLearnerCatalogService catalog;
@@ -116,7 +130,7 @@ class TopicQuizReadTest {
 
     @BeforeEach
     void setUp() {
-        service = new TopicAttemptServiceImpl(learner, catalog, attempts, versions, new TopicAttemptMutationRepository(mongo), topicItems, learning, quizMapper,
+        service = new TopicAttemptServiceImpl( catalog, attempts, versions, new TopicAttemptMutationRepository(mongo), topicItems, learning, quizMapper,
                 topics, releases, generations, retries, attemptMapper, quizProgress, new TopicRetrySessionMapper());
     }
 
@@ -218,11 +232,10 @@ class TopicQuizReadTest {
 
     @Test
     void missingAttemptIs404BeforeAnyQuizRead() {
-        when(learner.getCurrentUserId()).thenReturn(USER_ID);
         when(attempts.findById(ATTEMPT_ID)).thenReturn(Optional.empty());
 
         TopicRequestException error = catchThrowableOfType(
-                () -> service.getCurrentQuiz(ATTEMPT_ID), TopicRequestException.class);
+                () -> service.getCurrentQuiz(USER_ID, ATTEMPT_ID), TopicRequestException.class);
 
         assertThat(error.getStatus()).isEqualTo(404);
         assertThat(error.getCode()).isEqualTo("CONTENT_UNAVAILABLE");
@@ -231,13 +244,12 @@ class TopicQuizReadTest {
 
     @Test
     void completedAttemptReturnsNullQuizWithoutReadingQuizSequence() {
-        when(learner.getCurrentUserId()).thenReturn(USER_ID);
         when(attempts.findById(ATTEMPT_ID)).thenReturn(
                 Optional.of(attempt(AttemptStatus.COMPLETED, null)));
         when(versions.findById("iv1")).thenReturn(Optional.of(itemVersion(
                 fillBlankModule(0), situationalModule(1))));
 
-        CurrentQuizResponse response = service.getCurrentQuiz(ATTEMPT_ID);
+        CurrentQuizResponse response = service.getCurrentQuiz(USER_ID, ATTEMPT_ID);
 
         assertThat(response.attempt().attemptId()).isEqualTo(ATTEMPT_ID);
         assertThat(response.attempt().status()).isEqualTo("COMPLETED");
@@ -249,7 +261,6 @@ class TopicQuizReadTest {
 
     @Test
     void allQuestionsCorrectReturnsNullQuizWhileStillInProgress() {
-        when(learner.getCurrentUserId()).thenReturn(USER_ID);
         when(attempts.findById(ATTEMPT_ID)).thenReturn(Optional.of(attempt(AttemptStatus.IN_PROGRESS, List.of(
                 progress("iv1:quiz:0:0", true),
                 progress("iv1:quiz:0:1", true),
@@ -261,7 +272,7 @@ class TopicQuizReadTest {
                 fillBlankModule(0), situationalModule(1))));
         visibleItemInLatestRelease();
 
-        CurrentQuizResponse response = service.getCurrentQuiz(ATTEMPT_ID);
+        CurrentQuizResponse response = service.getCurrentQuiz(USER_ID, ATTEMPT_ID);
 
         assertThat(response.quiz()).isNull();
         assertThat(response.attempt().status()).isEqualTo("IN_PROGRESS");
@@ -272,13 +283,12 @@ class TopicQuizReadTest {
 
     @Test
     void inProgressAttemptReturnsTheFirstUnansweredQuizAsDto() {
-        when(learner.getCurrentUserId()).thenReturn(USER_ID);
         when(attempts.findById(ATTEMPT_ID)).thenReturn(Optional.of(attempt(
                 AttemptStatus.IN_PROGRESS, List.of(progress("iv1:quiz:0:0", true)))));
         when(versions.findById("iv1")).thenReturn(Optional.of(itemVersion(fillBlankModule(0))));
         visibleItemInLatestRelease();
 
-        CurrentQuizResponse response = service.getCurrentQuiz(ATTEMPT_ID);
+        CurrentQuizResponse response = service.getCurrentQuiz(USER_ID, ATTEMPT_ID);
 
         assertThat(response.quiz()).isInstanceOf(QuizFillBlankResponse.class);
         QuizFillBlankResponse quiz = (QuizFillBlankResponse) response.quiz();
@@ -296,7 +306,7 @@ class TopicQuizReadTest {
         visibleItemInLatestRelease();
 
         TopicRequestException error = catchThrowableOfType(
-                () -> service.getCurrentQuiz(ATTEMPT_ID), TopicRequestException.class);
+                () -> service.getCurrentQuiz(USER_ID, ATTEMPT_ID), TopicRequestException.class);
 
         assertThat(error.getStatus()).isEqualTo(409);
         assertThat(error.getCode()).isEqualTo("STATE_CHANGED");
@@ -311,7 +321,7 @@ class TopicQuizReadTest {
         visibleItemInLatestRelease();
 
         TopicRequestException error = catchThrowableOfType(
-                () -> service.getCurrentQuiz(ATTEMPT_ID), TopicRequestException.class);
+                () -> service.getCurrentQuiz(USER_ID, ATTEMPT_ID), TopicRequestException.class);
 
         assertThat(error.getStatus()).isEqualTo(409);
         assertThat(error.getCode()).isEqualTo("STATE_CHANGED");
@@ -326,7 +336,7 @@ class TopicQuizReadTest {
         visibleItemInLatestRelease();
 
         TopicRequestException error = catchThrowableOfType(
-                () -> service.getCurrentQuiz(ATTEMPT_ID), TopicRequestException.class);
+                () -> service.getCurrentQuiz(USER_ID, ATTEMPT_ID), TopicRequestException.class);
 
         assertThat(error.getStatus()).isEqualTo(409);
         assertThat(error.getCode()).isEqualTo("STATE_CHANGED");
@@ -341,7 +351,7 @@ class TopicQuizReadTest {
         visibleItemInLatestRelease();
 
         TopicRequestException error = catchThrowableOfType(
-                () -> service.getCurrentQuiz(ATTEMPT_ID), TopicRequestException.class);
+                () -> service.getCurrentQuiz(USER_ID, ATTEMPT_ID), TopicRequestException.class);
 
         assertThat(error.getStatus()).isEqualTo(409);
         assertThat(error.getCode()).isEqualTo("STATE_CHANGED");
@@ -357,7 +367,7 @@ class TopicQuizReadTest {
         when(versions.findById("iv1")).thenReturn(Optional.of(itemVersion(fillBlankModule(0), situationalModule(1))));
         visibleItemInLatestRelease();
 
-        CurrentQuizResponse response = service.getCurrentQuiz(ATTEMPT_ID);
+        CurrentQuizResponse response = service.getCurrentQuiz(USER_ID, ATTEMPT_ID);
 
         assertThat(response.quiz()).isInstanceOf(QuizSituationalChoiceResponse.class);
         QuizSituationalChoiceResponse quiz = (QuizSituationalChoiceResponse) response.quiz();
@@ -370,12 +380,11 @@ class TopicQuizReadTest {
 
     @Test
     void hiddenPinnedVersionIs410WithoutReadingTopic() {
-        when(learner.getCurrentUserId()).thenReturn(USER_ID);
         when(attempts.findById(ATTEMPT_ID)).thenReturn(Optional.of(attempt(AttemptStatus.IN_PROGRESS, List.of())));
         when(versions.findById("iv1")).thenReturn(Optional.of(pinnedVersion(ContentStatus.HIDDEN, fillBlankModule(0))));
 
         TopicRequestException error = catchThrowableOfType(
-                () -> service.getCurrentQuiz(ATTEMPT_ID), TopicRequestException.class);
+                () -> service.getCurrentQuiz(USER_ID, ATTEMPT_ID), TopicRequestException.class);
 
         assertThat(error.getStatus()).isEqualTo(410);
         assertThat(error.getCode()).isEqualTo("ITEM_HIDDEN");
@@ -384,13 +393,12 @@ class TopicQuizReadTest {
 
     @Test
     void missingTopicIs410() {
-        when(learner.getCurrentUserId()).thenReturn(USER_ID);
         when(attempts.findById(ATTEMPT_ID)).thenReturn(Optional.of(attempt(AttemptStatus.IN_PROGRESS, List.of())));
         when(versions.findById("iv1")).thenReturn(Optional.of(pinnedVersion(null, fillBlankModule(0))));
         when(topics.findById("t1")).thenReturn(Optional.empty());
 
         TopicRequestException error = catchThrowableOfType(
-                () -> service.getCurrentQuiz(ATTEMPT_ID), TopicRequestException.class);
+                () -> service.getCurrentQuiz(USER_ID, ATTEMPT_ID), TopicRequestException.class);
 
         assertThat(error.getStatus()).isEqualTo(410);
         assertThat(error.getCode()).isEqualTo("ITEM_HIDDEN");
@@ -399,13 +407,12 @@ class TopicQuizReadTest {
 
     @Test
     void blankLatestPublishedVersionIs410() {
-        when(learner.getCurrentUserId()).thenReturn(USER_ID);
         when(attempts.findById(ATTEMPT_ID)).thenReturn(Optional.of(attempt(AttemptStatus.IN_PROGRESS, List.of())));
         when(versions.findById("iv1")).thenReturn(Optional.of(pinnedVersion(null, fillBlankModule(0))));
         when(topics.findById("t1")).thenReturn(Optional.of(Topic.builder().latestPublishedVersion("  ").build()));
 
         TopicRequestException error = catchThrowableOfType(
-                () -> service.getCurrentQuiz(ATTEMPT_ID), TopicRequestException.class);
+                () -> service.getCurrentQuiz(USER_ID, ATTEMPT_ID), TopicRequestException.class);
 
         assertThat(error.getStatus()).isEqualTo(410);
         assertThat(error.getCode()).isEqualTo("ITEM_HIDDEN");
@@ -414,14 +421,13 @@ class TopicQuizReadTest {
 
     @Test
     void missingReleaseIs410() {
-        when(learner.getCurrentUserId()).thenReturn(USER_ID);
         when(attempts.findById(ATTEMPT_ID)).thenReturn(Optional.of(attempt(AttemptStatus.IN_PROGRESS, List.of())));
         when(versions.findById("iv1")).thenReturn(Optional.of(pinnedVersion(null, fillBlankModule(0))));
         when(topics.findById("t1")).thenReturn(Optional.of(Topic.builder().latestPublishedVersion("tv1").build()));
         when(releases.findById("tv1")).thenReturn(Optional.empty());
 
         TopicRequestException error = catchThrowableOfType(
-                () -> service.getCurrentQuiz(ATTEMPT_ID), TopicRequestException.class);
+                () -> service.getCurrentQuiz(USER_ID, ATTEMPT_ID), TopicRequestException.class);
 
         assertThat(error.getStatus()).isEqualTo(410);
         assertThat(error.getCode()).isEqualTo("ITEM_HIDDEN");
@@ -431,7 +437,6 @@ class TopicQuizReadTest {
 
     @Test
     void draftReleaseIs410() {
-        when(learner.getCurrentUserId()).thenReturn(USER_ID);
         when(attempts.findById(ATTEMPT_ID)).thenReturn(Optional.of(attempt(AttemptStatus.IN_PROGRESS, List.of())));
         when(versions.findById("iv1")).thenReturn(Optional.of(pinnedVersion(null, fillBlankModule(0))));
         when(topics.findById("t1")).thenReturn(Optional.of(Topic.builder().latestPublishedVersion("tv1").build()));
@@ -439,7 +444,7 @@ class TopicQuizReadTest {
                 .status(ContentStatus.DRAFT).itemVersionIds(List.of("iv1")).build()));
 
         TopicRequestException error = catchThrowableOfType(
-                () -> service.getCurrentQuiz(ATTEMPT_ID), TopicRequestException.class);
+                () -> service.getCurrentQuiz(USER_ID, ATTEMPT_ID), TopicRequestException.class);
 
         assertThat(error.getStatus()).isEqualTo(410);
         assertThat(error.getCode()).isEqualTo("ITEM_HIDDEN");
@@ -449,7 +454,6 @@ class TopicQuizReadTest {
 
     @Test
     void itemMissingFromLatestReleaseIs410() {
-        when(learner.getCurrentUserId()).thenReturn(USER_ID);
         when(attempts.findById(ATTEMPT_ID)).thenReturn(Optional.of(attempt(AttemptStatus.IN_PROGRESS, List.of())));
         when(versions.findById("iv1")).thenReturn(Optional.of(pinnedVersion(null, fillBlankModule(0))));
         when(topics.findById("t1")).thenReturn(Optional.of(Topic.builder().latestPublishedVersion("tv1").build()));
@@ -458,7 +462,7 @@ class TopicQuizReadTest {
         when(versions.findAllById(List.of("iv9"))).thenReturn(List.of(releaseItem("iv9", "i9", ContentStatus.PUBLISHED)));
 
         TopicRequestException error = catchThrowableOfType(
-                () -> service.getCurrentQuiz(ATTEMPT_ID), TopicRequestException.class);
+                () -> service.getCurrentQuiz(USER_ID, ATTEMPT_ID), TopicRequestException.class);
 
         assertThat(error.getStatus()).isEqualTo(410);
         assertThat(error.getCode()).isEqualTo("ITEM_HIDDEN");
@@ -467,7 +471,6 @@ class TopicQuizReadTest {
 
     @Test
     void hiddenNewestVersionOfItemInLatestReleaseIs410() {
-        when(learner.getCurrentUserId()).thenReturn(USER_ID);
         when(attempts.findById(ATTEMPT_ID)).thenReturn(Optional.of(attempt(AttemptStatus.IN_PROGRESS, List.of())));
         when(versions.findById("iv1")).thenReturn(Optional.of(pinnedVersion(null, fillBlankModule(0))));
         when(topics.findById("t1")).thenReturn(Optional.of(Topic.builder().latestPublishedVersion("tv1").build()));
@@ -476,7 +479,7 @@ class TopicQuizReadTest {
         when(versions.findAllById(List.of("iv2"))).thenReturn(List.of(releaseItem("iv2", "i1", ContentStatus.HIDDEN)));
 
         TopicRequestException error = catchThrowableOfType(
-                () -> service.getCurrentQuiz(ATTEMPT_ID), TopicRequestException.class);
+                () -> service.getCurrentQuiz(USER_ID, ATTEMPT_ID), TopicRequestException.class);
 
         assertThat(error.getStatus()).isEqualTo(410);
         assertThat(error.getCode()).isEqualTo("ITEM_HIDDEN");
@@ -485,7 +488,6 @@ class TopicQuizReadTest {
 
     @Test
     void newerVisibleVersionOfSameItemDoesNotBlockTheAttempt() {
-        when(learner.getCurrentUserId()).thenReturn(USER_ID);
         when(attempts.findById(ATTEMPT_ID)).thenReturn(Optional.of(attempt(
                 AttemptStatus.IN_PROGRESS, List.of(progress("iv1:quiz:0:0", true)))));
         when(versions.findById("iv1")).thenReturn(Optional.of(pinnedVersion(null, fillBlankModule(0))));
@@ -494,7 +496,7 @@ class TopicQuizReadTest {
                 .status(ContentStatus.PUBLISHED).itemVersionIds(List.of("iv2")).build()));
         when(versions.findAllById(List.of("iv2"))).thenReturn(List.of(releaseItem("iv2", "i1", ContentStatus.PUBLISHED)));
 
-        CurrentQuizResponse response = service.getCurrentQuiz(ATTEMPT_ID);
+        CurrentQuizResponse response = service.getCurrentQuiz(USER_ID, ATTEMPT_ID);
 
         assertThat(response.quiz()).isInstanceOf(QuizFillBlankResponse.class);
         QuizFillBlankResponse quiz = (QuizFillBlankResponse) response.quiz();
@@ -506,11 +508,10 @@ class TopicQuizReadTest {
 
     @Test
     void completedAttemptWithHiddenPinnedVersionStillReturnsNullQuiz() {
-        when(learner.getCurrentUserId()).thenReturn(USER_ID);
         when(attempts.findById(ATTEMPT_ID)).thenReturn(Optional.of(attempt(AttemptStatus.COMPLETED, null)));
         when(versions.findById("iv1")).thenReturn(Optional.of(pinnedVersion(ContentStatus.HIDDEN, fillBlankModule(0))));
 
-        CurrentQuizResponse response = service.getCurrentQuiz(ATTEMPT_ID);
+        CurrentQuizResponse response = service.getCurrentQuiz(USER_ID, ATTEMPT_ID);
 
         assertThat(response.quiz()).isNull();
         assertThat(response.attempt().status()).isEqualTo("COMPLETED");
@@ -519,13 +520,12 @@ class TopicQuizReadTest {
 
     @Test
     void foreignAttemptIs404WithoutVisibilityRead() {
-        when(learner.getCurrentUserId()).thenReturn(USER_ID);
         UserTopicItemAttempt foreign = attempt(AttemptStatus.IN_PROGRESS, List.of());
         foreign.setUserId("u2");
         when(attempts.findById(ATTEMPT_ID)).thenReturn(Optional.of(foreign));
 
         TopicRequestException error = catchThrowableOfType(
-                () -> service.getCurrentQuiz(ATTEMPT_ID), TopicRequestException.class);
+                () -> service.getCurrentQuiz(USER_ID, ATTEMPT_ID), TopicRequestException.class);
 
         assertThat(error.getStatus()).isEqualTo(404);
         assertThat(error.getCode()).isEqualTo("CONTENT_UNAVAILABLE");
@@ -575,7 +575,6 @@ class TopicQuizReadTest {
     }
 
     private void givenAttempt(UserTopicItemAttempt attempt) {
-        when(learner.getCurrentUserId()).thenReturn(USER_ID);
         when(attempts.findById(ATTEMPT_ID)).thenReturn(Optional.of(attempt));
     }
 

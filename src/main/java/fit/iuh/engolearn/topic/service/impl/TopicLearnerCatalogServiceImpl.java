@@ -1,6 +1,6 @@
 package fit.iuh.engolearn.topic.service.impl;
 
-import fit.iuh.engolearn.topic.infra.dev.LocalLearnerProvider;
+import fit.iuh.engolearn.user.contract.UserLevelLookup;
 import fit.iuh.engolearn.topic.service.*;
 import fit.iuh.engolearn.topic.utils.TopicCursorCodec;
 import lombok.RequiredArgsConstructor;
@@ -24,7 +24,7 @@ import java.util.*;
 @RequiredArgsConstructor
 public class TopicLearnerCatalogServiceImpl implements TopicLearnerCatalogService {
     private final TopicBrowseService browse;
-    private final LocalLearnerProvider learner;
+    private final UserLevelLookup userLevels;
     private final UserTopicProgressRepository topics;
     private final UserTopicItemProgressRepository items;
     private final UserTopicItemAttemptRepository attempts;
@@ -34,12 +34,12 @@ public class TopicLearnerCatalogServiceImpl implements TopicLearnerCatalogServic
     private final TopicRetrySessionMapper retrySessionMapper;
 
     @Override
-    public TopicPageResponse discover(GetAvailableTopicRequest request) {
-        String userId = learner.getCurrentUserId();
+    public TopicPageResponse discover(String userId, GetAvailableTopicRequest request) {
         if (userId == null) return browse.getAvailableTopics(request);
+        CefrLevel learnerLevel = TopicUserLevelResolver.require(userLevels, userId);
         State state = state(userId);
         List<TopicSummaryResponse> rows = readAll(request);
-        rows.forEach(row -> enrich(row, state));
+        rows.forEach(row -> enrich(row, state, learnerLevel));
         rows = rows.stream().filter(row -> !state.owned().containsKey(row.getTopicId()) &&
                 row.getProgress().status().equals("NOT_STARTED")).toList();
         String fingerprint = fingerprint(request, userId);
@@ -60,13 +60,13 @@ public class TopicLearnerCatalogServiceImpl implements TopicLearnerCatalogServic
     }
 
     @Override
-    public MyTopicPageResponse mine(String status, Integer requestedLimit, String cursor) {
-        String userId = learner.getCurrentUserId();
-        if (userId == null) throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Select a local learner profile");
+    public MyTopicPageResponse mine(String userId, String status, Integer requestedLimit, String cursor) {
+        if (userId == null) throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Authentication is required");
         if (!Set.of("IN_PROGRESS", "COMPLETED").contains(status)) throw new InvalidBrowseRequestException("Invalid topic status");
+        CefrLevel learnerLevel = TopicUserLevelResolver.require(userLevels, userId);
         State state = state(userId);
         List<TopicSummaryResponse> owned = readAll(GetAvailableTopicRequest.builder().build());
-        owned.forEach(row -> enrich(row, state));
+        owned.forEach(row -> enrich(row, state, learnerLevel));
         owned = owned.stream().filter(row -> !row.getProgress().status().equals("NOT_STARTED") || state.owned().containsKey(row.getTopicId())).toList();
         long completed = owned.stream().filter(row -> row.getProgress().status().equals("COMPLETED")).count();
         List<TopicSummaryResponse> rows = owned.stream().filter(row -> row.getProgress().status().equals(status))
@@ -94,13 +94,14 @@ public class TopicLearnerCatalogServiceImpl implements TopicLearnerCatalogServic
     }
 
     @Override
-    public TopicDetailResponse detail(String topicId) {
+    public TopicDetailResponse detail(String userId, String topicId) {
         TopicDetailResponse detail = browse.getTopicDetail(GetTopicDetailRequest.builder().topicId(topicId).build());
-        String userId = learner.getCurrentUserId();
+
         if (userId == null) {
             detail.setResetAvailability(new TopicCatalogPolicy.Availability(false, "SIGN_IN_REQUIRED"));
             return detail;
         }
+        CefrLevel learnerLevel = TopicUserLevelResolver.require(userLevels, userId);
         State state = state(userId);
         detail.setGeneration(state.generations().getOrDefault(topicId, 0L));
         Map<String, String> visible = new LinkedHashMap<>();
@@ -123,7 +124,7 @@ public class TopicLearnerCatalogServiceImpl implements TopicLearnerCatalogServic
                         running.getFurthestReached().getStage().name(), running.getFurthestReached().getItemIndex())));
             }
             String reason = completed ? "ALREADY_COMPLETED" : running != null ? "OTHER_ITEM_IN_PROGRESS" :
-                    !levelAllowed(detail.getCefrLevel()) ? "LEVEL_TOO_LOW" : !previousDone ? "PREDECESSOR_INCOMPLETE" :
+                    !levelAllowed(detail.getCefrLevel(), learnerLevel) ? "LEVEL_TOO_LOW" : !previousDone ? "PREDECESSOR_INCOMPLETE" :
                     anotherRunning ? "OTHER_ITEM_IN_PROGRESS" : null;
             TopicCatalogPolicy.Availability start = new TopicCatalogPolicy.Availability(reason == null, reason);
             TopicCatalogPolicy.Availability resume = new TopicCatalogPolicy.Availability(running != null,
@@ -134,7 +135,7 @@ public class TopicLearnerCatalogServiceImpl implements TopicLearnerCatalogServic
                 item.setRetryAttempt(new TopicCatalogPolicy.AttemptReference(activeRetry.getId(), new TopicCatalogPolicy.Position(
                         activeRetry.getFurthestReached().getStage().name(), activeRetry.getFurthestReached().getItemIndex())));
             }
-            boolean retryAllowed = completed && levelAllowed(detail.getCefrLevel()) && !retryActive;
+            boolean retryAllowed = completed && levelAllowed(detail.getCefrLevel(), learnerLevel) && !retryActive;
             TopicCatalogPolicy.Availability review = new TopicCatalogPolicy.Availability(completed, completed ? null : "NOT_COMPLETED");
             TopicCatalogPolicy.Availability retryStart = new TopicCatalogPolicy.Availability(retryAllowed, retryActive ? "ITEM_RETRY_IN_PROGRESS" : !completed ? "NOT_COMPLETED" : retryAllowed ? null : "LEVEL_TOO_LOW");
             TopicCatalogPolicy.Availability retryResume = new TopicCatalogPolicy.Availability(retryHere, retryHere ? null : "NO_RUNNING_ATTEMPT");
@@ -143,7 +144,7 @@ public class TopicLearnerCatalogServiceImpl implements TopicLearnerCatalogServic
             previousDone &= completed;
         }
         boolean topicComplete = detail.getProgress().status().equals("COMPLETED");
-        boolean topicRetry = topicComplete && levelAllowed(detail.getCefrLevel());
+        boolean topicRetry = topicComplete && levelAllowed(detail.getCefrLevel(), learnerLevel);
         detail.setRetryAvailability(new TopicCatalogPolicy.Availability(topicRetry,
                 !topicComplete ? "NOT_COMPLETED" : topicRetry ? null : "LEVEL_TOO_LOW"));
         detail.setResetAvailability(new TopicCatalogPolicy.Availability(topicRetry,
@@ -226,7 +227,7 @@ public class TopicLearnerCatalogServiceImpl implements TopicLearnerCatalogServic
         return resolved;
     }
 
-    private void enrich(TopicSummaryResponse row, State state) {
+    private void enrich(TopicSummaryResponse row, State state, CefrLevel learnerLevel) {
         row.setProgress(progress(row.getTopicId(), row.getVisibleItemVersions(), state));
         row.setHasNewContent(hasNew(row.getVisibleItemVersions(), state));
         UserTopicProgress owned = state.owned().get(row.getTopicId());
@@ -238,7 +239,7 @@ public class TopicLearnerCatalogServiceImpl implements TopicLearnerCatalogServic
                     (accessed == null || attempt.getLastAccessedAt().isAfter(accessed))) accessed = attempt.getLastAccessedAt();
         }
         row.setLastAccessedAt(accessed);
-        boolean allowed = levelAllowed(row.getCefrLevel());
+        boolean allowed = levelAllowed(row.getCefrLevel(), learnerLevel);
         row.setStartAvailability(new TopicCatalogPolicy.Availability(allowed, allowed ? null : "LEVEL_TOO_LOW"));
     }
 
@@ -261,7 +262,9 @@ public class TopicLearnerCatalogServiceImpl implements TopicLearnerCatalogServic
         });
     }
 
-    private boolean levelAllowed(CefrLevel required) { return required.ordinal() <= learner.getCurrentLevel().ordinal(); }
+    private boolean levelAllowed(CefrLevel required, CefrLevel learnerLevel) {
+        return required == null || required.ordinal() <= learnerLevel.ordinal();
+    }
     private int limit(Integer value) {
         int limit = value == null ? 20 : value;
         if (limit < 1 || limit > 100) throw new InvalidBrowseRequestException("limit must be between 1 and 100");

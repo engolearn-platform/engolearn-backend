@@ -3,6 +3,7 @@ package fit.iuh.engolearn.user.service.impl;
 import fit.iuh.engolearn.user.model.User;
 import fit.iuh.engolearn.user.repository.UserRepository;
 import fit.iuh.engolearn.user.repository.RefreshSessionRepository;
+import fit.iuh.engolearn.user.service.UserRegistrationService;
 import fit.iuh.engolearn.shared.security.impl.JwtTokenService;
 import org.junit.jupiter.api.Test;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -22,13 +23,14 @@ class UserAuthServiceImplTest {
     private final PasswordEncoder encoder = mock(PasswordEncoder.class);
     private final JwtTokenService tokens = mock(JwtTokenService.class);
     private final RefreshSessionRepository sessions = mock(RefreshSessionRepository.class);
+    private final UserRegistrationService registrations = mock(UserRegistrationService.class);
     private final UserAuthServiceImpl service = new UserAuthServiceImpl(repository, encoder,
-            sessions, tokens, 900);
+            sessions, registrations, tokens, 900);
 
     @Test
     void registerCanonicalizesEmailHashesPasswordAndAssignsUserRole() {
         when(encoder.encode("a safe password")).thenReturn("encoded");
-        when(repository.save(any())).thenAnswer(call -> call.getArgument(0));
+        when(registrations.register(any())).thenAnswer(call -> call.getArgument(0));
 
         User account = service.register(" Student@Example.COM ", "a safe password");
 
@@ -101,7 +103,7 @@ class UserAuthServiceImplTest {
         JwtTokenService tokens = mock(JwtTokenService.class);
         RefreshSessionRepository sessionRepository = mock(RefreshSessionRepository.class);
         User account = new User("account", "student@example.com", "encoded", null, false);
-        UserAuthServiceImpl auth = new UserAuthServiceImpl(repository, encoder, sessionRepository, tokens, 900);
+        UserAuthServiceImpl auth = new UserAuthServiceImpl(repository, encoder, sessionRepository, registrations, tokens, 900);
         when(tokens.verify("old", "refresh")).thenReturn(new JwtTokenService.Claims("account", "session", "refresh"));
         when(tokens.hash("old")).thenReturn("old-hash");
         when(tokens.create(eq("account"), eq("session"), eq("refresh"), anyLong())).thenReturn("next");
@@ -121,7 +123,7 @@ class UserAuthServiceImplTest {
     void refreshPropagatesPersistenceFailures() {
         JwtTokenService tokens = mock(JwtTokenService.class);
         RefreshSessionRepository sessionRepository = mock(RefreshSessionRepository.class);
-        UserAuthServiceImpl auth = new UserAuthServiceImpl(repository, encoder, sessionRepository, tokens, 900);
+        UserAuthServiceImpl auth = new UserAuthServiceImpl(repository, encoder, sessionRepository, registrations, tokens, 900);
         when(tokens.verify("old", "refresh")).thenReturn(new JwtTokenService.Claims("account", "session", "refresh"));
         when(tokens.hash("old")).thenReturn("old-hash");
         when(tokens.create(eq("account"), eq("session"), eq("refresh"), anyLong())).thenReturn("next");
@@ -138,7 +140,7 @@ class UserAuthServiceImplTest {
     void lockedAccountCannotRotateRefreshSession() {
         JwtTokenService tokens = mock(JwtTokenService.class);
         RefreshSessionRepository sessionRepository = mock(RefreshSessionRepository.class);
-        UserAuthServiceImpl auth = new UserAuthServiceImpl(repository, encoder, sessionRepository, tokens, 900);
+        UserAuthServiceImpl auth = new UserAuthServiceImpl(repository, encoder, sessionRepository, registrations, tokens, 900);
         when(tokens.verify("old", "refresh")).thenReturn(new JwtTokenService.Claims("account", "session", "refresh"));
         when(sessionRepository.findBySessionId("session")).thenReturn(Optional.of(RefreshSession.builder().sessionId("session").accountId("account").expiresAt(java.time.Instant.now().plusSeconds(600)).build()));
         when(repository.findById("account")).thenReturn(Optional.of(new User("account", "student@example.com", "encoded", null, true)));

@@ -7,7 +7,7 @@ import fit.iuh.engolearn.topic.dto.response.TopicPageResponse;
 import fit.iuh.engolearn.topic.dto.response.TopicSummaryResponse;
 import fit.iuh.engolearn.topic.exception.InvalidBrowseRequestException;
 import fit.iuh.engolearn.topic.exception.TopicNotFoundException;
-import fit.iuh.engolearn.topic.service.TopicBrowseService;
+import fit.iuh.engolearn.topic.service.TopicLearnerCatalogService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
@@ -35,19 +35,24 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * the real Mongo query.
  */
 @WebMvcTest(TopicBrowseController.class)
+@org.springframework.context.annotation.Import(fit.iuh.engolearn.config.SecurityConfig.class)
 class TopicBrowseControllerTest {
+
+    @MockitoBean private fit.iuh.engolearn.shared.security.impl.JwtTokenService tokens;
+    @MockitoBean private fit.iuh.engolearn.user.repository.UserRepository users;
+    @MockitoBean private fit.iuh.engolearn.user.repository.RefreshSessionRepository sessions;
 
     @Autowired
     private MockMvc mockMvc;
 
     @MockitoBean
-    private TopicBrowseService topicBrowseService;
+    private TopicLearnerCatalogService topicBrowseService;
 
     // --- list ---------------------------------------------------------------------------
 
     @Test
     void listReturnsTheCardNumbersAndNeverExposesTheTopicDescription() throws Exception {
-        when(topicBrowseService.getAvailableTopics(any())).thenReturn(TopicPageResponse.builder()
+        when(topicBrowseService.discover(org.mockito.ArgumentMatchers.isNull(), any())).thenReturn(TopicPageResponse.builder()
                 .items(List.of(summary("t1")))
                 .nextCursor(null)
                 .hasMore(false)
@@ -71,7 +76,7 @@ class TopicBrowseControllerTest {
 
     @Test
     void listExposesTheNextCursorOnlyWhileMoreTopicsRemain() throws Exception {
-        when(topicBrowseService.getAvailableTopics(any())).thenReturn(TopicPageResponse.builder()
+        when(topicBrowseService.discover(org.mockito.ArgumentMatchers.isNull(), any())).thenReturn(TopicPageResponse.builder()
                 .items(List.of(summary("t1")))
                 .nextCursor("opaque-next-cursor")
                 .hasMore(true)
@@ -85,7 +90,7 @@ class TopicBrowseControllerTest {
 
     @Test
     void listEndsWithoutACursorWhenThereIsNoFurtherPage() throws Exception {
-        when(topicBrowseService.getAvailableTopics(any())).thenReturn(TopicPageResponse.builder()
+        when(topicBrowseService.discover(org.mockito.ArgumentMatchers.isNull(), any())).thenReturn(TopicPageResponse.builder()
                 .items(List.of(summary("t1")))
                 .nextCursor(null)
                 .hasMore(false)
@@ -101,7 +106,7 @@ class TopicBrowseControllerTest {
 
     @Test
     void detailReturnsTheItemsInTheOrderTheServiceReturnedThem() throws Exception {
-        when(topicBrowseService.getTopicDetail(any())).thenReturn(TopicDetailResponse.builder()
+        when(topicBrowseService.detail(org.mockito.ArgumentMatchers.isNull(), any())).thenReturn(TopicDetailResponse.builder()
                 .topicId("t1")
                 .titleEn("At the airport")
                 .titleVi("O san bay")
@@ -129,7 +134,7 @@ class TopicBrowseControllerTest {
 
     @Test
     void anUnknownTopicIsReportedAsNotFound() throws Exception {
-        when(topicBrowseService.getTopicDetail(any()))
+        when(topicBrowseService.detail(org.mockito.ArgumentMatchers.isNull(), any()))
                 .thenThrow(new TopicNotFoundException("Topic nope was not found"));
 
         mockMvc.perform(get("/api/v1/topics/nope"))
@@ -140,7 +145,7 @@ class TopicBrowseControllerTest {
 
     @Test
     void anUnknownLevelIsReportedAsABadRequest() throws Exception {
-        when(topicBrowseService.getAvailableTopics(any()))
+        when(topicBrowseService.discover(org.mockito.ArgumentMatchers.isNull(), any()))
                 .thenThrow(new InvalidBrowseRequestException("level is not a CEFR level: C9"));
 
         mockMvc.perform(get("/api/v1/topics").param("level", "C9"))
@@ -150,7 +155,7 @@ class TopicBrowseControllerTest {
 
     @Test
     void anOutOfRangeLimitIsReportedAsABadRequest() throws Exception {
-        when(topicBrowseService.getAvailableTopics(any()))
+        when(topicBrowseService.discover(org.mockito.ArgumentMatchers.isNull(), any()))
                 .thenThrow(new InvalidBrowseRequestException("limit must be between 1 and 100"));
 
         mockMvc.perform(get("/api/v1/topics").param("limit", "101"))
@@ -172,12 +177,12 @@ class TopicBrowseControllerTest {
 
     @Test
     void thePayloadUsesCamelCaseFieldNames() throws Exception {
-        when(topicBrowseService.getAvailableTopics(any())).thenReturn(TopicPageResponse.builder()
+        when(topicBrowseService.discover(org.mockito.ArgumentMatchers.isNull(), any())).thenReturn(TopicPageResponse.builder()
                 .items(List.of(summary("t1")))
                 .nextCursor("c")
                 .hasMore(true)
                 .build());
-        when(topicBrowseService.getTopicDetail(any())).thenReturn(TopicDetailResponse.builder()
+        when(topicBrowseService.detail(org.mockito.ArgumentMatchers.isNull(), any())).thenReturn(TopicDetailResponse.builder()
                 .topicId("t1")
                 .titleEn("At the airport")
                 .titleVi("O san bay")

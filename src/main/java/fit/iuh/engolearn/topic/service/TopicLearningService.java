@@ -9,12 +9,11 @@ import fit.iuh.engolearn.topic.dto.response.TopicItemPositionResponse;
 import fit.iuh.engolearn.topic.dto.response.TopicProgressResponse;
 
 public interface TopicLearningService {
+    TopicItemContentResponse getItemContent(String userId, GetTopicItemContentRequest request);
 
-    TopicItemContentResponse getItemContent(GetTopicItemContentRequest request);
+    TopicItemPositionResponse getItemPosition(String userId, GetTopicItemPositionRequest request);
 
-    TopicItemPositionResponse getItemPosition(GetTopicItemPositionRequest request);
+    TopicItemPositionResponse saveItemPosition(String userId, SaveTopicItemPositionRequest request);
 
-    TopicItemPositionResponse saveItemPosition(SaveTopicItemPositionRequest request);
-
-    TopicProgressResponse getTopicProgress(GetTopicProgressRequest request);
+    TopicProgressResponse getTopicProgress(String userId, GetTopicProgressRequest request);
 }

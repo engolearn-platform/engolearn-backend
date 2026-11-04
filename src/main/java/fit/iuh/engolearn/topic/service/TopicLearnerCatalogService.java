@@ -6,9 +6,9 @@ import fit.iuh.engolearn.topic.dto.response.TopicDetailResponse;
 import fit.iuh.engolearn.topic.dto.response.TopicPageResponse;
 
 public interface TopicLearnerCatalogService {
-    TopicPageResponse discover(GetAvailableTopicRequest request);
+    TopicPageResponse discover(String userId, GetAvailableTopicRequest request);
 
-    MyTopicPageResponse mine(String status, Integer requestedLimit, String cursor);
+    MyTopicPageResponse mine(String userId, String status, Integer requestedLimit, String cursor);
 
-    TopicDetailResponse detail(String topicId);
+    TopicDetailResponse detail(String userId, String topicId);
 }
