@@ -21,8 +21,11 @@ engolearn:
   mongodb:
     server-selection-timeout-ms: 2000
   security:
-    dev-auth:
-      enabled: false
+    jwt:
+      secret: ${AUTH_JWT_SECRET}
+      issuer: ${AUTH_JWT_ISSUER:engolearn}
+    cookies:
+      secure: ${AUTH_COOKIE_SECURE:false}
 
 
   topic:
