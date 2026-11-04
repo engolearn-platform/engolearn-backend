@@ -60,6 +60,7 @@ A new dependency needs an explicit reason and approval. Keep this table in sync 
 | `subscription` | `payment.contract` for the approved future purchase/refund command and result contracts; no current production consumer |
 | `quota` | `subscription.contract` (effective entitlements and Subscription-owned facts; current after-commit delivery, durable delivery is the agreed target) |
 | `payment` | None; must never depend on Subscription |
+| `speaking` | `topic` |
 
 The delivered M3 preparation adds only two `payment.contract` records. Subscription owns the
 future result consumer and imports Payment-owned command/result types; commands can belong

@@ -2,6 +2,10 @@ package fit.iuh.engolearn.config;
 
 import fit.iuh.engolearn.learningpath.controller.LearningPathController;
 import fit.iuh.engolearn.learningpath.service.LearningPathService;
+import fit.iuh.engolearn.learningpath.service.LearningPathRecommendationService;
+import fit.iuh.engolearn.learningpath.service.LearningPathCreationService;
+import fit.iuh.engolearn.learningpath.service.LearningPathDayPracticeService;
+import fit.iuh.engolearn.learningpath.service.LearningPathAnswerDraftService;
 import fit.iuh.engolearn.shared.security.impl.SecurityContextCurrentUserProvider;
 import fit.iuh.engolearn.topic.controller.TopicBrowseController;
 import fit.iuh.engolearn.topic.controller.TopicLearningController;
@@ -9,6 +13,11 @@ import fit.iuh.engolearn.topic.service.TopicBrowseService;
 import fit.iuh.engolearn.topic.service.TopicLearningService;
 import fit.iuh.engolearn.user.controller.AuthController;
 import fit.iuh.engolearn.user.service.UserAuthService;
+import fit.iuh.engolearn.shared.enums.UserRole;
+import fit.iuh.engolearn.shared.security.impl.JwtTokenService;
+import fit.iuh.engolearn.user.model.RefreshSession;
+import fit.iuh.engolearn.user.model.User;
+import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
@@ -21,8 +30,11 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
+import java.time.Instant;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.options;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -38,12 +50,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         AuthController.class
 })
 @Import({SecurityConfig.class, SecurityContextCurrentUserProvider.class})
-@TestPropertySource(properties = "engolearn.security.dev-auth.enabled=true")
+@TestPropertySource(properties = "engolearn.speaking.demo.enabled=true")
 class SecurityIntegrationTest {
 
-    private static final String DEV_USER = "dev-user";
-    private static final String DEV_CM = "dev-cm";
-    private static final String DEV_ADMIN = "dev-admin";
+    private static final String USER_ID = "68f8f3a9b9e4a12345678901";
 
     @Autowired
     private MockMvc mockMvc;
@@ -69,7 +79,7 @@ class SecurityIntegrationTest {
     @MockitoBean private fit.iuh.engolearn.learningpath.service.LearningPathDaySubmissionService submissionService;
     @MockitoBean private fit.iuh.engolearn.learningpath.service.LearningPathDayResultService dayResultService;
     @MockitoBean private UserAuthService userAuthService;
-    @MockitoBean private fit.iuh.engolearn.shared.security.impl.JwtTokenService jwtTokenService;
+    @MockitoBean private JwtTokenService jwtTokenService;
     @MockitoBean private fit.iuh.engolearn.user.repository.UserRepository userRepository;
     @MockitoBean private fit.iuh.engolearn.user.repository.RefreshSessionRepository refreshSessionRepository;
 
@@ -143,39 +153,46 @@ class SecurityIntegrationTest {
     }
 
     @Test
-    void eachDevFixtureUserIsAuthenticatedOnTheCurrentUserEndpoint() throws Exception {
-        mockMvc.perform(get("/api/v1/auth/me").header("X-Dev-User-Id", DEV_USER))
+    void validAccessCookieAuthenticatesTheCurrentUser() throws Exception {
+        stubAccessCookie(UserRole.USER);
+        mockMvc.perform(get("/api/v1/auth/me").cookie(new Cookie("ACCESS_TOKEN", "valid-token")))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.id").value("68f8f3a9b9e4a12345678901"))
-                .andExpect(jsonPath("$.data.email").value("dev.user@engolearn.local"))
+                .andExpect(jsonPath("$.data.id").value(USER_ID))
+                .andExpect(jsonPath("$.data.email").value("learner@engolearn.local"))
                 .andExpect(jsonPath("$.data.role").value("USER"));
-
-        mockMvc.perform(get("/api/v1/auth/me").header("X-Dev-User-Id", DEV_CM))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.id").value("68f8f3a9b9e4a12345678902"))
-                .andExpect(jsonPath("$.data.email").value("dev.cm@engolearn.local"))
-                .andExpect(jsonPath("$.data.role").value("CONTENT_MANAGER"));
-
-        mockMvc.perform(get("/api/v1/auth/me").header("X-Dev-User-Id", DEV_ADMIN))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.id").value("68f8f3a9b9e4a12345678903"))
-                .andExpect(jsonPath("$.data.email").value("dev.admin@engolearn.local"))
-                .andExpect(jsonPath("$.data.role").value("ADMIN"));
     }
 
     @Test
-    void anUnknownDevUserHeaderLeavesTheRequestAnonymous() throws Exception {
-        mockMvc.perform(get("/api/v1/auth/me").header("X-Dev-User-Id", "not-a-fixture"))
+    void devUserHeaderCannotAuthenticateTheCurrentUser() throws Exception {
+        mockMvc.perform(get("/api/v1/auth/me").header("X-Dev-User-Id", "dev-admin"))
                 .andExpect(status().isUnauthorized());
     }
 
     @Test
+    void anonymousSpeakingRequestRequiresTheSharedSession() throws Exception {
+        mockMvc.perform(get("/api/v1/speaking/sessions/current"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("AUTHENTICATION_REQUIRED"));
+    }
+
+    @Test
     void aClientSuppliedRoleHeaderIsIgnored() throws Exception {
+        stubAccessCookie(UserRole.USER);
         mockMvc.perform(get("/api/v1/auth/me")
-                        .header("X-Dev-User-Id", DEV_USER)
+                        .cookie(new Cookie("ACCESS_TOKEN", "valid-token"))
                         .header("X-Dev-User-Role", "ADMIN"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.role").value("USER"));
+    }
+
+    private void stubAccessCookie(UserRole role) {
+        when(jwtTokenService.verify("valid-token", "access"))
+                .thenReturn(new JwtTokenService.Claims(USER_ID, "session-1", "access"));
+        when(refreshSessionRepository.findBySessionId("session-1")).thenReturn(Optional.of(
+                RefreshSession.builder().sessionId("session-1").accountId(USER_ID)
+                        .expiresAt(Instant.now().plusSeconds(3600)).build()));
+        when(userRepository.findById(USER_ID)).thenReturn(Optional.of(
+                new User(USER_ID, "learner@engolearn.local", "unused", role, false)));
     }
 
     @Test

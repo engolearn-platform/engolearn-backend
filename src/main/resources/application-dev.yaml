@@ -12,3 +12,6 @@ engolearn:
   mongodb:
     transactions:
       enabled: true
+  speaking:
+    demo:
+      enabled: true

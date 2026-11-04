@@ -4,6 +4,8 @@ import fit.iuh.engolearn.topic.service.*;
 import lombok.RequiredArgsConstructor;
 
 import fit.iuh.engolearn.shared.enums.CefrLevel;
+import fit.iuh.engolearn.topic.contract.SpeakingItemLookup;
+import fit.iuh.engolearn.topic.contract.dto.SpeakingItemDto;
 import fit.iuh.engolearn.topic.dto.request.GetTopicItemContentRequest;
 import fit.iuh.engolearn.topic.dto.request.GetTopicItemPositionRequest;
 import fit.iuh.engolearn.topic.dto.request.GetTopicProgressRequest;
@@ -55,7 +57,7 @@ import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
-public class TopicLearningServiceImpl implements TopicLearningService {
+public class TopicLearningServiceImpl implements TopicLearningService, SpeakingItemLookup {
 
     private static final Comparator<TopicItemVersion> ITEM_ORDER =
             Comparator.comparing(TopicItemVersion::getOrder, Comparator.nullsLast(Comparator.naturalOrder()))
@@ -79,6 +81,36 @@ public class TopicLearningServiceImpl implements TopicLearningService {
     private final TopicGenerationService generations;
 
     // --- content -----------------------------------------------------------------------
+
+    @Override
+    public Optional<SpeakingItemDto> findOpenableItem(String itemId, String learnerId) {
+        try {
+            ItemContext item = resolvePublishedItem(itemId);
+            UserTopicItemAttempt attempt = findActiveItemAttempt(learnerId, itemId, item.generation());
+            UserTopicItemProgress progress = findItemProgress(learnerId, itemId, item.generation());
+            if (attempt == null && progress == null) {
+                requireLevelAllowed(item.topic());
+                requirePredecessorsCompleted(learnerId, item, itemId);
+            }
+            TopicItemVersion version = resolveLearningVersion(item, attempt);
+            List<String> vocabulary = version.getVocabularies() == null ? List.of()
+                    : version.getVocabularies().stream()
+                    .filter(word -> word.getSnapshot() != null && word.getSnapshot().getWord() != null)
+                    .map(word -> word.getSnapshot().getWord()).toList();
+            List<String> expressions = version.getExpressions() == null ? List.of()
+                    : version.getExpressions().stream()
+                    .filter(block -> block.getPurposes() != null)
+                    .flatMap(block -> block.getPurposes().stream())
+                    .filter(purpose -> purpose.getExamples() != null)
+                    .flatMap(purpose -> purpose.getExamples().stream())
+                    .map(example -> example.getTextEn())
+                    .filter(text -> text != null && !text.isBlank()).toList();
+            return Optional.of(new SpeakingItemDto(itemId, version.getId(), version.getTitle(),
+                    version.getDescription(), vocabulary, expressions));
+        } catch (TopicItemNotFoundException | TopicNotFoundException | LearningPreconditionFailedException ex) {
+            return Optional.empty();
+        }
+    }
 
     @Override
     public TopicItemContentResponse getItemContent(GetTopicItemContentRequest request) {

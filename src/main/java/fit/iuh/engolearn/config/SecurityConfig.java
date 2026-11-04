@@ -4,6 +4,7 @@ package fit.iuh.engolearn.config;
 import fit.iuh.engolearn.user.infra.security.AccessCookieAuthFilter;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
@@ -38,6 +39,14 @@ public class SecurityConfig {
     private String allowedOrigins;
 
     @Bean
+    public FilterRegistrationBean<AccessCookieAuthFilter> accessCookieAuthFilterRegistration(
+            AccessCookieAuthFilter filter) {
+        FilterRegistrationBean<AccessCookieAuthFilter> registration = new FilterRegistrationBean<>(filter);
+        registration.setEnabled(false);
+        return registration;
+    }
+
+    @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http,
                                                    Environment environment,
                                                    AccessCookieAuthFilter accessCookieAuthFilter,
@@ -57,6 +66,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/v1/auth/register", "/api/v1/auth/login", "/api/v1/auth/refresh", "/api/v1/auth/logout").permitAll()
                         .requestMatchers("/api/v1/subscription/admin", "/api/v1/subscription/admin/**").hasRole("ADMIN")
                         .requestMatchers("/api/v1/subscription/me", "/api/v1/subscription/me/**", "/api/v1/quota/me/**").authenticated()
+                        .requestMatchers("/api/v1/speaking/**").authenticated()
                         .anyRequest().permitAll()
                 );
 
@@ -99,7 +109,8 @@ public class SecurityConfig {
         ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(status,
                 exception.getMessage() == null ? status.getReasonPhrase() : exception.getMessage());
         problemDetail.setType(URI.create("about:blank"));
-        if (path.startsWith("/api/v1/subscription/") || path.startsWith("/api/v1/quota/") || path.startsWith("/api/v1/auth/")) {
+        if (path.startsWith("/api/v1/subscription/") || path.startsWith("/api/v1/quota/")
+                || path.startsWith("/api/v1/auth/") || path.startsWith("/api/v1/speaking/")) {
             problemDetail.setDetail(status == HttpStatus.UNAUTHORIZED ? "Authentication is required" : "Access is denied");
             problemDetail.setInstance(URI.create(path));
             problemDetail.setProperty("code", status == HttpStatus.UNAUTHORIZED ? "AUTHENTICATION_REQUIRED" : "ACCESS_DENIED");

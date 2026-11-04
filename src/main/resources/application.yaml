@@ -26,6 +26,24 @@ engolearn:
       issuer: ${AUTH_JWT_ISSUER:engolearn}
     cookies:
       secure: ${AUTH_COOKIE_SECURE:false}
+  media:
+    cloudinary:
+      url: ${CLOUDINARY_URL:}
+      cloud-name: ${CLOUDINARY_CLOUD_NAME:}
+      api-key: ${CLOUDINARY_API_KEY:}
+      api-secret: ${CLOUDINARY_API_SECRET:}
+  speaking:
+    demo:
+      manager:
+        enabled: true
+    assemblyai:
+      api-key: ${ASSEMBLYAI_API_KEY:}
+    gemini:
+      api-key: ${GEMINI_API_KEY:}
+    cartesia:
+      api-key: ${CARTESIA_API_KEY:}
+      voice: ${CARTESIA_VOICE_ID:db6b0ed5-d5d3-463d-ae85-518a07d3c2b4}
+    dev-seed-file: ${SPEAKING_DEV_SEED_FILE:}
 
 
   topic:
