@@ -83,10 +83,7 @@ class LearningPathLifecycleEngineTest {
 
     @Test
     void submittingLastFullyAnsweredDayCompletesWeekThreeImmediately() {
-        LearningPath path = path("2026-10-01", "2026-10-07");
-        engine.advance(path, midnight("2026-10-08"));
-        engine.advance(path, midnight("2026-10-15"));
-        path.setStatus(LearningPathStatus.IN_PROGRESS);
+        LearningPath path = pathWithOpenWeekThree();
         LearningPathDay day = path.getWeeks().get(2).getDays().getFirst();
         day.setStatus(LearningPathDayStatus.IN_PROGRESS);
         day.setAutoCloseAt(Date.from(midnight("2026-10-16")));
@@ -98,9 +95,66 @@ class LearningPathLifecycleEngineTest {
         Instant now = Instant.parse("2026-10-15T03:00:00Z");
         engine.submit(path, 2, 0, now, Map.of());
         assertThat(path.getStatus()).isEqualTo(LearningPathStatus.COMPLETED);
-        assertThat(path.getWeeks().get(2).getCloseReason().name()).isEqualTo("ALL_ANSWERED");
+        assertThat(path.getWeeks().get(2).getCloseReason().name()).isEqualTo("ALL_DAYS_DONE");
         assertThat(path.getEndedAt()).isEqualTo(Date.from(now));
         assertThat(path.getSummary()).isNotNull();
+    }
+
+    @Test
+    void weekThreeWaitsForEveryDayEvenWhenTheHighestNumberedDayIsSubmittedFirst() {
+        LearningPath path = pathWithOpenWeekThree();
+        LearningPathWeek week = path.getWeeks().get(2);
+        LearningPathDay first = week.getDays().getFirst();
+        LearningPathDay second = practiceDay(2);
+        second.setStatus(LearningPathDayStatus.IN_PROGRESS);
+        week.setDays(List.of(first, second));
+        Instant now = Instant.parse("2026-10-15T03:00:00Z");
+
+        engine.submit(path, 2, 1, now, Map.of());
+
+        assertThat(week.getStatus()).isEqualTo(LearningPathWeekStatus.OPEN);
+        assertThat(first.getStatus()).isEqualTo(LearningPathDayStatus.NOT_STARTED);
+
+        first.setStatus(LearningPathDayStatus.IN_PROGRESS);
+        var lastQuestion = first.getItems().getLast();
+        lastQuestion.setQuestionId("q-10");
+        LearningPathDraft draft = new LearningPathDraft();
+        draft.setSelectedOptionId("A");
+        draft.setSavedAt(Date.from(now));
+        lastQuestion.setDraft(draft);
+
+        engine.submit(path, 2, 0, now.plusSeconds(1), Map.of("q-10", "A"));
+
+        assertThat(first.getStatus()).isEqualTo(LearningPathDayStatus.SUBMITTED);
+        assertThat(second.getStatus()).isEqualTo(LearningPathDayStatus.SUBMITTED);
+        assertThat(week.getStats().getOverall().getAnswered()).isEqualTo(1);
+        assertThat(path.getStatus()).isEqualTo(LearningPathStatus.COMPLETED);
+        assertThat(path.getEndedAt()).isEqualTo(Date.from(now.plusSeconds(1)));
+    }
+
+    @Test
+    void lastWeekThreeDayAutoClosingAtMidnightCompletesThePath() {
+        LearningPath path = pathWithOpenWeekThree();
+        LearningPathWeek week = path.getWeeks().get(2);
+        LearningPathDay day = week.getDays().getFirst();
+        Instant dayDeadline = midnight("2026-10-16");
+        day.setStatus(LearningPathDayStatus.IN_PROGRESS);
+        day.setAutoCloseAt(Date.from(dayDeadline));
+        var question = day.getItems().getFirst();
+        question.setQuestionId("q-1");
+        LearningPathDraft draft = new LearningPathDraft();
+        draft.setSelectedOptionId("B");
+        draft.setSavedAt(Date.from(dayDeadline.minusSeconds(1)));
+        question.setDraft(draft);
+
+        var changes = engine.advance(path, dayDeadline.plusSeconds(30), Map.of("q-1", "A"));
+
+        assertThat(day.getStatus()).isEqualTo(LearningPathDayStatus.CLOSED);
+        assertThat(week.getCloseReason().name()).isEqualTo("ALL_DAYS_DONE");
+        assertThat(path.getStatus()).isEqualTo(LearningPathStatus.COMPLETED);
+        assertThat(path.getEndedAt()).isEqualTo(Date.from(dayDeadline));
+        assertThat(path.getSummary().getCompletion().getAnswered()).isEqualTo(1);
+        assertThat(changes).containsEntry("next_run_at", null);
     }
 
     @Test
@@ -254,6 +308,14 @@ class LearningPathLifecycleEngineTest {
         assertThat(path.getProgress().getAnswered()).isEqualTo(1);
     }
 
+    private LearningPath pathWithOpenWeekThree() {
+        LearningPath path = path("2026-10-01", "2026-10-07");
+        engine.advance(path, midnight("2026-10-08"));
+        engine.advance(path, midnight("2026-10-15"));
+        path.setStatus(LearningPathStatus.IN_PROGRESS);
+        return path;
+    }
+
     private LearningPath path(String createdDate, String anchorDate) {
         LearningPath path = new LearningPath();
         path.setCreatedDate(createdDate);
@@ -290,22 +352,26 @@ class LearningPathLifecycleEngineTest {
                 week.setCloseAt(Date.from(LocalDate.parse(createdDate).plusDays(7)
                         .atStartOfDay(LearningPathLifecycleEngine.ZONE).toInstant()));
             }
-            LearningPathDay day = new LearningPathDay();
-            day.setDayNo(1);
-            day.setStatus(LearningPathDayStatus.NOT_STARTED);
-            day.setItems(new ArrayList<>());
-            for (int order = 1; order <= 10; order++) {
-                LearningPathDayItem item = new LearningPathDayItem();
-                item.setOrder(order);
-                item.setMicroSkill("Reading for Gist");
-                day.getItems().add(item);
-            }
-            week.setDays(List.of(day));
+            week.setDays(List.of(practiceDay(1)));
             weeks.add(week);
         }
         path.setWeeks(weeks);
         path.setNextRunAt(weeks.get(0).getCloseAt());
         return path;
+    }
+
+    private LearningPathDay practiceDay(int dayNo) {
+        LearningPathDay day = new LearningPathDay();
+        day.setDayNo(dayNo);
+        day.setStatus(LearningPathDayStatus.NOT_STARTED);
+        day.setItems(new ArrayList<>());
+        for (int order = 1; order <= 10; order++) {
+            LearningPathDayItem item = new LearningPathDayItem();
+            item.setOrder(order);
+            item.setMicroSkill("Reading for Gist");
+            day.getItems().add(item);
+        }
+        return day;
     }
 
     private void startFirstDay(LearningPath path, String date, int answered, int correct) {

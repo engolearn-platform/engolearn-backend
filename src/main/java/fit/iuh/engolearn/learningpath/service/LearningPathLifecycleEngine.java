@@ -54,10 +54,8 @@ final class LearningPathLifecycleEngine {
         LearningPathDayStatus submittedStatus = complete ? LearningPathDayStatus.COMPLETED : LearningPathDayStatus.SUBMITTED;
         day.setStatus(submittedStatus);
         changes.put("weeks." + weekIndex + ".days." + dayIndex + ".status", submittedStatus.name());
-        if (week.getWeekNo() == 3 && week.getDays().stream().allMatch(d ->
-                d.getItems() != null && !d.getItems().isEmpty()
-                        && d.getItems().stream().allMatch(item -> item.getAnswer() != null))) {
-            closeWeek(path, week, weekIndex, now, answerKeys, changes, LearningPathWeekCloseReason.ALL_ANSWERED);
+        if (week.getWeekNo() == 3 && allDaysFinished(week)) {
+            closeWeek(path, week, weekIndex, now, answerKeys, changes);
         }
         Instant next = Boolean.TRUE.equals(path.getActive()) ? nextEvent(path, openWeek(path)) : null;
         changes.put("next_run_at", next == null ? null : Date.from(next));
@@ -78,17 +76,20 @@ final class LearningPathLifecycleEngine {
         }
 
         int weekIndex = path.getWeeks().indexOf(week);
+        boolean closedDay = false;
         for (int dayIndex = 0; dayIndex < week.getDays().size(); dayIndex++) {
             LearningPathDay day = week.getDays().get(dayIndex);
             if (LearningPathDayStatus.IN_PROGRESS == day.getStatus() && day.getAutoCloseAt() != null
                     && !day.getAutoCloseAt().toInstant().isAfter(eventAt)) {
                 closeDay(path, week, day, dayIndex, weekIndex,
                         day.getAutoCloseAt().toInstant(), LearningPathDayCloseReason.MIDNIGHT, answerKeys, changes);
+                closedDay = true;
             }
         }
 
         Instant weekDue = weekDeadline(week);
-        if (weekDue != null && !weekDue.isAfter(eventAt)) {
+        if ((weekDue != null && !weekDue.isAfter(eventAt))
+                || (closedDay && week.getWeekNo() == 3 && allDaysFinished(week))) {
             closeWeek(path, week, weekIndex, eventAt, answerKeys, changes);
         }
 
@@ -137,9 +138,7 @@ final class LearningPathLifecycleEngine {
 
     private Instant weekDeadline(LearningPathWeek week) {
         Instant deadline = week.getCloseAt() == null ? null : week.getCloseAt().toInstant();
-        if (week.getWeekNo() != null && week.getWeekNo() < 3 && week.getDays() != null
-                && !week.getDays().isEmpty()
-                && week.getDays().stream().allMatch(this::isTerminalDay)) {
+        if (week.getWeekNo() != null && week.getWeekNo() < 3 && allDaysFinished(week)) {
             Instant lastClosed = week.getDays().stream()
                     .map(LearningPathDay::getClosedAt)
                     .filter(date -> date != null)
@@ -151,6 +150,11 @@ final class LearningPathLifecycleEngine {
             }
         }
         return deadline;
+    }
+
+    private boolean allDaysFinished(LearningPathWeek week) {
+        return week.getDays() != null && !week.getDays().isEmpty()
+                && week.getDays().stream().allMatch(this::isTerminalDay);
     }
 
     private boolean isTerminalDay(LearningPathDay day) {
@@ -259,12 +263,6 @@ final class LearningPathLifecycleEngine {
     private void closeWeek(LearningPath path, LearningPathWeek week, int weekIndex,
                            Instant at, Map<String, String> answerKeys,
                            Map<String, Object> changes) {
-        closeWeek(path, week, weekIndex, at, answerKeys, changes, null);
-    }
-
-    private void closeWeek(LearningPath path, LearningPathWeek week, int weekIndex,
-                           Instant at, Map<String, String> answerKeys,
-                           Map<String, Object> changes, LearningPathWeekCloseReason forcedReason) {
         for (int dayIndex = 0; dayIndex < week.getDays().size(); dayIndex++) {
             LearningPathDay day = week.getDays().get(dayIndex);
             if (!isTerminalDay(day)) {
@@ -276,7 +274,7 @@ final class LearningPathLifecycleEngine {
         }
 
         String prefix = "weeks." + weekIndex + ".";
-        LearningPathWeekCloseReason reason = forcedReason != null ? forcedReason : week.getCloseAt() != null && !week.getCloseAt().toInstant().isAfter(at)
+        LearningPathWeekCloseReason reason = week.getCloseAt() != null && !week.getCloseAt().toInstant().isAfter(at)
                 ? LearningPathWeekCloseReason.TIME_UP : LearningPathWeekCloseReason.ALL_DAYS_DONE;
         LearningPathWeekStats stats = weekStats(path, week, weekIndex);
         week.setStatus(LearningPathWeekStatus.CLOSED);

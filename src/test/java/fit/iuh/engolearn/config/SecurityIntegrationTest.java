@@ -8,6 +8,7 @@ import fit.iuh.engolearn.topic.controller.TopicLearningController;
 import fit.iuh.engolearn.topic.service.TopicBrowseService;
 import fit.iuh.engolearn.topic.service.TopicLearningService;
 import fit.iuh.engolearn.user.controller.AuthController;
+import fit.iuh.engolearn.user.service.UserAuthService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
@@ -24,6 +25,7 @@ import org.springframework.mock.web.MockHttpServletResponse;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.options;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -65,6 +67,11 @@ class SecurityIntegrationTest {
     @MockitoBean private fit.iuh.engolearn.learningpath.service.LearningPathDayPracticeService dayPracticeService;
     @MockitoBean private fit.iuh.engolearn.learningpath.service.LearningPathAnswerDraftService answerDraftService;
     @MockitoBean private fit.iuh.engolearn.learningpath.service.LearningPathDaySubmissionService submissionService;
+    @MockitoBean private fit.iuh.engolearn.learningpath.service.LearningPathDayResultService dayResultService;
+    @MockitoBean private UserAuthService userAuthService;
+    @MockitoBean private fit.iuh.engolearn.shared.security.impl.JwtTokenService jwtTokenService;
+    @MockitoBean private fit.iuh.engolearn.user.repository.UserRepository userRepository;
+    @MockitoBean private fit.iuh.engolearn.user.repository.RefreshSessionRepository refreshSessionRepository;
 
     @Test
     void legacyFeatureEndpointsStayUnprotectedUntilMigration() throws Exception {
@@ -99,6 +106,31 @@ class SecurityIntegrationTest {
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
                 .andExpect(jsonPath("$.status").value(401))
                 .andExpect(jsonPath("$.detail").exists());
+    }
+
+    @Test
+    void authMutationsDoNotRequireCsrfToken() throws Exception {
+        mockMvc.perform(post("/api/v1/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isBadRequest());
+
+        mockMvc.perform(post("/api/v1/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isBadRequest());
+
+        mockMvc.perform(post("/api/v1/auth/refresh"))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(post("/api/v1/auth/logout"))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void csrfEndpointIsRemoved() throws Exception {
+        mockMvc.perform(get("/api/v1/auth/csrf"))
+                .andExpect(status().isNotFound());
     }
 
     @Test
