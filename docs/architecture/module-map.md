@@ -2,7 +2,7 @@
 
 | Package | Owns | Boundary |
 | --- | --- | --- |
-| `user` | User accounts, authentication and profile capabilities | Public `user.contract`; [auth reference](../features/user-auth.md) |
+| `user` | User accounts, authentication and profile capabilities | Public `user.contract`; [auth reference](../runbooks/user-auth.md) |
 | `dictionary` | Vocabulary and senses | Public lookup contract used by Topic |
 | `topic` | Topic authoring, learner progress and quiz/practice | Uses Dictionary and User contracts; [attempts/quiz](../technical/topic/quiz-api-handoff.md), [completion](../technical/topic/completion-api-handoff.md), [retry/reset](../technical/topic/retry-api-handoff.md) |
 | `learningpath` | Learning-path selection, day practice and lifecycle | [List API](../learning-path-list-api.md), [day practice](../learning-path-day-practice-api.md), [lifecycle job](../learning-path-lifecycle-job.md); legacy dependency gaps remain subject to architecture policy |

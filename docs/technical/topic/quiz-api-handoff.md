@@ -2,7 +2,7 @@
 
 This page owns the attempt/quiz behavior needed to maintain Topic. See [completion](completion-api-handoff.md) and [retry/reset](retry-api-handoff.md) for the rest of the lifecycle. Detailed consumer schemas live in the [frontend OpenAPI](../../../../engolearn-frontend/docs/handout/topic-learning/api.openapi.yaml); check actual [controllers](../../../src/main/java/fit/iuh/engolearn/topic/controller), DTOs and services before changing the contract. Older schema examples may describe superseded behavior.
 
-Topic learning uses authenticated account identity and persisted CEFR level through `user.contract.UserLevelLookup`; it does not use local-profile selection or a default learner. Only catalog/detail GETs are public; learner operations require USER, CONTENT_MANAGER or ADMIN. Missing profiles fail explicitly. See [authentication and profile setup](../../features/user-auth.md).
+Topic learning uses authenticated account identity and persisted CEFR level through `user.contract.UserLevelLookup`; it does not use local-profile selection or a default learner. Only catalog/detail GETs are public; learner operations require USER, CONTENT_MANAGER or ADMIN. Missing profiles fail explicitly. See [authentication and profile setup](../../runbooks/user-auth.md).
 
 ## Attempt lifecycle and HTTP
 
