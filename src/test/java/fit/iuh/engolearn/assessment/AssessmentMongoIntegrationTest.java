@@ -34,13 +34,15 @@ import static org.assertj.core.api.Assertions.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@SpringBootTest(properties={"engolearn.assessment.expiry-delay-ms=3600000","engolearn.subscription.activation-delay-ms=3600000","engolearn.mongodb.bootstrap.enabled=false","spring.mongodb.username=","spring.mongodb.password="})
+@SpringBootTest(properties={"engolearn.security.jwt.secret=isolated-assessment-test-secret-at-least-32-bytes", "engolearn.security.cookies.secure=false", "engolearn.messaging.enabled=false", "engolearn.assessment.expiry-delay-ms=3600000","engolearn.subscription.activation-delay-ms=3600000","engolearn.mongodb.bootstrap.enabled=false","spring.mongodb.username=","spring.mongodb.password="})
 @AutoConfigureMockMvc
 @ActiveProfiles("dev")
 @Import(AssessmentMongoIntegrationTest.TimeConfiguration.class)
 @EnabledIfEnvironmentVariable(named="ASSESSMENT_TEST_MONGO_URI",matches=".+")
 class AssessmentMongoIntegrationTest {
-    static final String USER="68f8f3a9b9e4a12345678901";
+    String USER;
+    jakarta.servlet.http.Cookie userCookie;
+    jakarta.servlet.http.Cookie otherCookie;
     static final Instant START=Instant.parse("2026-10-30T00:00:00Z");
     static final Path MEDIA=Path.of(System.getProperty("java.io.tmpdir"),"engolearn-assessment-test-media");
     @DynamicPropertySource static void properties(DynamicPropertyRegistry r) {
@@ -62,26 +64,50 @@ class AssessmentMongoIntegrationTest {
     @Autowired AssessmentGrantRevocation revocations;
     @Autowired SubscriptionPublicationService publications;
     @Autowired SubscriptionService subscriptions;
+    @Autowired fit.iuh.engolearn.shared.messaging.DurableMessageDispatcher dispatcher;
     @Autowired QuotaAvailability quota;
     @Autowired ObjectMapper mapper;
     @Autowired MockMvc mvc;
     String binding;
+    AssessmentPaper legacyPaper;
     @BeforeEach void setup() throws Exception {
         assertThat(mongo.getDb().getName()).isEqualTo("engolearn_pfc_test");
         for(String collection:mongo.getCollectionNames()) if(collection.startsWith("assessment_")||collection.startsWith("quota_")||collection.startsWith("subscription_")) mongo.remove(new Query(),collection);
         clock.at=START;binding=UUID.randomUUID().toString();
-        publications.publish(mapper.readValue(Files.readString(Path.of("tools/subscription/dev-main-manifest.json")),PublicationManifestRequest.class));
+        var registered = mvc.perform(post("/api/v1/auth/register").contentType("application/json")
+                .content("{\"email\":\"pfc-" + UUID.randomUUID() + "@example.test\",\"password\":\"Isolated-test-123!\"}"))
+                .andExpect(status().isCreated()).andReturn().getResponse();
+        USER = mapper.readTree(registered.getContentAsString()).path("data").path("id").asString();
+        userCookie = registered.getCookie("ACCESS_TOKEN");
+        var other = mvc.perform(post("/api/v1/auth/register").contentType("application/json")
+                .content("{\"email\":\"other-" + UUID.randomUUID() + "@example.test\",\"password\":\"Isolated-test-123!\"}"))
+                .andExpect(status().isCreated()).andReturn().getResponse();
+        otherCookie = other.getCookie("ACCESS_TOKEN");
+        var manifest = mapper.readValue(Files.readString(Path.of("tools/subscription/dev-main-manifest.json")),PublicationManifestRequest.class);
+        publications.publish(new PublicationManifestRequest(manifest.manifestId(), manifest.environment(), manifest.plans(), manifest.policies(),
+                List.of(new PublicationManifestRequest.AccountHistoryRequest(USER, false, "NEW_ACCOUNT"))));
         Files.createDirectories(MEDIA);
         var format=new AudioFormat(16000,16,1,true,false);
         Path audio=MEDIA.resolve("sound-check.wav");
         try(var input=new AudioInputStream(new ByteArrayInputStream(new byte[3200]),format,1600)) {AudioSystem.write(input,AudioFileFormat.Type.WAVE,audio.toFile());}
         String digest=HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(Files.readAllBytes(audio)));
         for(int i=14;i<26;i++) Files.copy(audio,MEDIA.resolve("unit"+i+".wav"),StandardCopyOption.REPLACE_EXISTING);
-        mongo.save(AssessmentTestPaper.paper("paper-1","series-1",digest));
+        legacyPaper = AssessmentTestPaper.paper("paper-1","series-1",digest);
+        var modern = AssessmentTestPaper.modernPaper();
+        modern.getUnits().stream().filter(u -> u.getAudioPath() != null).forEach(u -> u.setAudioSha256(digest));
+        mongo.save(modern);
         mongo.getCollection("assessment_dev_baselines").insertOne(new Document("_id",USER).append("valid",true).append("level","A2"));
     }
     AssessmentStartRequest command(){return new AssessmentStartRequest(UUID.randomUUID().toString(),binding,true,true);}
-    AssessmentStateResponse start(){return service.start(USER,command());}
+    AssessmentStateResponse start(){
+        var started = service.start(USER,command());
+        // Import a pre-upgrade active snapshot to retain the legacy regression journey.
+        var existing = store.attempt(started.id(),USER);
+        existing.setPaper(fit.iuh.engolearn.assessment.mapper.AssessmentMapper.snapshot(legacyPaper));
+        AssessmentTimeline.open(existing,0,clock.instant());
+        store.save(existing);
+        return service.state(USER,started.id(),binding);
+    }
     AssessmentAnswerRequest answer(int q,long sequence,Integer choice){return new AssessmentAnswerRequest(q,sequence,choice,UUID.randomUUID().toString());}
     AssessmentStateResponse save(AssessmentStateResponse a,int q,long sequence,Integer choice){return service.answer(USER,a.id(),binding,answer(q,sequence,choice),false);}
     long remaining(){return quota.checkAvailability(USER,"PROFICIENCY_CHECK_ATTEMPT").remaining();}
@@ -197,11 +223,11 @@ class AssessmentMongoIntegrationTest {
         String path="/api/v1/assessment/attempts/"+a.id()+"/finish-stage";
         String body=mapper.writeValueAsString(new AssessmentFinishStageRequest(10,"READING_PREVIEW",UUID.randomUUID().toString()));
         mvc.perform(post(path).contentType("application/json").content(body)).andExpect(status().isUnauthorized());
-        mvc.perform(post(path).header("X-Dev-User-Id","dev-admin").header("X-Assessment-Binding",binding).contentType("application/json").content(body)).andExpect(status().isNotFound());
-        mvc.perform(post(path).header("X-Dev-User-Id","dev-user").header("X-Assessment-Binding",UUID.randomUUID()).contentType("application/json").content(body)).andExpect(status().isConflict());
-        for(String invalid:List.of(body.replace("READING_PREVIEW","LISTENING_LEAD"),body.replace("10","24"),body.replace("10","10.5"),"{}"))
-            mvc.perform(post(path).header("X-Dev-User-Id","dev-user").header("X-Assessment-Binding",binding).contentType("application/json").content(invalid)).andExpect(status().isBadRequest());
-        mvc.perform(post(path).header("X-Dev-User-Id","dev-user").header("X-Assessment-Binding",binding).contentType("application/json").content(body))
+        mvc.perform(post(path).cookie(otherCookie).header("X-Assessment-Binding",binding).contentType("application/json").content(body)).andExpect(status().isNotFound());
+        mvc.perform(post(path).cookie(userCookie).header("X-Assessment-Binding",UUID.randomUUID()).contentType("application/json").content(body)).andExpect(status().isConflict());
+        for(String invalid:List.of(body.replace("READING_PREVIEW","LISTENING_LEAD"),body.replace("10","26"),body.replace("10","10.5"),"{}"))
+            mvc.perform(post(path).cookie(userCookie).header("X-Assessment-Binding",binding).contentType("application/json").content(invalid)).andExpect(status().isBadRequest());
+        mvc.perform(post(path).cookie(userCookie).header("X-Assessment-Binding",binding).contentType("application/json").content(body))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.data.phase").value("ANSWER")).andExpect(jsonPath("$.data.current.number").value(11));
     }
     @Test void zeroScoreIsValidAndReviewUsesOriginalPaperEvenAfterReplacement() {
@@ -246,6 +272,7 @@ class AssessmentMongoIntegrationTest {
         var a=start();save(a,1,1,1);service.submit(USER,a.id(),binding);
         assertThat(service.result(USER,a.id()).skills()).hasSize(2);
         subscriptions.activateTrial(USER,UUID.randomUUID().toString());
+        dispatcher.dispatch();
         assertThat(service.result(USER,a.id()).skills()).hasSize(5);
         assertThat(service.result(USER,a.id()).score()).isEqualTo(2);
         assertThat(remaining()).isEqualTo(1);
@@ -254,10 +281,10 @@ class AssessmentMongoIntegrationTest {
     @Test void ownershipBindingAuthShapeAndCacheHeadersAreEnforcedByRealWebStack() throws Exception {
         var a=start();
         mvc.perform(get("/api/v1/assessment/preparation")).andExpect(status().isUnauthorized()).andExpect(header().string("Cache-Control","no-store")).andExpect(jsonPath("$.code").value("AUTHENTICATION_REQUIRED"));
-        mvc.perform(get("/api/v1/assessment/attempts/"+a.id()).header("X-Dev-User-Id","dev-admin").header("X-Assessment-Binding",binding)).andExpect(status().isNotFound());
-        mvc.perform(get("/api/v1/assessment/attempts/"+a.id()).header("X-Dev-User-Id","dev-user").header("X-Assessment-Binding",UUID.randomUUID())).andExpect(status().isConflict());
-        mvc.perform(put("/api/v1/assessment/attempts/"+a.id()+"/answer").header("X-Dev-User-Id","dev-user").header("X-Assessment-Binding",binding).contentType("application/json").content("{\"question\":51,\"sequence\":0,\"choice\":4,\"commandId\":\"invalid\"}")).andExpect(status().isBadRequest());
-        var response=mvc.perform(get("/api/v1/assessment/attempts/"+a.id()).header("X-Dev-User-Id","dev-user").header("X-Assessment-Binding",binding)).andExpect(status().isOk()).andExpect(header().string("Cache-Control","no-store")).andReturn().getResponse().getContentAsString();
+        mvc.perform(get("/api/v1/assessment/attempts/"+a.id()).cookie(otherCookie).header("X-Assessment-Binding",binding)).andExpect(status().isNotFound());
+        mvc.perform(get("/api/v1/assessment/attempts/"+a.id()).cookie(userCookie).header("X-Assessment-Binding",UUID.randomUUID())).andExpect(status().isConflict());
+        mvc.perform(put("/api/v1/assessment/attempts/"+a.id()+"/answer").cookie(userCookie).header("X-Assessment-Binding",binding).contentType("application/json").content("{\"question\":51,\"sequence\":0,\"choice\":4,\"commandId\":\"invalid\"}")).andExpect(status().isBadRequest());
+        var response=mvc.perform(get("/api/v1/assessment/attempts/"+a.id()).cookie(userCookie).header("X-Assessment-Binding",binding)).andExpect(status().isOk()).andExpect(header().string("Cache-Control","no-store")).andReturn().getResponse().getContentAsString();
         assertThat(response).doesNotContain("correctOption","explanation","transcript","skillResults");
     }
     @Test void audioFailureIsRecordedWithoutChangingDeadlineOrRefundingUsage() {
@@ -285,9 +312,81 @@ class AssessmentMongoIntegrationTest {
         for(String body:List.of("{\"question\":1.5,\"sequence\":1,\"choice\":0,\"commandId\":\""+id+"\"}",
                 "{\"question\":1,\"sequence\":1,\"choice\":0,\"commandId\":\""+id+"\",\"unexpected\":true}",
                 "{\"question\":1,\"sequence\":1,\"commandId\":\""+id+"\"}")) {
-            mvc.perform(put("/api/v1/assessment/attempts/"+attempt.id()+"/answer").header("X-Dev-User-Id","dev-user")
+            mvc.perform(put("/api/v1/assessment/attempts/"+attempt.id()+"/answer").cookie(userCookie)
                     .header("X-Assessment-Binding",binding).contentType("application/json").content(body)).andExpect(status().isBadRequest());
         }
         assertThat(store.attempt(attempt.id(),USER).getAnswers()).isEmpty();
+    }
+
+    AssessmentStateResponse startModern() {
+        return service.start(USER,command());
+    }
+    @Test void newStartsRequireModernPaperWhileLegacyPublishedDataIsPreserved() {
+        mongo.remove(new Query(),AssessmentPaper.class);
+        mongo.save(legacyPaper);
+        assertThat(service.preparation(USER).paperAvailable()).isFalse();
+        assertThatThrownBy(() -> service.start(USER,command())).isInstanceOfSatisfying(AssessmentException.class,
+                e -> assertThat(e.code()).isEqualTo("NO_PAPER"));
+        assertThat(remaining()).isEqualTo(1);
+        assertThat(store.published()).hasSize(1);
+    }
+    @Test void modernGroupAllowsArbitraryAnswersAndConfirmedCloseIsIdempotent() throws Exception {
+        var a = startModern();
+        clock.at = START.plusSeconds(300);
+        a = service.state(USER, a.id(), binding);
+        assertThat(a.current().number()).isEqualTo(11);
+        assertThatThrownBy(() -> service.answer(USER, store.active(USER).getId(), binding, answer(11, 1, 1), false))
+                .isInstanceOfSatisfying(AssessmentException.class, e -> assertThat(e.code()).isEqualTo("QUESTION_LOCKED"));
+        clock.at = START.plusSeconds(302);
+        for (int q : new int[]{15, 11, 14, 12, 13}) a = save(a, q, q, 1);
+        assertThat(a.savedCount()).isEqualTo(5);
+        assertThat(a.deadline()).isEqualTo(START.plusSeconds(600));
+        var close = new AssessmentFinishStageRequest(10, "ANSWER", UUID.randomUUID().toString());
+        mvc.perform(post("/api/v1/assessment/attempts/" + a.id() + "/finish-stage").cookie(userCookie)
+                .header("X-Assessment-Binding", binding).contentType("application/json").content(mapper.writeValueAsString(close)))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.data.current.number").value(16));
+        assertThat(service.finishStage(USER, a.id(), binding, close).current().number()).isEqualTo(16);
+        assertThat(remaining()).isZero();
+    }
+    @Test void modernReadingCanReviseEarlierAnswersAndQuestionFiftyDoesNotSubmit() {
+        var a = startModern();
+        clock.at = START.plusSeconds(900);
+        a = save(a, 50, 1, 1);
+        a = save(a, 21, 2, 0);
+        a = save(a, 21, 3, 1);
+        assertThat(a.status()).isEqualTo("ACTIVE");
+        assertThat(a.deadline()).isEqualTo(START.plusSeconds(2700));
+        assertThat(a.questions()).hasSize(30);
+        assertThat(a.savedCount()).isEqualTo(2);
+        String id = a.id();
+        assertThatThrownBy(() -> service.answer(USER, id, binding, answer(20, 4, 1), false))
+                .isInstanceOfSatisfying(AssessmentException.class, e -> assertThat(e.code()).isEqualTo("QUESTION_LOCKED"));
+        assertThatThrownBy(() -> service.answer(USER, id, binding, answer(50, 5, 1), true))
+                .isInstanceOfSatisfying(AssessmentException.class, e -> assertThat(e.code()).isEqualTo("STAGE_ACTION_REQUIRED"));
+        clock.at = START.plusSeconds(2700);
+        var terminal = save(a, 22, 6, 1);
+        assertThat(terminal.status()).isEqualTo("READY");
+        assertThat(service.result(USER, id).correct()).isEqualTo(2);
+        assertThat(store.attempt(id, USER).getSubmittedAt()).isEqualTo(START.plusSeconds(2700));
+        assertThat(store.attempt(id, USER).getPaper().getRulesVersion()).isEqualTo(2);
+    }
+    @Test void modernSingleWaitAndAudioIssueSurviveTransportRetryWithoutExtraTime() {
+        var a = startModern();
+        var command = new AssessmentAudioRequest(0, UUID.randomUUID().toString());
+        assertThat(service.audio(USER, a.id(), binding, command).base64()).isNotBlank();
+        assertThat(service.audio(USER, a.id(), binding, command).base64()).isNotBlank();
+        assertThat(service.state(USER, a.id(), binding).deadline()).isEqualTo(START.plusSeconds(30));
+        clock.at = START.plusSeconds(2);
+        a = save(a, 1, 1, 1);
+        clock.at = START.plusSeconds(30);
+        a = service.state(USER, a.id(), binding);
+        assertThat(a.current().number()).isEqualTo(2);
+        String id = a.id();
+        assertThatThrownBy(() -> service.audio(USER, id, binding, command)).isInstanceOf(AssessmentException.class);
+        assertThat(store.attempt(id, USER).getAnswers()).containsEntry("1", 1);
+    }
+    @Test void devIdentityHeaderDoesNotAuthenticateAfterMainIntegration() throws Exception {
+        mvc.perform(get("/api/v1/assessment/preparation").header("X-Dev-User-Id", "dev-user"))
+                .andExpect(status().isUnauthorized());
     }
 }

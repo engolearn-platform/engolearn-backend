@@ -18,6 +18,9 @@ public interface SubscriptionRepository {
     List<PlanVersion> findPublishedPlans(Instant at);
     TrialReceipt findTrialReceipt(String userId, String key);
     boolean markTrialUsed(SubscriptionAccount account);
+    void refundPeriod(String periodId);
+    void supersedeTrial(String periodId, java.time.Instant paidAt);
+    boolean advanceEntitlement(SubscriptionAccount account, String fingerprint);
     PolicyVersion publishPolicyVersion(PolicyVersion value);
     PlanVersion publishPlanVersion(PlanVersion value);
     PolicyState initializePolicyState(PolicyState value);

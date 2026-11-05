@@ -22,7 +22,7 @@ public final class AssessmentGrading {
             boolean correct=Objects.equals(a.getAnswers().get(Integer.toString(q.getNumber())),q.getCorrectOption());
             if(correct) {
                 counts.merge(q.getSkillCode(),1,Integer::sum);
-                if(q.getNumber()<=30) reading++; else listening++;
+                if(u.getKind().name().startsWith("READING")) reading++; else listening++;
             }
         }
         List<AssessmentSkillResultVo> skills=new ArrayList<>();

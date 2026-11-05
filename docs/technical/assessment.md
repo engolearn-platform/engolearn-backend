@@ -1,143 +1,144 @@
 # Periodic assessment — learner F01/F02
 
-Scope: preparation, transactional start, forward-only taking, submission, grading,
-history, result and immutable review. Business sources: BR-PFC-F1.1–11 and
-BR-PFC-F2.1–6 in the supplied business-docs bundle. User-approved clarification:
-a single listening question may advance while its audio is playing; the old audio stops.
-The learner may end the reading preview early at questions 11, 16, 21 and 26.
-Completing question 45 advances immediately to 46; question 50 opens the existing
-submission confirmation in FE, and confirmed final Next saves and grades immediately.
-Listening lead cannot be manually skipped. These transitions replace the completed-group wait.
-Premium is two assessment starts per month, supplied by Subscription/Quota policy.
+Current implementation: approved learner rules dated 2026-11-05, `rules_version=2`.
+Scope includes preparation, transactional start, taking, submission, grading, history,
+result and snapshot-based review. F03 administration and Learning Path authoring are excluded.
 
-## Structure and ownership
+## Timing and navigation
 
-Feature root: `fit.iuh.engolearn.assessment`. Business interfaces live in `service`,
-implementations in `service.impl`; Mongo predicates and mutations live in `repository`.
-Schedulers are technical triggers in `infra.scheduling`, development adapters in
-`infra.dev`, HTTP advice in `controller.exceptionhandler`, wiring/index creation in
-`config`. Controllers use typed web DTOs and `ApiResponse`; errors use `ProblemDetail`.
-No new Maven dependency or module. Pure timing/grading functions are owned feature utilities.
+| Stage | Questions | Server window | Navigation |
+| --- | --- | --- | --- |
+| Listening singles | 1–10 | 30s including 2s preparation and audio | Only current question; Next saves and locks it |
+| Listening group 1 | 11–15 | One 300s window including 2s preparation and audio | All five answers editable in any order |
+| Listening group 2 | 16–20 | One 300s window including 2s preparation and audio | All five answers editable in any order |
+| Reading | 21–50 | One 1800s window | Any Reading question editable until submission/expiry |
 
-Root documents extend `BaseDocument`; embedded values implement `EmbeddedDocument`.
-All owned non-ID fields have explicit snake_case mappings. Closed attempt/phase/unit/
-section/band values use enums. Level labels remain strings from the upstream curriculum
-vocabulary; paper validation restricts question levels to A1/A2/B1/B2. Public contracts
-and web records are separate from persistence. Public skill collections are copied.
-`AssessmentMediaImpl` deliberately converts its configured directory to a normalized Path
-in its constructor; other required Spring dependencies use Lombok constructor injection.
+Groups use a single five-minute timer, with no 120s/180s split. Confirmed finish-stage
+may end an open group early and locks it. No time carries forward. Listening cannot be
+revisited from a later unit/Reading. Reading has no preview timers. Selecting question 50
+does not submit; the explicit confirmed Submit action ends the attempt. The existing
+ability to submit early remains available in all stages. Maximum elapsed duration when
+all deadlines are used is 2700 seconds (45m), including twelve preparation intervals.
 
-Collections: assessment_papers, assessment_attempts, assessment_profiles,
-assessment_gates, assessment_grant_revocations. Document index definitions are on the
-models; `AssessmentIndexConfig` creates only feature storage and indexes. The per-user
-gate serializes starts/actions with real MongoDB replica-set transactions. Retry is bounded;
-operation request/command IDs make replays idempotent, including uncertain commit outcomes.
-Quota consumption joins the same transaction; denial or failed attempt/profile storage rolls back.
+`AssessmentTimeline` is a pure feature-owned domain transition helper in `model`.
+Deadlines use Mongo millisecond precision and are authoritative on the server. Actions,
+reads and the expiry scheduler catch up from elapsed deadlines, without granting a new
+window to a delayed client. Terminal time comes from the actual final deadline. A late
+abandon cannot overwrite a valid result. A saved wrong answer can produce a valid zero/A1;
+no saved answers produces `NO_RESULT`, which has no score or review. Cooldown is 21 days
+from a valid submitted result. Creating an attempt successfully consumes one quota unit;
+abandonment does not return it. These rules are unchanged by version 2.
 
-The attempt embeds an `AssessmentPaperSnapshotVo`, never the indexed paper root document.
-Question/option objects are copied. This both preserves the original review and prevents
-paper-version uniqueness indexes from accidentally applying to every attempt snapshot.
-History uses database pagination and projects only row metadata, without loading questions.
+## Compatibility and publishing
 
-## API
+New starts select only published version-2 papers. If only legacy papers exist, preparation
+reports no eligible paper and start returns `NO_PAPER` before consuming quota. Publish a
+new paper ID/version after validating its content/media; do not overwrite old published
+paper/media documents or re-number stored attempts.
 
-Base `/api/v1/assessment`. All routes require the existing authenticated principal and
-send `Cache-Control: no-store`. Owner lookup is mandatory; another owner receives 404.
-Taking operations also require the in-memory `X-Assessment-Binding` document capability.
-JSON bodies reject missing/unknown fields, numeric coercion, malformed UUIDs and bodies
-above 4 KiB. This parser is limited to assessment, without changing other feature settings.
+Snapshots without `rules_version` (or an earlier version) retain legacy Reading-first
+numbering and timing: 60s singles; Reading previews 90/120/150/240s plus 300s; Listening
+groups 120s plus 180s. Existing legacy active snapshots keep the 01/11 early-preview,
+immediate completed-group and final-Next behavior. History/review use their own snapshots.
+Version 2 intentionally supersedes the old Reading preview and final-question navigation.
+Scoring derives sections from the snapshot units, never a question-number threshold.
 
-| Method / suffix | Body / purpose |
-|---|---|
-| GET /preparation | Baseline, independent 21-day cooldown/month quota, active conflict, levels |
-| GET /sound-check | Authenticated WAV sample, no usage |
+## Structure, transactions and contracts
+
+Feature root: `fit.iuh.engolearn.assessment`. Business interfaces are in `service`,
+implementations in `service.impl`, Mongo access in `repository`, scheduling adapters in
+`infra.scheduling`, HTTP advice in `controller.exceptionhandler` and wiring in `config`.
+Controllers return typed `ApiResponse` DTOs; failures use `ProblemDetail`. No Maven
+module/dependency has been added. Root documents extend `BaseDocument`; embedded values
+implement `EmbeddedDocument`; owned persisted fields have explicit snake_case mappings.
+
+Collections: `assessment_papers`, `assessment_attempts`, `assessment_profiles`,
+`assessment_gates`, `assessment_grant_revocations`. The attempt embeds a copied
+`AssessmentPaperSnapshotVo`, not an indexed paper root. History paginates/project rows
+without loading question snapshots. Indexes belong to models and feature configuration.
+The per-user gate serializes actions in real Mongo replica-set transactions. Consumption
+joins the start transaction; failed profile/attempt writes roll back consumption. Retries
+are bounded. Request/command IDs and answer sequences protect replays and stale writes.
+
+Assessment calls Subscription/Quota only through their public contracts and does not read
+their collections. It does not write User or Learning Path state. Existing result-provider
+contracts remain unchanged. A real Placement integration must supply
+`AssessmentBaselineSource`; absent baseline blocks starting. The dev baseline adapter is
+active only in `dev & !prod`. Demonstration papers/attempts are excluded outside development.
+
+## HTTP API
+
+Base `/api/v1/assessment`. All routes require the shared authenticated principal from
+current main's real cookie authentication; `X-Dev-User-Id` has no authentication effect.
+All responses are `Cache-Control: no-store`; owner lookup returns 404 for another owner.
+Taking also requires the in-memory `X-Assessment-Binding` capability. Bodies reject
+missing/unknown fields, fractional integers, invalid UUIDs and payloads above 4 KiB.
+
+| Method and suffix | Contract |
+| --- | --- |
+| GET /preparation | Baseline, levels, independent cooldown/quota, active conflict, eligible-paper availability |
+| GET /sound-check | Authenticated WAV sample; no quota use |
 | POST /attempts | UUID requestId/binding, confirmed=true, soundChecked=true; same request replays |
-| GET /attempts?page=0&size=20 | Owner terminal history; max page size 100 |
-| GET /attempts/{id} | Taking state, requires binding |
+| GET /attempts?page=0&size=20 | Owner terminal history; maximum page size 100 |
+| GET /attempts/{id} | Current state; requires binding |
 | PUT /attempts/{id}/answer | question 1..50, sequence 0..JS-safe integer, choice null/0..3, UUID commandId |
-| POST /attempts/{id}/next | Same answer body; final save, lock and advance atomically |
-| POST /attempts/{id}/finish-stage | unitIndex 10..13, phase READING_PREVIEW, UUID commandId; binding; end the current reading preview once |
+| POST /attempts/{id}/next | Same body; version 2 only permits the open Listening single |
+| POST /attempts/{id}/finish-stage | unitIndex 10..13 and phase READING_PREVIEW or ANSWER, UUID commandId; actual snapshot/unit/phase must match |
 | POST /attempts/{id}/submit | confirmed=true, binding; grade at most once |
-| POST /attempts/{id}/abandon | confirmed=true, owner; also usable for old active conflicts |
+| POST /attempts/{id}/abandon | confirmed=true, owner; also clears an old active conflict |
 | POST /attempts/{id}/audio | unitIndex 0..25, UUID issueId, binding; one issuance/unit, identical retry allowed |
 | POST /attempts/{id}/audio-failure | unitIndex, reason LOAD_FAILED/PLAYBACK_FAILED/AUTOPLAY_BLOCKED, binding |
-| GET /attempts/{id}/result | READY only; BE sends two or five skill rows according to grants |
-| GET /attempts/{id}/review | READY only; original selected answers, key, explanations and transcripts |
-| GET /attempts/{id}/review/audio/{index} | READY owner only; replay permitted |
+| GET /attempts/{id}/result | READY only; two/five skill rows according to retained grants |
+| GET /attempts/{id}/review | READY only; original selections/key/explanations/transcripts |
+| GET /attempts/{id}/review/audio/{index} | READY owner only; replay allowed |
 
-Server deadlines are authoritative, normalized to Mongo millisecond precision. Timing is
-60s/single, reading preview 90/120/150/240s then shared 300s, listening passage 120s lead
-then 180s if unfinished. Ending a reading preview early starts a fresh shared 300s
-answer window. Listening lead still expires naturally into its existing shared 180s
-answer window if unfinished. Unused preview time is discarded.
-Final Next on a group advances immediately regardless of remaining lead/answer time;
-confirmed final Next on question 50 saves, locks and grades immediately without a waiting screen.
-Finish-stage is scoped to the exact unit/phase and idempotent command; a replay cannot
-extend a deadline or end a later group's lead. Expired stages settle before commands.
-No carry-forward time. Scheduler/reads/actions catch up using actual elapsed deadlines;
-a late abandon cannot replace a result. No answers means NO_RESULT; saved wrong answers
-can produce a valid zero/A1. Latest current level changes on valid completion, highest
-never decreases, and opening results does not regrade. Answer sequences and command IDs
-protect autosave/Next races; state revisions let the FE discard older responses.
+Version-2 finish-stage accepts only Listening passage indices 10/11 in ANSWER. Legacy
+preview indices 10..13 remain valid only for legacy snapshots. Replaying an earlier command
+cannot extend a deadline or end the next group. Version-2 taking state adds `rulesVersion`,
+`audioStartsAt`, and `questions` (one single, five group questions or all thirty Reading
+questions with per-unit passage). `LISTENING_WAIT` locks answers for the two-second delay.
+No correct answer, explanation or transcript is sent in taking state. State revisions let
+FE ignore older responses. Existing scalar fields remain for legacy taking.
 
-The binding, answers and official audio are not persisted by the browser. A new document
+During Listening preparation, the public deadline already points to the end of the
+30-second or 5-minute window. The internal transition opens answers at audioStartsAt,
+two seconds after the unit begins, without adding time to the deadline.
+
+The binding, answers and official audio are never persisted by FE. Reload/new document
 cannot resume. Pagehide/SPA departure attempts authenticated keepalive abandonment;
-visibility changes do not abandon. If abrupt close prevents delivery, server time runs
-until automatic submission. There is no pause/resume or clock-bypass endpoint.
+visibility changes do not abandon. When abrupt close prevents delivery, server time keeps
+running until expiry. There is no pause, resume or clock-bypass endpoint.
 
-## Media and data lifecycle
+## Media, analysis access and release boundaries
 
 `engolearn.assessment.media-directory` defaults to `./assessment-media`. Immutable PCM WAV
-files are SHA-256 checked, <=4 MB each, <=50 seconds/single and <=120 seconds/passage;
-12 distinct official paths, plus sound-check.wav. Validate all paper/media resources before
-quota consumption. Normal official playback has no replay/seek/rate controls; review can replay.
-Audio failure reports do not extend time, issue another attempt or return quota. Client
-reports are observations, not authority for charging or refund. Ordinary browser audio
-cannot enforce DRM against a modified client or external recording.
+files are SHA-256 checked and at most 4 MB. Version-2 single audio is at most 28s; legacy
+single audio at most 50s; passage audio at most 120s. Twelve distinct official paths plus
+`sound-check.wav` are required. Validate all resources before consumption. Normal official
+playback has no replay/seek/rate controls; review may replay. Audio-failure observations do
+not extend deadlines, issue attempts or refund quota. Browser playback cannot provide DRM.
 
-Never overwrite a published version/media file or remove assets referenced by attempts.
-This feature does not implement F03 administration. Its schema is a new, versioned delivery;
-older experimental camelCase assessment data must be inspected/migrated deliberately.
-Do not rename/drop collections or rebuild conflicting indexes automatically. Demo v2 uses
-its own new database, leaving earlier demo/team databases untouched.
+Premium assessment count is provider-configured. The isolated demo uses Free 1, Trial 2,
+Premium 2 and consistent displayed benefits; this is not a global hardcoded entitlement.
+Already issued Subscription snapshots are preserved. Full-analysis grants survive ordinary
+expiry. A verified refund must call `AssessmentGrantRevocation` with the exact correlated
+source (`scope:snapshotId:effectiveAt`), preserving other grants and scores. Current main
+includes Payment/Subscription durable messaging, but an Assessment refund consumer has not
+been added in this change. Entitlement expiry must not be treated as a refund.
 
-## Integration and release boundaries
+Before public release: integrate real Placement/baseline and exact refund delivery,
+professionally review questions/audio, configure HTTPS/secure cookies and private secrets,
+validate Mongo transaction permissions and backup/restore, retain historical assets, and run
+full CI plus real-browser acceptance on staging. Per-second state polling currently writes
+serialized state; measure concurrency before making capacity/availability claims.
 
-- New main already contains Subscription/Quota contracts. Assessment depends one-way on
-  them, and never reads their collections. It does not write User or Learning Path state.
-- A real Placement module must supply `AssessmentBaselineSource`. Absence is Optional.empty
-  and blocks starts. `assessment_dev_baselines` is used only in `dev & !prod`; demonstration
-  papers are excluded from production taking/history/review and public result consumers.
-- Authentication reuses `CurrentUserProvider` and shared HTTP/Auth. The provided main has
-  local fixture authentication, not a complete production sign-in mechanism. Prod disables
-  fixture authentication. Supply the team's real identity integration before public release.
-- Full access source currently uses policyScope + ':' + policySnapshotId + ':' + effectiveAt.
-  EffectiveAt is the period start in the current provider. Grants already given persist
-  after normal expiry. Trusted integration calls `AssessmentGrantRevocation` with the exact
-  correlated source for a verified refund, preserving other sources and all scores.
-- The supplied `feat/payment` branch includes purchase/refund/VNPay code, but is not merged
-  into this main. Assessment does not merge/modify that teammate branch. Its owner must
-  agree the durable refund-to-resource contract and wire the exact source revocation.
-  An entitlement expiry event alone must not be treated as a refund. No public manual
-  refund/revoke or fake-success endpoint is added here.
-- Premium 2 is configured in the separate isolated demo. In a real environment publish
-  the approved new Premium policy/offer through the existing ADMIN configuration flow,
-  including its displayed benefits; retain already issued period snapshots according to
-  Subscription rules. Do not edit an already published manifest ID or reset used counts.
+## Running and verification
 
-Before release: integrate real identity/baseline/refund delivery; professionally review
-exam content; configure HTTPS, Mongo replica set/transaction permissions, immutable media,
-secrets, backup/restore, monitoring and retained assets; run full CI and browser acceptance
-on staging. Per-second taking polling currently serializes/writes state; measure expected
-concurrency and size deployment accordingly before claiming capacity or availability.
+The local handoff package includes the Windows and Atlas instructions, isolated demo data and reset guide.
 
-## Verification
-
-Final command: `./mvnw verify`. Feature checks: `AssessmentRulesTest`,
-`AssessmentMediaTest`, `AssessmentMongoIntegrationTest`, `ArchitectureTest`.
-Mongo tests run only when ASSESSMENT_TEST_MONGO_URI points to a real replica set; they use
-the dedicated engolearn_pfc_test DB and clear only test-owned assessment/subscription/quota
-collections there. They verify concurrency, rollback after consumption, fifty-question
-journey, binding/ownership, temporal edges, snapshots, input shapes, audio and access grants.
-No fake assessment HTTP or in-memory Mongo replacement is used. Delivery verification
-records actual results and unresolved full-suite failures separately from manual checks.
+Final command: `./mvnw verify` with JDK 21+. Feature checks: `AssessmentRulesTest`,
+`AssessmentMediaTest`, `AssessmentVersionTwoTest`, `AssessmentMongoIntegrationTest`,
+`ArchitectureTest`. Set `ASSESSMENT_TEST_MONGO_URI` only to a real replica set: the Mongo
+tests use/clear test-owned collections in the dedicated `engolearn_pfc_test` database.
+Legacy tests import an already-started legacy snapshot; actual new starts require version 2.
+No fake assessment HTTP or in-memory Mongo replacement is used as integration evidence.

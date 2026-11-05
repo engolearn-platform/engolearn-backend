@@ -21,9 +21,19 @@ engolearn:
   mongodb:
     server-selection-timeout-ms: 2000
   security:
-    dev-auth:
-      enabled: false
+    jwt:
+      secret: ${AUTH_JWT_SECRET}
+      issuer: ${AUTH_JWT_ISSUER:engolearn}
+    cookies:
+      secure: ${AUTH_COOKIE_SECURE:false}
 
-
-  topic:
-    local-learner-id: ${TOPIC_LOCAL_LEARNER_ID:}
+  payment:
+    vnpay:
+      enabled: ${VNPAY_ENABLED:false}
+      worker-enabled: ${VNPAY_WORKER_ENABLED:true}
+      tmn-code: ${VNPAY_TMN_CODE:}
+      hash-secret: ${VNPAY_HASH_SECRET:}
+      return-url: ${VNPAY_RETURN_URL:}
+      server-ip: ${VNPAY_SERVER_IP:}
+      pay-url: ${VNPAY_PAY_URL:https://sandbox.vnpayment.vn/paymentv2/vpcpay.html}
+      api-url: ${VNPAY_API_URL:https://sandbox.vnpayment.vn/merchant_webapi/api/transaction}

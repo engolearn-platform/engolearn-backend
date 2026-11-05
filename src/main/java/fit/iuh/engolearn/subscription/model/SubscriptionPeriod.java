@@ -16,7 +16,9 @@ import org.springframework.data.mongodb.core.index.CompoundIndexes;
 @CompoundIndexes({
     @CompoundIndex(name = "one_lifetime_trial", def = "{'user_id': 1}", unique = true,
         partialFilter = "{'kind': 'TRIAL'}"),
-    @CompoundIndex(name = "user_id_1_period_start_at_-1", def = "{'user_id': 1, 'period_start_at': -1}")
+    @CompoundIndex(name = "user_id_1_period_start_at_-1", def = "{'user_id': 1, 'period_start_at': -1}"),
+    @CompoundIndex(name = "one_period_per_payment", def = "{'payment_id': 1}", unique = true,
+        partialFilter = "{'payment_id': {'$type': 'string'}}")
 })
 @Getter
 @Setter
@@ -25,6 +27,10 @@ import org.springframework.data.mongodb.core.index.CompoundIndexes;
 @SuperBuilder
 @EqualsAndHashCode(callSuper = true)
 public class SubscriptionPeriod extends BaseDocument {
+    @Field("payment_id")
+    private String paymentId;
+    @Field("superseded_at")
+    private Instant supersededAt;
     @Field("user_id")
     private String userId;
     @Field("kind")

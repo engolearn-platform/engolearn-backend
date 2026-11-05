@@ -7,6 +7,15 @@ import java.util.*;
 
 final class AssessmentTestPaper {
     private AssessmentTestPaper() {}
+    static AssessmentPaper modernPaper() {
+        var p = paper();
+        var units = new ArrayList<>(p.getUnits().subList(14, 26));
+        units.addAll(p.getUnits().subList(0, 14));
+        int number = 1;
+        for (var unit : units) for (var question : unit.getQuestions()) question.setNumber(number++);
+        p.setUnits(units); p.setRulesVersion(2); p.setVersion(2);
+        return p;
+    }
     static AssessmentPaper paper() {return paper("paper-1","series-1","0".repeat(64));}
     static AssessmentPaper paper(String id,String series,String digest) {
         var skills=List.of(new AssessmentSkillVo("R01","Reading details","Example",AssessmentSection.READING),

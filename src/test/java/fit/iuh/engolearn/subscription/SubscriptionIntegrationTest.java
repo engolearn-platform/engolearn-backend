@@ -9,6 +9,7 @@ import fit.iuh.engolearn.subscription.dto.response.*;
 import fit.iuh.engolearn.subscription.model.*;
 import fit.iuh.engolearn.subscription.mapper.SubscriptionModelMapper;
 import fit.iuh.engolearn.subscription.service.*;
+import fit.iuh.engolearn.subscription.repository.SubscriptionMessageRepository;
 import fit.iuh.engolearn.subscription.infra.scheduling.SubscriptionActivationScheduler;
 import java.time.*;
 import java.util.*;
@@ -37,9 +38,10 @@ class SubscriptionIntegrationTest extends AbstractMongoIntegrationTest {
     @Autowired SubscriptionService service;
     @Autowired EffectiveEntitlementProvider entitlements;
     @Autowired SubscriptionTransactions transactions;
+    @Autowired SubscriptionMessageRepository messages;
     @Autowired MutableClock clock;
     @Autowired SubscriptionActivationScheduler scheduler;
-    @BeforeEach void setup(){clock.now=START;publication.publish(manifest("initial",List.of(policy("free1","FREE",1,START.minusSeconds(1),2),policy("trial1","TRIAL",1,START.minusSeconds(1),5)),true));}
+    @BeforeEach void setup(){clock.now=START;messages.ensureStorage();publication.publish(manifest("initial",List.of(policy("free1","FREE",1,START.minusSeconds(1),2),policy("trial1","TRIAL",1,START.minusSeconds(1),5)),true));}
     PublicationManifestRequest.PolicyRequest policy(String id,String scope,long version,Instant at,long limit){
         return new PublicationManifestRequest.PolicyRequest(id,scope,version,at,new QuotaPolicySnapshotDto(id,scope,version,List.of(new QuotaRuleDto("TEST","Test",limit,"ATTEMPT","MONTHLY",0))),new CurrentBenefitsResponse(scope.equals("FREE")?"FREE":"PREMIUM",scope,id,List.of(new PlanBenefitResponse("TEST","Test","Approved test benefit",null,0))));
     }

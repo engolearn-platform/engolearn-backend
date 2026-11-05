@@ -21,7 +21,7 @@ import java.util.*;
 import java.util.function.BiFunction;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Service;
-import static fit.iuh.engolearn.assessment.utils.AssessmentTimeline.*;
+import static fit.iuh.engolearn.assessment.model.AssessmentTimeline.*;
 
 @Service
 @lombok.RequiredArgsConstructor
@@ -107,7 +107,9 @@ public class AssessmentServiceImpl implements AssessmentService {
                 return AssessmentMapper.state(a,at,development());
             }
             if(AssessmentPhase.READING_PREVIEW.equals(a.getPhase())) fail(409,"PREVIEW_ONLY","Chưa đến thời gian trả lời.");
-            if(request.question()!=a.getCursor()||request.question()>last(a)) fail(409,"QUESTION_LOCKED","Chỉ được thay đổi câu hiện tại.");
+            if(!editable(a,request.question())) fail(409,"QUESTION_LOCKED","Câu hỏi không thuộc phần hoặc nhóm đang được sửa.");
+            if (advance && modern(a) && unit(a).getKind() != AssessmentUnitKind.LISTENING_SINGLE)
+                fail(409,"STAGE_ACTION_REQUIRED","Dùng chuyển nhóm hoặc nộp bài; không chuyển từng câu ở phần này.");
             String key=""+request.question();
             long previous=a.getAnswerSequences().getOrDefault(key,-1L);
             if(request.sequence()<previous || request.sequence()==previous&&!Objects.equals(a.getAnswers().get(key),request.choice()))
@@ -132,7 +134,9 @@ public class AssessmentServiceImpl implements AssessmentService {
                 return AssessmentMapper.state(a,at,development());
             }
             if(request.unitIndex()!=a.getUnitIndex()||!request.phase().equals(a.getPhase().name())
-                    ||!AssessmentPhase.READING_PREVIEW.equals(a.getPhase()))
+                    ||!(modern(a)
+                        ? unit(a).getKind() == AssessmentUnitKind.LISTENING_PASSAGE && a.getPhase() == AssessmentPhase.ANSWER
+                        : AssessmentPhase.READING_PREVIEW.equals(a.getPhase())))
                 fail(409,"STAGE_CLOSED","Giai đoạn này đã kết thúc. Hãy tiếp tục theo trạng thái hiện tại.");
             a.getCommands().put(request.commandId(),fingerprint);
             AssessmentTimeline.finishStage(a,at);
@@ -155,7 +159,7 @@ public class AssessmentServiceImpl implements AssessmentService {
     public AssessmentMediaResponse audio(String user,String id,String binding,AssessmentAudioRequest command) {
         return taking(user,id,binding,(a,at)->{
             if(!AssessmentStatus.ACTIVE.equals(a.getStatus())||command.unitIndex()!=a.getUnitIndex()
-                    ||!AssessmentPhase.LISTENING_LEAD.equals(a.getPhase())&&!AssessmentPhase.ANSWER.equals(a.getPhase()))
+                    ||!AssessmentPhase.LISTENING_LEAD.equals(a.getPhase())&&!AssessmentPhase.ANSWER.equals(a.getPhase())&&!AssessmentPhase.LISTENING_WAIT.equals(a.getPhase()))
                 fail(409,"AUDIO_CLOSED","Âm thanh không còn trong giai đoạn được phát.");
             var u=unit(a);
             if(!u.getKind().name().startsWith("LISTENING")) fail(409,"NO_AUDIO","Câu hiện tại không có âm thanh.");
@@ -254,7 +258,8 @@ public class AssessmentServiceImpl implements AssessmentService {
         return p!=null&&p.isDevelopmentData()&&!development()?null:p;
     }
     private List<AssessmentPaper> papers() {
-        return store.published().stream().filter(p->development()||!p.isDemonstration()).toList();
+        return store.published().stream().filter(p->p.getRulesVersion()==2)
+                .filter(p->development()||!p.isDemonstration()).toList();
     }
     private Instant now() {return Instant.ofEpochMilli(clock.millis());}
     private static void fail(int status,String code,String message) {throw new AssessmentException(status,code,message);}

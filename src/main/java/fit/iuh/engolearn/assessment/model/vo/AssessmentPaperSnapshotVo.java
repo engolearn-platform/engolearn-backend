@@ -10,6 +10,7 @@ public class AssessmentPaperSnapshotVo implements EmbeddedDocument {
     @Field("paper_id") private String paperId;
     @Field("series") private String series;
     @Field("version") private int version;
+    @Field("rules_version") private int rulesVersion;
     @Field("demonstration") private boolean demonstration;
     @Field("skills") private List<AssessmentSkillVo> skills;
     @Field("units") private List<AssessmentUnitVo> units;

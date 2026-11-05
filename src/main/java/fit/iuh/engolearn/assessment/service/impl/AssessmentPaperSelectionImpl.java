@@ -20,6 +20,8 @@ public class AssessmentPaperSelectionImpl implements AssessmentPaperSelection {
     private void validateDefinition(AssessmentPaper p) {
         if(p.getId()==null||p.getId().isBlank()||p.getSeries()==null||p.getSeries().isBlank()||p.getVersion()<1) invalid();
         if(p.getSkills()==null || p.getSkills().size()!=5 || p.getUnits()==null || p.getUnits().size()!=26) invalid();
+        boolean modern = p.getRulesVersion() == 2;
+        if (p.getRulesVersion() < 0 || p.getRulesVersion() > 2) invalid();
         Map<String,Integer> counts=new HashMap<>();
         Set<String> codes=new HashSet<>();
         Set<String> audioPaths=new HashSet<>();
@@ -29,7 +31,9 @@ public class AssessmentPaperSelectionImpl implements AssessmentPaperSelection {
         int number=1;
         for(int i=0;i<26;i++) {
             var u=p.getUnits().get(i);
-            String kind=i<10?"READING_SINGLE":i<14?"READING_PASSAGE":i<24?"LISTENING_SINGLE":"LISTENING_PASSAGE";
+            int legacyIndex = modern ? (i < 12 ? i + 14 : i - 12) : i;
+            int position = legacyIndex;
+            String kind=position<10?"READING_SINGLE":position<14?"READING_PASSAGE":position<24?"LISTENING_SINGLE":"LISTENING_PASSAGE";
             if(!AssessmentUnitKind.valueOf(kind).equals(u.getKind()) || u.getQuestions()==null || u.getQuestions().size()!=(kind.endsWith("SINGLE")?1:5)) invalid();
             int[] levels=new int[4];
             for(var q:u.getQuestions()) {
@@ -37,24 +41,27 @@ public class AssessmentPaperSelectionImpl implements AssessmentPaperSelection {
                         || q.getOptions().stream().anyMatch(s->s==null||s.isBlank()) || q.getCorrectOption()<0 || q.getCorrectOption()>3
                         ||q.getExplanation()==null || q.getExplanation().isBlank() || !codes.contains(q.getSkillCode())) invalid();
                 var skill=p.getSkills().stream().filter(s->s.getCode().equals(q.getSkillCode())).findFirst().orElseThrow();
-                if(!skill.getSection().equals(q.getNumber()<=30?AssessmentSection.READING:AssessmentSection.LISTENING)) invalid();
+                if(!skill.getSection().equals(kind.startsWith("READING")?AssessmentSection.READING:AssessmentSection.LISTENING)) invalid();
                 int level=List.of("A1","A2","B1","B2").indexOf(q.getLevel());
                 if(level<0) invalid();
                 levels[level]++;
                 counts.merge(q.getSkillCode(),1,Integer::sum);
             }
             if(kind.endsWith("PASSAGE") && (u.getPassage()==null || u.getPassage().isBlank()) && kind.startsWith("READING")) invalid();
-            if(i>=14) {
+            if(kind.startsWith("LISTENING")) {
                 if(u.getAudioPath()==null || !audioPaths.add(u.getAudioPath()) || u.getAudioSha256()==null || u.getAudioSha256().length()!=64
                         ||u.getQuestions().stream().anyMatch(q->q.getTranscript()==null||q.getTranscript().isBlank())) invalid();
-                media.read(u.getAudioPath(),u.getAudioSha256(),kind.endsWith("SINGLE")?50:120);
+                int maxAudioSeconds = kind.endsWith("SINGLE")
+                        ? (modern ? AssessmentTimeline.listeningSingleAudioLimitSeconds() : 50)
+                        : 120;
+                media.read(u.getAudioPath(), u.getAudioSha256(), maxAudioSeconds);
             }
-            if(i>=10 && i<=13 && !Arrays.equals(levels,new int[][]{{5,0,0,0},{0,5,0,0},{0,1,4,0},{0,0,1,4}}[i-10])) invalid();
-            if(i>=24 && !Arrays.equals(levels,new int[][]{{1,3,1,0},{0,0,3,2}}[i-24])) invalid();
+            if(position>=10 && position<=13 && !Arrays.equals(levels,new int[][]{{5,0,0,0},{0,5,0,0},{0,1,4,0},{0,0,1,4}}[position-10])) invalid();
+            if(position>=24 && !Arrays.equals(levels,new int[][]{{1,3,1,0},{0,0,3,2}}[position-24])) invalid();
         }
         if(counts.size()!=5 || counts.values().stream().anyMatch(n->n!=10)) invalid();
-        checkSingleLevels(p,0,new int[]{1,2,3,4});
-        checkSingleLevels(p,14,new int[]{2,2,3,3});
+        checkSingleLevels(p,modern?12:0,new int[]{1,2,3,4});
+        checkSingleLevels(p,modern?0:14,new int[]{2,2,3,3});
     }
     private void checkSingleLevels(AssessmentPaper p,int start,int[] expected) {
         int[] actual=new int[4];

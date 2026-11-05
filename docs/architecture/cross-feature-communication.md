@@ -1,10 +1,14 @@
 # Cross-feature communication
 
+Current implementation: Subscription-to-Payment commands, Payment-to-Subscription results and Subscription-to-Quota facts use durable Outbox/receipt delivery. Checkout, paid activation, refund consumers and the optional VNPay worker are implemented. See the [Subscription integration contracts](../technical/subscription/module-contract.md) for current routes and semantics.
+
 Features may depend on one another only through narrow public contracts. The goal is to keep feature internals private and make future extraction possible without rewriting business logic.
 
 This document owns communication mechanisms, caller/provider obligations and the approved feature-dependency graph. Package placement is defined in [package structure](package-structure.md#public-contract-layout); naming and representation are defined in [implementation conventions](implementation-conventions.md#6-public-data-representations). Apply these rules to new and refactored code; existing implementations may still need alignment.
 
 ## Allowed communication
+
+Dev operator exception (2026-11-01, explicitly user-approved): Subscription may synchronously invoke payment.contract.DevPaymentReset while both dev-only capabilities join one local Mongo transaction to release an unresolved test purchase. Both are absent unless dev is active, prod is absent and the explicit flag is enabled. Payment retains ownership of financial eligibility/audit; Subscription retains ownership of source/account guards. No financial outcome fact or entitlement change is fabricated. Ordinary purchase/refund/entitlement flows retain durable Outbox boundaries. See [dev release](../runbooks/dev-purchase-reset.md).
 
 1. **Contract call** — call the provider's public capability interface; callers must not access its entities or repositories.
 2. **Event** — publish a fact owned by the publishing feature and let the receiving feature react. Prefer events when a direct call would create a backwards dependency.
@@ -50,18 +54,17 @@ A new dependency needs an explicit reason and approval. Keep this table in sync 
 
 | Feature | May depend on, through contract |
 |---|---|
+| `assessment` | `subscription.contract` (effective entitlements), `quota.contract` (atomic consumption) |
 | `dictionary` | None |
-| `topic` | `dictionary` |
-| `user` | `topic` |
-| `subscription` | None |
-| `assessment` | `subscription` (effective entitlements), `quota` (atomic consumption) |
-| `quota` | `subscription` (effective entitlements and after-commit events) |
-| `payment` | None; immutable success/refund fact declarations only |
+| `topic` | `dictionary`, `user.contract` |
+| `user` | None |
+| `subscription` | `payment.contract` for purchase/refund commands and results; conditional dev-only reset capability as described above |
+| `quota` | `subscription.contract` (effective-entitlement lookup and durable Subscription-owned facts) |
+| `payment` | None; must never depend on Subscription |
 
-The approved M3 preparation adds only `payment.contract` records. Subscription owns the future
-consumer and may import `payment.contract` when paid lifecycle work is implemented; there is
-no production consumer or runtime dependency in this increment. Payment must not depend on
-Subscription. See [payment contract handoff](../technical/subscription-quota/payment-contract-handoff.md).
+Payment owns commands in `payment.contract.dto` and facts in `payment.contract.event`; Subscription owns the receiving result consumer. Payment must never import Subscription types. Quota consumes Subscription-owned entitlement/policy facts and can resolve effective entitlements through its public capability.
+
+Normal durable routes use local producer state/Outbox and consumer receipt/effect transactions. Recipient-scoped leases, fencing and acknowledgment after commit prevent one recipient from claiming or completing another recipient's work; lost acknowledgment permits duplicate-safe redelivery. Trial and actual Free-policy activation use this same durable path, with no parallel in-memory-only publication. No broker or historical lost-event backfill is implied. See [ADR-0002](decisions/ADR-0002-durable-subscription-payment-quota-delivery.md) and [implemented delivery contract](../technical/subscription/module-contract.md#delivery-and-transactions).
 
 `ArchitectureTest` does **not** currently enforce this table as an exact allow-list, so reviewers must check that new dependencies are listed and approved. The complete list of current checks is maintained in [package structure](package-structure.md#what-is-automatically-enforced).
 

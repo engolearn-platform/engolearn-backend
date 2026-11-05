@@ -12,6 +12,7 @@ import fit.iuh.engolearn.assessment.model.vo.*;
 public class AssessmentPaper extends fit.iuh.engolearn.shared.BaseDocument {
     @Field("series") private String series;
     @Field("version") private int version;
+    @Field("rules_version") private int rulesVersion;
     @Field("published") private boolean published;
     @Field("demonstration") private boolean demonstration;
     @Field("skills") private List<AssessmentSkillVo> skills;

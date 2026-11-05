@@ -46,8 +46,7 @@ import fit.iuh.engolearn.topic.repository.UserTopicAttemptRepository;
 import fit.iuh.engolearn.topic.repository.UserTopicItemAttemptRepository;
 import fit.iuh.engolearn.topic.repository.UserTopicItemProgressRepository;
 import fit.iuh.engolearn.topic.repository.UserTopicProgressRepository;
-import fit.iuh.engolearn.topic.utils.CurrentUserProvider;
-import fit.iuh.engolearn.topic.utils.LearnerLevelProvider;
+import fit.iuh.engolearn.user.contract.UserLevelLookup;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -86,7 +85,6 @@ class TopicLearningServiceImplTest {
     @org.mockito.Mock
     private TopicGenerationService generations;
 
-
     private static final String USER = "user-mock-001";
     private static final String TOPIC_ID = "t1";
     private static final String RELEASE_ID = "v1";
@@ -120,10 +118,7 @@ class TopicLearningServiceImplTest {
     private UserTopicItemAttemptRepository userTopicItemAttemptRepository;
 
     @Mock
-    private CurrentUserProvider currentUserProvider;
-
-    @Mock
-    private LearnerLevelProvider learnerLevelProvider;
+    private UserLevelLookup userLevels;
 
     private TopicLearningServiceImpl service;
 
@@ -131,8 +126,7 @@ class TopicLearningServiceImplTest {
     void setUp() {
         service = new TopicLearningServiceImpl(topicRepository, topicVersionRepository, topicItemRepository,
                 topicItemVersionRepository, userTopicProgressRepository, userTopicItemProgressRepository,
-                userTopicAttemptRepository, userTopicItemAttemptRepository, currentUserProvider,
-                learnerLevelProvider, generations);
+                userTopicAttemptRepository, userTopicItemAttemptRepository, userLevels, generations);
     }
 
     // --- content ------------------------------------------------------------------------
@@ -144,7 +138,7 @@ class TopicLearningServiceImplTest {
         stubSignedIn();
         when(userTopicItemAttemptRepository.findByUserIdAndTopicItemId(USER, ITEM_ONE)).thenReturn(List.of());
 
-        TopicItemContentResponse content = service.getItemContent(
+        TopicItemContentResponse content = service.getItemContent(USER,
                 GetTopicItemContentRequest.builder().topicItemId(ITEM_ONE).build());
 
         assertThat(content.getTopicItemId()).isEqualTo(ITEM_ONE);
@@ -173,7 +167,7 @@ class TopicLearningServiceImplTest {
         stubSignedIn();
         when(userTopicItemAttemptRepository.findByUserIdAndTopicItemId(USER, ITEM_ONE)).thenReturn(List.of());
 
-        TopicItemContentResponse content = service.getItemContent(
+        TopicItemContentResponse content = service.getItemContent(USER,
                 GetTopicItemContentRequest.builder().topicItemId(ITEM_ONE).build());
 
         var quickCheck = content.getVocabularies().get(0).getQuickCheck();
@@ -197,7 +191,7 @@ class TopicLearningServiceImplTest {
         when(topicItemVersionRepository.findAllById(anyList())).thenReturn(List.of(version));
         when(userTopicItemAttemptRepository.findByUserIdAndTopicItemId(USER, ITEM_ONE)).thenReturn(List.of());
 
-        TopicItemContentResponse content = service.getItemContent(
+        TopicItemContentResponse content = service.getItemContent(USER,
                 GetTopicItemContentRequest.builder().topicItemId(ITEM_ONE).build());
 
         assertThat(content.getVocabularies().get(0).getQuickCheck().getQuestion())
@@ -217,7 +211,7 @@ class TopicLearningServiceImplTest {
                 .thenReturn(List.of(itemAttempt("ia1", "iv-old", LearningStage.VOCAB, 2)));
         when(topicItemVersionRepository.findById("iv-old")).thenReturn(Optional.of(frozen));
 
-        TopicItemContentResponse content = service.getItemContent(
+        TopicItemContentResponse content = service.getItemContent(USER,
                 GetTopicItemContentRequest.builder().topicItemId(ITEM_ONE).build());
 
         assertThat(content.getTopicItemVersionId()).isEqualTo("iv-old");
@@ -229,7 +223,7 @@ class TopicLearningServiceImplTest {
         stubSignedIn();
         when(topicItemRepository.findById("nope")).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> service.getItemContent(
+        assertThatThrownBy(() -> service.getItemContent(USER,
                 GetTopicItemContentRequest.builder().topicItemId("nope").build()))
                 .isInstanceOf(TopicItemNotFoundException.class);
     }
@@ -242,7 +236,7 @@ class TopicLearningServiceImplTest {
         when(topicVersionRepository.findById(RELEASE_ID)).thenReturn(Optional.of(release()));
         when(topicItemVersionRepository.findAllById(anyList())).thenReturn(List.of(versionTwo()));
 
-        assertThatThrownBy(() -> service.getItemContent(
+        assertThatThrownBy(() -> service.getItemContent(USER,
                 GetTopicItemContentRequest.builder().topicItemId(ITEM_ONE).build()))
                 .isInstanceOf(TopicItemNotFoundException.class);
     }
@@ -254,16 +248,15 @@ class TopicLearningServiceImplTest {
         when(topicRepository.findById(TOPIC_ID)).thenReturn(Optional.of(Topic.builder()
                 .id(TOPIC_ID).cefrLevel(CefrLevel.A2).build()));
 
-        assertThatThrownBy(() -> service.getItemContent(
+        assertThatThrownBy(() -> service.getItemContent(USER,
                 GetTopicItemContentRequest.builder().topicItemId(ITEM_ONE).build()))
                 .isInstanceOf(TopicItemNotFoundException.class);
     }
 
     @Test
     void aGuestCannotReadTheContent() {
-        when(currentUserProvider.getCurrentUserId()).thenReturn("  ");
 
-        assertThatThrownBy(() -> service.getItemContent(
+        assertThatThrownBy(() -> service.getItemContent("  ",
                 GetTopicItemContentRequest.builder().topicItemId(ITEM_ONE).build()))
                 .isInstanceOf(LearningPreconditionFailedException.class);
         verifyNoInteractions(topicItemRepository);
@@ -280,7 +273,7 @@ class TopicLearningServiceImplTest {
                 .title("Bare item").status(ContentStatus.PUBLISHED).build()));
         when(userTopicItemAttemptRepository.findByUserIdAndTopicItemId(USER, ITEM_ONE)).thenReturn(List.of());
 
-        TopicItemContentResponse content = service.getItemContent(
+        TopicItemContentResponse content = service.getItemContent(USER,
                 GetTopicItemContentRequest.builder().topicItemId(ITEM_ONE).build());
 
         assertThat(content.getTitle()).isEqualTo("Bare item");
@@ -298,8 +291,8 @@ class TopicLearningServiceImplTest {
         when(userTopicItemProgressRepository.findByUserId(USER))
                 .thenReturn(List.of());
 
-        service.getItemContent(GetTopicItemContentRequest.builder().topicItemId(ITEM_ONE).build());
-        service.getItemPosition(GetTopicItemPositionRequest.builder().topicItemId(ITEM_ONE).build());
+        service.getItemContent(USER, GetTopicItemContentRequest.builder().topicItemId(ITEM_ONE).build());
+        service.getItemPosition(USER, GetTopicItemPositionRequest.builder().topicItemId(ITEM_ONE).build());
 
         // Opening an item and leaving without pressing Continue must not start it.
         verify(userTopicAttemptRepository, never()).save(any());
@@ -319,7 +312,7 @@ class TopicLearningServiceImplTest {
         when(userTopicItemProgressRepository.findByUserId(USER))
                 .thenReturn(List.of());
 
-        TopicItemPositionResponse position = service.getItemPosition(
+        TopicItemPositionResponse position = service.getItemPosition(USER,
                 GetTopicItemPositionRequest.builder().topicItemId(ITEM_ONE).build());
 
         assertThat(position.getStatus()).isEqualTo(ItemProgressStatus.NOT_STARTED);
@@ -338,7 +331,7 @@ class TopicLearningServiceImplTest {
         when(userTopicItemProgressRepository.findByUserId(USER))
                 .thenReturn(List.of(itemProgress(ITEM_ONE, ItemProgressStatus.IN_PROGRESS)));
 
-        TopicItemPositionResponse position = service.getItemPosition(
+        TopicItemPositionResponse position = service.getItemPosition(USER,
                 GetTopicItemPositionRequest.builder().topicItemId(ITEM_ONE).build());
 
         assertThat(position.getStatus()).isEqualTo(ItemProgressStatus.IN_PROGRESS);
@@ -356,7 +349,7 @@ class TopicLearningServiceImplTest {
         when(userTopicItemProgressRepository.findByUserId(USER))
                 .thenReturn(List.of());
 
-        TopicItemPositionResponse position = service.getItemPosition(
+        TopicItemPositionResponse position = service.getItemPosition(USER,
                 GetTopicItemPositionRequest.builder().topicItemId(ITEM_ONE).build());
 
         assertThat(position.getStatus()).isEqualTo(ItemProgressStatus.IN_PROGRESS);
@@ -374,7 +367,7 @@ class TopicLearningServiceImplTest {
         stubNothingStartedYet();
         stubSaves();
 
-        TopicItemPositionResponse position = service.saveItemPosition(
+        TopicItemPositionResponse position = service.saveItemPosition(USER,
                 SaveTopicItemPositionRequest.builder()
                         .topicItemId(ITEM_ONE).stage(LearningStage.VOCAB).itemIndex(2).build());
 
@@ -417,7 +410,7 @@ class TopicLearningServiceImplTest {
         when(userTopicItemAttemptRepository.findByUserTopicAttemptIdAndTopicItemId(anyString(), anyString()))
                 .thenReturn(Optional.of(itemAttempt("ia1", VERSION_ONE, LearningStage.EXPRESSIONS, 3)));
 
-        service.saveItemPosition(SaveTopicItemPositionRequest.builder()
+        service.saveItemPosition(USER, SaveTopicItemPositionRequest.builder()
                 .topicItemId(ITEM_ONE).stage(LearningStage.CONTEXT).itemIndex(0).build());
 
         ArgumentCaptor<UserTopicItemAttempt> saved = ArgumentCaptor.forClass(UserTopicItemAttempt.class);
@@ -437,7 +430,7 @@ class TopicLearningServiceImplTest {
         when(userTopicItemAttemptRepository.findByUserTopicAttemptIdAndTopicItemId(anyString(), anyString()))
                 .thenReturn(Optional.of(itemAttempt("ia1", VERSION_ONE, LearningStage.VOCAB, 1)));
 
-        service.saveItemPosition(SaveTopicItemPositionRequest.builder()
+        service.saveItemPosition(USER, SaveTopicItemPositionRequest.builder()
                 .topicItemId(ITEM_ONE).stage(LearningStage.EXPRESSIONS).itemIndex(0).build());
 
         ArgumentCaptor<UserTopicItemAttempt> saved = ArgumentCaptor.forClass(UserTopicItemAttempt.class);
@@ -464,7 +457,7 @@ class TopicLearningServiceImplTest {
                 .thenReturn(Optional.of(itemAttempt("ia1", "iv-old", LearningStage.VOCAB, 0)));
         stubSaves();
 
-        service.saveItemPosition(SaveTopicItemPositionRequest.builder()
+        service.saveItemPosition(USER, SaveTopicItemPositionRequest.builder()
                 .topicItemId(ITEM_ONE).stage(LearningStage.VOCAB).itemIndex(1).build());
 
         ArgumentCaptor<UserTopicItemAttempt> saved = ArgumentCaptor.forClass(UserTopicItemAttempt.class);
@@ -484,7 +477,7 @@ class TopicLearningServiceImplTest {
         when(userTopicAttemptRepository.findByUserIdAndTopicIdAndAttemptTypeAndStatus(
                 USER, TOPIC_ID, AttemptType.LEARNING, AttemptStatus.IN_PROGRESS)).thenReturn(List.of(running));
 
-        service.saveItemPosition(SaveTopicItemPositionRequest.builder()
+        service.saveItemPosition(USER, SaveTopicItemPositionRequest.builder()
                 .topicItemId(ITEM_ONE).stage(LearningStage.CONTEXT).itemIndex(0).build());
 
         ArgumentCaptor<UserTopicAttempt> saved = ArgumentCaptor.forClass(UserTopicAttempt.class);
@@ -504,7 +497,7 @@ class TopicLearningServiceImplTest {
         when(userTopicItemProgressRepository.findByUserIdAndTopicId(USER, TOPIC_ID))
                 .thenReturn(List.of(itemProgress(ITEM_TWO, ItemProgressStatus.IN_PROGRESS)));
 
-        assertThatThrownBy(() -> service.saveItemPosition(SaveTopicItemPositionRequest.builder()
+        assertThatThrownBy(() -> service.saveItemPosition(USER, SaveTopicItemPositionRequest.builder()
                 .topicItemId(ITEM_ONE).stage(LearningStage.CONTEXT).itemIndex(0).build()))
                 .isInstanceOf(LearningPreconditionFailedException.class);
         verify(userTopicAttemptRepository, never()).save(any());
@@ -521,7 +514,7 @@ class TopicLearningServiceImplTest {
         when(userTopicItemProgressRepository.findByUserIdAndTopicId(USER, TOPIC_ID))
                 .thenReturn(List.of(itemProgress(ITEM_ONE, ItemProgressStatus.NOT_STARTED)));
 
-        assertThatThrownBy(() -> service.saveItemPosition(SaveTopicItemPositionRequest.builder()
+        assertThatThrownBy(() -> service.saveItemPosition(USER, SaveTopicItemPositionRequest.builder()
                 .topicItemId(ITEM_TWO).stage(LearningStage.CONTEXT).itemIndex(0).build()))
                 .isInstanceOf(LearningPreconditionFailedException.class);
         verify(userTopicAttemptRepository, never()).save(any());
@@ -532,11 +525,11 @@ class TopicLearningServiceImplTest {
         stubPublishedRelease();
         stubTopicItems();
         stubSignedIn();
-        when(learnerLevelProvider.getCurrentLevel()).thenReturn(CefrLevel.A1);
+        when(userLevels.findLevel(USER)).thenReturn(java.util.Optional.of(CefrLevel.A1));
         when(userTopicItemProgressRepository.findByUserId(USER)).thenReturn(List.of());
         when(userTopicItemAttemptRepository.findByUserIdAndTopicItemId(USER, ITEM_ONE)).thenReturn(List.of());
 
-        assertThatThrownBy(() -> service.saveItemPosition(SaveTopicItemPositionRequest.builder()
+        assertThatThrownBy(() -> service.saveItemPosition(USER, SaveTopicItemPositionRequest.builder()
                 .topicItemId(ITEM_ONE).stage(LearningStage.CONTEXT).itemIndex(0).build()))
                 .isInstanceOf(LearningPreconditionFailedException.class);
         verify(userTopicAttemptRepository, never()).save(any());
@@ -551,7 +544,7 @@ class TopicLearningServiceImplTest {
                 .thenReturn(List.of(itemProgress(ITEM_ONE, ItemProgressStatus.COMPLETED)));
         when(userTopicItemAttemptRepository.findByUserIdAndTopicItemId(USER, ITEM_ONE)).thenReturn(List.of());
 
-        assertThatThrownBy(() -> service.saveItemPosition(SaveTopicItemPositionRequest.builder()
+        assertThatThrownBy(() -> service.saveItemPosition(USER, SaveTopicItemPositionRequest.builder()
                 .topicItemId(ITEM_ONE).stage(LearningStage.CONTEXT).itemIndex(0).build()))
                 .isInstanceOf(LearningPreconditionFailedException.class);
         verify(userTopicAttemptRepository, never()).save(any());
@@ -562,7 +555,7 @@ class TopicLearningServiceImplTest {
         stubSignedIn();
         when(topicItemRepository.findById("nope")).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> service.saveItemPosition(SaveTopicItemPositionRequest.builder()
+        assertThatThrownBy(() -> service.saveItemPosition(USER, SaveTopicItemPositionRequest.builder()
                 .topicItemId("nope").stage(LearningStage.CONTEXT).itemIndex(0).build()))
                 .isInstanceOf(TopicItemNotFoundException.class);
     }
@@ -586,7 +579,7 @@ class TopicLearningServiceImplTest {
         when(userTopicItemProgressRepository.save(any(UserTopicItemProgress.class)))
                 .thenThrow(new IllegalStateException("write failed"));
 
-        assertThatThrownBy(() -> service.saveItemPosition(SaveTopicItemPositionRequest.builder()
+        assertThatThrownBy(() -> service.saveItemPosition(USER, SaveTopicItemPositionRequest.builder()
                 .topicItemId(ITEM_ONE).stage(LearningStage.VOCAB).itemIndex(0).build()))
                 .isInstanceOf(IllegalStateException.class);
         // The topic progress is never touched once a write of the operation failed.
@@ -596,7 +589,7 @@ class TopicLearningServiceImplTest {
     @Test
     void theSaveMethodIsDeclaredTransactional() throws NoSuchMethodException {
         assertThat(TopicLearningServiceImpl.class
-                .getMethod("saveItemPosition", SaveTopicItemPositionRequest.class)
+                .getMethod("saveItemPosition", String.class, SaveTopicItemPositionRequest.class)
                 .isAnnotationPresent(Transactional.class)).isTrue();
     }
 
@@ -612,7 +605,7 @@ class TopicLearningServiceImplTest {
         when(userTopicItemAttemptRepository.findByUserIdAndTopicId(USER, TOPIC_ID)).thenReturn(List.of());
         when(userTopicProgressRepository.findByUserId(USER)).thenReturn(List.of());
 
-        TopicProgressResponse progress = service.getTopicProgress(
+        TopicProgressResponse progress = service.getTopicProgress(USER,
                 GetTopicProgressRequest.builder().topicId(TOPIC_ID).build());
 
         assertThat(progress.getTopicId()).isEqualTo(TOPIC_ID);
@@ -631,7 +624,7 @@ class TopicLearningServiceImplTest {
         when(userTopicItemAttemptRepository.findByUserIdAndTopicId(USER, TOPIC_ID)).thenReturn(List.of());
         when(userTopicProgressRepository.findByUserId(USER)).thenReturn(List.of());
 
-        TopicProgressResponse progress = service.getTopicProgress(
+        TopicProgressResponse progress = service.getTopicProgress(USER,
                 GetTopicProgressRequest.builder().topicId(TOPIC_ID).build());
 
         assertThat(progress.getStatus()).isEqualTo(ItemProgressStatus.NOT_STARTED);
@@ -654,7 +647,7 @@ class TopicLearningServiceImplTest {
                         .id("tp1").userId(USER).topicId(TOPIC_ID)
                         .lastAccessedAt(Instant.parse("2026-01-01T00:00:00Z")).build()));
 
-        TopicProgressResponse progress = service.getTopicProgress(
+        TopicProgressResponse progress = service.getTopicProgress(USER,
                 GetTopicProgressRequest.builder().topicId(TOPIC_ID).build());
 
         assertThat(progress.getStatus()).isEqualTo(ItemProgressStatus.COMPLETED);
@@ -671,7 +664,7 @@ class TopicLearningServiceImplTest {
                 .thenReturn(List.of(itemAttempt("ia1", VERSION_ONE, LearningStage.VOCAB, 0)));
         when(userTopicProgressRepository.findByUserId(USER)).thenReturn(List.of());
 
-        TopicProgressResponse progress = service.getTopicProgress(
+        TopicProgressResponse progress = service.getTopicProgress(USER,
                 GetTopicProgressRequest.builder().topicId(TOPIC_ID).build());
 
         assertThat(progress.getStatus()).isEqualTo(ItemProgressStatus.IN_PROGRESS);
@@ -695,11 +688,10 @@ class TopicLearningServiceImplTest {
     }
 
     private void stubSignedIn() {
-        when(currentUserProvider.getCurrentUserId()).thenReturn(USER);
     }
 
     private void stubLearnerLevel() {
-        when(learnerLevelProvider.getCurrentLevel()).thenReturn(CefrLevel.C2);
+        when(userLevels.findLevel(USER)).thenReturn(java.util.Optional.of(CefrLevel.C2));
     }
 
     /** No progress and no running attempt yet, so the item counts as not started. */

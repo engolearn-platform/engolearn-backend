@@ -120,7 +120,7 @@ class AssessmentRulesTest {
     @Test void takingDtoDoesNotIncludeAnswerKeyExplanationTranscriptOrSkillScores() {
         var a=attempt();var value=AssessmentMapper.state(a,START,true);
         assertThat(value.current().getClass().getRecordComponents()).extracting(java.lang.reflect.RecordComponent::getName)
-                .containsExactly("number","prompt","options","selected");
+                .containsExactly("number","prompt","options","selected","passage");
     }
     @Test void selectionExcludesThreeRecentSeriesBeforeChoosingUnmeasuredSkills() {
         var service=new AssessmentPaperSelectionImpl(null);
