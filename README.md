@@ -2,6 +2,8 @@
 
 Backend service for the EngoLearn platform, built with Spring Boot and MongoDB.
 
+Read the [backend documentation index](docs/README.md) for architecture, module flows, technical contracts and runbooks. Subscription starts at its [technical entry](docs/technical/subscription/README.md); VNPay setup and troubleshooting live in the [runbook](docs/runbooks/vnpay.md).
+
 ---
 
 ## Getting Started

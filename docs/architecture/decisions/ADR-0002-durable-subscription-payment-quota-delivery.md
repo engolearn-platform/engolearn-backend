@@ -1,17 +1,17 @@
 # ADR-0002: Durable Subscription, Payment and Quota delivery
 
-P02 source update (2026-10-30): durable technical delivery and the existing Subscription-to-Quota route are now implemented. Payment command/result transport storage is present but business consumers remain future work. The decision below still governs later paid-flow implementation. No historical lost-event backfill is claimed.
+Implementation status updated 2026-11-05: durable delivery now covers existing Trial/Free facts, checkout/refund commands and Payment results. Paid activation, refund core and the optional VNPay worker are implemented. This records source status, not new runtime verification. No historical lost-event backfill is claimed.
 
-- **Status:** Accepted target design; not implemented
+- **Status:** Accepted; core durable routes implemented
 - **Date:** 2026-10-30
-- **Scope:** Future purchase/refund core and existing Subscription-to-Quota publication in the modular monolith
+- **Scope:** Purchase/refund core and Subscription-to-Quota publication in the modular monolith
 - **Supersedes:** [ADR-0001](ADR-0001-no-outbox-for-quota-mvp.md) for future implementation; its historical body and current runtime evidence are preserved
 
 ## Context
 
 Purchase commands, verified payment/refund outcomes and entitlement/policy effects
 must survive producer crashes, consumer rollback and lost acknowledgments. The
-current after-commit-only Subscription-to-Quota path can lose an event despite
+historical after-commit-only Subscription-to-Quota path could lose an event despite
 durable duplicate-detection receipts. Paid activation must not add a second delivery
 standard while existing Trial and scheduled Free-policy activation remain lossy.
 
@@ -43,14 +43,6 @@ standard while existing Trial and scheduled Free-policy activation remain lossy.
 
 ## Consequences and implementation boundary
 
-Future work adds persistence, worker recovery, operational review and recipient-scoped
-delivery. It must prove crash/lost-ack behavior, local atomicity, routing isolation,
-ordering and duplicate safety. No retry/lease/retention constant is selected here.
-No startup replay, Outbox or paid runtime is created by accepting this ADR. Current
-in-process limitations remain until the migration is implemented and verified.
+The core persistence, recipient-scoped delivery, recovery workers and guarded paid/refund consumers now implement this decision. Operational financial review/replay UI, retention policy and population-scale evidence remain separate work. Accepting this ADR did not itself implement or verify runtime behavior; the original P01-P07 plan is preserved as history.
 
-The [canonical technical design](../../technical/subscription-quota/subscription-payment-technical-design.md)
-defines complete contracts, product/financial ownership, atomic Trial conversion,
-calendar arithmetic, state guards and proposed P01-P07 acceptance criteria. P02
-includes existing Trial and Free-policy delivery migration; fake provider adapters
-remain test-only until P07.
+The [current module contract](../../technical/subscription/module-contract.md) documents implemented delivery and ownership. This ADR retains the architectural decision; the original technical design and proposed acceptance slices are available in Git history at `docs/technical/subscription-quota/subscription-payment-technical-design.md`. See the [current status and limits](../../technical/subscription/README.md) for provider verification distinctions.
