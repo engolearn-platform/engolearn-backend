@@ -85,4 +85,3 @@ comes from the saved snapshots; missing or inconsistent result data is a server 
 
 Legacy days stored as `CLOSED` with `close_reason: SUBMITTED` are returned as
 `SUBMITTED` by both the detail and result APIs. Other closed days remain `CLOSED`.
-For the optional one-time data migration, see [migration instructions](learning-path-submitted-migration.md).
