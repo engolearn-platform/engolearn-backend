@@ -136,6 +136,71 @@ serialized state; measure concurrency before making capacity/availability claims
 
 The local handoff package includes the Windows and Atlas instructions, isolated demo data and reset guide.
 
+### Shared development data
+
+Pull this backend branch to get the [version-2 sample paper](../../tools/mongo-json-importer/samples/assessment-paper-v2.json)
+and its [WAV files](../../tools/mongo-json-importer/samples/assessment-media). The paper is marked
+`demonstration: true` and is selectable in `dev` without `prod`.
+
+1. Follow the [importer setup](../../tools/mongo-json-importer/README.md) for Docker Compose
+   and both local `.env` files. Use a development database with Mongo replica-set transactions.
+   Confirm the importer target database matches the backend's `APP_DB` and keep the conflict
+   policy at `skip`.
+
+   ```powershell
+   .\tools\mongo-json-importer\import.ps1 -File .\tools\mongo-json-importer\samples\assessment-paper-v2.json -DryRun
+   .\tools\mongo-json-importer\import.ps1 -File .\tools\mongo-json-importer\samples\assessment-paper-v2.json
+   ```
+
+   Run the second command only after confirming the target and the preflight report. It
+   inserts the paper if its ID is absent. If preflight reports the paper already exists,
+   `skip` keeps the existing copy. Use a fresh dev database to test this exact fixture if the
+   existing copy is different.
+
+2. Run the backend in profile `dev` with the media path below. If the development catalog
+   has not been published, follow the [Subscription development seed](../../tools/subscription/README.md)
+   for that same database. To combine both startup options for the initial catalog publication,
+   append ` --engolearn.subscription.publish-manifest=tools/subscription/dev-main-manifest.json`
+   inside the quoted `-Dspring-boot.run.arguments` value.
+
+   ```powershell
+   .\mvnw.cmd spring-boot:run '-Dspring-boot.run.arguments=--engolearn.assessment.media-directory=./tools/mongo-json-importer/samples/assessment-media'
+   ```
+
+3. Run the frontend from `feat/proficiency-check` and open `/assessment` as an authenticated
+   test learner. The learner needs a Subscription account with available
+   `PROFICIENCY_CHECK_ATTEMPT` quota and a valid baseline or existing valid assessment result.
+   Verify `GET /api/v1/quota/me/usage` and `GET /api/v1/assessment/preparation` return 200,
+   and preparation reports `paperAvailable: true` and `baselineValid: true`.
+   Then use the sound check, start and submit a test attempt, and verify the new entry in History.
+
+The paper import does not create a login, publish Subscription policy or supply Placement results.
+For a newly registered test account in an isolated dev database, first publish the dev catalog,
+then publish a separate account-only manifest through the same Subscription startup option:
+
+```json
+{
+  "manifestId": "assessment-dev-reviewer-account-unique-id",
+  "environment": "development-only",
+  "plans": [],
+  "policies": [],
+  "accounts": [
+    { "userId": "<id from GET /api/v1/auth/me>", "trialUsed": false, "provenance": "NEW_ACCOUNT" }
+  ]
+}
+```
+
+Use a unique manifest ID and only provision an account verified as newly registered and missing
+its Subscription record. Keep this local manifest under `.artifacts/`. For a test-only baseline,
+import a separate local JSON file with
+`{"collections":{"assessment_dev_baselines":[{"_id":"<same user id>","valid":true,"level":"A2"}]}}`
+using the same dry-run workflow. Set `MONGO_IMPORT_OBJECT_ID_FIELDS=none` in the importer-local
+`.env` for that file so the baseline lookup sees a **string** key. Restore the previous importer
+setting before importing datasets with other ID conventions. Keep this test baseline outside
+the shared sample set. It is read only in `dev` without `prod`.
+
+If Docker is unavailable, use the separate Atlas demo launcher from the handoff package.
+
 Final command: `./mvnw verify` with JDK 21+. Feature checks: `AssessmentRulesTest`,
 `AssessmentMediaTest`, `AssessmentVersionTwoTest`, `AssessmentMongoIntegrationTest`,
 `ArchitectureTest`. Set `ASSESSMENT_TEST_MONGO_URI` only to a real replica set: the Mongo
