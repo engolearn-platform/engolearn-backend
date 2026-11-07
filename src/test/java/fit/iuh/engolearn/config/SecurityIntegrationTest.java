@@ -144,6 +144,17 @@ class SecurityIntegrationTest {
         verifyNoLearningPathCalls();
     }
 
+    @ParameterizedTest
+    @ValueSource(strings = {"/api/v1/assessment/preparation", "/api/v1/assessment/attempts"})
+    void assessmentEndpointsRequireAuthenticationWithProblemDetail(String path) throws Exception {
+        mockMvc.perform(get(path))
+                .andExpect(status().isUnauthorized())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.code").value("AUTHENTICATION_REQUIRED"))
+                .andExpect(jsonPath("$.instance").value(path))
+                .andExpect(header().string("Cache-Control", "no-store"));
+    }
+
     @Test
     void anonymousRequestToTheCurrentUserEndpointIsUnauthorized() throws Exception {
         mockMvc.perform(get("/api/v1/auth/me"))
