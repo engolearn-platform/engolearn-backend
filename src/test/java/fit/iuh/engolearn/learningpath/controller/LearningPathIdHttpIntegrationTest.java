@@ -6,6 +6,7 @@ import fit.iuh.engolearn.shared.security.impl.JwtTokenService;
 import java.time.Instant;
 import java.util.Date;
 import java.util.List;
+import java.util.ArrayList;
 import java.util.UUID;
 import java.util.stream.IntStream;
 import org.bson.Document;
@@ -365,6 +366,74 @@ class LearningPathIdHttpIntegrationTest extends AbstractMongoIntegrationTest {
         }
         assertThat(mongoTemplate.getCollection("learning_paths").countDocuments()).isZero();
         assertThat(mongoTemplate.getCollection("learning_path_questions").countDocuments()).isZero();
+    }
+
+    @Test
+    void listAndSearchExposeOnlyOwnedCompletedAssessmentMappingsAndPreserveSourceIds() {
+        ObjectId ownerId = new ObjectId();
+        ObjectId otherId = new ObjectId();
+        seedAccount(ownerId);
+        seedAccount(otherId);
+        ObjectId linkedId = new ObjectId();
+        ObjectId unmappedId = new ObjectId();
+        ObjectId foreignId = new ObjectId();
+        ObjectId blankId = new ObjectId();
+        ObjectId placementId = new ObjectId();
+        ObjectId unfinishedId = new ObjectId();
+        ObjectId missingId = new ObjectId();
+        ObjectId malformedId = new ObjectId();
+        mongoTemplate.getCollection("attempts").insertMany(List.of(
+                assessmentProjection(linkedId, ownerId, "native-linked-id"),
+                assessmentProjection(unmappedId, ownerId, null),
+                assessmentProjection(foreignId, otherId, "foreign-native-id"),
+                assessmentProjection(blankId, ownerId, " "),
+                assessmentProjection(placementId, ownerId, "placement-native-id").append("type", "PLACEMENT"),
+                assessmentProjection(unfinishedId, ownerId, "unfinished-native-id").append("status", "IN_PROGRESS"),
+                assessmentProjection(malformedId, ownerId, "unused").append("assessment_source_attempt_id", 123)));
+        List<ObjectId> sourceIds = List.of(linkedId, unmappedId, foreignId, blankId, placementId, unfinishedId, missingId, malformedId);
+        List<Document> pathDocuments = new ArrayList<>();
+        for (int index = 0; index <= sourceIds.size(); index++) {
+            Document path = new Document("_id", new ObjectId()).append("user_id", ownerId)
+                    .append("status", "IN_PROGRESS").append("is_active", true)
+                    .append("created_date", "2026-11-01")
+                    .append("created_at", Date.from(Instant.parse("2026-11-01T03:00:00Z").plusSeconds(index)))
+                    .append("micro_skills", List.of(new Document("micro_skill", "Reading for Gist")));
+            if (index < sourceIds.size()) path.append("source", new Document("attempt_id", sourceIds.get(index)));
+            pathDocuments.add(path);
+        }
+        mongoTemplate.getCollection("learning_paths").insertMany(pathDocuments);
+        List<Document> sourcesBefore = mongoTemplate.getCollection("attempts").find().into(new ArrayList<>());
+        String base = "http://localhost:" + port + "/api/learning-paths";
+        JsonMapper mapper = JsonMapper.builder().build();
+        for (String suffix : List.of("?status=ACTIVE", "/search?keyword=01/11/2026", "/search?keyword=Gist")) {
+            JsonNode items = mapper.readTree(authenticatedGet(base + suffix, ownerId)).path("data").path("items");
+            assertThat(items.size()).as("Items for %s", suffix).isEqualTo(pathDocuments.size());
+            int linkedCount = 0;
+            for (JsonNode item : items) {
+                assertThat(item.has("sourceAttemptId")).isFalse();
+                if (item.path("id").asString().equals(pathDocuments.getFirst().getObjectId("_id").toHexString())) {
+                    assertThat(item.path("sourceAssessmentAttemptId").asString()).isEqualTo("native-linked-id");
+                    linkedCount++;
+                } else {
+                    assertThat(item.path("sourceAssessmentAttemptId").isNull()).isTrue();
+                }
+            }
+            assertThat(linkedCount).isEqualTo(1);
+            JsonNode otherItems = mapper.readTree(authenticatedGet(base + suffix + "&userId=" + ownerId, otherId))
+                    .path("data").path("items");
+            assertThat(otherItems.size()).isZero();
+        }
+        assertThat(mongoTemplate.getCollection("learning_paths").find().into(new ArrayList<>()))
+                .containsExactlyElementsOf(pathDocuments);
+        assertThat(mongoTemplate.getCollection("attempts").find().into(new ArrayList<>()))
+                .containsExactlyElementsOf(sourcesBefore);
+    }
+
+    private Document assessmentProjection(ObjectId attemptId, ObjectId userId, String nativeId) {
+        Document document = new Document("_id", attemptId).append("user_id", userId)
+                .append("type", "PERIODIC").append("status", "COMPLETED");
+        if (nativeId != null) document.append("assessment_source_attempt_id", nativeId);
+        return document;
     }
 
     private ObjectId seedEligibleProjection(ObjectId userId, String nativeId) {

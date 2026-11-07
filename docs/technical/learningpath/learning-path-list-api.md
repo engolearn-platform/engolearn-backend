@@ -24,6 +24,16 @@ counts.
 Both endpoints return the shared `ApiResponse` envelope. Search results are ordered by creation
 time descending and use the same list item DTO as the list endpoint.
 
+List/search items expose `sourceAssessmentAttemptId: string|null` for navigation to
+`/assessment/attempts/:attemptId/result`. This field replaces the former `sourceAttemptId`
+response property; backend and frontend must deploy this contract change together.
+The backend resolves all source IDs in one batch from `attempts`, filtered by the cookie
+owner, `type=PERIODIC` and `status=COMPLETED`. Missing sources, foreign sources and absent,
+blank or non-string `assessment_source_attempt_id` values return `null`.
+The stored `learning_paths.source.attempt_id` remains an ObjectId and is not changed.
+This lookup does not read or modify `assessment_attempts`. Assessment itself checks result
+availability, ownership and analysis access when the result page opens.
+
 ## Recommendation
 
 `GET /api/learning-paths/recommendation?attemptId=<ObjectId>` reads a

@@ -25,6 +25,8 @@ import fit.iuh.engolearn.learningpath.model.vo.LearningPathSummaryMicroSkill;
 import fit.iuh.engolearn.learningpath.model.vo.LearningPathWeek;
 import fit.iuh.engolearn.learningpath.model.vo.LearningPathWeekStats;
 import fit.iuh.engolearn.learningpath.repository.LearningPathRepository;
+import fit.iuh.engolearn.learningpath.repository.PeriodicTestReadRepository;
+import lombok.RequiredArgsConstructor;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
@@ -37,12 +39,14 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Objects;
 import org.bson.types.ObjectId;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
 @Service
+@RequiredArgsConstructor
 public class LearningPathService {
 
     private static final List<String> SEARCHABLE_STATUSES = List.of(
@@ -53,10 +57,7 @@ public class LearningPathService {
             .withResolverStyle(ResolverStyle.STRICT);
 
     private final LearningPathRepository repository;
-
-    public LearningPathService(LearningPathRepository repository) {
-        this.repository = repository;
-    }
+    private final PeriodicTestReadRepository periodicTests;
 
     public LearningPathListResponse getByUserId(
             String userId,
@@ -64,11 +65,9 @@ public class LearningPathService {
     ) {
         ObjectId userObjectId = new ObjectId(userId);
 
-        List<LearningPathListItemResponse> items = repository
-                .findByUserIdAndStatusInOrderByCreatedAtDesc(userObjectId, statusesFor(status))
-                .stream()
-                .map(this::toListItemResponse)
-                .toList();
+        List<LearningPath> paths = repository
+                .findByUserIdAndStatusInOrderByCreatedAtDesc(userObjectId, statusesFor(status));
+        List<LearningPathListItemResponse> items = toListItems(paths, userObjectId);
 
         return new LearningPathListResponse(items, countsFor(userObjectId));
     }
@@ -95,13 +94,13 @@ public class LearningPathService {
         Map<String, LearningPath> uniqueMatches = new LinkedHashMap<>();
         matches.forEach(path -> uniqueMatches.putIfAbsent(path.getId(), path));
 
-        List<LearningPathListItemResponse> items = uniqueMatches.values().stream()
+        List<LearningPath> paths = uniqueMatches.values().stream()
                 .sorted(Comparator.comparing(
                         LearningPath::getCreatedAt,
                         Comparator.nullsLast(Comparator.reverseOrder())
                 ))
-                .map(this::toListItemResponse)
                 .toList();
+        List<LearningPathListItemResponse> items = toListItems(paths, userObjectId);
 
         return new LearningPathListResponse(items, countsFor(userObjectId));
     }
@@ -133,7 +132,21 @@ public class LearningPathService {
         };
     }
 
-    private LearningPathListItemResponse toListItemResponse(LearningPath path) {
+    private List<LearningPathListItemResponse> toListItems(List<LearningPath> paths, ObjectId userId) {
+        List<ObjectId> attemptIds = paths.stream().map(this::sourceAttemptId)
+                .filter(Objects::nonNull).distinct().toList();
+        Map<ObjectId, String> assessmentIds = periodicTests.findAssessmentAttemptIds(attemptIds, userId);
+        return paths.stream().map(path -> {
+            ObjectId attemptId = sourceAttemptId(path);
+            return toListItemResponse(path, attemptId == null ? null : assessmentIds.get(attemptId));
+        }).toList();
+    }
+
+    private ObjectId sourceAttemptId(LearningPath path) {
+        return path.getSource() == null ? null : path.getSource().getAttemptId();
+    }
+
+    private LearningPathListItemResponse toListItemResponse(LearningPath path, String sourceAssessmentAttemptId) {
         List<String> skills =
                 path.getMicroSkills() == null
                         ? List.of()
@@ -151,13 +164,9 @@ public class LearningPathService {
                         sourceProgress.getAnswered()
                 );
 
-        String sourceAttemptId = path.getSource() == null || path.getSource().getAttemptId() == null
-                ? null
-                : path.getSource().getAttemptId().toHexString();
-
         return new LearningPathListItemResponse(
                 path.getId(),
-                sourceAttemptId,
+                sourceAssessmentAttemptId,
                 path.getCreatedDate(),
                 path.getLevel(),
                 path.getK(),
