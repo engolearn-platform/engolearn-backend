@@ -1,6 +1,5 @@
 package fit.iuh.engolearn.topic.service.impl;
 
-import fit.iuh.engolearn.topic.infra.dev.LocalLearnerProvider;
 import fit.iuh.engolearn.topic.service.*;
 import lombok.RequiredArgsConstructor;
 
@@ -25,7 +24,6 @@ import java.nio.charset.StandardCharsets;
 @Service
 @RequiredArgsConstructor
 public class TopicAttemptServiceImpl implements TopicAttemptService {
-    private final LocalLearnerProvider learner;
     private final TopicLearnerCatalogService catalog;
     private final UserTopicItemAttemptRepository attempts;
     private final TopicItemVersionRepository versions;
@@ -42,9 +40,8 @@ public class TopicAttemptServiceImpl implements TopicAttemptService {
     private final TopicRetrySessionMapper retrySessionMapper;
 
     @Override
-    public TopicAttemptResponse start(String itemId, StartTopicAttemptRequest body, String key) {
-        String userId = userId();
-        if ("RETRY".equals(body.mode())) return retries.startItem(itemId, body, key);
+    public TopicAttemptResponse start(String userId, String itemId, StartTopicAttemptRequest body, String key) {
+        if ("RETRY".equals(body.mode())) return retries.startItem(userId, itemId, body, key);
         if (body.retrySessionId() != null || body.replaceRetrySessionId() != null) throw problem(400, "INVALID_REQUEST", "LEARN cannot attach a retry session");
         String signature = "start|" + itemId + "|" + body.mode();
         TopicItem storedItem = topicItems.findById(itemId).orElseThrow(() -> problem(404, "CONTENT_UNAVAILABLE", "Topic item not found"));
@@ -59,10 +56,10 @@ public class TopicAttemptServiceImpl implements TopicAttemptService {
         UserTopicItemAttempt oldKey = mutations.findByStartKey(userId, storedItem.getTopicId(), key);
         if (oldKey != null && userId.equals(oldKey.getUserId())) requireGeneration(oldKey);
         reconcileHiddenRunning(userId, storedItem.getTopicId());
-        TopicDetailResponse detail = catalog.detail(storedItem.getTopicId());
+        TopicDetailResponse detail = catalog.detail(userId, storedItem.getTopicId());
         TopicItemSummaryResponse item = detail.getItems().stream().filter(row -> row.getTopicItemId().equals(itemId)).findFirst()
                 .orElseThrow(() -> problem(404, "CONTENT_UNAVAILABLE", "Topic item is not published"));
-        if (item.getLearningAttempt() != null) return describe(owned(item.getLearningAttempt().attemptId()));
+        if (item.getLearningAttempt() != null) return describe(owned(userId, item.getLearningAttempt().attemptId()));
         if (!item.getActions().start().allowed()) throw problem(422, item.getActions().start().reason(), "The item cannot be started");
         TopicItemVersion pinned = versions.findById(item.getPublishedVersionId()).orElseThrow(() -> problem(404, "CONTENT_UNAVAILABLE", "Published version not found"));
         TopicAttemptContentMapper.content(pinned);
@@ -83,16 +80,16 @@ public class TopicAttemptServiceImpl implements TopicAttemptService {
     }
 
     @Override
-    public TopicAttemptResponse get(String id) {
-        UserTopicItemAttempt attempt = owned(id);
+    public TopicAttemptResponse get(String userId, String id) {
+        UserTopicItemAttempt attempt = owned(userId, id);
         requireItemVisible(attempt, version(attempt));
         if (attempt.getStatus() == AttemptStatus.ABANDONED) throw problem(409, "STATE_CHANGED", "This attempt is no longer active");
         return describe(attempt);
     }
 
     @Override
-    public TopicItemContentResponse content(String id) {
-        UserTopicItemAttempt attempt = owned(id);
+    public TopicItemContentResponse content(String userId, String id) {
+        UserTopicItemAttempt attempt = owned(userId, id);
         TopicItemVersion pinned = version(attempt);
         requireItemVisible(attempt, pinned);
         if (attempt.getStatus() != AttemptStatus.IN_PROGRESS) throw problem(409, "STATE_CHANGED", "Completed content is available through review");
@@ -100,8 +97,8 @@ public class TopicAttemptServiceImpl implements TopicAttemptService {
     }
 
     @Override
-    public CurrentQuizResponse getCurrentQuiz(String id) {
-        UserTopicItemAttempt attempt = owned(id);
+    public CurrentQuizResponse getCurrentQuiz(String userId, String id) {
+        UserTopicItemAttempt attempt = owned(userId, id);
         TopicItemVersion pinned = version(attempt);
         requireItemVisible(attempt, pinned);
         if (attempt.getStatus() == AttemptStatus.COMPLETED) return new CurrentQuizResponse(describe(attempt), null);
@@ -113,8 +110,8 @@ public class TopicAttemptServiceImpl implements TopicAttemptService {
     }
 
     @Override
-    public QuizNavigationResponse quizNavigation(String id) {
-        UserTopicItemAttempt attempt = owned(id);
+    public QuizNavigationResponse quizNavigation(String userId, String id) {
+        UserTopicItemAttempt attempt = owned(userId, id);
         TopicItemVersion pinned = version(attempt);
         requireItemVisible(attempt, pinned);
         if (attempt.getStatus() != AttemptStatus.IN_PROGRESS) throw problem(409, "STATE_CHANGED", "Open completed exercises through review");
@@ -138,9 +135,9 @@ public class TopicAttemptServiceImpl implements TopicAttemptService {
     }
 
     @Override
-    public TopicAttemptResponse advance(String id, AdvanceTopicContentRequest body, String key) {
-        if (isRetry(id)) return retries.advance(id, body, key);
-        UserTopicItemAttempt attempt = owned(id);
+    public TopicAttemptResponse advance(String userId, String id, AdvanceTopicContentRequest body, String key) {
+        if (isRetry(id)) return retries.advance(userId, id, body, key);
+        UserTopicItemAttempt attempt = owned(userId, id);
         String fingerprint = "advance|" + body.revision() + "|" + body.stage() + "|" + body.itemIndex();
         ContentMutationReceiptVo replay = receipt(attempt, key, fingerprint);
         if (replay != null) return describeReceipt(attempt, replay);
@@ -175,7 +172,7 @@ public class TopicAttemptServiceImpl implements TopicAttemptService {
                 FurthestReachedVo.builder().stage(saved.getStage()).itemIndex(saved.getItemIndex()).build(),
                 revision, now, saved);
         if (result == null) {
-            UserTopicItemAttempt latest = owned(id);
+            UserTopicItemAttempt latest = owned(userId, id);
             ContentMutationReceiptVo concurrentReplay = receipt(latest, key, fingerprint);
             if (concurrentReplay != null) return describeReceipt(latest, concurrentReplay);
             throw problem(409, "STATE_CHANGED", "Another request changed the position");
@@ -184,9 +181,9 @@ public class TopicAttemptServiceImpl implements TopicAttemptService {
     }
 
     @Override
-    public QuizAnswerResponse answerQuiz(String id, String quizId, AnswerQuizRequest body, String key) {
-        if (isRetry(id)) return retries.answer(id, quizId, body, key);
-        UserTopicItemAttempt attempt = owned(id);
+    public QuizAnswerResponse answerQuiz(String userId, String id, String quizId, AnswerQuizRequest body, String key) {
+        if (isRetry(id)) return retries.answer(userId, id, quizId, body, key);
+        UserTopicItemAttempt attempt = owned(userId, id);
         if (key == null || key.isBlank() || key.length() > 128) throw problem(400, "INVALID_REQUEST", "Idempotency-Key is required");
         String fingerprint = "answer|" + body.revision() + "|" + quizId + "|" + body.optionId();
         ContentMutationReceiptVo replay = receipt(attempt, key, fingerprint);
@@ -224,7 +221,7 @@ public class TopicAttemptServiceImpl implements TopicAttemptService {
         UserTopicItemAttempt result = mutations.recordAnswer(
                 attempt, progress, newRevision, now, saved, advanced, completedResult);
         if (result == null) {
-            UserTopicItemAttempt latest = owned(id);
+            UserTopicItemAttempt latest = owned(userId, id);
             ContentMutationReceiptVo concurrentReplay = receipt(latest, key, fingerprint);
             if (concurrentReplay != null) return replayedAnswer(latest, quizId, body, concurrentReplay);
             throw problem(409, "STATE_CHANGED", "Another request changed the attempt while answering");
@@ -233,12 +230,12 @@ public class TopicAttemptServiceImpl implements TopicAttemptService {
     }
 
     @Override
-    public TopicAttemptResponse complete(String id, CompleteTopicAttemptRequest body, String key) {
+    public TopicAttemptResponse complete(String userId, String id, CompleteTopicAttemptRequest body, String key) {
         if (isRetry(id)) {
-            retries.owned(id, false);
+            retries.owned(userId, id, false);
             throw problem(409, "STATE_CHANGED", "Retry completion is committed with the final answer");
         }
-        UserTopicItemAttempt attempt = owned(id);
+        UserTopicItemAttempt attempt = owned(userId, id);
         String fingerprint = "complete|" + body.revision();
         ContentMutationReceiptVo replay = receipt(attempt, key, fingerprint);
         if (replay != null) return describeReceipt(attempt, replay);
@@ -264,7 +261,7 @@ public class TopicAttemptServiceImpl implements TopicAttemptService {
         UserTopicItemAttempt result = mutations.complete(
                 attempt, completionResult(pinned, sequence, attempt.getQuizProgress()), now, saved);
         if (result == null) {
-            UserTopicItemAttempt latest = owned(id);
+            UserTopicItemAttempt latest = owned(userId, id);
             ContentMutationReceiptVo concurrentReplay = receipt(latest, key, fingerprint);
             if (concurrentReplay != null) return describeReceipt(latest, concurrentReplay);
             throw problem(409, "STATE_CHANGED", "Another request changed this attempt");
@@ -289,11 +286,11 @@ public class TopicAttemptServiceImpl implements TopicAttemptService {
     }
 
     @Override
-    public TopicItemResultResponse itemResult(String id) {
-        UserTopicItemAttempt attempt = isRetry(id) ? retries.owned(id, true) : owned(id);
+    public TopicItemResultResponse itemResult(String userId, String id) {
+        UserTopicItemAttempt attempt = isRetry(id) ? retries.owned(userId, id, true) : owned(userId, id);
         requireItemVisible(attempt, version(attempt));
         if (attempt.getStatus() != AttemptStatus.COMPLETED) throw problem(409, "ATTEMPT_NOT_COMPLETED", "This attempt has not completed");
-        TopicDetailResponse detail = catalog.detail(attempt.getTopicId());
+        TopicDetailResponse detail = catalog.detail(userId, attempt.getTopicId());
         int index = -1;
         for (int i = 0; i < detail.getItems().size(); i++) if (attempt.getTopicItemId().equals(detail.getItems().get(i).getTopicItemId())) index = i;
         if (index < 0) throw problem(410, "ITEM_HIDDEN", "The item is no longer available");
@@ -304,7 +301,7 @@ public class TopicAttemptServiceImpl implements TopicAttemptService {
                 : next.getActions().continueAction().allowed() ? next.getActions().continueAction() : next.getActions().start();
         TopicRetrySessionResponse retrySession = null;
         if (attempt.getAttemptType() == AttemptType.RETRY) {
-            TopicRetryRuntime runtime = retries.runtime(attempt.getTopicId());
+            TopicRetryRuntime runtime = retries.runtime(userId, attempt.getTopicId());
             next = null;
             availability = new TopicCatalogPolicy.Availability(false, "CONTENT_UNAVAILABLE");
             if (runtime != null && Objects.equals(runtime.getSessionId(), attempt.getUserTopicAttemptId())) {
@@ -321,12 +318,12 @@ public class TopicAttemptServiceImpl implements TopicAttemptService {
     }
 
     @Override
-    public TopicItemReviewResponse review(String id) {
-        UserTopicItemAttempt attempt = isRetry(id) ? retries.owned(id, true) : owned(id);
+    public TopicItemReviewResponse review(String userId, String id) {
+        UserTopicItemAttempt attempt = isRetry(id) ? retries.owned(userId, id, true) : owned(userId, id);
         TopicItemVersion pinned = version(attempt);
         requireItemVisible(attempt, pinned);
         if (attempt.getStatus() != AttemptStatus.COMPLETED) throw problem(409, "ATTEMPT_NOT_COMPLETED", "Complete this attempt before review");
-        TopicDetailResponse detail = catalog.detail(attempt.getTopicId());
+        TopicDetailResponse detail = catalog.detail(userId, attempt.getTopicId());
         if (detail.getItems().stream().noneMatch(item -> attempt.getTopicItemId().equals(item.getTopicItemId()) && id.equals(item.getCompletedAttemptId())))
             throw problem(409, "RESULT_CHANGED", "Open the current completed result");
         List<TopicItemReviewResponse.ReviewedQuiz> reviewed = new ArrayList<>();
@@ -342,15 +339,14 @@ public class TopicAttemptServiceImpl implements TopicAttemptService {
     }
 
     @Override
-    public TopicResultResponse topicResult(String topicId) {
-        userId();
-        TopicDetailResponse detail = catalog.detail(topicId);
+    public TopicResultResponse topicResult(String userId, String topicId) {
+        TopicDetailResponse detail = catalog.detail(userId, topicId);
         if (!"COMPLETED".equals(detail.getProgress().status()) || detail.getItems().isEmpty())
             throw problem(409, "TOPIC_NOT_COMPLETED", "Complete every visible item before opening the topic result");
         List<TopicResultResponse.Item> results = new ArrayList<>();
         int firstTry = 0, total = 0;
         for (TopicItemSummaryResponse item : detail.getItems()) {
-            UserTopicItemAttempt attempt = owned(item.getCompletedAttemptId());
+            UserTopicItemAttempt attempt = owned(userId, item.getCompletedAttemptId());
             requireItemVisible(attempt, version(attempt));
             CompletionResultVo result = resultData(attempt);
             firstTry += result.getFirstTryCorrectCount(); total += result.getTotalQuizCount();
@@ -454,9 +450,9 @@ public class TopicAttemptServiceImpl implements TopicAttemptService {
     }
 
     @Override
-    public Map<String, Instant> access(String id, String key) {
-        if (isRetry(id)) return retries.access(id, key);
-        UserTopicItemAttempt attempt = owned(id);
+    public Map<String, Instant> access(String userId, String id, String key) {
+        if (isRetry(id)) return retries.access(userId, id, key);
+        UserTopicItemAttempt attempt = owned(userId, id);
         requireItemVisible(attempt, version(attempt));
         if (attempt.getStatus() == AttemptStatus.ABANDONED) throw problem(409, "STATE_CHANGED", "This attempt is no longer active");
         ContentMutationReceiptVo replay = receipt(attempt, key, "access");
@@ -521,16 +517,15 @@ public class TopicAttemptServiceImpl implements TopicAttemptService {
     }
 
     @Override
-    public TopicProgressResponse topicProgress(String topicId) {
-        userId();
-        TopicDetailResponse detail = catalog.detail(topicId);
+    public TopicProgressResponse topicProgress(String userId, String topicId) {
+        TopicDetailResponse detail = catalog.detail(userId, topicId);
         TopicCatalogPolicy.ProgressSummary summary = detail.getProgress();
         TopicProgressResponse response = TopicProgressResponse.builder().topicId(topicId)
                 .status(ItemProgressStatus.valueOf(summary.status())).completedItemCount(summary.completedItemCount())
                 .totalItemCount(summary.totalItemCount()).items(new ArrayList<>()).build();
         long generation = detail.getGeneration();
-        List<UserTopicItemAttempt> saved = new ArrayList<>(attempts.findByUserIdAndTopicId(userId(), topicId).stream().filter(a -> a.getGeneration() == generation).toList());
-        TopicRetryRuntime retryState = retries.runtime(topicId, generation);
+        List<UserTopicItemAttempt> saved = new ArrayList<>(attempts.findByUserIdAndTopicId(userId, topicId).stream().filter(a -> a.getGeneration() == generation).toList());
+        TopicRetryRuntime retryState = retries.runtime(userId, topicId, generation);
         if (retryState != null) saved.addAll(retryState.getOfficialResults().values());
         int totalWords = 0, totalExpressions = 0, totalQuiz = 0, learnedWords = 0, learnedExpressions = 0, doneQuiz = 0;
         Instant accessed = saved.stream().map(UserTopicItemAttempt::getLastAccessedAt).filter(Objects::nonNull).max(Comparator.naturalOrder()).orElse(null);
@@ -588,9 +583,9 @@ public class TopicAttemptServiceImpl implements TopicAttemptService {
         return null;
     }
 
-    private UserTopicItemAttempt owned(String id) {
-        if (isRetry(id)) return retries.owned(id, false);
-        String owner = userId();
+    private UserTopicItemAttempt owned(String userId, String id) {
+        if (isRetry(id)) return retries.owned(userId, id, false);
+        String owner = userId;
         UserTopicItemAttempt attempt = attempts.findById(id).orElseThrow(() -> problem(404, "CONTENT_UNAVAILABLE", "Attempt not found"));
         if (!owner.equals(attempt.getUserId())) throw problem(404, "CONTENT_UNAVAILABLE", "Attempt not found");
         requireGeneration(attempt);
@@ -629,11 +624,6 @@ public class TopicAttemptServiceImpl implements TopicAttemptService {
         if (!stillPublished) throw problem(410, "ITEM_HIDDEN", "The item is no longer available");
     }
 
-    private String userId() {
-        String id = learner.getCurrentUserId();
-        if (id == null) throw problem(401, "SIGN_IN_REQUIRED", "Select a local learner profile");
-        return id;
-    }
     private long revision(UserTopicItemAttempt attempt) { return attempt.getVersion() == null ? 0 : attempt.getVersion(); }
     private String hash(String value) {
         try { return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(value.getBytes(StandardCharsets.UTF_8))); }

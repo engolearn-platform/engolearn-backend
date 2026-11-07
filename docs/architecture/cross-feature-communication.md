@@ -1,6 +1,6 @@
 # Cross-feature communication
 
-P01-P02 source update (2026-10-30): new Payment contracts follow the DTO/event layout and the Subscription -> Quota runtime now uses durable Outbox/receipt delivery. Payment business consumers remain absent. Historical/current labels below describe the pre-P02 snapshot where indicated; future paid flows must use the same durable boundary. No direct Subscription -> Quota business call is introduced.
+Current implementation: Subscription-to-Payment commands, Payment-to-Subscription results and Subscription-to-Quota facts use durable Outbox/receipt delivery. Checkout, paid activation, refund consumers and the optional VNPay worker are implemented. See the [Subscription integration contracts](../technical/subscription/module-contract.md) for current routes and semantics.
 
 Features may depend on one another only through narrow public contracts. The goal is to keep feature internals private and make future extraction possible without rewriting business logic.
 
@@ -8,7 +8,7 @@ This document owns communication mechanisms, caller/provider obligations and the
 
 ## Allowed communication
 
-Dev operator exception (2026-11-01, explicitly user-approved): Subscription may synchronously invoke payment.contract.DevPaymentReset while both dev-only capabilities join one local Mongo transaction to release an unresolved test purchase. Both are absent unless dev is active, prod is absent and the explicit flag is enabled. Payment retains ownership of financial eligibility/audit; Subscription retains ownership of source/account guards. No financial outcome fact or entitlement change is fabricated. Ordinary purchase/refund/entitlement flows retain durable Outbox boundaries. See [dev release](../technical/subscription-quota/dev-purchase-reset.md).
+Dev operator exception (2026-11-01, explicitly user-approved): Subscription may synchronously invoke payment.contract.DevPaymentReset while both dev-only capabilities join one local Mongo transaction to release an unresolved test purchase. Both are absent unless dev is active, prod is absent and the explicit flag is enabled. Payment retains ownership of financial eligibility/audit; Subscription retains ownership of source/account guards. No financial outcome fact or entitlement change is fabricated. Ordinary purchase/refund/entitlement flows retain durable Outbox boundaries. See [dev release](../runbooks/dev-purchase-reset.md).
 
 1. **Contract call** — call the provider's public capability interface; callers must not access its entities or repositories.
 2. **Event** — publish a fact owned by the publishing feature and let the receiving feature react. Prefer events when a direct call would create a backwards dependency.
@@ -55,29 +55,15 @@ A new dependency needs an explicit reason and approval. Keep this table in sync 
 | Feature | May depend on, through contract |
 |---|---|
 | `dictionary` | None |
-| `topic` | `dictionary` |
-| `user` | `topic` |
-| `subscription` | `payment.contract` for the approved future purchase/refund command and result contracts; no current production consumer |
-| `quota` | `subscription.contract` (effective entitlements and Subscription-owned facts; current after-commit delivery, durable delivery is the agreed target) |
+| `topic` | `dictionary`, `user.contract` |
+| `user` | None |
+| `subscription` | `payment.contract` for purchase/refund commands and results; conditional dev-only reset capability as described above |
+| `quota` | `subscription.contract` (effective-entitlement lookup and durable Subscription-owned facts) |
 | `payment` | None; must never depend on Subscription |
 
-The delivered M3 preparation adds only two `payment.contract` records. Subscription owns the
-future result consumer and imports Payment-owned command/result types; commands can belong
-to the receiving Payment capability even though Subscription initiates them. Payment must
-never import Subscription types. New command DTOs use `payment.contract.dto`; new past-tense
-fact types use `payment.contract.event` with the `Event` suffix, following implementation
-conventions. The existing root records are current declarations until an explicit P01 revision.
+Payment owns commands in `payment.contract.dto` and facts in `payment.contract.event`; Subscription owns the receiving result consumer. Payment must never import Subscription types. Quota consumes Subscription-owned entitlement/policy facts and can resolve effective entitlements through its public capability.
 
-The 2026-10-30 agreed target uses durable Outbox/recipient receipts for Subscription -> Payment
-commands, Payment -> Subscription results and Subscription -> Quota facts, without a broker
-or cross-module transaction. Producer business writes and Outbox records commit locally;
-consumer receipts and effects commit locally. Recipient-scoped delivery prevents Payment and
-Quota from claiming or acknowledging each other's messages. Existing Trial and scheduled
-Free-policy publication must migrate too; no permanent in-memory-only parallel path is intended.
-No such delivery runtime is implemented by this documentation update. See the
-[canonical target design](../technical/subscription-quota/subscription-payment-technical-design.md),
-[ADR-0002](decisions/ADR-0002-durable-subscription-payment-quota-delivery.md) and
-[current Payment declarations](../technical/subscription-quota/payment-contract-handoff.md).
+Normal durable routes use local producer state/Outbox and consumer receipt/effect transactions. Recipient-scoped leases, fencing and acknowledgment after commit prevent one recipient from claiming or completing another recipient's work; lost acknowledgment permits duplicate-safe redelivery. Trial and actual Free-policy activation use this same durable path, with no parallel in-memory-only publication. No broker or historical lost-event backfill is implied. See [ADR-0002](decisions/ADR-0002-durable-subscription-payment-quota-delivery.md) and [implemented delivery contract](../technical/subscription/module-contract.md#delivery-and-transactions).
 
 `ArchitectureTest` does **not** currently enforce this table as an exact allow-list, so reviewers must check that new dependencies are listed and approved. The complete list of current checks is maintained in [package structure](package-structure.md#what-is-automatically-enforced).
 

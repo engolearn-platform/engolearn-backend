@@ -12,6 +12,11 @@ This document defines **how work is performed**, regardless of which team workfl
 
 ## 2. Implement in small steps
 
+- Follow the documented package, cross-feature and implementation rules; legacy inconsistencies are not exceptions.
+- Preserve behavior and API/persistence contracts in refactors unless the agreed scope explicitly changes them.
+- Do not add dependencies, Maven modules or top-level feature packages without approval; reuse authorization already given in the task.
+- Do not bypass architecture rules, suppress violations or weaken tests to obtain a pass. `ArchitectureTest` enforces only a subset; the architecture documents remain authoritative.
+
 - Prefer small, reviewable changes that follow the approved scope and architecture.
 - Update or add automated tests where they can verify the intended behavior or prevent regression.
 - After each meaningful step, run the relevant checks and inspect their output before proceeding.

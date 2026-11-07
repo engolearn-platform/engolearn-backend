@@ -123,13 +123,12 @@ class SecurityIntegrationTest {
     @MockitoBean private RefreshSessionRepository refreshSessionRepository;
 
     @Test
-    void legacyTopicEndpointsStayUnprotectedUntilMigration() throws Exception {
+    void topicLearningEndpointsRequireAuthentication() throws Exception {
         mockMvc.perform(get("/api/v1/topic-items/i1/content"))
-                .andExpect(status().isGone())
-                .andExpect(jsonPath("$.code").value("INVALID_REQUEST"));
+                .andExpect(status().isUnauthorized());
 
         mockMvc.perform(get("/api/v1/topics/t1/progress"))
-                .andExpect(status().isOk());
+                .andExpect(status().isUnauthorized());
     }
 
     @ParameterizedTest

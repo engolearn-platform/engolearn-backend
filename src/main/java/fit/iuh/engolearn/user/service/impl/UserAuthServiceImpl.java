@@ -6,6 +6,7 @@ import fit.iuh.engolearn.user.model.User;
 import fit.iuh.engolearn.user.model.RefreshSession;
 import fit.iuh.engolearn.user.repository.UserRepository;
 import fit.iuh.engolearn.user.repository.RefreshSessionRepository;
+import fit.iuh.engolearn.user.service.UserRegistrationService;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DuplicateKeyException;
@@ -24,17 +25,20 @@ public class UserAuthServiceImpl implements fit.iuh.engolearn.user.service.UserA
     private final UserRepository repository;
     private final PasswordEncoder encoder;
     private final RefreshSessionRepository sessions;
+    private final UserRegistrationService registrations;
     private final JwtTokenService tokens;
     private final long accessTokenSeconds;
     @Value("${engolearn.security.cookies.secure:true}") private boolean secureCookies;
 
     public UserAuthServiceImpl(UserRepository repository, PasswordEncoder encoder, RefreshSessionRepository sessions,
+                              UserRegistrationService registrations,
                               JwtTokenService tokens,
                               @Value("${engolearn.security.access-token-seconds:900}") long accessTokenSeconds) {
         if (accessTokenSeconds <= 0) throw new IllegalArgumentException("Access token lifetime must be positive");
         this.repository = repository;
         this.encoder = encoder;
         this.sessions = sessions;
+        this.registrations = registrations;
         this.tokens = tokens;
         this.accessTokenSeconds = accessTokenSeconds;
     }
@@ -43,7 +47,7 @@ public class UserAuthServiceImpl implements fit.iuh.engolearn.user.service.UserA
         String canonical = canonicalEmail(email);
         validatePassword(password);
         User account = User.builder().email(canonical).passwordHash(encoder.encode(password)).role(UserRole.USER).locked(false).build();
-        try { return repository.save(account); }
+        try { return registrations.register(account); }
         catch (DuplicateKeyException exception) { throw new AuthFailure("Email already exists", "EMAIL_ALREADY_EXISTS", 409); }
     }
 

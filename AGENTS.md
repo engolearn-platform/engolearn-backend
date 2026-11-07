@@ -1,36 +1,11 @@
-# Agent instructions
+# Agent entry point
 
-EngoLearn Backend is a Spring Boot modular monolith. Base package: `fit.iuh.engolearn`.
+EngoLearn Backend is a Spring Boot modular monolith under `fit.iuh.engolearn`.
 
-## Start here
+1. Start with the [documentation index](docs/README.md), [system overview](docs/architecture/system-overview.md) and [module map](docs/architecture/module-map.md).
+2. Read the relevant module entry and flows; Subscription starts at [its technical README](docs/technical/subscription/README.md).
+3. Follow the authoritative [package boundaries](docs/architecture/package-structure.md), [communication policy](docs/architecture/cross-feature-communication.md), [implementation conventions](docs/architecture/implementation-conventions.md) and [working agreement](docs/agent/working-agreement.md). These include dependency approval, behavior preservation, comments and public-contract requirements.
+4. Inspect actual implementation, callers, persistence and tests before editing code or describing status. Do not invent business rules or treat legacy inconsistencies as exceptions.
+5. Update the owning documentation when implementation changes, link instead of duplicating, and complete the applicable [Definition of Done](docs/agent/definition-of-done.md). Report actual checks, failures, unrun checks and manual steps.
 
-Read only what applies to the task:
-
-- `docs/architecture/package-structure.md` — package layout and layer boundaries.
-- `docs/architecture/cross-feature-communication.md` — allowed dependencies between features.
-- `docs/architecture/implementation-conventions.md` — required naming, responsibility, model and public-contract conventions for new/refactored code.
-- `docs/agent/working-agreement.md` — workflow-neutral task process and implementation loop.
-- `docs/agent/definition-of-done.md` — completion criteria for every workflow.
-
-Use the team's chosen workflow. OpenSpec is an optional pilot, not mandatory for every task. If the task already uses OpenSpec, inspect its proposal, design, applicable specs, and tasks before implementation.
-
-## Non-negotiable
-
-- Follow the documented package and cross-feature boundaries.
-- Follow the implementation conventions; inspect existing patterns without treating legacy inconsistencies as exceptions.
-- Refactors must preserve behavior and existing API/persistence contracts unless the agreed scope explicitly says otherwise.
-- Do not invent missing business rules. Find the team's business documentation or report the ambiguity.
-- Do not add dependencies, Maven modules, or top-level feature packages without approval.
-- Do not bypass architecture rules, suppress violations, or weaken tests just to make a check pass.
-
-## Code comments
-
-- Default to no comments: names and structure should carry the intent; add a comment only for a non-obvious *why* (constraint, invariant, ordering, workaround, trade-off), max 1-2 lines.
-- Never restate what the code says: no "Gets the X" narration, no `@param`/`@return` boilerplate; reserve Javadoc for public cross-feature API, at most 1-3 lines.
-- Tests carry intent in their names: comment only non-obvious setup or a regression rationale; when unsure, delete the comment.
-
-## Before declaring completion
-
-Follow the working agreement and the applicable Definition of Done, regardless of workflow. Report actual verification results, including failures, checks not run, and outstanding manual steps.
-
-`ArchitectureTest` enforces a subset of the architecture rules; the architecture documents remain the policy source for rules that are not automated.
+Use the team's chosen workflow. OpenSpec is optional; when a task already uses it, read its proposal, design, applicable specs and tasks. `ArchitectureTest` enforces only a subset of policy; passing it does not replace the documents above.

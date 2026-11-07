@@ -76,3 +76,9 @@ Contract package roles are defined in [package structure](package-structure.md#p
 - Review package placement, dependency direction and data contracts as well as behavior. Do not call work compliant merely because `ArchitectureTest` passes.
 - Automated coverage and its limitations are maintained only in [package structure](package-structure.md#what-is-automatically-enforced).
 - MUST NOT add tests merely to mirror package moves, generated constructors or interface extraction. Verify consequential persistence/concurrency behavior using the [working agreement](../agent/working-agreement.md); completion and reporting criteria remain in the [Definition of Done](../agent/definition-of-done.md).
+
+## 8. Code comments
+
+- Default to no comments: names and structure carry intent. Add only a non-obvious why (constraint, invariant, ordering, workaround or trade-off), at most 1-2 lines.
+- Never restate the code or add getter narration and `@param`/`@return` boilerplate. Reserve Javadoc for public cross-feature API, at most 1-3 lines.
+- Test names carry intent. Comment only non-obvious setup or a regression rationale; when unsure, delete the comment.
