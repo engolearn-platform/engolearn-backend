@@ -1,6 +1,6 @@
 package fit.iuh.engolearn.topic.service.impl;
 
-import fit.iuh.engolearn.topic.infra.dev.LocalLearnerProvider;
+import fit.iuh.engolearn.user.contract.UserLevelLookup;
 import fit.iuh.engolearn.topic.service.*;
 import lombok.RequiredArgsConstructor;
 
@@ -25,7 +25,7 @@ import java.util.*;
 @Service
 @RequiredArgsConstructor
 public class TopicRetryServiceImpl implements TopicRetryService {
-    private final LocalLearnerProvider learner;
+    private final UserLevelLookup userLevels;
     private final TopicLearnerCatalogService catalog;
     private final TopicItemRepository items;
     private final TopicItemVersionRepository versions;
@@ -42,9 +42,9 @@ public class TopicRetryServiceImpl implements TopicRetryService {
     public boolean isRetry(String id) { return persistence.isAttemptLocator(id); }
 
     @Override
-    public UserTopicItemAttempt owned(String id, boolean result) {
-        TopicRetryLocator locator=locator(id,RetryLocatorKind.ATTEMPT);
-        TopicRetryRuntime runtime=runtime(locator.getTopicId(),locator.getGeneration());
+    public UserTopicItemAttempt owned(String userId, String id, boolean result) {
+        TopicRetryLocator locator=locator(userId, id,RetryLocatorKind.ATTEMPT);
+        TopicRetryRuntime runtime=runtime(userId, locator.getTopicId(),locator.getGeneration());
         UserTopicItemAttempt found=find(runtime,id);
         if(found==null) throw problem(409,result?"RESULT_CHANGED":"RETRY_SESSION_CHANGED","Open the current result or retry from the topic");
         if(found.getStatus()==AttemptStatus.IN_PROGRESS && !Objects.equals(runtime.getSessionId(),locator.getSessionId()))
@@ -54,31 +54,31 @@ public class TopicRetryServiceImpl implements TopicRetryService {
     }
 
     @Override
-    public TopicAttemptResponse startItem(String itemId,StartTopicAttemptRequest body,String key) {
+    public TopicAttemptResponse startItem(String userId, String itemId,StartTopicAttemptRequest body,String key) {
         String topicId=items.findById(itemId).orElseThrow(()->problem(404,"CONTENT_UNAVAILABLE","Item not found")).getTopicId();
-        long generation=generation(topicId);
+        long generation=generation(userId, topicId);
         if(body.replaceRetrySessionId()!=null) throw problem(409,"RETRY_RESTART_NOT_ALLOWED","An unfinished retry cannot be restarted or replaced");
         if(body.retrySessionId()!=null) {
             var observed=persistence.findLocator(body.retrySessionId());
-            if(observed!=null && owner().equals(observed.getUserId())) requireGeneration(owner(),observed.getTopicId(),observed.getGeneration());
+            if(observed!=null && userId.equals(observed.getUserId())) requireGeneration(userId,observed.getTopicId(),observed.getGeneration());
         }
         String fingerprint="item|"+itemId+"|"+body.retrySessionId()+"|"+body.replaceRetrySessionId();
-        String attemptId=hash(owner()+"|item|"+itemId+"|"+key+scope(generation));
-        TopicRetryLocator oldKey=persistence.findLocatorByStartKey(owner(),topicId,key);
+        String attemptId=hash(userId+"|item|"+itemId+"|"+key+scope(generation));
+        TopicRetryLocator oldKey=persistence.findLocatorByStartKey(userId,topicId,key);
         if(oldKey!=null) requireGeneration(oldKey.getUserId(),topicId,oldKey.getGeneration());
-        TopicRetryLocator legacy=persistence.findLocator(hash(owner()+"|item|"+itemId+"|"+key));
+        TopicRetryLocator legacy=persistence.findLocator(hash(userId+"|item|"+itemId+"|"+key));
         if(legacy!=null) requireGeneration(legacy.getUserId(),legacy.getTopicId(),legacy.getGeneration());
         TopicRetryLocator replay=persistence.findLocator(attemptId);
-        if(replay!=null) return replayStart(replay,fingerprint);
-        TopicRetryRuntime state=runtime(topicId,generation);
+        if(replay!=null) return replayStart(userId, replay,fingerprint);
+        TopicRetryRuntime state=runtime(userId, topicId,generation);
         boolean active=state!=null && state.getStatus() == RetryStatus.IN_PROGRESS;
         if(active && state.getCurrentAttempt()!=null) {
             if(body.retrySessionId()!=null && !body.retrySessionId().equals(state.getSessionId())) throw changed();
             if(!itemId.equals(state.getCurrentAttempt().getTopicItemId())) throw problem(409,"ITEM_RETRY_IN_PROGRESS","Finish the active item retry first");
-            prepare(TopicRetryLocator.builder().id(attemptId).generation(generation).userId(owner()).topicId(topicId)
+            prepare(TopicRetryLocator.builder().id(attemptId).generation(generation).userId(userId).topicId(topicId)
                     .sessionId(state.getSessionId()).kind(RetryLocatorKind.ATTEMPT).fingerprint(fingerprint).startRequestKey(key)
                     .initialAttempt(state.getCurrentAttempt()).build());
-            requireGeneration(owner(),topicId,generation);
+            requireGeneration(userId,topicId,generation);
             return describe(state.getCurrentAttempt());
         }
         if(body.retrySessionId()!=null) {
@@ -90,36 +90,36 @@ public class TopicRetryServiceImpl implements TopicRetryService {
             }
             if(!Objects.equals(state.nextItemId(),itemId)) throw changed();
             AttemptItemSnapshotVo snapshot=state.getItemsSnapshot().stream().filter(v->v.getTopicItemId().equals(itemId)).findFirst().orElseThrow();
-            UserTopicItemAttempt attempt=newAttempt(attemptId,state,itemId,snapshot.getTopicItemVersionId(),key);
-            prepareAttempt(state,attempt,fingerprint);
-            Long before=state.getVersion(); state.setCurrentAttempt(attempt); commit(state,before);
+            UserTopicItemAttempt attempt=newAttempt(userId, attemptId,state,itemId,snapshot.getTopicItemVersionId(),key);
+            prepareAttempt(userId, state,attempt,fingerprint);
+            Long before=state.getVersion(); state.setCurrentAttempt(attempt); commit(userId, state,before);
             return describe(attempt);
         }
-        TopicDetailResponse detail=catalog.detail(topicId);
+        TopicDetailResponse detail=catalog.detail(userId, topicId);
         TopicItemSummaryResponse item=detail.getItems().stream().filter(v->v.getTopicItemId().equals(itemId)).findFirst()
                 .orElseThrow(()->problem(404,"CONTENT_UNAVAILABLE","Item is unavailable"));
         if(!"COMPLETED".equals(item.getLearningStatus())) throw problem(422,"NOT_COMPLETED","Complete this item before retrying");
-        requireLevel(detail);
+        requireLevel(userId, detail);
         if(active) throw problem(409,"ITEM_RETRY_IN_PROGRESS","Finish the active retry session first");
         List<AttemptItemSnapshotVo> snapshots=List.of(AttemptItemSnapshotVo.builder().topicItemId(itemId)
                 .topicItemVersionId(item.getPublishedVersionId()).orderIndex(0).build());
-        String sessionId=hash(owner()+"|session-item|"+itemId+"|"+key+scope(generation));
-        TopicRetryRuntime updated=fresh(state,topicId,sessionId,AttemptScope.ITEM,snapshots,generation);
-        UserTopicItemAttempt attempt=newAttempt(attemptId,updated,itemId,item.getPublishedVersionId(),key);
-        updated.setCurrentAttempt(attempt);prepareSession(updated);prepareAttempt(updated,attempt,fingerprint);
-        commit(updated,state==null?null:state.getVersion());
+        String sessionId=hash(userId+"|session-item|"+itemId+"|"+key+scope(generation));
+        TopicRetryRuntime updated=fresh(userId, state,topicId,sessionId,AttemptScope.ITEM,snapshots,generation);
+        UserTopicItemAttempt attempt=newAttempt(userId, attemptId,updated,itemId,item.getPublishedVersionId(),key);
+        updated.setCurrentAttempt(attempt);prepareSession(userId, updated);prepareAttempt(userId, updated,attempt,fingerprint);
+        commit(userId, updated,state==null?null:state.getVersion());
         return describe(attempt);
     }
 
     @Override
-    public TopicRetrySessionResponse startTopic(String topicId,StartTopicRetryRequest body,String key) {
-        String sessionId=hash(owner()+"|session-topic|"+topicId+"|"+key);
+    public TopicRetrySessionResponse startTopic(String userId, String topicId,StartTopicRetryRequest body,String key) {
+        String sessionId=hash(userId+"|session-topic|"+topicId+"|"+key);
         TopicRetryLocator replay=persistence.findLocator(sessionId);
         String fingerprint="topic|"+topicId+"|"+body.replaceRetrySessionId();
         if(replay!=null) {
-            if(!owner().equals(replay.getUserId()) || !fingerprint.equals(replay.getFingerprint())) throw reused();
+            if(!userId.equals(replay.getUserId()) || !fingerprint.equals(replay.getFingerprint())) throw reused();
             requireGeneration(replay.getUserId(),topicId,replay.getGeneration());
-            TopicRetryRuntime current=runtime(topicId,replay.getGeneration());
+            TopicRetryRuntime current=runtime(userId, topicId,replay.getGeneration());
             if(current==null || !sessionId.equals(current.getSessionId())) throw changed();
             return retrySessionMapper.toResponse(current);
         }
@@ -127,15 +127,15 @@ public class TopicRetryServiceImpl implements TopicRetryService {
     }
 
     @Override
-    public TopicRetrySessionResponse getSession(String id) {
-        TopicRetryLocator locator=locator(id,RetryLocatorKind.SESSION);TopicRetryRuntime state=runtime(locator.getTopicId(),locator.getGeneration());
+    public TopicRetrySessionResponse getSession(String userId, String id) {
+        TopicRetryLocator locator=locator(userId, id,RetryLocatorKind.SESSION);TopicRetryRuntime state=runtime(userId, locator.getTopicId(),locator.getGeneration());
         if(state==null || !id.equals(state.getSessionId())) throw changed();
         return retrySessionMapper.toResponse(state);
     }
 
     @Override
-    public TopicAttemptResponse advance(String id,AdvanceTopicContentRequest body,String key) {
-        TopicRetryRuntime state=forMutation(id);UserTopicItemAttempt attempt=find(state,id);
+    public TopicAttemptResponse advance(String userId, String id,AdvanceTopicContentRequest body,String key) {
+        TopicRetryRuntime state=forMutation(userId, id);UserTopicItemAttempt attempt=find(state,id);
         String fingerprint="advance|"+body.revision()+"|"+body.stage()+"|"+body.itemIndex();
         ContentMutationReceiptVo replay=receipt(attempt,key,fingerprint);if(replay!=null)return receiptDto(attempt,replay);
         requireRunning(state,attempt,body.revision());
@@ -153,12 +153,12 @@ public class TopicRetryServiceImpl implements TopicRetryService {
         }
         Long before=state.getVersion();Instant now=now();
         attempt.setFurthestReached(FurthestReachedVo.builder().stage(LearningStage.valueOf(next.stage())).itemIndex(next.itemIndex()).build());
-        record(attempt,key,fingerprint,now,true);commit(state,before);return describe(attempt);
+        record(attempt,key,fingerprint,now,true);commit(userId, state,before);return describe(attempt);
     }
 
     @Override
-    public QuizAnswerResponse answer(String id,String quizId,AnswerQuizRequest body,String key) {
-        TopicRetryRuntime state=forMutation(id);UserTopicItemAttempt attempt=find(state,id);
+    public QuizAnswerResponse answer(String userId, String id,String quizId,AnswerQuizRequest body,String key) {
+        TopicRetryRuntime state=forMutation(userId, id);UserTopicItemAttempt attempt=find(state,id);
         String fingerprint="answer|"+body.revision()+"|"+quizId+"|"+body.optionId();
         ContentMutationReceiptVo replay=receipt(attempt,key,fingerprint);
         var sequence=quiz.sequence(version(attempt));
@@ -200,27 +200,27 @@ public class TopicRetryServiceImpl implements TopicRetryService {
             var next=remaining.orElseThrow();attempt.setFurthestReached(FurthestReachedVo.builder()
                     .stage(next.type()==QuizType.FILL_BLANK?LearningStage.FILL_BLANK:LearningStage.SITUATIONAL_CHOICE).itemIndex(next.indexInType()).build());
         }
-        record(attempt,key,fingerprint,now,true);commit(state,before);
+        record(attempt,key,fingerprint,now,true);commit(userId, state,before);
         return new QuizAnswerResponse(quizId,correct,feedback,describe(attempt));
     }
 
     @Override
-    public Map<String,Instant> access(String id,String key) {
-        TopicRetryRuntime state=forMutation(id);UserTopicItemAttempt attempt=find(state,id);
+    public Map<String,Instant> access(String userId, String id,String key) {
+        TopicRetryRuntime state=forMutation(userId, id);UserTopicItemAttempt attempt=find(state,id);
         ContentMutationReceiptVo replay=receipt(attempt,key,"access");if(replay!=null)return Map.of("lastAccessedAt",replay.getAccessedAt());
-        Long before=state.getVersion();Instant now=now();record(attempt,key,"access",now,false);commit(state,before);
+        Long before=state.getVersion();Instant now=now();record(attempt,key,"access",now,false);commit(userId, state,before);
         return Map.of("lastAccessedAt",now);
     }
 
     @Override
-    public TopicRetryRuntime runtime(String topicId) { return runtime(topicId,generation(topicId)); }
+    public TopicRetryRuntime runtime(String userId, String topicId) { return runtime(userId, topicId,generation(userId, topicId)); }
     @Override
-    public TopicRetryRuntime runtime(String topicId,long generation) {
-        return persistence.findRuntime(hash(owner()+"|retry-runtime|"+topicId+scope(generation)));
+    public TopicRetryRuntime runtime(String userId, String topicId,long generation) {
+        return persistence.findRuntime(hash(userId+"|retry-runtime|"+topicId+scope(generation)));
     }
 
-    private TopicRetryRuntime forMutation(String id) {
-        TopicRetryLocator locator=locator(id,RetryLocatorKind.ATTEMPT);TopicRetryRuntime state=runtime(locator.getTopicId(),locator.getGeneration());
+    private TopicRetryRuntime forMutation(String userId, String id) {
+        TopicRetryLocator locator=locator(userId, id,RetryLocatorKind.ATTEMPT);TopicRetryRuntime state=runtime(userId, locator.getTopicId(),locator.getGeneration());
         UserTopicItemAttempt attempt=find(state,id);
         if(attempt==null || !locator.getSessionId().equals(state.getSessionId()) && attempt.getStatus()!=AttemptStatus.COMPLETED) throw changed();
         visible(attempt);return state;
@@ -230,46 +230,47 @@ public class TopicRetryServiceImpl implements TopicRetryService {
         if(state.getCurrentAttempt()!=null && id.equals(state.getCurrentAttempt().getId()))return state.getCurrentAttempt();
         return state.getOfficialResults().values().stream().filter(v->id.equals(v.getId())).findFirst().orElse(null);
     }
-    private TopicRetryLocator locator(String id,RetryLocatorKind kind) {
+    private TopicRetryLocator locator(String userId, String id,RetryLocatorKind kind) {
         var value=persistence.findLocator(id);
-        if(value==null || !owner().equals(value.getUserId()) || kind != value.getKind())throw problem(404,"CONTENT_UNAVAILABLE","Resource not found");
+        if(value==null || !userId.equals(value.getUserId()) || kind != value.getKind())throw problem(404,"CONTENT_UNAVAILABLE","Resource not found");
         requireGeneration(value.getUserId(),value.getTopicId(),value.getGeneration());
         return value;
     }
-    private TopicAttemptResponse replayStart(TopicRetryLocator value,String fingerprint) {
-        if(!owner().equals(value.getUserId()) || !fingerprint.equals(value.getFingerprint()))throw reused();
+    private TopicAttemptResponse replayStart(String userId, TopicRetryLocator value,String fingerprint) {
+        if(!userId.equals(value.getUserId()) || !fingerprint.equals(value.getFingerprint()))throw reused();
         requireGeneration(value.getUserId(),value.getTopicId(),value.getGeneration());
-        TopicRetryRuntime current=runtime(value.getTopicId(),value.getGeneration());
+        TopicRetryRuntime current=runtime(userId, value.getTopicId(),value.getGeneration());
         if(current==null || !value.getSessionId().equals(current.getSessionId()))throw changed();
         UserTopicItemAttempt live=find(current,value.getInitialAttempt()==null?value.getId():value.getInitialAttempt().getId());
         if(live==null)throw stateChanged();
         return describe(value.getInitialAttempt()==null?live:value.getInitialAttempt());
     }
-    private void requireLevel(TopicDetailResponse detail) {
-        if(learner.getCurrentLevel().ordinal()<detail.getCefrLevel().ordinal())throw problem(422,"LEVEL_TOO_LOW","Level is too low to create a retry");
+    private void requireLevel(String userId, TopicDetailResponse detail) {
+        var learnerLevel = TopicUserLevelResolver.require(userLevels, userId);
+        if(detail.getCefrLevel() != null && learnerLevel.ordinal()<detail.getCefrLevel().ordinal())throw problem(422,"LEVEL_TOO_LOW","Level is too low to create a retry");
     }
-    private TopicRetryRuntime fresh(TopicRetryRuntime previous,String topicId,String sessionId,AttemptScope scope,List<AttemptItemSnapshotVo> snapshots,long generation) {
-        return TopicRetryRuntime.builder().id(hash(owner()+"|retry-runtime|"+topicId+scope(generation))).generation(generation).userId(owner()).topicId(topicId)
+    private TopicRetryRuntime fresh(String userId, TopicRetryRuntime previous,String topicId,String sessionId,AttemptScope scope,List<AttemptItemSnapshotVo> snapshots,long generation) {
+        return TopicRetryRuntime.builder().id(hash(userId+"|retry-runtime|"+topicId+scope(generation))).generation(generation).userId(userId).topicId(topicId)
                 .version(previous==null?null:previous.getVersion()).sessionId(sessionId).scope(scope).status(RetryStatus.IN_PROGRESS)
                 .startedAt(now()).itemsSnapshot(snapshots).completedItemIds(new ArrayList<>())
                 .officialResults(previous==null?new HashMap<>():new HashMap<>(previous.getOfficialResults())).build();
     }
-    private UserTopicItemAttempt newAttempt(String id,TopicRetryRuntime state,String itemId,String versionId,String key) {
+    private UserTopicItemAttempt newAttempt(String userId, String id,TopicRetryRuntime state,String itemId,String versionId,String key) {
         TopicItemVersion pinned=versions.findById(versionId).orElseThrow(()->problem(404,"CONTENT_UNAVAILABLE","Pinned version missing"));
         TopicAttemptContentMapper.content(pinned);Instant now=now();
-        UserTopicItemAttempt attempt=UserTopicItemAttempt.builder().id(id).generation(state.getGeneration()).userId(owner()).topicId(state.getTopicId()).topicItemId(itemId)
+        UserTopicItemAttempt attempt=UserTopicItemAttempt.builder().id(id).generation(state.getGeneration()).userId(userId).topicId(state.getTopicId()).topicItemId(itemId)
                 .topicItemVersionId(versionId).attemptType(AttemptType.RETRY).userTopicAttemptId(state.getSessionId()).version(0L)
                 .status(AttemptStatus.IN_PROGRESS).furthestReached(FurthestReachedVo.builder().stage(LearningStage.CONTEXT).itemIndex(0).build())
                 .startRequestKey(key).mutationReceipts(new ArrayList<>()).quizProgress(new ArrayList<>()).startedAt(now).lastAccessedAt(now).build();
         visible(attempt);return attempt;
     }
-    private void prepareAttempt(TopicRetryRuntime state,UserTopicItemAttempt attempt,String fingerprint) {
-        prepare(TopicRetryLocator.builder().id(attempt.getId()).generation(state.getGeneration()).startRequestKey(attempt.getStartRequestKey()).userId(owner()).topicId(state.getTopicId()).sessionId(state.getSessionId())
+    private void prepareAttempt(String userId, TopicRetryRuntime state,UserTopicItemAttempt attempt,String fingerprint) {
+        prepare(TopicRetryLocator.builder().id(attempt.getId()).generation(state.getGeneration()).startRequestKey(attempt.getStartRequestKey()).userId(userId).topicId(state.getTopicId()).sessionId(state.getSessionId())
                 .kind(RetryLocatorKind.ATTEMPT).fingerprint(fingerprint).initialAttempt(attempt).build());
     }
-    private void prepareSession(TopicRetryRuntime state) {prepareSession(state,"item-session");}
-    private void prepareSession(TopicRetryRuntime state,String fingerprint) {
-        prepare(TopicRetryLocator.builder().id(state.getSessionId()).generation(state.getGeneration()).userId(owner()).topicId(state.getTopicId()).sessionId(state.getSessionId())
+    private void prepareSession(String userId, TopicRetryRuntime state) {prepareSession(userId, state,"item-session");}
+    private void prepareSession(String userId, TopicRetryRuntime state,String fingerprint) {
+        prepare(TopicRetryLocator.builder().id(state.getSessionId()).generation(state.getGeneration()).userId(userId).topicId(state.getTopicId()).sessionId(state.getSessionId())
                 .kind(RetryLocatorKind.SESSION).fingerprint(fingerprint).scope(state.getScope()).itemsSnapshot(state.getItemsSnapshot())
                 .startedAt(state.getStartedAt()).initialAttemptId(state.getCurrentAttempt().getId()).build());
     }
@@ -286,10 +287,10 @@ public class TopicRetryServiceImpl implements TopicRetryService {
                 .sourceVersion(version).attempt(attempt).build();
         try{persistence.insertArchive(snapshot);}catch(DuplicateKeyException existing){ }
     }
-    private void commit(TopicRetryRuntime state,Long before) {
+    private void commit(String userId, TopicRetryRuntime state,Long before) {
         requireGeneration(state.getUserId(),state.getTopicId(),state.getGeneration());
         if(before==null){try{persistence.insertRuntime(state);requireGeneration(state.getUserId(),state.getTopicId(),state.getGeneration());return;}catch(DuplicateKeyException conflict){throw changed();}}
-        var saved=persistence.replaceRuntime(state,owner(),before);
+        var saved=persistence.replaceRuntime(state,userId,before);
         if(saved==null)throw changed();state.setVersion(before+1);
         requireGeneration(state.getUserId(),state.getTopicId(),state.getGeneration());
     }
@@ -339,8 +340,8 @@ public class TopicRetryServiceImpl implements TopicRetryService {
                 versions.findAllById(release.getItemVersionIds()).stream().noneMatch(v->attempt.getTopicItemId().equals(v.getTopicItemId()) && v.getStatus()!=ContentStatus.HIDDEN))
             throw problem(410,"ITEM_HIDDEN","Content unavailable");
     }
-    private String owner(){String value=learner.getCurrentUserId();if(value==null)throw problem(401,"SIGN_IN_REQUIRED","Select a local learner");return value;}
-    private long generation(String topicId){return generations.current(owner(),topicId);}
+
+    private long generation(String userId, String topicId){return generations.current(userId,topicId);}
     private String scope(long generation){return generation==0?"":"|generation|"+generation;}
     private void requireGeneration(String owner,String topicId,long generation){generations.require(owner,topicId,generation);}
     private Instant now(){return Instant.now().truncatedTo(java.time.temporal.ChronoUnit.MILLIS);}

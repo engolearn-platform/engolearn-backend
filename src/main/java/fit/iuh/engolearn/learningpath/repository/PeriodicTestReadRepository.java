@@ -1,6 +1,7 @@
 package fit.iuh.engolearn.learningpath.repository;
 
 import fit.iuh.engolearn.learningpath.model.PeriodicTestSnapshot;
+import lombok.RequiredArgsConstructor;
 import org.bson.Document;
 import org.bson.types.ObjectId;
 import org.springframework.data.mongodb.core.MongoTemplate;
@@ -9,15 +10,40 @@ import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 
 @Repository
+@RequiredArgsConstructor
 public class PeriodicTestReadRepository {
 
     private final MongoTemplate mongoTemplate;
 
-    public PeriodicTestReadRepository(MongoTemplate mongoTemplate) {
-        this.mongoTemplate = mongoTemplate;
+    public Map<ObjectId, String> findAssessmentAttemptIds(List<ObjectId> attemptIds, ObjectId userId) {
+        if (attemptIds.isEmpty()) return Map.of();
+        Query query = Query.query(Criteria.where("_id").in(attemptIds)
+                .and("user_id").is(userId)
+                .and("type").is("PERIODIC")
+                .and("status").is("COMPLETED"));
+        query.fields().include("_id").include("assessment_source_attempt_id");
+        Map<ObjectId, String> assessmentIds = new HashMap<>();
+        for (Document attempt : mongoTemplate.find(query, Document.class, "attempts")) {
+            if (attempt.get("assessment_source_attempt_id") instanceof String id && !id.isBlank()) {
+                assessmentIds.put(attempt.getObjectId("_id"), id);
+            }
+        }
+        return Map.copyOf(assessmentIds);
+    }
+
+    public Optional<ObjectId> findCompletedPeriodicIdByAssessmentAttemptId(String assessmentAttemptId, ObjectId userId) {
+        Query query = Query.query(Criteria.where("assessment_source_attempt_id").is(assessmentAttemptId)
+                .and("user_id").is(userId)
+                .and("type").is("PERIODIC")
+                .and("status").is("COMPLETED"));
+        query.fields().include("_id");
+        Document attempt = mongoTemplate.findOne(query, Document.class, "attempts");
+        return Optional.ofNullable(attempt).map(document -> document.getObjectId("_id"));
     }
 
     public Optional<PeriodicTestSnapshot> findCompletedPeriodic(ObjectId attemptId, ObjectId userId) {

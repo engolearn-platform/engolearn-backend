@@ -36,6 +36,14 @@ public class LearningPathRecommendationService {
         return recommend(new ObjectId(userId), new ObjectId(attemptId));
     }
 
+    public LearningPathRecommendationResponse recommendForAssessment(String userId, String assessmentAttemptId) {
+        ObjectId ownerId = new ObjectId(userId);
+        ObjectId attemptId = periodicTests.findCompletedPeriodicIdByAssessmentAttemptId(assessmentAttemptId, ownerId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                        "Chưa có dữ liệu đề xuất lộ trình cho bài đánh giá này"));
+        return recommend(ownerId, attemptId);
+    }
+
     public LearningPathRecommendationResponse recommend(ObjectId userId, ObjectId attemptId) {
         PeriodicTestSnapshot test = periodicTests.findCompletedPeriodic(attemptId, userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,

@@ -5,7 +5,7 @@ import java.util.List;
 
 public record LearningPathListItemResponse(
         String id,
-        String sourceAttemptId,
+        String sourceAssessmentAttemptId,
         String createdDate,
         String level,
         Integer k,

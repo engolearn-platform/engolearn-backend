@@ -9,12 +9,15 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 
 import fit.iuh.engolearn.shared.web.ApiResponse;
+import fit.iuh.engolearn.shared.security.impl.AuthenticatedUserPrincipal;
 import fit.iuh.engolearn.learningpath.dto.response.LearningPathDetailResponse;
 import fit.iuh.engolearn.learningpath.dto.response.LearningPathListResponse;
 import fit.iuh.engolearn.learningpath.dto.request.LearningPathListStatus;
 import fit.iuh.engolearn.learningpath.dto.request.CreateLearningPathRequest;
+import fit.iuh.engolearn.learningpath.dto.request.CreateLearningPathByAssessmentRequest;
 import fit.iuh.engolearn.learningpath.dto.request.SaveLearningPathAnswerDraftRequest;
 import fit.iuh.engolearn.learningpath.dto.response.CreateLearningPathResponse;
 import fit.iuh.engolearn.learningpath.dto.response.LearningPathRecommendationResponse;
@@ -68,49 +71,64 @@ public class LearningPathController {
 
     @GetMapping("/recommendation")
     public ApiResponse<LearningPathRecommendationResponse> getRecommendation(
-            @Pattern(regexp = OBJECT_ID_PATTERN, message = "userId không hợp lệ")
-            @RequestParam String userId,
             @Pattern(regexp = OBJECT_ID_PATTERN, message = "attemptId không hợp lệ")
-            @RequestParam String attemptId
+            @RequestParam String attemptId,
+            @AuthenticationPrincipal AuthenticatedUserPrincipal principal
     ) {
-        return ApiResponse.ok(recommendationService.recommend(userId, attemptId));
+        return ApiResponse.ok(recommendationService.recommend(principal.getId(), attemptId));
+    }
+
+    @GetMapping("/recommendation/by-assessment")
+    public ApiResponse<LearningPathRecommendationResponse> getRecommendationByAssessment(
+            @NotBlank(message = "assessmentAttemptId không được để trống")
+            @Size(max = 100, message = "assessmentAttemptId không được vượt quá 100 ký tự")
+            @RequestParam String assessmentAttemptId,
+            @AuthenticationPrincipal AuthenticatedUserPrincipal principal
+    ) {
+        return ApiResponse.ok(recommendationService.recommendForAssessment(principal.getId(), assessmentAttemptId));
     }
 
     @PostMapping
     public ApiResponse<CreateLearningPathResponse> createLearningPath(
-            @Valid @RequestBody CreateLearningPathRequest request
+            @Valid @RequestBody CreateLearningPathRequest request,
+            @AuthenticationPrincipal AuthenticatedUserPrincipal principal
     ) {
-        return ApiResponse.ok(creationService.create(request));
+        return ApiResponse.ok(creationService.create(request, principal.getId()));
+    }
+
+    @PostMapping("/by-assessment")
+    public ApiResponse<CreateLearningPathResponse> createLearningPathByAssessment(
+            @Valid @RequestBody CreateLearningPathByAssessmentRequest request,
+            @AuthenticationPrincipal AuthenticatedUserPrincipal principal
+    ) {
+        return ApiResponse.ok(creationService.createForAssessment(request, principal.getId()));
     }
 
     @GetMapping
     public ApiResponse<LearningPathListResponse> getLearningPaths(
-            @Pattern(regexp = OBJECT_ID_PATTERN, message = "userId không hợp lệ")
-            @RequestParam String userId,
-            @RequestParam(defaultValue = "ACTIVE") LearningPathListStatus status
+            @RequestParam(defaultValue = "ACTIVE") LearningPathListStatus status,
+            @AuthenticationPrincipal AuthenticatedUserPrincipal principal
     ) {
-        return ApiResponse.ok(learningPathService.getByUserId(userId, status));
+        return ApiResponse.ok(learningPathService.getByUserId(principal.getId(), status));
     }
 
     @GetMapping("/search")
     public ApiResponse<LearningPathListResponse> searchLearningPaths(
-            @Pattern(regexp = OBJECT_ID_PATTERN, message = "userId không hợp lệ")
-            @RequestParam String userId,
             @NotBlank(message = "keyword không được để trống")
             @Size(max = 100, message = "keyword không được vượt quá 100 ký tự")
-            @RequestParam String keyword
+            @RequestParam String keyword,
+            @AuthenticationPrincipal AuthenticatedUserPrincipal principal
     ) {
-        return ApiResponse.ok(learningPathService.search(userId, keyword));
+        return ApiResponse.ok(learningPathService.search(principal.getId(), keyword));
     }
 
     @GetMapping("/{pathId}")
     public ApiResponse<LearningPathDetailResponse> getLearningPathDetail(
             @Pattern(regexp = OBJECT_ID_PATTERN, message = "pathId không hợp lệ")
             @PathVariable String pathId,
-            @Pattern(regexp = OBJECT_ID_PATTERN, message = "userId không hợp lệ")
-            @RequestParam String userId
+            @AuthenticationPrincipal AuthenticatedUserPrincipal principal
     ) {
-        return ApiResponse.ok(learningPathService.getDetail(pathId, userId));
+        return ApiResponse.ok(learningPathService.getDetail(pathId, principal.getId()));
     }
 
     @PostMapping("/{pathId}/weeks/{weekNo}/days/{dayNo}/start")
@@ -119,10 +137,9 @@ public class LearningPathController {
             @PathVariable String pathId,
             @Min(1) @Max(3) @PathVariable int weekNo,
             @Min(1) @Max(5) @PathVariable int dayNo,
-            @Pattern(regexp = OBJECT_ID_PATTERN, message = "userId không hợp lệ")
-            @RequestParam String userId
+            @AuthenticationPrincipal AuthenticatedUserPrincipal principal
     ) {
-        return ApiResponse.ok(dayPracticeService.start(pathId, weekNo, dayNo, userId));
+        return ApiResponse.ok(dayPracticeService.start(pathId, weekNo, dayNo, principal.getId()));
     }
 
     @PutMapping("/{pathId}/weeks/{weekNo}/days/{dayNo}/questions/{questionId}/draft")
@@ -132,12 +149,11 @@ public class LearningPathController {
             @Min(1) @Max(3) @PathVariable int weekNo,
             @Min(1) @Max(5) @PathVariable int dayNo,
             @NotBlank @Size(max = 100) @PathVariable String questionId,
-            @Pattern(regexp = OBJECT_ID_PATTERN, message = "userId không hợp lệ")
-            @RequestParam String userId,
-            @Valid @RequestBody SaveLearningPathAnswerDraftRequest request
+            @Valid @RequestBody SaveLearningPathAnswerDraftRequest request,
+            @AuthenticationPrincipal AuthenticatedUserPrincipal principal
     ) {
         return ApiResponse.ok(answerDraftService.save(pathId, weekNo, dayNo,
-                questionId, userId, request));
+                questionId, principal.getId(), request));
     }
 
     @PostMapping("/{pathId}/weeks/{weekNo}/days/{dayNo}/submit")
@@ -145,9 +161,9 @@ public class LearningPathController {
             @Pattern(regexp = OBJECT_ID_PATTERN, message = "pathId không hợp lệ") @PathVariable String pathId,
             @Min(1) @Max(3) @PathVariable int weekNo,
             @Min(1) @Max(5) @PathVariable int dayNo,
-            @Pattern(regexp = OBJECT_ID_PATTERN, message = "userId không hợp lệ") @RequestParam String userId
+            @AuthenticationPrincipal AuthenticatedUserPrincipal principal
     ) {
-        return ApiResponse.ok(submissionService.submit(pathId, weekNo, dayNo, userId));
+        return ApiResponse.ok(submissionService.submit(pathId, weekNo, dayNo, principal.getId()));
     }
 
     @GetMapping("/{pathId}/weeks/{weekNo}/days/{dayNo}/result")
@@ -155,8 +171,8 @@ public class LearningPathController {
             @Pattern(regexp = OBJECT_ID_PATTERN, message = "pathId không hợp lệ") @PathVariable String pathId,
             @Min(1) @Max(3) @PathVariable int weekNo,
             @Min(1) @Max(5) @PathVariable int dayNo,
-            @Pattern(regexp = OBJECT_ID_PATTERN, message = "userId không hợp lệ") @RequestParam String userId
+            @AuthenticationPrincipal AuthenticatedUserPrincipal principal
     ) {
-        return ApiResponse.ok(dayResultService.getResult(pathId, weekNo, dayNo, userId));
+        return ApiResponse.ok(dayResultService.getResult(pathId, weekNo, dayNo, principal.getId()));
     }
 }

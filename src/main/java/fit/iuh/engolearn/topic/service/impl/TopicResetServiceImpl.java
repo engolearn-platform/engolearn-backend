@@ -2,7 +2,7 @@ package fit.iuh.engolearn.topic.service.impl;
 
 import fit.iuh.engolearn.topic.model.vo.ResetReceiptVo;
 
-import fit.iuh.engolearn.topic.infra.dev.LocalLearnerProvider;
+import fit.iuh.engolearn.user.contract.UserLevelLookup;
 import fit.iuh.engolearn.topic.service.*;
 import lombok.RequiredArgsConstructor;
 
@@ -18,14 +18,13 @@ import java.util.ArrayList;
 @Service
 @RequiredArgsConstructor
 public class TopicResetServiceImpl implements TopicResetService {
-    private final LocalLearnerProvider learner;
+    private final UserLevelLookup userLevels;
     private final TopicLearnerCatalogService catalog;
     private final TopicGenerationService generations;
     private final TopicLearnerStateRepository states;
     @Override
-    public ResetTopicResponse reset(String topicId, ResetTopicRequest body, String key) {
-        String owner = learner.getCurrentUserId();
-        if (owner == null) throw problem(401, "SIGN_IN_REQUIRED", "Select a local learner");
+    public ResetTopicResponse reset(String userId, String topicId, ResetTopicRequest body, String key) {
+        String owner = userId;
         String id = generations.id(owner, topicId);
         String fingerprint = "reset|" + topicId + "|" + body.generation();
         TopicLearnerState state = states.findById(id);
@@ -33,13 +32,14 @@ public class TopicResetServiceImpl implements TopicResetService {
         if (replay != null) return replay;
         if ((state == null ? 0 : state.getGeneration()) != body.generation()) throw changed();
         fit.iuh.engolearn.topic.dto.response.TopicDetailResponse detail;
-        try { detail = catalog.detail(topicId); }
+        try { detail = catalog.detail(userId, topicId); }
         catch (fit.iuh.engolearn.topic.exception.TopicNotFoundException missing) {
             throw problem(404, "CONTENT_UNAVAILABLE", "Published topic not found");
         }
         if (!"COMPLETED".equals(detail.getProgress().status()) || detail.getItems().isEmpty())
             throw problem(422, "NOT_COMPLETED", "Complete this topic before resetting");
-        if (learner.getCurrentLevel().ordinal() < detail.getCefrLevel().ordinal())
+        var learnerLevel = TopicUserLevelResolver.require(userLevels, userId);
+        if (detail.getCefrLevel() != null && learnerLevel.ordinal() < detail.getCefrLevel().ordinal())
             throw problem(422, "LEVEL_TOO_LOW", "Level is too low to reset this topic");
         if (state == null) {
             state = TopicLearnerState.builder().id(id).userId(owner).topicId(topicId).generation(0).receipts(new ArrayList<>()).build();

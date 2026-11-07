@@ -2,6 +2,8 @@
 
 Backend service for the EngoLearn platform, built with Spring Boot and MongoDB.
 
+Read the [backend documentation index](docs/README.md) for architecture, module flows, technical contracts and runbooks. Subscription starts at its [technical entry](docs/technical/subscription/README.md); VNPay setup and troubleshooting live in the [runbook](docs/runbooks/vnpay.md).
+
 ---
 
 ## Getting Started
@@ -38,3 +40,7 @@ mvnw.cmd spring-boot:run
 
 MongoDB Service: localhost:27017
 Mongo Express Web UI: [http://localhost:8081](http://localhost:8081) - Credentials: `admin` / `admin123`
+
+## Learner periodic assessment
+
+See the [F01/F02 contract](docs/technical/assessment.md). The Windows and Atlas demo is distributed with the local handoff package. New papers use Listening-first rules version 2; stored legacy attempts retain their original snapshot.

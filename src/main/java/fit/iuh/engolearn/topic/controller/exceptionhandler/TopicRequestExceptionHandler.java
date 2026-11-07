@@ -7,7 +7,7 @@ import org.springframework.http.ProblemDetail;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-@RestControllerAdvice(assignableTypes = { TopicAttemptController.class, TopicRetryController.class, TopicResetController.class, TopicLearningController.class, TopicBrowseController.class })
+@RestControllerAdvice(assignableTypes = { TopicAttemptController.class, TopicRetryController.class, TopicResetController.class, TopicLearningController.class, TopicBrowseController.class, TopicViewerController.class })
 public class TopicRequestExceptionHandler {
     @ExceptionHandler(TopicRequestException.class)
     public ProblemDetail handle(TopicRequestException error) {

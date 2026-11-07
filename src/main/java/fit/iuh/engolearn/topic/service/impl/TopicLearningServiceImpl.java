@@ -41,8 +41,7 @@ import fit.iuh.engolearn.topic.repository.UserTopicAttemptRepository;
 import fit.iuh.engolearn.topic.repository.UserTopicItemAttemptRepository;
 import fit.iuh.engolearn.topic.repository.UserTopicItemProgressRepository;
 import fit.iuh.engolearn.topic.repository.UserTopicProgressRepository;
-import fit.iuh.engolearn.topic.utils.CurrentUserProvider;
-import fit.iuh.engolearn.topic.utils.LearnerLevelProvider;
+import fit.iuh.engolearn.user.contract.UserLevelLookup;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -76,8 +75,7 @@ public class TopicLearningServiceImpl implements TopicLearningService, SpeakingI
     private final UserTopicItemProgressRepository userTopicItemProgressRepository;
     private final UserTopicAttemptRepository userTopicAttemptRepository;
     private final UserTopicItemAttemptRepository userTopicItemAttemptRepository;
-    private final CurrentUserProvider currentUserProvider;
-    private final LearnerLevelProvider learnerLevelProvider;
+    private final UserLevelLookup userLevels;
     private final TopicGenerationService generations;
 
     // --- content -----------------------------------------------------------------------
@@ -85,11 +83,11 @@ public class TopicLearningServiceImpl implements TopicLearningService, SpeakingI
     @Override
     public Optional<SpeakingItemDto> findOpenableItem(String itemId, String learnerId) {
         try {
-            ItemContext item = resolvePublishedItem(itemId);
+            ItemContext item = resolvePublishedItem(learnerId, itemId);
             UserTopicItemAttempt attempt = findActiveItemAttempt(learnerId, itemId, item.generation());
             UserTopicItemProgress progress = findItemProgress(learnerId, itemId, item.generation());
             if (attempt == null && progress == null) {
-                requireLevelAllowed(item.topic());
+                requireLevelAllowed(learnerId, item.topic());
                 requirePredecessorsCompleted(learnerId, item, itemId);
             }
             TopicItemVersion version = resolveLearningVersion(item, attempt);
@@ -113,10 +111,11 @@ public class TopicLearningServiceImpl implements TopicLearningService, SpeakingI
     }
 
     @Override
-    public TopicItemContentResponse getItemContent(GetTopicItemContentRequest request) {
-        String userId = requireUserId();
+    public TopicItemContentResponse getItemContent(String userId, GetTopicItemContentRequest request) {
+        requireUserId(userId);
+
         String topicItemId = request.getTopicItemId();
-        ItemContext item = resolvePublishedItem(topicItemId);
+        ItemContext item = resolvePublishedItem(userId, topicItemId);
         UserTopicItemAttempt itemAttempt = findActiveItemAttempt(userId, topicItemId, item.generation());
         TopicItemVersion version = resolveLearningVersion(item, itemAttempt);
         return TopicItemMapper.toContentResponse(topicItemId, version);
@@ -125,10 +124,11 @@ public class TopicLearningServiceImpl implements TopicLearningService, SpeakingI
     // --- position ----------------------------------------------------------------------
 
     @Override
-    public TopicItemPositionResponse getItemPosition(GetTopicItemPositionRequest request) {
-        String userId = requireUserId();
+    public TopicItemPositionResponse getItemPosition(String userId, GetTopicItemPositionRequest request) {
+        requireUserId(userId);
+
         String topicItemId = request.getTopicItemId();
-        ItemContext item = resolvePublishedItem(topicItemId);
+        ItemContext item = resolvePublishedItem(userId, topicItemId);
         UserTopicItemAttempt itemAttempt = findActiveItemAttempt(userId, topicItemId, item.generation());
         UserTopicItemProgress progress = findItemProgress(userId, topicItemId, item.generation());
         TopicItemVersion version = resolveLearningVersion(item, itemAttempt);
@@ -150,16 +150,17 @@ public class TopicLearningServiceImpl implements TopicLearningService, SpeakingI
      */
     @Override
     @Transactional
-    public TopicItemPositionResponse saveItemPosition(SaveTopicItemPositionRequest request) {
+    public TopicItemPositionResponse saveItemPosition(String userId, SaveTopicItemPositionRequest request) {
+        requireUserId(userId);
         if (request == null) {
             throw new LearningPreconditionFailedException("Request is required");
         }
-        String userId = requireUserId();
+
         String topicItemId = request.getTopicItemId();
         LearningStage stage = request.getStage();
         int itemIndex = request.getItemIndex();
 
-        ItemContext item = resolvePublishedItem(topicItemId);
+        ItemContext item = resolvePublishedItem(userId, topicItemId);
         UserTopicItemProgress progress = findItemProgress(userId, topicItemId, item.generation());
         UserTopicItemAttempt itemAttempt = findActiveItemAttempt(userId, topicItemId, item.generation());
 
@@ -170,7 +171,7 @@ public class TopicLearningServiceImpl implements TopicLearningService, SpeakingI
         if (progress == null || progress.getStatus() != ItemProgressStatus.IN_PROGRESS) {
             // The level and the sequence are checked when an item is started, never when the
             // learner continues one they already started.
-            requireLevelAllowed(item.topic());
+            requireLevelAllowed(userId, item.topic());
             requireNoOtherItemInProgress(userId, item, topicItemId);
             requirePredecessorsCompleted(userId, item, topicItemId);
         }
@@ -198,8 +199,9 @@ public class TopicLearningServiceImpl implements TopicLearningService, SpeakingI
     // --- topic progress ----------------------------------------------------------------
 
     @Override
-    public TopicProgressResponse getTopicProgress(GetTopicProgressRequest request) {
-        String userId = requireUserId();
+    public TopicProgressResponse getTopicProgress(String userId, GetTopicProgressRequest request) {
+        requireUserId(userId);
+
         String topicId = request.getTopicId();
         long generation = generation(userId, topicId);
         Topic topic = topicRepository.findById(topicId)
@@ -260,7 +262,7 @@ public class TopicLearningServiceImpl implements TopicLearningService, SpeakingI
      * The item as it is published: its topic, the release that shows it and the item
      * versions of that release. Hidden items are not part of the visible sequence.
      */
-    private ItemContext resolvePublishedItem(String topicItemId) {
+    private ItemContext resolvePublishedItem(String userId, String topicItemId) {
         TopicItem item = topicItemRepository.findById(topicItemId)
                 .orElseThrow(() -> new TopicItemNotFoundException(
                         "Topic item " + topicItemId + " was not found"));
@@ -280,7 +282,7 @@ public class TopicLearningServiceImpl implements TopicLearningService, SpeakingI
                 .findFirst()
                 .orElseThrow(() -> new TopicItemNotFoundException(
                         "Topic item " + topicItemId + " was not found"));
-        return new ItemContext(topic, release, published, items, generation(requireUserId(), topic.getId()));
+        return new ItemContext(topic, release, published, items, generation(userId, topic.getId()));
     }
 
     private TopicVersion resolvePublishedRelease(Topic topic) {
@@ -359,12 +361,10 @@ public class TopicLearningServiceImpl implements TopicLearningService, SpeakingI
 
     // --- preconditions -----------------------------------------------------------------
 
-    private void requireLevelAllowed(Topic topic) {
+    private void requireLevelAllowed(String userId, Topic topic) {
         CefrLevel topicLevel = topic.getCefrLevel();
-        CefrLevel learnerLevel = learnerLevelProvider.getCurrentLevel();
-        if (topicLevel == null || learnerLevel == null) {
-            return;
-        }
+        if (topicLevel == null) return;
+        CefrLevel learnerLevel = TopicUserLevelResolver.require(userLevels, userId);
         if (topicLevel.ordinal() > learnerLevel.ordinal()) {
             throw new LearningPreconditionFailedException(
                     "Topic level " + topicLevel + " is above the learner level " + learnerLevel);
@@ -547,12 +547,10 @@ public class TopicLearningServiceImpl implements TopicLearningService, SpeakingI
 
     // --- guards ------------------------------------------------------------------------
 
-    private String requireUserId() {
-        String userId = currentUserProvider.getCurrentUserId();
+    private void requireUserId(String userId) {
         if (userId == null || userId.isBlank()) {
             throw new LearningPreconditionFailedException("Sign in to learn a topic item");
         }
-        return userId.trim();
     }
 
     // --- helpers -----------------------------------------------------------------------

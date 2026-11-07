@@ -18,31 +18,31 @@ import java.time.Instant;
 import java.util.Map;
 
 public interface TopicAttemptService {
-    TopicAttemptResponse start(String itemId, StartTopicAttemptRequest body, String key);
+    TopicAttemptResponse start(String userId, String itemId, StartTopicAttemptRequest body, String key);
 
-    TopicAttemptResponse get(String id);
+    TopicAttemptResponse get(String userId, String id);
 
-    TopicItemContentResponse content(String id);
+    TopicItemContentResponse content(String userId, String id);
 
-    CurrentQuizResponse getCurrentQuiz(String id);
+    CurrentQuizResponse getCurrentQuiz(String userId, String id);
 
-    QuizNavigationResponse quizNavigation(String id);
+    QuizNavigationResponse quizNavigation(String userId, String id);
 
-    TopicAttemptResponse advance(String id, AdvanceTopicContentRequest body, String key);
+    TopicAttemptResponse advance(String userId, String id, AdvanceTopicContentRequest body, String key);
 
-    QuizAnswerResponse answerQuiz(String id, String quizId, AnswerQuizRequest body, String key);
+    QuizAnswerResponse answerQuiz(String userId, String id, String quizId, AnswerQuizRequest body, String key);
 
-    TopicAttemptResponse complete(String id, CompleteTopicAttemptRequest body, String key);
+    TopicAttemptResponse complete(String userId, String id, CompleteTopicAttemptRequest body, String key);
 
-    TopicItemResultResponse itemResult(String id);
+    TopicItemResultResponse itemResult(String userId, String id);
 
-    TopicItemReviewResponse review(String id);
+    TopicItemReviewResponse review(String userId, String id);
 
-    TopicResultResponse topicResult(String topicId);
+    TopicResultResponse topicResult(String userId, String topicId);
 
-    Map<String, Instant> access(String id, String key);
+    Map<String, Instant> access(String userId, String id, String key);
 
     TopicAttemptResponse describe(UserTopicItemAttempt attempt);
 
-    TopicProgressResponse topicProgress(String topicId);
+    TopicProgressResponse topicProgress(String userId, String topicId);
 }

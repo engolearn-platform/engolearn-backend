@@ -46,10 +46,6 @@ engolearn:
       voice: ${CARTESIA_VOICE_ID:db6b0ed5-d5d3-463d-ae85-518a07d3c2b4}
     dev-seed-file: ${SPEAKING_DEV_SEED_FILE:}
 
-
-  topic:
-    local-learner-id: ${TOPIC_LOCAL_LEARNER_ID:}
-
   payment:
     vnpay:
       enabled: ${VNPAY_ENABLED:false}
