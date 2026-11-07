@@ -20,7 +20,7 @@ public class LearningPathPracticeRepository {
         this.mongoTemplate = mongoTemplate;
     }
 
-    public boolean submit(ObjectId pathId, ObjectId userId, int weekNo, int dayNo,
+    public boolean submit(ObjectId pathId, String userId, int weekNo, int dayNo,
                           Long revision, Date now, Map<String, Object> fields) {
         Criteria day = Criteria.where("day_no").is(dayNo).and("status").is("IN_PROGRESS")
                 .and("auto_close_at").gt(now);
@@ -36,7 +36,7 @@ public class LearningPathPracticeRepository {
         return mongoTemplate.updateFirst(new Query(path), update, LearningPath.class).getModifiedCount() == 1;
     }
 
-    public boolean startDay(ObjectId pathId, ObjectId userId, int weekNo, int dayNo,
+    public boolean startDay(ObjectId pathId, String userId, int weekNo, int dayNo,
                             String expectedStatus, Long revision, Date expectedNextRunAt, Date startedAt,
                             String startedDate, Date autoCloseAt, Date nextRunAt) {
         Criteria day = Criteria.where("day_no").is(dayNo).and("status").is("NOT_STARTED");
@@ -66,7 +66,7 @@ public class LearningPathPracticeRepository {
                 .getModifiedCount() == 1;
     }
 
-    public boolean saveDraft(ObjectId pathId, ObjectId userId, int weekNo, int dayNo,
+    public boolean saveDraft(ObjectId pathId, String userId, int weekNo, int dayNo,
                              String questionId, Long revision, Date expectedNextRunAt, Date savedAt,
                              LearningPathDraft draft, String anchorDate,
                              Date cancelAt, Date nextRunAt) {

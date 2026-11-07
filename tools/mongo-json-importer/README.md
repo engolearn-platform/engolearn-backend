@@ -42,6 +42,26 @@ Each file contains a top-level collections object. Each property name is a Mongo
 - Set MONGO_IMPORT_OBJECT_ID_FIELDS in the tool-local .env to a comma-separated list of exact field names or wildcard patterns. Use "none" to disable conversion. This lets datasets with string-based identifiers opt out or define their own conventions.
 - The importer validates the JSON envelope, document shape, and duplicate input IDs. It does not validate domain schemas or cross-collection references.
 
+### Datasets with string user IDs
+
+Learning Path stores `user_id` as a BSON string, even when it contains 24 hexadecimal
+characters. For mixed Assessment / Learning Path datasets, set the following in the
+tool-local `.env` before both dry-run and import:
+
+```dotenv
+MONGO_IMPORT_OBJECT_ID_FIELDS=none
+```
+
+Use explicit Extended JSON (`{"$oid":"..."}`) for every field that must remain an ObjectId,
+such as a Learning Path `_id`, question snapshot `path_id`, or legacy projection `attempt_id`.
+Keep `user_id` as plain JSON text, and preserve native Assessment attempt IDs as strings.
+Disabling automatic conversion does not disable Extended JSON decoding. Inspect the full
+dataset first: a bare 24-hex `_id` also remains a string with this setting.
+
+The generic importer defaults and other datasets are unchanged; these settings must be
+selected explicitly for the dataset being imported. See the
+[Learning Path ID conventions](../../docs/technical/learningpath/learning-path-list-api.md#user-id-storage).
+
 ## Configuration
 
 Importer-specific settings live in tools/mongo-json-importer/.env. Create it by copying tools/mongo-json-importer/.env.example. Shared connection settings remain in the repository root .env: MONGO_USER, MONGO_PASS, and APP_DB. The importer-local file can override the URI or target database.

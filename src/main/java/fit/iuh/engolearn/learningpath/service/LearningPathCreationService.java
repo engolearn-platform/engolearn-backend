@@ -64,14 +64,14 @@ public class LearningPathCreationService {
     public CreateLearningPathResponse createForAssessment(CreateLearningPathByAssessmentRequest request,
                                                           String actorUserId) {
         ObjectId attemptId = periodicTests.findCompletedPeriodicIdByAssessmentAttemptId(
-                        request.assessmentAttemptId(), new ObjectId(actorUserId))
+                        request.assessmentAttemptId(), actorUserId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
                         "Chưa có dữ liệu đề xuất lộ trình cho bài đánh giá này"));
         return create(new CreateLearningPathRequest(attemptId.toHexString(), request.microSkills()), actorUserId);
     }
 
     public CreateLearningPathResponse create(CreateLearningPathRequest request, String actorUserId) {
-        ObjectId userId = new ObjectId(actorUserId);
+        String userId = actorUserId;
         ObjectId attemptId = new ObjectId(request.attemptId());
         LearningPath existing = paths.findBySourceAttemptId(attemptId).orElse(null);
         if (existing != null) {
@@ -97,7 +97,7 @@ public class LearningPathCreationService {
     }
 
     private CreateLearningPathResponse createPath(CreateLearningPathRequest request,
-                                                  ObjectId userId, ObjectId attemptId) {
+                                                  String userId, ObjectId attemptId) {
         LearningPathRecommendationResponse current = recommendations.recommend(userId, attemptId);
         if (current.state() == LearningPathRecommendationResponse.State.ALREADY_CREATED) {
             return new CreateLearningPathResponse(current.existingPathId(), false);

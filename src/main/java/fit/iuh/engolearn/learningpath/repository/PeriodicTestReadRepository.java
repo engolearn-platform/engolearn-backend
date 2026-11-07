@@ -20,7 +20,7 @@ public class PeriodicTestReadRepository {
 
     private final MongoTemplate mongoTemplate;
 
-    public Map<ObjectId, String> findAssessmentAttemptIds(List<ObjectId> attemptIds, ObjectId userId) {
+    public Map<ObjectId, String> findAssessmentAttemptIds(List<ObjectId> attemptIds, String userId) {
         if (attemptIds.isEmpty()) return Map.of();
         Query query = Query.query(Criteria.where("_id").in(attemptIds)
                 .and("user_id").is(userId)
@@ -36,7 +36,7 @@ public class PeriodicTestReadRepository {
         return Map.copyOf(assessmentIds);
     }
 
-    public Optional<ObjectId> findCompletedPeriodicIdByAssessmentAttemptId(String assessmentAttemptId, ObjectId userId) {
+    public Optional<ObjectId> findCompletedPeriodicIdByAssessmentAttemptId(String assessmentAttemptId, String userId) {
         Query query = Query.query(Criteria.where("assessment_source_attempt_id").is(assessmentAttemptId)
                 .and("user_id").is(userId)
                 .and("type").is("PERIODIC")
@@ -46,7 +46,7 @@ public class PeriodicTestReadRepository {
         return Optional.ofNullable(attempt).map(document -> document.getObjectId("_id"));
     }
 
-    public Optional<PeriodicTestSnapshot> findCompletedPeriodic(ObjectId attemptId, ObjectId userId) {
+    public Optional<PeriodicTestSnapshot> findCompletedPeriodic(ObjectId attemptId, String userId) {
         Query attemptQuery = Query.query(Criteria.where("_id").is(attemptId)
                 .and("user_id").is(userId)
                 .and("type").is("PERIODIC")

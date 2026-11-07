@@ -7,7 +7,7 @@ import java.util.List;
 
 public record PeriodicTestSnapshot(
         ObjectId attemptId,
-        ObjectId userId,
+        String userId,
         String level,
         ObjectId testSetId,
         Date takenAt,

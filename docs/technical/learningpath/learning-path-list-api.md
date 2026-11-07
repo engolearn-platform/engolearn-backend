@@ -7,6 +7,18 @@ for list, search, recommendation, creation, detail, and practice operations. Cli
 send a `userId`. Missing or invalid sessions return 401; a path or periodic test owned by
 another user is not returned.
 
+## User ID storage
+
+Learning Path treats the authenticated user ID as an opaque, case-sensitive string, including
+non-ObjectId values such as `pfc-demo-learner-v2`. Store `user_id` as a BSON string in
+`learning_paths`, `learning_path_questions`, and the legacy `attempts` / `micro_skill_results`
+projections. An existing 24-hex owner ID remains the same text. Account IDs in `users` and
+native Assessment collections are not changed. Path `_id`, snapshot `path_id`, source
+`attempt_id`, and baseline result IDs retain their existing BSON ObjectId representation.
+
+Fresh datasets must use explicit Extended JSON for ObjectIds with automatic string conversion
+disabled; see the [importer instructions](../../../tools/mongo-json-importer/README.md#datasets-with-string-user-ids).
+
 ## List
 
 `GET /api/learning-paths?status=<status>` returns list items for the requested

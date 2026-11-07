@@ -14,6 +14,7 @@ import org.bson.types.ObjectId;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -36,7 +37,7 @@ class LearningPathIdHttpIntegrationTest extends AbstractMongoIntegrationTest {
     @Test
     void closedDayResultReturnsReviewOverHttp() {
         ObjectId id = new ObjectId();
-        ObjectId userId = new ObjectId();
+        String userId = new ObjectId().toHexString();
         seedAccount(userId);
         List<Document> items = IntStream.rangeClosed(1, 10).mapToObj(i -> new Document("order", i)
                 .append("question_id", "review-" + i).append("micro_skill", "Reading for Gist")).toList();
@@ -72,7 +73,7 @@ class LearningPathIdHttpIntegrationTest extends AbstractMongoIntegrationTest {
         JsonNode detail = JsonMapper.builder().build().readTree(authenticatedGet(detailUrl, userId)).path("data");
         assertThat(detail.path("weeks").get(0).path("days").get(0).path("status").asString()).isEqualTo("SUBMITTED");
 
-        ObjectId otherUserId = new ObjectId();
+        String otherUserId = new ObjectId().toHexString();
         seedAccount(otherUserId);
         assertThatThrownBy(() -> authenticatedGet(detailUrl + "?userId=" + userId, otherUserId))
                 .isInstanceOf(HttpClientErrorException.NotFound.class);
@@ -80,10 +81,10 @@ class LearningPathIdHttpIntegrationTest extends AbstractMongoIntegrationTest {
                 .isInstanceOf(HttpClientErrorException.NotFound.class);
     }
 
-    @Test
-    void existingObjectIdIsReturnedUnchangedByListSearchAndDetail() {
+    @ParameterizedTest
+    @ValueSource(strings = {"pfc-demo-learner-v2", "6aeea4550ca583c5809979b7"})
+    void existingObjectIdIsReturnedUnchangedByListSearchAndDetail(String userId) {
         ObjectId id = new ObjectId();
-        ObjectId userId = new ObjectId();
         seedAccount(userId);
         mongoTemplate.getCollection("learning_paths").insertOne(new Document("_id", id)
                 .append("user_id", userId)
@@ -108,7 +109,7 @@ class LearningPathIdHttpIntegrationTest extends AbstractMongoIntegrationTest {
         assertThat(mongoTemplate.getCollection("learning_paths").find(new Document("_id", id)).first()
                 .get("_id")).isEqualTo(id);
 
-        ObjectId otherUserId = new ObjectId();
+        String otherUserId = new ObjectId().toHexString();
         seedAccount(otherUserId);
         for (String url : List.of(base + "?status=ACTIVE&userId=" + userId,
                 base + "/search?keyword=27/10/2026&userId=" + userId)) {
@@ -121,8 +122,8 @@ class LearningPathIdHttpIntegrationTest extends AbstractMongoIntegrationTest {
     @ParameterizedTest
     @EnumSource(UserRole.class)
     void otherAccountsCannotReadOrChangeAnOwnersPracticeDay(UserRole role) {
-        ObjectId ownerId = new ObjectId();
-        ObjectId otherUserId = new ObjectId();
+        String ownerId = "pfc-demo-learner-v2";
+        String otherUserId = new ObjectId().toHexString();
         ObjectId pathId = new ObjectId();
         seedAccount(ownerId);
         seedAccount(otherUserId, role);
@@ -158,8 +159,8 @@ class LearningPathIdHttpIntegrationTest extends AbstractMongoIntegrationTest {
 
     @Test
     void anotherUsersPeriodicTestCannotBeRecommendedOrUsedToCreateAPath() {
-        ObjectId ownerId = new ObjectId();
-        ObjectId otherUserId = new ObjectId();
+        String ownerId = new ObjectId().toHexString();
+        String otherUserId = new ObjectId().toHexString();
         ObjectId attemptId = new ObjectId();
         seedAccount(ownerId);
         seedAccount(otherUserId);
@@ -201,10 +202,10 @@ class LearningPathIdHttpIntegrationTest extends AbstractMongoIntegrationTest {
                 .isEqualTo(existing);
     }
 
-    @Test
-    void nativeAssessmentRecommendationResolvesOnlyTheOwnersCompletedProjectionWithoutWrites() {
-        ObjectId ownerId = new ObjectId();
-        ObjectId otherId = new ObjectId();
+    @ParameterizedTest
+    @ValueSource(strings = {"pfc-demo-learner-v2", "6aeea4550ca583c5809979b7"})
+    void nativeAssessmentRecommendationResolvesOnlyTheOwnersCompletedProjectionWithoutWrites(String ownerId) {
+        String otherId = new ObjectId().toHexString();
         ObjectId attemptId = new ObjectId();
         String nativeId = "assessment-" + UUID.randomUUID();
         seedAccount(ownerId);
@@ -253,7 +254,7 @@ class LearningPathIdHttpIntegrationTest extends AbstractMongoIntegrationTest {
 
     @Test
     void nativeAssessmentRecommendationRejectsIncompleteOrNonPeriodicProjections() {
-        ObjectId ownerId = new ObjectId();
+        String ownerId = new ObjectId().toHexString();
         ObjectId attemptId = new ObjectId();
         seedAccount(ownerId);
         seedPeriodicTest(attemptId, ownerId);
@@ -270,10 +271,10 @@ class LearningPathIdHttpIntegrationTest extends AbstractMongoIntegrationTest {
         assertThat(mongoTemplate.getCollection("learning_paths").countDocuments()).isZero();
     }
 
-    @Test
-    void nativeAssessmentCreationReturnsTheOwnedPathAndOpensWeekOneWithoutDuplicatingIt() {
-        ObjectId ownerId = new ObjectId();
-        ObjectId otherId = new ObjectId();
+    @ParameterizedTest
+    @ValueSource(strings = {"pfc-demo-learner-v2", "6aeea4550ca583c5809979b7"})
+    void nativeAssessmentCreationReturnsTheOwnedPathAndOpensWeekOneWithoutDuplicatingIt(String ownerId) {
+        String otherId = new ObjectId().toHexString();
         seedAccount(ownerId);
         seedAccount(otherId);
         ObjectId attemptId = seedEligibleProjection(ownerId, "native-create-id");
@@ -297,6 +298,10 @@ class LearningPathIdHttpIntegrationTest extends AbstractMongoIntegrationTest {
         assertThat(detail.path("weeks").get(0).path("status").asString()).isEqualTo("OPEN");
         assertThat(detail.path("weeks").get(1).path("status").asString()).isEqualTo("LOCKED");
         assertThat(detail.path("progress").path("assigned").asInt()).isEqualTo(30);
+        assertThat(mongoTemplate.getCollection("learning_paths")
+                .find(new Document("_id", new ObjectId(pathId))).first().getString("user_id")).isEqualTo(ownerId);
+        assertThat(mongoTemplate.getCollection("learning_path_questions")
+                .countDocuments(new Document("path_id", new ObjectId(pathId)).append("user_id", ownerId))).isEqualTo(30);
         assertThat(mongoTemplate.getCollection("learning_path_questions")
                 .distinct("question_id", String.class).into(new java.util.ArrayList<>())).hasSize(30);
 
@@ -310,6 +315,26 @@ class LearningPathIdHttpIntegrationTest extends AbstractMongoIntegrationTest {
                 .isInstanceOf(HttpClientErrorException.NotFound.class);
         assertThatThrownBy(() -> authenticatedGet(base + "/" + pathId, otherId))
                 .isInstanceOf(HttpClientErrorException.NotFound.class);
+        String dayUrl = base + "/" + pathId + "/weeks/1/days/1";
+        JsonNode started = mapper.readTree(authenticatedRequest(
+                dayUrl + "/start", HttpMethod.POST, null, ownerId)).path("data");
+        assertThat(started.path("questions").size()).isEqualTo(10);
+        String questionId = started.path("questions").get(0).path("questionId").asString();
+        authenticatedRequest(dayUrl + "/questions/" + questionId + "/draft", HttpMethod.PUT,
+                "{\"selectedOptionId\":\"A\"}", ownerId);
+        JsonNode resumed = mapper.readTree(authenticatedRequest(
+                dayUrl + "/start", HttpMethod.POST, null, ownerId)).path("data");
+        assertThat(resumed.path("questions").get(0).path("selectedOptionId").asString()).isEqualTo("A");
+        JsonNode submitted = mapper.readTree(authenticatedRequest(
+                dayUrl + "/submit", HttpMethod.POST, null, ownerId)).path("data");
+        assertThat(submitted.path("answered").asInt()).isEqualTo(1);
+        assertThat(submitted.path("correct").asInt()).isEqualTo(1);
+        JsonNode result = mapper.readTree(authenticatedGet(dayUrl + "/result", ownerId)).path("data");
+        assertThat(result.path("status").asString()).isEqualTo("SUBMITTED");
+        assertThat(result.path("questions").size()).isEqualTo(10);
+        assertThat(result.path("correct").asInt()).isEqualTo(1);
+        assertThatThrownBy(() -> authenticatedGet(dayUrl + "/result", otherId))
+                .isInstanceOf(HttpClientErrorException.NotFound.class);
         assertThat(mongoTemplate.getCollection("learning_paths").countDocuments()).isEqualTo(1);
         assertThat(mongoTemplate.getCollection("learning_path_questions").countDocuments()).isEqualTo(30);
         assertThat(mongoTemplate.getCollection("attempts").find(new Document("_id", attemptId)).first()).isEqualTo(sourceBefore);
@@ -317,7 +342,7 @@ class LearningPathIdHttpIntegrationTest extends AbstractMongoIntegrationTest {
 
     @Test
     void nativeAssessmentCreationRejectsStaleConfirmationWithoutWritingAPath() {
-        ObjectId ownerId = new ObjectId();
+        String ownerId = new ObjectId().toHexString();
         seedAccount(ownerId);
         seedEligibleProjection(ownerId, "native-conflict-id");
         String url = "http://localhost:" + port + "/api/learning-paths/by-assessment";
@@ -341,7 +366,7 @@ class LearningPathIdHttpIntegrationTest extends AbstractMongoIntegrationTest {
 
     @Test
     void nativeAssessmentCreationValidatesTheBodyAndRequiresACompletedProjection() {
-        ObjectId ownerId = new ObjectId();
+        String ownerId = new ObjectId().toHexString();
         seedAccount(ownerId);
         ObjectId attemptId = seedEligibleProjection(ownerId, "native-validation-id");
         String url = "http://localhost:" + port + "/api/learning-paths/by-assessment";
@@ -370,8 +395,8 @@ class LearningPathIdHttpIntegrationTest extends AbstractMongoIntegrationTest {
 
     @Test
     void listAndSearchExposeOnlyOwnedCompletedAssessmentMappingsAndPreserveSourceIds() {
-        ObjectId ownerId = new ObjectId();
-        ObjectId otherId = new ObjectId();
+        String ownerId = new ObjectId().toHexString();
+        String otherId = new ObjectId().toHexString();
         seedAccount(ownerId);
         seedAccount(otherId);
         ObjectId linkedId = new ObjectId();
@@ -429,14 +454,14 @@ class LearningPathIdHttpIntegrationTest extends AbstractMongoIntegrationTest {
                 .containsExactlyElementsOf(sourcesBefore);
     }
 
-    private Document assessmentProjection(ObjectId attemptId, ObjectId userId, String nativeId) {
+    private Document assessmentProjection(ObjectId attemptId, String userId, String nativeId) {
         Document document = new Document("_id", attemptId).append("user_id", userId)
                 .append("type", "PERIODIC").append("status", "COMPLETED");
         if (nativeId != null) document.append("assessment_source_attempt_id", nativeId);
         return document;
     }
 
-    private ObjectId seedEligibleProjection(ObjectId userId, String nativeId) {
+    private ObjectId seedEligibleProjection(String userId, String nativeId) {
         ObjectId attemptId = new ObjectId();
         seedPeriodicTest(attemptId, userId);
         mongoTemplate.getCollection("attempts").updateOne(new Document("_id", attemptId),
@@ -456,7 +481,7 @@ class LearningPathIdHttpIntegrationTest extends AbstractMongoIntegrationTest {
         return attemptId;
     }
 
-    private void seedPracticeDay(ObjectId pathId, ObjectId userId) {
+    private void seedPracticeDay(ObjectId pathId, String userId) {
         Date deadline = Date.from(Instant.now().plusSeconds(86400));
         List<Document> items = IntStream.rangeClosed(1, 10).mapToObj(i -> new Document("order", i)
                 .append("question_id", "auth-q-" + i).append("micro_skill", "Reading for Gist")).toList();
@@ -482,7 +507,7 @@ class LearningPathIdHttpIntegrationTest extends AbstractMongoIntegrationTest {
         mongoTemplate.getCollection("learning_path_questions").insertMany(snapshots);
     }
 
-    private void seedPeriodicTest(ObjectId attemptId, ObjectId userId) {
+    private void seedPeriodicTest(ObjectId attemptId, String userId) {
         mongoTemplate.getCollection("attempts").insertOne(new Document("_id", attemptId)
                 .append("user_id", userId).append("type", "PERIODIC").append("status", "COMPLETED")
                 .append("result", new Document("level", "A2")));
@@ -495,32 +520,32 @@ class LearningPathIdHttpIntegrationTest extends AbstractMongoIntegrationTest {
                         .append("band", "A2").append("is_valid", true)).toList());
     }
 
-    private void seedAccount(ObjectId userId) {
+    private void seedAccount(String userId) {
         seedAccount(userId, UserRole.USER);
     }
 
-    private void seedAccount(ObjectId userId, UserRole role) {
-        mongoTemplate.getCollection("users").insertOne(new Document("_id", userId)
-                .append("email", userId.toHexString() + "@example.com")
+    private void seedAccount(String userId, UserRole role) {
+        mongoTemplate.getCollection("users").insertOne(new Document("_id", ObjectId.isValid(userId) ? new ObjectId(userId) : userId)
+                .append("email", userId + "@example.com")
                 .append("password_hash", "unused")
                 .append("role", role.name())
                 .append("locked", false));
     }
 
-    private String authenticatedGet(String url, ObjectId userId) {
+    private String authenticatedGet(String url, String userId) {
         return authenticatedRequest(url, HttpMethod.GET, null, userId);
     }
 
-    private String authenticatedRequest(String url, HttpMethod method, String body, ObjectId userId) {
+    private String authenticatedRequest(String url, HttpMethod method, String body, String userId) {
         String sessionId = UUID.randomUUID().toString();
         mongoTemplate.getCollection("refresh_sessions").insertOne(new Document("session_id", sessionId)
-                .append("account_id", userId.toHexString())
+                .append("account_id", userId)
                 .append("expires_at", Date.from(Instant.now().plusSeconds(3600)))
                 .append("revoked", false));
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         headers.add(HttpHeaders.COOKIE, "ACCESS_TOKEN="
-                + tokens.create(userId.toHexString(), sessionId, "access", 900));
+                + tokens.create(userId, sessionId, "access", 900));
         return restTemplate.exchange(url, method, new HttpEntity<>(body, headers), String.class).getBody();
     }
 }

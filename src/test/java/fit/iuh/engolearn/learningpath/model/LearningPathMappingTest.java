@@ -36,6 +36,7 @@ class LearningPathMappingTest {
         ObjectId id = new ObjectId();
         Date createdAt = Date.from(Instant.parse("2026-10-27T03:00:00Z"));
         Document original = new Document("_id", id)
+                .append("user_id", "pfc-demo-learner-v2")
                 .append("created_at", createdAt)
                 .append("status", "CANCELLED")
                 .append("cancel", new Document("reason", "INACTIVITY"))
@@ -49,6 +50,7 @@ class LearningPathMappingTest {
         LearningPath path = converter.read(LearningPath.class, original);
 
         assertThat(path.getId()).isEqualTo(id.toHexString());
+        assertThat(path.getUserId()).isEqualTo("pfc-demo-learner-v2");
         assertThat(path.getCreatedAt()).isEqualTo(createdAt.toInstant());
         assertThat(path.getStatus()).isEqualTo(LearningPathStatus.CANCELLED);
         assertThat(path.getCancel().getReason()).isEqualTo(LearningPathCancelReason.INACTIVITY);
@@ -64,6 +66,7 @@ class LearningPathMappingTest {
         converter.write(path, written);
 
         assertThat(written.get("_id")).isEqualTo(id);
+        assertThat(written.getString("user_id")).isEqualTo("pfc-demo-learner-v2");
         assertThat(written.getDate("created_at")).isEqualTo(createdAt);
         assertThat(written.getString("status")).isEqualTo("CANCELLED");
         assertThat(written.get("cancel", Document.class).getString("reason"))

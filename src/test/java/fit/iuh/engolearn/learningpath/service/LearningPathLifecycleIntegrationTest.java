@@ -108,6 +108,36 @@ class LearningPathLifecycleIntegrationTest {
         }
     }
 
+    @Test
+    void midnightGradesDraftsUsingOnlyTheStringOwnersSnapshot() {
+        withTemplate(template -> {
+            ObjectId id = new ObjectId();
+            Document document = path(id, "2026-10-07", true);
+            Document firstDay = day(document, 0);
+            Document item = firstDay.getList("items", Document.class).getFirst();
+            item.put("answer", null);
+            item.put("draft", new Document("selected_option_id", "A"));
+            firstDay.put("progress", new Document("assigned", 10).append("answered", 0).append("correct", 0));
+            document.put("progress", new Document("assigned", 30).append("answered", 0).append("correct", 0));
+            template.getCollection("learning_paths").insertOne(document);
+            template.getCollection("learning_path_questions").insertMany(List.of(
+                    new Document("path_id", id).append("user_id", "pfc-demo-learner-v2")
+                            .append("question_id", "q-1-1").append("correct_option_id", "A"),
+                    new Document("path_id", id).append("user_id", "another-user")
+                            .append("question_id", "q-1-1").append("correct_option_id", "B")));
+
+            scheduler(template, "2026-10-08").processScheduledDeadlines();
+
+            Document actual = template.getCollection("learning_paths").find(eq("_id", id)).first();
+            Document gradedDay = day(actual, 0);
+            assertThat(gradedDay.getString("status")).isEqualTo("CLOSED");
+            assertThat(gradedDay.get("progress", Document.class).getInteger("correct")).isEqualTo(1);
+            assertThat(gradedDay.getList("items", Document.class).getFirst()
+                    .get("answer", Document.class).getBoolean("is_correct")).isTrue();
+            assertThat(actual.getString("user_id")).isEqualTo("pfc-demo-learner-v2");
+        });
+    }
+
     private MongoTemplate template(MongoClient client) {
         return new MongoTemplate(client, "learning_path_job_"
                 + UUID.randomUUID().toString().replace("-", ""));
@@ -151,7 +181,7 @@ class LearningPathLifecycleIntegrationTest {
             weeks.add(week);
         }
         return new Document("_id", id)
-                .append("user_id", new ObjectId())
+                .append("user_id", "pfc-demo-learner-v2")
                 .append("created_date", "2026-10-01")
                 .append("status", hasAnswer ? "IN_PROGRESS" : "NOT_STARTED")
                 .append("is_active", true)

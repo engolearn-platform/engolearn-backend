@@ -63,29 +63,26 @@ public class LearningPathService {
             String userId,
             LearningPathListStatus status
     ) {
-        ObjectId userObjectId = new ObjectId(userId);
-
         List<LearningPath> paths = repository
-                .findByUserIdAndStatusInOrderByCreatedAtDesc(userObjectId, statusesFor(status));
-        List<LearningPathListItemResponse> items = toListItems(paths, userObjectId);
+                .findByUserIdAndStatusInOrderByCreatedAtDesc(userId, statusesFor(status));
+        List<LearningPathListItemResponse> items = toListItems(paths, userId);
 
-        return new LearningPathListResponse(items, countsFor(userObjectId));
+        return new LearningPathListResponse(items, countsFor(userId));
     }
 
     public LearningPathListResponse search(String userId, String keyword) {
-        ObjectId userObjectId = new ObjectId(userId);
         String normalizedKeyword = keyword.trim();
 
         List<LearningPath> matches = new ArrayList<>(repository
                 .findByUserIdAndStatusInAndMicroSkillsMicroSkillContainingIgnoreCaseOrderByCreatedAtDesc(
-                        userObjectId,
+                        userId,
                         SEARCHABLE_STATUSES,
                         normalizedKeyword
                 ));
 
         parseSearchDate(normalizedKeyword).ifPresent(createdDate -> matches.addAll(
                 repository.findByUserIdAndStatusInAndCreatedDateOrderByCreatedAtDesc(
-                        userObjectId,
+                        userId,
                         SEARCHABLE_STATUSES,
                         createdDate
                 )
@@ -100,12 +97,12 @@ public class LearningPathService {
                         Comparator.nullsLast(Comparator.reverseOrder())
                 ))
                 .toList();
-        List<LearningPathListItemResponse> items = toListItems(paths, userObjectId);
+        List<LearningPathListItemResponse> items = toListItems(paths, userId);
 
-        return new LearningPathListResponse(items, countsFor(userObjectId));
+        return new LearningPathListResponse(items, countsFor(userId));
     }
 
-    private LearningPathListResponse.SectionCounts countsFor(ObjectId userId) {
+    private LearningPathListResponse.SectionCounts countsFor(String userId) {
         return new LearningPathListResponse.SectionCounts(
                 repository.countByUserIdAndStatusIn(
                         userId,
@@ -132,7 +129,7 @@ public class LearningPathService {
         };
     }
 
-    private List<LearningPathListItemResponse> toListItems(List<LearningPath> paths, ObjectId userId) {
+    private List<LearningPathListItemResponse> toListItems(List<LearningPath> paths, String userId) {
         List<ObjectId> attemptIds = paths.stream().map(this::sourceAttemptId)
                 .filter(Objects::nonNull).distinct().toList();
         Map<ObjectId, String> assessmentIds = periodicTests.findAssessmentAttemptIds(attemptIds, userId);
@@ -179,9 +176,8 @@ public class LearningPathService {
 
     public LearningPathDetailResponse getDetail(String pathId, String userId) {
         ObjectId pathObjectId = new ObjectId(pathId);
-        ObjectId userObjectId = new ObjectId(userId);
 
-        LearningPath path = repository.findByIdAndUserId(pathObjectId, userObjectId)
+        LearningPath path = repository.findByIdAndUserId(pathObjectId, userId)
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND,
                         "Không tìm thấy Learning Path"

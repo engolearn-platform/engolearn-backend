@@ -27,7 +27,7 @@ class LearningPathServiceIdTest {
     void detailAndSearchPreserveIdAndSortDistinctResultsByCreationTime() {
         LearningPathRepository repository = mock(LearningPathRepository.class);
         LearningPathService service = new LearningPathService(repository, mock(PeriodicTestReadRepository.class));
-        ObjectId userId = new ObjectId();
+        String userId = new ObjectId().toHexString();
         ObjectId olderId = new ObjectId();
         LearningPath older = path(olderId, "2026-10-27T03:00:00Z");
         LearningPath newer = path(new ObjectId(), "2026-10-28T03:00:00Z");
@@ -39,9 +39,9 @@ class LearningPathServiceIdTest {
         when(repository.countByUserIdAndStatusIn(eq(userId), anyList())).thenReturn(2L);
         when(repository.countByUserIdAndStatus(eq(userId), any())).thenReturn(0L);
 
-        assertThat(service.getDetail(olderId.toHexString(), userId.toHexString()).id())
+        assertThat(service.getDetail(olderId.toHexString(), userId).id())
                 .isEqualTo(olderId.toHexString());
-        assertThat(service.search(userId.toHexString(), "27/10/2026").items())
+        assertThat(service.search(userId, "27/10/2026").items())
                 .extracting(item -> item.id())
                 .containsExactly(newer.getId(), older.getId());
     }
@@ -51,7 +51,7 @@ class LearningPathServiceIdTest {
         LearningPathRepository repository = mock(LearningPathRepository.class);
         PeriodicTestReadRepository periodicTests = mock(PeriodicTestReadRepository.class);
         LearningPathService service = new LearningPathService(repository, periodicTests);
-        ObjectId userId = new ObjectId();
+        String userId = new ObjectId().toHexString();
         ObjectId attemptId = new ObjectId();
         LearningPath first = path(new ObjectId(), "2026-11-01T03:00:00Z");
         LearningPath second = path(new ObjectId(), "2026-11-02T03:00:00Z");
@@ -65,7 +65,7 @@ class LearningPathServiceIdTest {
         when(periodicTests.findAssessmentAttemptIds(List.of(attemptId), userId))
                 .thenReturn(Map.of(attemptId, "native-assessment-id"));
 
-        assertThat(service.getByUserId(userId.toHexString(), LearningPathListStatus.ACTIVE).items())
+        assertThat(service.getByUserId(userId, LearningPathListStatus.ACTIVE).items())
                 .extracting(item -> item.sourceAssessmentAttemptId())
                 .containsExactly("native-assessment-id", "native-assessment-id", null);
         verify(periodicTests).findAssessmentAttemptIds(List.of(attemptId), userId);

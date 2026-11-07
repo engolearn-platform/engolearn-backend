@@ -15,7 +15,6 @@ import fit.iuh.engolearn.shared.BaseDocument;
 import java.util.Date;
 import java.util.List;
 import lombok.Setter;
-import org.bson.types.ObjectId;
 import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.mongodb.core.mapping.Field;
 
@@ -26,7 +25,7 @@ public class LearningPath extends BaseDocument {
     private Long revision;
 
     @Field("user_id")
-    private ObjectId userId;
+    private String userId;
 
     private LearningPathSource source;
 
@@ -69,7 +68,7 @@ public class LearningPath extends BaseDocument {
         return revision;
     }
 
-    public ObjectId getUserId() {
+    public String getUserId() {
         return userId;
     }
 

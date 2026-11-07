@@ -51,11 +51,10 @@ public class LearningPathDayPracticeService {
 
     public StartLearningPathDayResponse start(String pathId, int weekNo, int dayNo, String userId) {
         ObjectId pathObjectId = new ObjectId(pathId);
-        ObjectId userObjectId = new ObjectId(userId);
 
         for (int attempt = 0; attempt < MAX_START_ATTEMPTS; attempt++) {
             Instant now = clock.instant();
-            LearningPath path = paths.findByIdAndUserId(pathObjectId, userObjectId)
+            LearningPath path = paths.findByIdAndUserId(pathObjectId, userId)
                     .orElseThrow(() -> new ResponseStatusException(
                             HttpStatus.NOT_FOUND, "Không tìm thấy Learning Path"));
             LearningPathWeek week = path.getWeeks().stream()
@@ -84,7 +83,7 @@ public class LearningPathDayPracticeService {
                     throw new IllegalStateException("Learning Path day has invalid question order");
                 }
             }
-            Map<String, Document> snapshots = loadSnapshots(pathObjectId, userObjectId, items);
+            Map<String, Document> snapshots = loadSnapshots(pathObjectId, userId, items);
             List<StartLearningPathDayResponse.Question> questionInfos = items.stream()
                     .map(item -> question(item, snapshots.get(item.getQuestionId())))
                     .toList();
@@ -95,7 +94,7 @@ public class LearningPathDayPracticeService {
                 Date autoCloseAt = Date.from(startedDate.plusDays(1).atStartOfDay(ZONE).toInstant());
                 Date nextRunAt = path.getNextRunAt().before(autoCloseAt)
                         ? path.getNextRunAt() : autoCloseAt;
-                boolean started = practice.startDay(pathObjectId, userObjectId, weekNo, dayNo,
+                boolean started = practice.startDay(pathObjectId, userId, weekNo, dayNo,
                         path.getStatus().name(), path.getRevision(), path.getNextRunAt(), startedAt, startedDate.toString(),
                         autoCloseAt, nextRunAt);
                 if (!started) continue;
@@ -125,7 +124,7 @@ public class LearningPathDayPracticeService {
         }
     }
 
-    private Map<String, Document> loadSnapshots(ObjectId pathId, ObjectId userId,
+    private Map<String, Document> loadSnapshots(ObjectId pathId, String userId,
                                                  List<LearningPathDayItem> items) {
         List<String> ids = items.stream().map(LearningPathDayItem::getQuestionId).toList();
         Map<String, Document> snapshots = new HashMap<>();

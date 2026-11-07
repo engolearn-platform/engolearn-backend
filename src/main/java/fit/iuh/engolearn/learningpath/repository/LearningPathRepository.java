@@ -11,29 +11,29 @@ import java.util.Optional;
 public interface LearningPathRepository extends MongoRepository<LearningPath, String> {
 
     List<LearningPath> findByUserIdAndStatusInOrderByCreatedAtDesc(
-            ObjectId userId,
+            String userId,
             List<String> statuses
     );
 
     List<LearningPath> findByUserIdAndStatusInAndMicroSkillsMicroSkillContainingIgnoreCaseOrderByCreatedAtDesc(
-            ObjectId userId,
+            String userId,
             List<String> statuses,
             String microSkill
     );
 
     List<LearningPath> findByUserIdAndStatusInAndCreatedDateOrderByCreatedAtDesc(
-            ObjectId userId,
+            String userId,
             List<String> statuses,
             String createdDate
     );
 
-    long countByUserIdAndStatusIn(ObjectId userId, List<String> statuses);
+    long countByUserIdAndStatusIn(String userId, List<String> statuses);
 
-    long countByUserIdAndStatus(ObjectId userId, String status);
+    long countByUserIdAndStatus(String userId, String status);
 
-    Optional<LearningPath> findByIdAndUserId(ObjectId id, ObjectId userId);
+    Optional<LearningPath> findByIdAndUserId(ObjectId id, String userId);
 
     Optional<LearningPath> findBySourceAttemptId(ObjectId attemptId);
 
-    List<LearningPath> findByUserIdAndActiveTrue(ObjectId userId);
+    List<LearningPath> findByUserIdAndActiveTrue(String userId);
 }

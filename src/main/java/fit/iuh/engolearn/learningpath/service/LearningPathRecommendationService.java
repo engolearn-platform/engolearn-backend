@@ -33,18 +33,17 @@ public class LearningPathRecommendationService {
     }
 
     public LearningPathRecommendationResponse recommend(String userId, String attemptId) {
-        return recommend(new ObjectId(userId), new ObjectId(attemptId));
+        return recommend(userId, new ObjectId(attemptId));
     }
 
     public LearningPathRecommendationResponse recommendForAssessment(String userId, String assessmentAttemptId) {
-        ObjectId ownerId = new ObjectId(userId);
-        ObjectId attemptId = periodicTests.findCompletedPeriodicIdByAssessmentAttemptId(assessmentAttemptId, ownerId)
+        ObjectId attemptId = periodicTests.findCompletedPeriodicIdByAssessmentAttemptId(assessmentAttemptId, userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
                         "Chưa có dữ liệu đề xuất lộ trình cho bài đánh giá này"));
-        return recommend(ownerId, attemptId);
+        return recommend(userId, attemptId);
     }
 
-    public LearningPathRecommendationResponse recommend(ObjectId userId, ObjectId attemptId) {
+    public LearningPathRecommendationResponse recommend(String userId, ObjectId attemptId) {
         PeriodicTestSnapshot test = periodicTests.findCompletedPeriodic(attemptId, userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
                         "Không tìm thấy bài kiểm tra định kì đã hoàn thành của người học"));

@@ -55,7 +55,7 @@ class LearningPathCreationStandaloneIntegrationTest {
             MongoTemplate template = new MongoTemplate(client, "learning_path_creation_"
                     + UUID.randomUUID().toString().replace("-", ""));
             try {
-                ObjectId userId = new ObjectId();
+                String userId = new ObjectId().toHexString();
                 ObjectId attemptId = new ObjectId();
                 seedPeriodicTest(template, userId, attemptId);
                 seedQuestions(template);
@@ -76,8 +76,8 @@ class LearningPathCreationStandaloneIntegrationTest {
                 CreateLearningPathRequest request = new CreateLearningPathRequest(
                         attemptId.toHexString(), List.of("Reading for Gist"));
 
-                var first = creation.create(request, userId.toHexString());
-                var repeated = creation.create(request, userId.toHexString());
+                var first = creation.create(request, userId);
+                var repeated = creation.create(request, userId);
 
                 assertThat(first.created()).isTrue();
                 assertThat(repeated.created()).isFalse();
@@ -102,7 +102,7 @@ class LearningPathCreationStandaloneIntegrationTest {
         }
     }
 
-    private void seedPeriodicTest(MongoTemplate template, ObjectId userId, ObjectId attemptId) {
+    private void seedPeriodicTest(MongoTemplate template, String userId, ObjectId attemptId) {
         template.getCollection("attempts").insertOne(new Document("_id", attemptId)
                 .append("user_id", userId)
                 .append("type", "PERIODIC")
