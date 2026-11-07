@@ -60,8 +60,8 @@ public class LearningPathCreationService {
         this.planGenerator = planGenerator;
     }
 
-    public CreateLearningPathResponse create(CreateLearningPathRequest request) {
-        ObjectId userId = new ObjectId(request.userId());
+    public CreateLearningPathResponse create(CreateLearningPathRequest request, String actorUserId) {
+        ObjectId userId = new ObjectId(actorUserId);
         ObjectId attemptId = new ObjectId(request.attemptId());
         LearningPath existing = paths.findBySourceAttemptId(attemptId).orElse(null);
         if (existing != null) {

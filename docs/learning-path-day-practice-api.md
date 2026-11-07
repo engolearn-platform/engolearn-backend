@@ -1,8 +1,9 @@
 # Start a Learning Path practice day
 
-`POST /api/learning-paths/{pathId}/weeks/{weekNo}/days/{dayNo}/start?userId={userId}`
-returns the shared `{ data, timestamp }` envelope. `pathId` and `userId` are MongoDB
-ObjectIds; `weekNo` is 1–3 and `dayNo` is 1–5. The path must belong to the user,
+`POST /api/learning-paths/{pathId}/weeks/{weekNo}/days/{dayNo}/start`
+returns the shared `{ data, timestamp }` envelope. The user ID comes from the
+authenticated access cookie. `pathId` is a MongoDB ObjectId; `weekNo` is 1–3
+and `dayNo` is 1–5. The path must belong to the authenticated user,
 the week must be open, and the day must be available before its deadlines.
 
 On the first successful request, the day becomes `IN_PROGRESS`. The server stores
@@ -23,14 +24,14 @@ Content is read from the immutable `learning_path_questions` snapshots, never
 from the mutable question pool. The response type has no correct option,
 explanation, or transcript field.
 
-Errors use `ProblemDetail`: malformed parameters return 400; a path not owned by
+Errors use `ProblemDetail`: a missing or invalid session returns 401; malformed parameters return 400; a path not owned by
 the user or a nonexistent week/day returns 404; a locked, closed, completed,
 cancelled, or expired day returns 409. Missing or inconsistent saved question
 snapshots are server errors and do not start a new day.
 
 ## Save or change one answer draft
 
-`PUT /api/learning-paths/{pathId}/weeks/{weekNo}/days/{dayNo}/questions/{questionId}/draft?userId={userId}`
+`PUT /api/learning-paths/{pathId}/weeks/{weekNo}/days/{dayNo}/questions/{questionId}/draft`
 accepts `{ "selectedOptionId": "A" }`, where the option is one of A–D and must
 exist in that question's saved snapshot. Each successful call replaces the
 selection for that question and returns `questionId`, `selectedOptionId`, and
@@ -48,7 +49,7 @@ against concurrent closure.
 
 ## Submit a practice day
 
-`POST /api/learning-paths/{pathId}/weeks/{weekNo}/days/{dayNo}/submit?userId={userId}`
+`POST /api/learning-paths/{pathId}/weeks/{weekNo}/days/{dayNo}/submit`
 requires no request body. The path must belong to the user, the week must be open,
 and the day must already be in progress and before its deadline. The server
 finalizes and grades the saved drafts atomically. Blank questions remain unanswered;
@@ -67,7 +68,7 @@ concurrent writes; older documents without a revision are supported.
 
 ## Review a practice day
 
-`GET /api/learning-paths/{pathId}/weeks/{weekNo}/days/{dayNo}/result?userId={userId}`
+`GET /api/learning-paths/{pathId}/weeks/{weekNo}/days/{dayNo}/result`
 returns the shared response envelope for a day in `COMPLETED`, `SUBMITTED` or `CLOSED` state,
 including days closed automatically at midnight or when their week ended. The path
 must belong to the user and must not be cancelled. A missing path, week or day

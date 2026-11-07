@@ -51,12 +51,11 @@ public class SecurityConfig {
                         .authenticationEntryPoint(authenticationEntryPoint)
                         .accessDeniedHandler(accessDeniedHandler))
                 .authorizeHttpRequests(auth -> auth
-                        // Interim (scope decision 2026-10-27): only the auth contract endpoint is
-                        // enforced; legacy feature endpoints keep pre-auth behavior until migrated.
                         .requestMatchers(HttpMethod.GET, "/api/v1/auth/me").authenticated()
                         .requestMatchers(HttpMethod.POST, "/api/v1/auth/register", "/api/v1/auth/login", "/api/v1/auth/refresh", "/api/v1/auth/logout").permitAll()
                         .requestMatchers("/api/v1/subscription/admin", "/api/v1/subscription/admin/**").hasRole("ADMIN")
                         .requestMatchers("/api/v1/subscription/me", "/api/v1/subscription/me/**", "/api/v1/quota/me/**").authenticated()
+                        .requestMatchers("/api/learning-paths", "/api/learning-paths/**").authenticated()
                         .anyRequest().permitAll()
                 );
 
@@ -99,7 +98,9 @@ public class SecurityConfig {
         ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(status,
                 exception.getMessage() == null ? status.getReasonPhrase() : exception.getMessage());
         problemDetail.setType(URI.create("about:blank"));
-        if (path.startsWith("/api/v1/subscription/") || path.startsWith("/api/v1/quota/") || path.startsWith("/api/v1/auth/")) {
+        if (path.startsWith("/api/v1/subscription/") || path.startsWith("/api/v1/quota/")
+                || path.startsWith("/api/v1/auth/") || path.equals("/api/learning-paths")
+                || path.startsWith("/api/learning-paths/")) {
             problemDetail.setDetail(status == HttpStatus.UNAUTHORIZED ? "Authentication is required" : "Access is denied");
             problemDetail.setInstance(URI.create(path));
             problemDetail.setProperty("code", status == HttpStatus.UNAUTHORIZED ? "AUTHENTICATION_REQUIRED" : "ACCESS_DENIED");

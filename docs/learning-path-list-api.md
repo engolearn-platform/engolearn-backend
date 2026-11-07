@@ -2,15 +2,20 @@
 
 Base path: `/api/learning-paths`
 
+All endpoints require an authenticated access cookie. The backend uses the session's user ID
+for list, search, recommendation, creation, detail, and practice operations. Clients do not
+send a `userId`. Missing or invalid sessions return 401; a path or periodic test owned by
+another user is not returned.
+
 ## List
 
-`GET /api/learning-paths?userId=<ObjectId>&status=<status>` returns list items for the requested
+`GET /api/learning-paths?status=<status>` returns list items for the requested
 status. `status` defaults to `ACTIVE`; the supported values are `ACTIVE`, `COMPLETED`, and
 `CANCELLED`. The response also includes total counts for all three sections.
 
 ## Search
 
-`GET /api/learning-paths/search?userId=<ObjectId>&keyword=<keyword>` searches only the current
+`GET /api/learning-paths/search?keyword=<keyword>` searches only the current
 user's active (`NOT_STARTED`, `IN_PROGRESS`) and completed paths. It matches either an exact
 creation date in `DD/MM/YYYY` format or a case-insensitive partial micro-skill name. Cancelled
 paths are excluded, and the search response retains the same list envelope and unfiltered section
@@ -21,7 +26,7 @@ time descending and use the same list item DTO as the list endpoint.
 
 ## Recommendation
 
-`GET /api/learning-paths/recommendation?userId=<ObjectId>&attemptId=<ObjectId>` reads a
+`GET /api/learning-paths/recommendation?attemptId=<ObjectId>` reads a
 completed periodic test (`attempts.type=PERIODIC`, `status=COMPLETED`), its valid
 `micro_skill_results`, active paths, and the question pool. It does not write data. The result
 contains `state`, `level`, `durationWeeks=3`, `daysPerWeek`, `questionsPerDay=10`, and
@@ -38,7 +43,6 @@ business message for the case where weak skills existed but none remained after 
 
 ```json
 {
-  "userId": "<ObjectId>",
   "attemptId": "<ObjectId>",
   "microSkills": ["Listening for Gist", "Reading for Gist"]
 }
