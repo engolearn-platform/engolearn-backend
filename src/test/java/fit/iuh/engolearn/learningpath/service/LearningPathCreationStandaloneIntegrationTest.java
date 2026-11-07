@@ -74,10 +74,10 @@ class LearningPathCreationStandaloneIntegrationTest {
                 LearningPathCreationService creation = new LearningPathCreationService(
                         recommendations, periodicTests, paths, questionPool, new LearningPlanGenerator());
                 CreateLearningPathRequest request = new CreateLearningPathRequest(
-                        userId.toHexString(), attemptId.toHexString(), List.of("Reading for Gist"));
+                        attemptId.toHexString(), List.of("Reading for Gist"));
 
-                var first = creation.create(request);
-                var repeated = creation.create(request);
+                var first = creation.create(request, userId.toHexString());
+                var repeated = creation.create(request, userId.toHexString());
 
                 assertThat(first.created()).isTrue();
                 assertThat(repeated.created()).isFalse();
