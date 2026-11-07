@@ -1,6 +1,8 @@
 package fit.iuh.engolearn.user.service.impl;
 
 import fit.iuh.engolearn.shared.enums.CefrLevel;
+import fit.iuh.engolearn.subscription.contract.SubscriptionAccountInitialization;
+import fit.iuh.engolearn.subscription.contract.exception.SubscriptionUnavailableException;
 import fit.iuh.engolearn.user.model.User;
 import fit.iuh.engolearn.user.model.UserProfile;
 import fit.iuh.engolearn.user.repository.UserRegistrationRepository;
@@ -14,6 +16,7 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 @RequiredArgsConstructor
 public class UserRegistrationServiceImpl implements UserRegistrationService {
     private final UserRegistrationRepository registrations;
+    private final SubscriptionAccountInitialization subscriptions;
 
     @Override
     @Transactional(transactionManager = "mongoTransactionManager")
@@ -26,6 +29,11 @@ public class UserRegistrationServiceImpl implements UserRegistrationService {
                 .id(saved.getId())
                 .cefrLevel(CefrLevel.A1)
                 .build());
+        try {
+            subscriptions.initializeNewAccount(saved.getId());
+        } catch (SubscriptionUnavailableException failure) {
+            throw new AuthFailure("Account setup is temporarily unavailable", "ACCOUNT_SETUP_UNAVAILABLE", 503);
+        }
         return saved;
     }
 }
