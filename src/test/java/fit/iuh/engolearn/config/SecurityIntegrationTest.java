@@ -259,6 +259,8 @@ class SecurityIntegrationTest {
         String endpoint = path.split("\\?", 2)[0];
         if (endpoint.equals("/api/learning-paths/recommendation")) {
             verify(recommendationService).recommend(USER_ID, ATTEMPT_ID);
+        } else if (endpoint.equals("/api/learning-paths/recommendation/by-assessment")) {
+            verify(recommendationService).recommendForAssessment(USER_ID, "native-assessment-id");
         } else if (endpoint.equals("/api/learning-paths/search")) {
             verify(learningPathService).search(USER_ID, "Gist");
         } else if (path.equals("/api/learning-paths") && method == HttpMethod.POST) {
@@ -373,6 +375,7 @@ class SecurityIntegrationTest {
                 Arguments.of(HttpMethod.GET, "/api/learning-paths", ""),
                 Arguments.of(HttpMethod.GET, "/api/learning-paths/search?keyword=Gist", ""),
                 Arguments.of(HttpMethod.GET, "/api/learning-paths/recommendation?attemptId=" + ATTEMPT_ID, ""),
+                Arguments.of(HttpMethod.GET, "/api/learning-paths/recommendation/by-assessment?assessmentAttemptId=native-assessment-id", ""),
                 Arguments.of(HttpMethod.POST, "/api/learning-paths", CREATE_BODY),
                 Arguments.of(HttpMethod.GET, "/api/learning-paths/" + PATH_ID, ""),
                 Arguments.of(HttpMethod.POST, DAY_URL + "/start", ""),

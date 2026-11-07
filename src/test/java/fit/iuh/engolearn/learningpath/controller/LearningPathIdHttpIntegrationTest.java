@@ -200,6 +200,75 @@ class LearningPathIdHttpIntegrationTest extends AbstractMongoIntegrationTest {
                 .isEqualTo(existing);
     }
 
+    @Test
+    void nativeAssessmentRecommendationResolvesOnlyTheOwnersCompletedProjectionWithoutWrites() {
+        ObjectId ownerId = new ObjectId();
+        ObjectId otherId = new ObjectId();
+        ObjectId attemptId = new ObjectId();
+        String nativeId = "assessment-" + UUID.randomUUID();
+        seedAccount(ownerId);
+        seedAccount(otherId);
+        seedPeriodicTest(attemptId, ownerId);
+        mongoTemplate.getCollection("attempts").updateOne(new Document("_id", attemptId),
+                new Document("$set", new Document("assessment_source_attempt_id", nativeId)));
+        mongoTemplate.getCollection("micro_skill_results").updateOne(
+                new Document("attempt_id", attemptId).append("micro_skill", "Reading for Gist"),
+                new Document("$set", new Document("correct", 2).append("percent", 20)));
+        mongoTemplate.getCollection("question_pool").insertMany(IntStream.range(0, 30).mapToObj(i ->
+                new Document("question_id", "pool-" + i).append("micro_skill", "Reading for Gist")
+                        .append("level", "A2").append("status", "ACTIVE")).toList());
+        Document before = mongoTemplate.getCollection("attempts").find(new Document("_id", attemptId)).first();
+        List<Document> resultsBefore = mongoTemplate.getCollection("micro_skill_results").find()
+                .into(new java.util.ArrayList<>());
+        String base = "http://localhost:" + port + "/api/learning-paths/recommendation";
+        String url = base + "/by-assessment?assessmentAttemptId=" + nativeId;
+        JsonMapper mapper = JsonMapper.builder().build();
+        JsonNode resolved = mapper.readTree(authenticatedGet(url, ownerId)).path("data");
+        assertThat(resolved).isEqualTo(mapper.readTree(authenticatedGet(
+                base + "?attemptId=" + attemptId, ownerId)).path("data"));
+        assertThat(resolved.path("state").asString()).isEqualTo("AVAILABLE");
+        assertThat(resolved.path("microSkills").size()).isEqualTo(1);
+        assertThat(resolved.path("microSkills").get(0).path("name").asString()).isEqualTo("Reading for Gist");
+        assertThatThrownBy(() -> authenticatedGet(url + "&userId=" + ownerId, otherId))
+                .isInstanceOf(HttpClientErrorException.NotFound.class);
+        assertThatThrownBy(() -> authenticatedGet(base + "/by-assessment?assessmentAttemptId=missing", ownerId))
+                .isInstanceOf(HttpClientErrorException.NotFound.class);
+        assertThatThrownBy(() -> authenticatedGet(base + "/by-assessment?assessmentAttemptId=" + attemptId, ownerId))
+                .isInstanceOf(HttpClientErrorException.NotFound.class);
+        assertThatThrownBy(() -> authenticatedGet(base + "/by-assessment", ownerId))
+                .isInstanceOf(HttpClientErrorException.BadRequest.class);
+        for (String invalid : List.of("", "x".repeat(101))) {
+            assertThatThrownBy(() -> authenticatedGet(base + "/by-assessment?assessmentAttemptId=" + invalid, ownerId))
+                    .isInstanceOf(HttpClientErrorException.BadRequest.class);
+        }
+        assertThatThrownBy(() -> restTemplate.getForObject(url, String.class))
+                .isInstanceOf(HttpClientErrorException.Unauthorized.class);
+        assertThat(mongoTemplate.getCollection("attempts").find(new Document("_id", attemptId)).first()).isEqualTo(before);
+        assertThat(mongoTemplate.getCollection("micro_skill_results").find().into(new java.util.ArrayList<>()))
+                .containsExactlyElementsOf(resultsBefore);
+        assertThat(mongoTemplate.getCollection("learning_paths").countDocuments()).isZero();
+        assertThat(mongoTemplate.getCollection("learning_path_questions").countDocuments()).isZero();
+    }
+
+    @Test
+    void nativeAssessmentRecommendationRejectsIncompleteOrNonPeriodicProjections() {
+        ObjectId ownerId = new ObjectId();
+        ObjectId attemptId = new ObjectId();
+        seedAccount(ownerId);
+        seedPeriodicTest(attemptId, ownerId);
+        String url = "http://localhost:" + port
+                + "/api/learning-paths/recommendation/by-assessment?assessmentAttemptId=native-id";
+        mongoTemplate.getCollection("attempts").updateOne(new Document("_id", attemptId),
+                new Document("$set", new Document("assessment_source_attempt_id", "native-id").append("status", "IN_PROGRESS")));
+        assertThatThrownBy(() -> authenticatedGet(url, ownerId))
+                .isInstanceOf(HttpClientErrorException.NotFound.class);
+        mongoTemplate.getCollection("attempts").updateOne(new Document("_id", attemptId),
+                new Document("$set", new Document("status", "COMPLETED").append("type", "PLACEMENT")));
+        assertThatThrownBy(() -> authenticatedGet(url, ownerId))
+                .isInstanceOf(HttpClientErrorException.NotFound.class);
+        assertThat(mongoTemplate.getCollection("learning_paths").countDocuments()).isZero();
+    }
+
     private void seedPracticeDay(ObjectId pathId, ObjectId userId) {
         Date deadline = Date.from(Instant.now().plusSeconds(86400));
         List<Document> items = IntStream.rangeClosed(1, 10).mapToObj(i -> new Document("order", i)

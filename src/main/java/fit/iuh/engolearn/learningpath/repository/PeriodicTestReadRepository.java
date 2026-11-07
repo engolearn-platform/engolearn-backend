@@ -20,6 +20,16 @@ public class PeriodicTestReadRepository {
         this.mongoTemplate = mongoTemplate;
     }
 
+    public Optional<ObjectId> findCompletedPeriodicIdByAssessmentAttemptId(String assessmentAttemptId, ObjectId userId) {
+        Query query = Query.query(Criteria.where("assessment_source_attempt_id").is(assessmentAttemptId)
+                .and("user_id").is(userId)
+                .and("type").is("PERIODIC")
+                .and("status").is("COMPLETED"));
+        query.fields().include("_id");
+        Document attempt = mongoTemplate.findOne(query, Document.class, "attempts");
+        return Optional.ofNullable(attempt).map(document -> document.getObjectId("_id"));
+    }
+
     public Optional<PeriodicTestSnapshot> findCompletedPeriodic(ObjectId attemptId, ObjectId userId) {
         Query attemptQuery = Query.query(Criteria.where("_id").is(attemptId)
                 .and("user_id").is(userId)

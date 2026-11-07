@@ -77,6 +77,16 @@ public class LearningPathController {
         return ApiResponse.ok(recommendationService.recommend(principal.getId(), attemptId));
     }
 
+    @GetMapping("/recommendation/by-assessment")
+    public ApiResponse<LearningPathRecommendationResponse> getRecommendationByAssessment(
+            @NotBlank(message = "assessmentAttemptId không được để trống")
+            @Size(max = 100, message = "assessmentAttemptId không được vượt quá 100 ký tự")
+            @RequestParam String assessmentAttemptId,
+            @AuthenticationPrincipal AuthenticatedUserPrincipal principal
+    ) {
+        return ApiResponse.ok(recommendationService.recommendForAssessment(principal.getId(), assessmentAttemptId));
+    }
+
     @PostMapping
     public ApiResponse<CreateLearningPathResponse> createLearningPath(
             @Valid @RequestBody CreateLearningPathRequest request,

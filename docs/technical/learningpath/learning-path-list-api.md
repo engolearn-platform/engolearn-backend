@@ -37,6 +37,26 @@ Only results below 50% qualify. A micro-skill already in an active path or with 
 ACTIVE pool questions at the test level is silently excluded. `NO_ELIGIBLE_SKILLS` includes the
 business message for the case where weak skills existed but none remained after filtering.
 
+### Assessment result composition
+
+`GET /api/learning-paths/recommendation/by-assessment?assessmentAttemptId=<native ID>`
+accepts the Assessment result's string ID (required, nonblank, at most 100 characters).
+It resolves `attempts.assessment_source_attempt_id` for the authenticated user, with
+`type=PERIODIC` and `status=COMPLETED`, then applies the same recommendation rules and response
+as the ObjectId endpoint. Missing mappings and another owner's mappings return 404;
+invalid query parameters return 400 and missing authentication returns 401.
+Neither endpoint creates a path or changes the source results.
+
+This adapter supports the imported Assessment/Learning Path projections. It reads only the
+existing `attempts` and `micro_skill_results` projection, not `assessment_attempts`, and does
+not create or synchronize projections for newly submitted assessments. A new Assessment
+without that projection returns 404. Production delivery of those projections remains a
+separate integration boundary. Clients must not guess ObjectIds or maintain ID maps.
+
+The Assessment frontend displays the recommendation and a disabled “Tạo lộ trình học tập”
+button for UI review. Creation is not connected to this adapter; its native ID must not be
+passed to the existing ObjectId-only create endpoint.
+
 ## Create
 
 `POST /api/learning-paths` accepts:
