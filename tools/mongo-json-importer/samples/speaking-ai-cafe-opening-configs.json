@@ -1,0 +1,140 @@
+{
+  "meta": {
+    "pack_id": "engolearn-speaking-ai-cafe-opening-configs",
+    "purpose": "Speaking-only opening configurations for the three existing A1 café item versions.",
+    "model_compatibility": "Root _id values use MongoDB Extended JSON ObjectId. References are 24-hex BSON strings matching the Java String fields; import with MONGO_IMPORT_OBJECT_ID_FIELDS=none."
+  },
+  "collections": {
+    "speaking_item_configs": [
+      {
+        "_id": {
+          "$oid": "691b00000000000000000009"
+        },
+        "topic_item_version_id": "691b00000000000000000006",
+        "topic_item_id": "691b00000000000000000003",
+        "goals": [
+          {
+            "id": "order-iced-coffee",
+            "title": "Order an iced coffee",
+            "description": "Ask the barista for an iced coffee.",
+            "priority": "REQUIRED"
+          },
+          {
+            "id": "choose-small-size",
+            "title": "Choose the small size",
+            "description": "Specify that you want a small drink.",
+            "priority": "REQUIRED"
+          },
+          {
+            "id": "answer-about-milk",
+            "title": "Answer the milk question",
+            "description": "Tell the barista whether you want milk.",
+            "priority": "OPTIONAL"
+          }
+        ],
+        "goal_percentage": null,
+        "minimum_valid_turns": 3,
+        "revision": {
+          "$numberLong": "1"
+        },
+        "status": "PUBLISHED",
+        "created_at": {
+          "$date": "2026-11-04T00:00:00Z"
+        },
+        "updated_at": {
+          "$date": "2026-11-04T00:00:00Z"
+        },
+        "opening_side": "AI",
+        "learner_role": "customer",
+        "ai_role": "barista",
+        "context": "The learner is a customer at a café ordering a small iced coffee and answering whether they want milk. The AI is the barista taking the order."
+      },
+      {
+        "_id": {
+          "$oid": "691b0000000000000000000a"
+        },
+        "topic_item_version_id": "691b00000000000000000007",
+        "topic_item_id": "691b00000000000000000004",
+        "goals": [
+          {
+            "id": "explain-wrong-temperature",
+            "title": "Explain the mistake",
+            "description": "Say that your drink is hot but should be iced.",
+            "priority": "REQUIRED"
+          },
+          {
+            "id": "request-replacement",
+            "title": "Request the correct drink",
+            "description": "Politely ask the barista to change the drink.",
+            "priority": "REQUIRED"
+          },
+          {
+            "id": "thank-barista",
+            "title": "Thank the barista",
+            "description": "Thank the barista for helping.",
+            "priority": "OPTIONAL"
+          }
+        ],
+        "goal_percentage": null,
+        "minimum_valid_turns": 3,
+        "revision": {
+          "$numberLong": "1"
+        },
+        "status": "PUBLISHED",
+        "created_at": {
+          "$date": "2026-11-04T00:00:00Z"
+        },
+        "updated_at": {
+          "$date": "2026-11-04T00:00:00Z"
+        },
+        "opening_side": "LEARNER",
+        "learner_role": "customer",
+        "ai_role": "barista",
+        "context": "The learner is a customer who received a hot coffee instead of the iced coffee they ordered. The AI is the barista helping correct the order."
+      },
+      {
+        "_id": {
+          "$oid": "691b0000000000000000000b"
+        },
+        "topic_item_version_id": "691b00000000000000000008",
+        "topic_item_id": "691b00000000000000000005",
+        "goals": [
+          {
+            "id": "ask-price",
+            "title": "Ask for the price",
+            "description": "Ask the barista how much the drink costs.",
+            "priority": "REQUIRED"
+          },
+          {
+            "id": "request-card-payment",
+            "title": "Pay by card",
+            "description": "Tell the barista that you want to pay by card.",
+            "priority": "REQUIRED"
+          },
+          {
+            "id": "say-goodbye",
+            "title": "Say goodbye",
+            "description": "Thank the barista and say goodbye.",
+            "priority": "OPTIONAL"
+          }
+        ],
+        "goal_percentage": null,
+        "minimum_valid_turns": 3,
+        "revision": {
+          "$numberLong": "1"
+        },
+        "status": "PUBLISHED",
+        "created_at": {
+          "$date": "2026-11-04T00:00:00Z"
+        },
+        "updated_at": {
+          "$date": "2026-11-04T00:00:00Z"
+        },
+        "opening_side": "LEARNER",
+        "learner_role": "customer",
+        "ai_role": "barista",
+        "context": "The learner is a customer whose drink is ready. The learner asks its price, pays by card, and thanks the barista. The AI is the barista at the counter."
+      }
+    ]
+  }
+}

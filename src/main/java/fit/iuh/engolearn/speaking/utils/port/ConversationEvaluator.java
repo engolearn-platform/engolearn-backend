@@ -15,4 +15,9 @@ public interface ConversationEvaluator {
 
     Result evaluate(SpeakingContentSnapshot content, String transcript,
                     List<Exchange> history, List<String> achievedGoalIds);
+
+    default Result evaluate(SpeakingContentSnapshot content, String transcript,
+            List<Exchange> history, List<String> achievedGoalIds, String openingReply) {
+        return evaluate(content, transcript, history, achievedGoalIds);
+    }
 }

@@ -12,7 +12,7 @@ import java.time.Instant;
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @SuperBuilder
 @EqualsAndHashCode(callSuper = true)
 public class SpeakingAudioAsset extends BaseDocument {
-    public enum Kind { LEARNER_RECORDING, AI_REPLY }
+    public enum Kind { LEARNER_RECORDING, AI_REPLY, AI_OPENING }
 
     @Field("session_id") private String sessionId;
     @Field("turn_id") private String turnId;

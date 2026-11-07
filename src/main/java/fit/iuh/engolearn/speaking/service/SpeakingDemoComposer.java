@@ -79,7 +79,8 @@ public final class SpeakingDemoComposer {
         return new SpeakingAiRequestV1.PinnedSnapshot(snapshot.topicItemId(), snapshot.topicItemVersionId(),
                 snapshot.title(), snapshot.description(), snapshot.goals().stream()
                 .map(goal -> new SpeakingAiRequestV1.PinnedGoal(goal.id(), goal.title(), goal.description(), goal.priority()))
-                .toList(), snapshot.vocabulary(), snapshot.expressions());
+                .toList(), snapshot.vocabulary(), snapshot.expressions(),
+                snapshot.context(), snapshot.learnerRole(), snapshot.aiRole());
     }
 
     private List<SpeakingAiRequestV1.PinnedResource> requestResources(SpeakingContentSnapshot snapshot) {
@@ -112,6 +113,10 @@ public final class SpeakingDemoComposer {
                 .toList();
         int first = Math.max(0, successfulTurns.size() - MAX_HISTORY_EXCHANGES);
         List<SpeakingAiRequestV1.HistoryTurn> history = new ArrayList<>();
+        if (historySnapshot.opening() != null && nonBlank(historySnapshot.opening().reply())) {
+            history.add(new SpeakingAiRequestV1.HistoryTurn(
+                    SpeakingAiRequestV1.Role.PARTNER, historySnapshot.opening().reply()));
+        }
         for (SpeakingSessionResponse.Turn turn : successfulTurns.subList(first, successfulTurns.size())) {
             history.add(new SpeakingAiRequestV1.HistoryTurn(SpeakingAiRequestV1.Role.LEARNER, turn.transcript()));
             history.add(new SpeakingAiRequestV1.HistoryTurn(SpeakingAiRequestV1.Role.PARTNER, turn.aiReply()));

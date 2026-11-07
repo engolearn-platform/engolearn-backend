@@ -60,6 +60,17 @@ public class SpeakingController {
         return ApiResponse.ok(service.end(id, body.controllerEpoch(), body.requestId()));
     }
 
+    @PostMapping("/sessions/{id}/opening/retry")
+    public ApiResponse<SpeakingSessionResponse> retryOpening(@PathVariable String id,
+            @Valid @RequestBody SpeakingControlRequest body) {
+        return ApiResponse.ok(service.retryOpening(id, body.controllerEpoch(), body.requestId()));
+    }
+
+    @GetMapping("/sessions/{id}/opening/audio")
+    public ApiResponse<SpeakingAudioResponse> openingAudio(@PathVariable String id) {
+        return ApiResponse.ok(service.openingPlayback(id));
+    }
+
     @PostMapping("/sessions/{id}/socket-ticket")
     public ApiResponse<SpeakingSocketTicketResponse> socketTicket(@PathVariable String id,
             @Valid @RequestBody SpeakingControlRequest body) {

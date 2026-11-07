@@ -13,8 +13,21 @@ public record SpeakingContentSnapshot(
         List<String> vocabulary,
         List<String> expressions,
         long configRevision,
-        String completionPolicyVersion
+        String completionPolicyVersion,
+        String context,
+        String learnerRole,
+        String aiRole,
+        SpeakingItemConfig.OpeningSide openingSide
 ) {
+    public SpeakingContentSnapshot(String topicItemId, String topicItemVersionId, String title,
+            String description, List<SpeakingGoal> goals, Integer goalPercentage,
+            int minimumValidTurns, List<String> vocabulary, List<String> expressions, long configRevision,
+            String completionPolicyVersion) {
+        this(topicItemId, topicItemVersionId, title, description, goals, goalPercentage,
+                minimumValidTurns, vocabulary, expressions, configRevision, completionPolicyVersion,
+                null, null, null, null);
+    }
+
     public SpeakingContentSnapshot(String topicItemId, String topicItemVersionId, String title,
             String description, List<SpeakingGoal> goals, Integer goalPercentage,
             int minimumValidTurns, List<String> vocabulary, List<String> expressions, long configRevision) {

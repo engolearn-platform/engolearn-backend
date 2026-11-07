@@ -19,6 +19,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class SpeakingDevFixtureTest {
@@ -56,6 +57,10 @@ class SpeakingDevFixtureTest {
         assertEquals(SpeakingItemConfig.Status.PUBLISHED, config.getStatus());
         assertEquals(2, config.requiredGoalCount());
         assertTrue(config.getGoals().stream().allMatch(goal -> goal.id() != null));
+        assertEquals("traveler", config.getLearnerRole());
+        assertEquals("information desk agent", config.getAiRole());
+        assertEquals(SpeakingItemConfig.OpeningSide.LEARNER, config.getOpeningSide());
+        assertFalse(config.getContext().isBlank());
     }
 
     @SuppressWarnings("unchecked")

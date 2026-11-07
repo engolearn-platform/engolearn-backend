@@ -45,8 +45,17 @@ public record SpeakingAiRequestV1(
             String description,
             List<PinnedGoal> goals,
             List<String> vocabulary,
-            List<String> expressions
+            List<String> expressions,
+            String context,
+            String learnerRole,
+            String aiRole
     ) {
+        public PinnedSnapshot(String topicItemId, String topicItemVersionId, String title, String description,
+                List<PinnedGoal> goals, List<String> vocabulary, List<String> expressions) {
+            this(topicItemId, topicItemVersionId, title, description, goals, vocabulary, expressions,
+                    null, null, null);
+        }
+
         public PinnedSnapshot {
             requireNonBlank(topicItemId, "topicItemId");
             requireNonBlank(topicItemVersionId, "topicItemVersionId");

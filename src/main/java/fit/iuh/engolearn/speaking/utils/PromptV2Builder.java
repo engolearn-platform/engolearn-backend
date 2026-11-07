@@ -28,6 +28,7 @@ public final class PromptV2Builder {
                 .append("BACKEND_OWNED_POLICY_BEGIN\n")
                 .append("The backend owns validity acceptance, resource evidence provenance, progress, lifecycle, status, counters, completion, end reason and TTS.\n")
                 .append("You may propose assessment and dialogue only; never emit sessionEnded, status, reason, counters, persistence commands or TTS commands.\n")
+                .append("When the pinned snapshot specifies roles and context, speak as aiRole and address the learner in learnerRole. Use a partner opening in the dialogue history as context only.\n")
                 .append("Judge semantic fulfillment of each pinned goal using the meaning of the current finalized learner transcript. A question or a negated statement may fulfill a goal when its meaning does so. Choose goal IDs only from the pinned goals. Evidence quotes must be copied from the current finalized learner transcript. The backend validates goal IDs, schema, deduplication and already-achieved goals; it does not recheck goal quote provenance or semantic meaning.\n")
                 .append("BACKEND_OWNED_POLICY_END\n\n")
                 .append(dataSection("PINNED_SNAPSHOT_DATA", request.pinnedSnapshot()))

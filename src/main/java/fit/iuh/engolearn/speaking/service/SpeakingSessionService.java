@@ -9,10 +9,13 @@ import fit.iuh.engolearn.speaking.dto.response.SpeakingSocketTicketResponse;
 import fit.iuh.engolearn.speaking.exception.SpeakingException;
 import fit.iuh.engolearn.speaking.model.*;
 import fit.iuh.engolearn.speaking.repository.*;
+import fit.iuh.engolearn.speaking.utils.port.SpeakingOpeningGenerator;
 import fit.iuh.engolearn.topic.contract.SpeakingItemLookup;
 import fit.iuh.engolearn.topic.contract.dto.SpeakingItemDto;
 import org.springframework.http.HttpStatus;
 import org.springframework.dao.DuplicateKeyException;
+import org.springframework.core.convert.ConversionException;
+import org.springframework.data.mapping.MappingException;
 import org.springframework.stereotype.Service;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.context.event.EventListener;
@@ -20,6 +23,8 @@ import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -32,6 +37,7 @@ import java.util.concurrent.TimeUnit;
 
 @Service
 public class SpeakingSessionService {
+    private static final Logger log = LoggerFactory.getLogger(SpeakingSessionService.class);
     private static final ZoneId LEARNER_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
     private static final List<SpeakingSession.Status> OPEN = List.of(
             SpeakingSession.Status.ACTIVE, SpeakingSession.Status.INTERRUPTED);
@@ -52,8 +58,10 @@ public class SpeakingSessionService {
     private ApplicationEventPublisher events;
 
     public record SessionEndedEvent(String sessionId, String learnerId) {}
+    public record OpeningRequested(String sessionId, String attemptId, SpeakingContentSnapshot content) {}
+    public record OpeningUpdated(String sessionId, String learnerId) {}
 
-    private record Ticket(String learnerId, String sessionId, Instant expiresAt) {}
+    private record Ticket(String learnerId, String sessionId, long controllerEpoch, Instant expiresAt) {}
 
     public SpeakingSessionService(CurrentUserProvider users, SpeakingItemLookup items,
             SpeakingItemConfigRepository configs, SpeakingSessionRepository sessions,
@@ -77,7 +85,8 @@ public class SpeakingSessionService {
                 .orElseThrow(() -> problem(HttpStatus.FORBIDDEN, "ITEM_UNAVAILABLE", "Item is not openable"));
         SpeakingItemConfig config = publishedConfig(item.itemVersionId());
         return new SpeakingItemConfigResponse(itemId, item.itemVersionId(), item.title(),
-                config.getGoals(), config.getMinimumValidTurns());
+                config.getGoals(), config.getMinimumValidTurns(), config.getContext(), config.getLearnerRole(),
+                config.getAiRole(), config.getOpeningSide());
     }
 
     public SpeakingSessionResponse create(String itemId, String requestId, boolean replace) {
@@ -101,7 +110,7 @@ public class SpeakingSessionService {
             throw problem(HttpStatus.CONFLICT, "SESSION_EXISTS", "An unfinished session already exists");
         }
         if (existing.isPresent()) {
-            finish(existing.get(), SpeakingSession.EndReason.REPLACED);
+            finishCurrent(existing.get().getId(), SpeakingSession.EndReason.REPLACED);
             awaitTerminal(existing.get().getId());
         }
         Instant now = Instant.now();
@@ -110,16 +119,126 @@ public class SpeakingSessionService {
                 .content(new SpeakingContentSnapshot(itemId, item.itemVersionId(), item.title(),
                         item.description(), List.copyOf(config.getGoals()), null,
                         config.getMinimumValidTurns(), List.copyOf(item.vocabulary()),
-                        List.copyOf(item.expressions()), config.getRevision(), "REQUIRED_GOALS_V2"))
+                        List.copyOf(item.expressions()), config.getRevision(), "REQUIRED_GOALS_V2",
+                        config.getContext(), config.getLearnerRole(), config.getAiRole(), config.getOpeningSide()))
                 .status(SpeakingSession.Status.ACTIVE).startedAt(now).expiresAt(now.plus(Duration.ofMinutes(20)))
-                .achievedGoalIds(new ArrayList<>()).controllerEpoch(1).openingReply(
-                        "Hello! Let's talk about " + item.title() + ".")
+                .achievedGoalIds(new ArrayList<>()).controllerEpoch(1)
+                .opening(SpeakingOpening.initial(config.getOpeningSide()))
                 .build();
+        SpeakingSession saved;
         try {
-            return response(sessions.save(session));
+            saved = sessions.save(session);
         } catch (DuplicateKeyException ex) {
+            Optional<SpeakingSession> same = sessions.findById(requestId)
+                    .filter(previous -> learner.equals(previous.getLearnerId())
+                            && previous.getContent().topicItemId().equals(itemId)
+                            && previous.getDeletedAt() == null);
+            if (same.isPresent()) return response(same.get());
             throw problem(HttpStatus.CONFLICT, "SESSION_EXISTS", "An unfinished session already exists");
         }
+        if (saved.getOpening().status() == SpeakingOpening.Status.GENERATING) requestOpening(saved);
+        return response(saved);
+    }
+
+    public synchronized SpeakingSessionResponse retryOpening(String id, long epoch, String requestId) {
+        SpeakingSession session = expireIfNeeded(owned(id));
+        requireEpoch(session, epoch);
+        if (session.getStatus() != SpeakingSession.Status.ACTIVE || session.getClosingAt() != null) {
+            throw problem(HttpStatus.CONFLICT, "SESSION_ENDED", "Session cannot retry its opening");
+        }
+        SpeakingOpening opening = session.getOpening();
+        if (opening == null || opening.status() != SpeakingOpening.Status.FAILED
+                || opening.retryRequestIds().contains(requestId)) return response(session);
+        if (remainingMillis(session.getLearnerId(), Instant.now()) <= 0) {
+            finish(session, SpeakingSession.EndReason.DAILY_QUOTA);
+            throw problem(HttpStatus.TOO_MANY_REQUESTS, "DAILY_QUOTA", "Daily speaking time is exhausted");
+        }
+        session.setOpening(opening.retry(requestId));
+        SpeakingSession saved = sessions.save(session);
+        requestOpening(saved);
+        publishOpeningUpdated(saved);
+        return response(saved);
+    }
+
+    private void requestOpening(SpeakingSession session) {
+        if (events != null) events.publishEvent(new OpeningRequested(session.getId(),
+                session.getOpening().attemptId(), session.getContent()));
+    }
+
+    boolean openingIsCurrent(OpeningRequested request, SpeakingOpening.Status status) {
+        return currentOpening(request, status).isPresent();
+    }
+
+    synchronized boolean acceptOpeningDraft(OpeningRequested request, SpeakingOpeningGenerator.Draft draft) {
+        return openingAttempt(request).map(session -> {
+            SpeakingOpening opening = session.getOpening();
+            if (opening.status() == SpeakingOpening.Status.SYNTHESIZING
+                    && Objects.equals(opening.reply(), draft.reply())
+                    && Objects.equals(opening.hintExampleEn(), draft.hintExampleEn())) {
+                publishOpeningUpdated(session);
+                return true;
+            }
+            if (opening.status() != SpeakingOpening.Status.GENERATING) return false;
+            session.setOpening(session.getOpening().withDraft(draft.reply(), draft.hintExampleEn()));
+            saveOpening(session);
+            return true;
+        }).orElse(false);
+    }
+
+    synchronized void failOpening(OpeningRequested request) {
+        openingAttempt(request).ifPresent(session -> {
+            if (session.getOpening().status() == SpeakingOpening.Status.FAILED) {
+                publishOpeningUpdated(session);
+                return;
+            }
+            if (session.getOpening().status() != SpeakingOpening.Status.GENERATING) return;
+            session.setOpening(session.getOpening().withStatus(SpeakingOpening.Status.FAILED));
+            saveOpening(session);
+        });
+    }
+
+    synchronized void settleOpeningAudio(OpeningRequested request, SpeakingAudioAsset asset) {
+        openingAttempt(request).ifPresent(session -> {
+            SpeakingOpening.Status current = session.getOpening().status();
+            if (current == SpeakingOpening.Status.READY || current == SpeakingOpening.Status.TEXT_ONLY) {
+                publishOpeningUpdated(session);
+                return;
+            }
+            if (current != SpeakingOpening.Status.SYNTHESIZING) return;
+            SpeakingOpening.Status status = SpeakingOpening.Status.TEXT_ONLY;
+            if (asset != null) {
+                try {
+                    audio.save(asset);
+                    status = SpeakingOpening.Status.READY;
+                } catch (org.springframework.dao.DataAccessException ex) {
+                    log.warn("Could not persist opening audio metadata for session {}", session.getId());
+                }
+            }
+            session.setOpening(session.getOpening().withStatus(status));
+            saveOpening(session);
+        });
+    }
+
+    private Optional<SpeakingSession> currentOpening(OpeningRequested request, SpeakingOpening.Status status) {
+        return openingAttempt(request).filter(session -> session.getOpening().status() == status);
+    }
+
+    private Optional<SpeakingSession> openingAttempt(OpeningRequested request) {
+        return sessions.findById(request.sessionId()).filter(session ->
+                session.isOpen() && session.getClosingAt() == null && session.getDeletedAt() == null
+                        && Instant.now().isBefore(session.getExpiresAt())
+                        && session.getOpening() != null
+                        && request.attemptId().equals(session.getOpening().attemptId()));
+    }
+
+    private SpeakingSession saveOpening(SpeakingSession session) {
+        SpeakingSession saved = sessions.save(session);
+        publishOpeningUpdated(saved);
+        return saved;
+    }
+
+    private void publishOpeningUpdated(SpeakingSession session) {
+        if (events != null) events.publishEvent(new OpeningUpdated(session.getId(), session.getLearnerId()));
     }
 
     public SpeakingSessionResponse current() {
@@ -141,7 +260,7 @@ public class SpeakingSessionService {
     public synchronized SpeakingSessionResponse resume(String id, String requestId) {
         SpeakingSession session = owned(id);
         if (requestId.equals(session.getLastResumeRequestId())) return response(session);
-        expireIfNeeded(session);
+        session = expireIfNeeded(session);
         if (!session.isOpen()) throw problem(HttpStatus.CONFLICT, "SESSION_ENDED", "Session has ended");
         session.setStatus(SpeakingSession.Status.ACTIVE);
         session.setDisconnectedAt(null);
@@ -167,7 +286,7 @@ public class SpeakingSessionService {
     public void recoverAfterRestart() {
         if (!recoveryEnabled) return;
         for (SpeakingSession session : sessions.findByStatusIn(OPEN)) {
-            if (session.getDeletedAt() == null) finish(session, SpeakingSession.EndReason.SERVICE_RESTART);
+            if (session.getDeletedAt() == null) finishCurrent(session.getId(), SpeakingSession.EndReason.SERVICE_RESTART);
         }
     }
 
@@ -177,14 +296,15 @@ public class SpeakingSessionService {
         Instant now = Instant.now();
         for (SpeakingSession session : sessions.findByStatusIn(OPEN)) {
             if (session.getDeletedAt() == null && !now.isBefore(session.getExpiresAt())) {
-                finish(session, SpeakingSession.EndReason.SESSION_AGE);
+                finishCurrent(session.getId(), SpeakingSession.EndReason.SESSION_AGE);
             }
         }
     }
 
     public SpeakingSessionResponse end(String id, long epoch, String requestId) {
-        SpeakingSession session = owned(id);
+        SpeakingSession session;
         synchronized (this) {
+            session = owned(id);
             if (session.isOpen()) {
                 requireEpoch(session, epoch);
                 if (session.getClosingAt() == null) session.setEndRequestId(requestId);
@@ -202,7 +322,7 @@ public class SpeakingSessionService {
     public SpeakingSessionResponse delete(String id) {
         SpeakingSession session = owned(id);
         if (session.isOpen()) {
-            finish(session, SpeakingSession.EndReason.SOFT_DELETED);
+            finishCurrent(id, SpeakingSession.EndReason.SOFT_DELETED);
             awaitTerminal(id);
             session = sessions.findById(id).orElseThrow();
         }
@@ -216,7 +336,7 @@ public class SpeakingSessionService {
                 learnerKey());
         found.forEach(session -> {
             if (session.isOpen()) {
-                finish(session, SpeakingSession.EndReason.SOFT_DELETED);
+                finishCurrent(session.getId(), SpeakingSession.EndReason.SOFT_DELETED);
                 awaitTerminal(session.getId());
             }
             SpeakingSession closed = sessions.findById(session.getId()).orElseThrow();
@@ -227,7 +347,7 @@ public class SpeakingSessionService {
     }
 
     public SpeakingAudioResponse playback(String sessionId, String turnId, SpeakingAudioAsset.Kind kind) {
-        SpeakingSession session = owned(sessionId);
+        owned(sessionId);
         if (turns.findByIdAndSessionId(turnId, sessionId).isEmpty()) {
             throw problem(HttpStatus.NOT_FOUND, "TURN_NOT_FOUND", "Turn not found");
         }
@@ -241,12 +361,31 @@ public class SpeakingSessionService {
                 asset.getFormat(), Duration.ofSeconds(60)), 60);
     }
 
+    public SpeakingAudioResponse openingPlayback(String sessionId) {
+        SpeakingSession session = owned(sessionId);
+        if (session.getOpening() == null || session.getOpening().status() != SpeakingOpening.Status.READY) {
+            throw problem(HttpStatus.NOT_FOUND, "AUDIO_NOT_FOUND", "Opening audio not found");
+        }
+        SpeakingAudioAsset asset = openingAudio(sessionId)
+                .orElseThrow(() -> problem(HttpStatus.NOT_FOUND, "AUDIO_NOT_FOUND", "Opening audio not found"));
+        if (!Instant.now().isBefore(asset.getPlaybackUntil())) {
+            throw problem(HttpStatus.GONE, "AUDIO_EXPIRED", "Opening audio playback has expired");
+        }
+        return new SpeakingAudioResponse(media.privateAudioUrl(asset.getCloudinaryPublicId(),
+                asset.getFormat(), Duration.ofSeconds(60)), 60);
+    }
+
+    private Optional<SpeakingAudioAsset> openingAudio(String sessionId) {
+        return audio.findById(sessionId + ":opening").filter(asset ->
+                asset.getKind() == SpeakingAudioAsset.Kind.AI_OPENING && sessionId.equals(asset.getSessionId()));
+    }
+
     public SpeakingSocketTicketResponse ticket(String sessionId, long epoch) {
         SpeakingSession session = owned(sessionId);
         requireEpoch(session, epoch);
         if (!session.isOpen()) throw problem(HttpStatus.CONFLICT, "SESSION_ENDED", "Session has ended");
         String token = UUID.randomUUID().toString();
-        tickets.put(token, new Ticket(session.getLearnerId(), sessionId, Instant.now().plusSeconds(30)));
+        tickets.put(token, new Ticket(session.getLearnerId(), sessionId, epoch, Instant.now().plusSeconds(30)));
         return new SpeakingSocketTicketResponse(token, 30);
     }
 
@@ -261,6 +400,7 @@ public class SpeakingSessionService {
         if (!session.getLearnerId().equals(ticket.learnerId()) || session.getDeletedAt() != null || !session.isOpen()) {
             throw problem(HttpStatus.FORBIDDEN, "SESSION_FORBIDDEN", "Session is not available");
         }
+        requireEpoch(session, ticket.controllerEpoch());
         return session;
     }
 
@@ -297,18 +437,21 @@ public class SpeakingSessionService {
     }
 
     private SpeakingSession checkController(SpeakingSession session, long epoch) {
-        expireIfNeeded(session);
+        session = expireIfNeeded(session);
         requireEpoch(session, epoch);
         if (!session.isOpen() || session.getClosingAt() != null) {
             throw problem(HttpStatus.CONFLICT, "SESSION_ENDED", "Session cannot accept a turn");
         }
         if (session.getCommittedTurnCount() >= 30) {
-            finish(session, SpeakingSession.EndReason.TURN_LIMIT);
+            finishCurrent(session.getId(), SpeakingSession.EndReason.TURN_LIMIT);
             throw problem(HttpStatus.CONFLICT, "TURN_LIMIT", "Turn limit reached");
         }
         if (remainingMillis(session.getLearnerId(), Instant.now()) <= 0) {
-            finish(session, SpeakingSession.EndReason.DAILY_QUOTA);
+            finishCurrent(session.getId(), SpeakingSession.EndReason.DAILY_QUOTA);
             throw problem(HttpStatus.TOO_MANY_REQUESTS, "DAILY_QUOTA", "Daily speaking time is exhausted");
+        }
+        if (session.getOpening() != null && !session.getOpening().allowsTurn()) {
+            throw problem(HttpStatus.CONFLICT, "OPENING_PENDING", "The speaking opening is not ready");
         }
         return session;
     }
@@ -379,7 +522,7 @@ public class SpeakingSessionService {
     public synchronized boolean settleDemo(String sessionId, String turnId, long controllerEpoch,
             SpeakingDemoAssessment assessment) {
         SpeakingSession session = sessions.findById(sessionId).orElseThrow();
-        expireIfNeeded(session);
+        session = expireIfNeeded(session);
         Optional<SpeakingTurn> found = turns.findByIdAndSessionId(turnId, sessionId);
         if (found.isEmpty()) return false;
         SpeakingTurn turn = found.get();
@@ -457,7 +600,7 @@ public class SpeakingSessionService {
 
     public synchronized boolean recoverDemoTurn(String sessionId, String turnId, long controllerEpoch) {
         SpeakingSession session = sessions.findById(sessionId).orElseThrow();
-        expireIfNeeded(session);
+        session = expireIfNeeded(session);
         Optional<SpeakingTurn> found = turns.findByIdAndSessionId(turnId, sessionId);
         if (found.isEmpty()) return false;
         SpeakingTurn turn = found.get();
@@ -529,11 +672,18 @@ public class SpeakingSessionService {
     }
 
     private SpeakingItemConfig publishedConfig(String versionId) {
-        SpeakingItemConfig config = configs.findByTopicItemVersionId(versionId).orElseThrow(() ->
-                problem(HttpStatus.SERVICE_UNAVAILABLE, "CONFIG_MISSING", "Speaking is not configured for this item"));
+        SpeakingItemConfig config;
+        try {
+            config = configs.findByTopicItemVersionId(versionId).orElseThrow(() ->
+                    problem(HttpStatus.SERVICE_UNAVAILABLE, "CONFIG_MISSING", "Speaking is not configured for this item"));
+        } catch (ConversionException | MappingException | IllegalArgumentException ex) {
+            throw problem(HttpStatus.SERVICE_UNAVAILABLE, "CONFIG_INVALID", "Speaking configuration is invalid");
+        }
         if (config.getStatus() != SpeakingItemConfig.Status.PUBLISHED || config.getGoals() == null
                 || config.getGoals().size() < 3 || config.getGoals().size() > 5
                 || config.getMinimumValidTurns() < 3 || config.getMinimumValidTurns() > 5
+                || blank(config.getContext()) || blank(config.getLearnerRole()) || blank(config.getAiRole())
+                || config.getOpeningSide() == null
                 || config.getGoals().stream().noneMatch(goal -> goal.priority() == SpeakingGoal.Priority.REQUIRED)
                 || config.getGoals().stream().anyMatch(goal -> goal.id() == null || goal.id().isBlank()
                     || goal.title() == null || goal.title().isBlank() || goal.priority() == null)
@@ -541,6 +691,10 @@ public class SpeakingSessionService {
             throw problem(HttpStatus.SERVICE_UNAVAILABLE, "CONFIG_INVALID", "Speaking configuration is invalid");
         }
         return config;
+    }
+
+    private boolean blank(String value) {
+        return value == null || value.isBlank();
     }
 
     private SpeakingSession owned(String id) {
@@ -555,9 +709,15 @@ public class SpeakingSessionService {
 
     private SpeakingSession expireIfNeeded(SpeakingSession session) {
         if (session.isOpen() && !Instant.now().isBefore(session.getExpiresAt())) {
-            finish(session, SpeakingSession.EndReason.SESSION_AGE);
+            return finishCurrent(session.getId(), SpeakingSession.EndReason.SESSION_AGE);
         }
         return session;
+    }
+
+    private synchronized SpeakingSession finishCurrent(String id, SpeakingSession.EndReason reason) {
+        SpeakingSession current = sessions.findById(id).orElseThrow();
+        finish(current, reason);
+        return current;
     }
 
     private void requireEpoch(SpeakingSession session, long epoch) {
@@ -579,6 +739,7 @@ public class SpeakingSessionService {
         if (session.getClosingAt() == null) {
             session.setClosingAt(Instant.now());
             session.setClosingReason(reason);
+            if (session.getOpening() != null) session.setOpening(session.getOpening().cancelPending());
             sessions.save(session);
             String id = session.getId();
             CompletableFuture.delayedExecutor(10, TimeUnit.SECONDS).execute(() -> {
@@ -607,10 +768,11 @@ public class SpeakingSessionService {
 
     private void awaitTerminal(String id) {
         while (true) {
-            SpeakingSession session = sessions.findById(id).orElseThrow();
-            if (!session.isOpen()) return;
-            synchronized (this) { finalizeClosing(session); }
-            if (!session.isOpen()) return;
+            synchronized (this) {
+                SpeakingSession session = sessions.findById(id).orElseThrow();
+                finalizeClosing(session);
+                if (!session.isOpen()) return;
+            }
             try { Thread.sleep(50); }
             catch (InterruptedException ex) {
                 Thread.currentThread().interrupt();
@@ -654,15 +816,21 @@ public class SpeakingSessionService {
                 : session.getContent().goals().stream()
                     .filter(goal -> goal.priority() == SpeakingGoal.Priority.REQUIRED)
                     .allMatch(goal -> achieved.contains(goal.id()));
+        SpeakingOpening opening = session.getOpening() == null
+                ? SpeakingOpening.initial(SpeakingItemConfig.OpeningSide.LEARNER) : session.getOpening();
+        boolean openingAudioAvailable = opening.status() == SpeakingOpening.Status.READY && session.getDeletedAt() == null
+                && openingAudio(session.getId()).filter(asset -> Instant.now().isBefore(asset.getPlaybackUntil())).isPresent();
         return new SpeakingSessionResponse(session.getId(), session.getContent(), session.getStatus(),
                 session.getEndReason(), session.getStartedAt(), session.getExpiresAt(), session.getEndedAt(),
                 session.getValidTurnCount(), session.getCommittedTurnCount(), session.getAchievedGoalIds(),
                 goalResults, requiredGoalsMet, complete(session),
                 session.getControllerEpoch(), session.getRevision(),
                 session.getStatus() == SpeakingSession.Status.ACTIVE && session.getClosingAt() == null
-                        && session.getCommittedTurnCount() < 30 && Instant.now().isBefore(session.getExpiresAt())
+                        && opening.allowsTurn() && session.getCommittedTurnCount() < 30
+                        && Instant.now().isBefore(session.getExpiresAt())
                         && result.stream().noneMatch(t -> t.evaluationState() == SpeakingTurn.EvaluationState.PENDING),
-                session.getOpeningReply(), result);
+                new SpeakingSessionResponse.Opening(opening.status(), opening.reply(),
+                        opening.hintExampleEn(), openingAudioAvailable), result);
     }
 
     private SpeakingException problem(HttpStatus status, String code, String message) {

@@ -87,6 +87,9 @@ public class SpeakingDevFixture implements ApplicationRunner {
                                     "Ask when boarding begins.", SpeakingGoal.Priority.REQUIRED),
                             new SpeakingGoal("clarify-direction", "Clarify a direction",
                                     "Ask the agent to repeat or explain one direction.", SpeakingGoal.Priority.OPTIONAL)))
+                    .context("You are at an airport. Help a traveler find their departure gate and understand when boarding begins.")
+                    .learnerRole("traveler").aiRole("information desk agent")
+                    .openingSide(SpeakingItemConfig.OpeningSide.LEARNER)
                     .minimumValidTurns(3).revision(1)
                     .status(SpeakingItemConfig.Status.PUBLISHED).build());
         }

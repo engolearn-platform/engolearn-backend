@@ -5,6 +5,7 @@ import fit.iuh.engolearn.speaking.model.SpeakingContentSnapshot;
 import fit.iuh.engolearn.speaking.model.SpeakingSession;
 import fit.iuh.engolearn.speaking.model.SpeakingTurn;
 import fit.iuh.engolearn.speaking.model.SpeakingGoal;
+import fit.iuh.engolearn.speaking.model.SpeakingOpening;
 
 import java.time.Instant;
 import java.util.List;
@@ -16,8 +17,10 @@ public record SpeakingSessionResponse(
         List<String> achievedGoalIds, List<GoalResult> goalResults,
         boolean requiredGoalsMet, boolean completionEligible,
         long controllerEpoch, Long revision,
-        boolean canStartTurn, String openingReply, List<Turn> turns
+        boolean canStartTurn, Opening opening, List<Turn> turns
 ) {
+    public record Opening(SpeakingOpening.Status status, String reply, String hintExampleEn,
+                          boolean aiAudioAvailable) {}
     public record GoalResult(String goalId, SpeakingGoal.Priority priority,
                              boolean achieved, String evidenceQuote) {}
     public record Turn(String id, int sequence, String transcript, Instant committedAt,

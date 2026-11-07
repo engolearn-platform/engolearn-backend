@@ -19,7 +19,8 @@ import java.util.List;
 @Profile("dev")
 public class SpeakingDevSeed {
     public record Seed(String topicItemId, String topicItemVersionId, List<SpeakingGoal> goals,
-                       int minimumValidTurns) {}
+                       int minimumValidTurns, String context, String learnerRole, String aiRole,
+                       SpeakingItemConfig.OpeningSide openingSide) {}
 
     @Bean
     public ApplicationRunner speakingConfigSeed(SpeakingItemConfigRepository repository,
@@ -34,16 +35,24 @@ public class SpeakingDevSeed {
                         || !versions.add(seed.topicItemVersionId()) || seed.goals() == null
                         || seed.goals().size() < 3 || seed.goals().size() > 5
                         || seed.goals().stream().noneMatch(goal -> goal.priority() == SpeakingGoal.Priority.REQUIRED)
-                        || seed.minimumValidTurns() < 3 || seed.minimumValidTurns() > 5) {
+                        || seed.minimumValidTurns() < 3 || seed.minimumValidTurns() > 5
+                        || blank(seed.context()) || blank(seed.learnerRole()) || blank(seed.aiRole())
+                        || seed.openingSide() == null) {
                     throw new IllegalArgumentException("Invalid Speaking seed configuration");
                 }
                 repository.findByTopicItemVersionId(seed.topicItemVersionId()).ifPresentOrElse(
                         ignored -> { }, () -> repository.save(SpeakingItemConfig.builder()
                                 .topicItemId(seed.topicItemId()).topicItemVersionId(seed.topicItemVersionId())
                                 .goals(List.copyOf(seed.goals()))
+                                .context(seed.context()).learnerRole(seed.learnerRole()).aiRole(seed.aiRole())
+                                .openingSide(seed.openingSide())
                                 .minimumValidTurns(seed.minimumValidTurns()).revision(1)
                                 .status(SpeakingItemConfig.Status.PUBLISHED).build()));
             }
         };
+    }
+
+    private static boolean blank(String value) {
+        return value == null || value.isBlank();
     }
 }

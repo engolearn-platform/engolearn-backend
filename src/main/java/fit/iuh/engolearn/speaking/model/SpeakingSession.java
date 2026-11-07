@@ -38,7 +38,7 @@ public class SpeakingSession extends BaseDocument {
     @Field("valid_turn_count") private int validTurnCount;
     @Field("consecutive_evaluation_failures") private int consecutiveEvaluationFailures;
     @Field("achieved_goal_ids") private List<String> achievedGoalIds;
-    @Field("opening_reply") private String openingReply;
+    @Field("opening") private SpeakingOpening opening;
     @Field("last_resume_request_id") private String lastResumeRequestId;
     @Field("end_request_id") private String endRequestId;
 

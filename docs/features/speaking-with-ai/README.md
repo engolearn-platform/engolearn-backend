@@ -48,6 +48,22 @@ The JSON import is for actual published Topic item versions and business-approve
 
 To use the fixed fixture, start MongoDB, run the backend with the `dev` profile, then open the FE development route. No `SPEAKING_DEV_SEED_FILE` is required for this fixture. Provider credentials and Cloudinary configuration are still needed for live audio turns.
 
+
+## Opening configuration and local café seed
+
+Each published `speaking_item_configs` document includes `context` (the scenario used for learner guidance), `learner_role`, `ai_role`, and `opening_side` (`LEARNER` or `AI`), alongside its existing item/version IDs, goals, and turn settings. The dev seed file `tools/mongo-json-importer/samples/speaking-ai-cafe-opening-configs.json` is a config-only importer pack. It keeps the existing café Topic and item/version IDs intact and contains both opening branches:
+
+| Café item | Learner / AI roles | Opening side |
+| --- | --- | --- |
+| Order a Drink (`691b00000000000000000003`, version `691b00000000000000000006`) | customer / barista | AI |
+| Correct the Order (`691b00000000000000000004`, version `691b00000000000000000007`) | customer / barista | LEARNER |
+| Pay and Leave (`691b00000000000000000005`, version `691b00000000000000000008`) | customer / barista | LEARNER |
+
+To open a café item directly in the dev Speaking view, use `/dev/speaking-session?itemId=<item ID>` with one of the IDs above. The regular Topic route is `/topics/<topic ID>/speaking`; it resolves items through the learner flow. The fixed fixture route `/dev/speaking-session` without an `itemId` remains a separate integration fixture.
+
+Session creation stores and returns the opening snapshot immediately. AI opening generation and synthesis run asynchronously after save; clients follow `OPENING_UPDATED` snapshots. A failed AI generation can be retried by the current controller with `POST /api/v1/speaking/sessions/{id}/opening/retry` and a `SpeakingControlRequest` carrying `requestId` and `controllerEpoch`. `GET /api/v1/speaking/sessions/{id}/opening/audio` returns a short-lived playback URL for the session owner's available opening audio. Opening guidance and audio do not count as learner turns. Audio-only failure keeps the generated text available without audio.
+
+Before importing or resetting local Speaking data, confirm the intended Mongo container, port, and database in the importer command and perform its dry-run/preflight. Keep this seed limited to the `speaking_item_configs` collection; do not use a database-wide drop/reset. The approved dev reset scope, when needed, is the six Speaking collections only: `speaking_assessments`, `speaking_audio_assets`, `speaking_item_configs`, `speaking_sessions`, `speaking_turns`, and `speaking_usage_segments`. Preserve Topic and account collections. Stop the dev backend before a reset, verify preflight targets `engolearn_db` on the intended local Mongo endpoint, and confirm the imported config item/version IDs and opening fields afterward.
 ## Slice 0–3 manager demo
 
 The approved response-policy proposal adds the dev/demo-only draft contract
@@ -109,6 +125,32 @@ the legacy evaluator path.
 - Cross-component design based on FRC v0.6 is still awaiting the independent validation/publication gate in `.opencode/workflow/artifact-conventions.md`.
 
 ## Verification
+
+### Session opening, 2026-11-07
+
+- Speaking, provider-adapter and architecture suites passed with 195 tests,
+  zero failures and zero errors in the complete local run.
+- Full `mvnw.cmd -q verify` ran 575 tests with 5 failures and 74 errors.
+  Failing suites are in Topic and Subscription. The report includes missing
+  test beans, an integration Mongo index-build/drop-database race, and the
+  Topic assertions already observed at the checkpoint. See
+  `target/speaking-opening-verify-local.log` and Surefire reports.
+- Backend startup succeeded on port 8080. On this Windows runner, set
+  `JDK_JAVA_OPTIONS=-Djdk.net.unixdomain.tmpdir=<worktree>/target/tmp`
+  with an existing short directory to avoid the sandbox TEMP path issue.
+  This setting was applied to the verification processes.
+- The real frontend route returned HTTP 200. Its proxy and the direct
+  protected Speaking API returned HTTP 401 without authentication.
+- Seed preflight used the existing importer with `MONGO_IMPORT_APPLY`
+  unset. The six approved Speaking collections were backed up under
+  `/tmp/engolearn-speaking-opening.vPj8r2` in `mongodb_srv`, then reset
+  and seeded in one Mongo transaction. Three café configurations were
+  inserted. Counts for 15 account/Topic collections matched before and
+  after reset.
+- Live Gemini/Cartesia checks are deferred to the user. Browser interaction
+  was blocked by the computer-use tool's URL-policy support for Cốc Cốc on
+  Windows. Audio playback, authenticated end-to-end flow and p95 latency
+  still require manual verification.
 
 - 2026-11-05 V2 goal/hint update: validator, prompt, composer, runtime, manager
   and gateway suites passed (147 tests, no failures/errors); independent review

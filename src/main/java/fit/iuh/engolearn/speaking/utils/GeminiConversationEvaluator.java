@@ -38,7 +38,16 @@ public class GeminiConversationEvaluator implements ConversationEvaluator {
     @Override
     public Result evaluate(SpeakingContentSnapshot content, String transcript,
                            List<Exchange> history, List<String> achievedGoalIds) {
+        return evaluate(content, transcript, history, achievedGoalIds, null);
+    }
+
+    @Override
+    public Result evaluate(SpeakingContentSnapshot content, String transcript,
+                           List<Exchange> history, List<String> achievedGoalIds, String openingReply) {
         if (apiKey.isBlank()) throw new IllegalStateException("Gemini API key is not configured");
+        String roleplay = content.context() == null ? content.description()
+                : content.context() + "\nYour role: " + content.aiRole() + "\nLearner role: " + content.learnerRole();
+        String opening = openingReply == null ? "" : "\nYour opening line: " + openingReply;
         String prompt = "You are an English conversation partner for a Vietnamese learner. "
                 + "Assess only the finalized learner utterance. A valid turn must be intelligible and meaningful. "
                 + "Award a goal only when its evidence is an exact quote from this utterance. "
@@ -48,7 +57,7 @@ public class GeminiConversationEvaluator implements ConversationEvaluator {
                 + "valid (boolean), reply (string), goalEvidence [{goalId,quote}], "
                 + "resourceEvidence [{resourceId,quote,explanation}], "
                 + "corrections [{original,corrected,explanation}], hint (string or null), feedback (string array).\n"
-                + "Item: " + content.title() + "\nSituation: " + content.description()
+                + "Item: " + content.title() + "\nSituation: " + roleplay + opening
                 + "\nGoals: " + content.goals() + "\nAlready achieved: " + achievedGoalIds
                 + "\nVocabulary: " + content.vocabulary() + "\nExpressions: " + content.expressions()
                 + "\nRecent dialogue: " + history.stream().skip(Math.max(0, history.size() - 5)).toList()

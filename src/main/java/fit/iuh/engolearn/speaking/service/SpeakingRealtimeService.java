@@ -104,16 +104,30 @@ public class SpeakingRealtimeService {
         Connection connection = new Connection(connectionId, sessionId, session.getLearnerId(),
                 session.getControllerEpoch(), emit);
         Connection previous;
+        String replacedTurnId;
         synchronized (controllerLock(sessionId)) {
             previous = currentControllers.get(sessionId);
+            if (previous != null && previous.epoch > connection.epoch) {
+                throw new IllegalStateException("Another tab controls this session");
+            }
             if (previous != null) {
+                replacedTurnId = previous.processing ? previous.turnId : null;
                 previous.active = false;
                 connections.remove(previous.connectionId, previous);
-            }
+            } else replacedTurnId = null;
             connections.put(connectionId, connection);
             currentControllers.put(sessionId, connection);
         }
-        recoverReplacedTurn(previous);
+        if (previous != null) workers.execute(() -> {
+            try {
+                previous.emit.accept(Map.of("type", "CONTROLLER_CHANGED",
+                        "controllerEpoch", session.getControllerEpoch(),
+                        "revision", session.getRevision() == null ? 0L : session.getRevision()));
+            } catch (RuntimeException ignored) {
+                // The previous socket may have already closed.
+            }
+        });
+        recoverReplacedTurn(previous, replacedTurnId);
         return stt.open(sessionId, new SpeechStreamPort.Listener() {
             @Override public void onInterim(String text) {
                 if (connection.turnId != null) send(connection, "INTERIM_TRANSCRIPT",
@@ -122,8 +136,21 @@ public class SpeakingRealtimeService {
             @Override public void onFailure(String message) {
                 send(connection, "STT_ERROR", connection.turnId, Map.of("message", message));
             }
-        }).thenRun(() -> send(connection, "CONNECTED", null, Map.of(
-                "sessionId", sessionId, "snapshot", sessions.socketSnapshot(sessionId, connection.learnerId))));
+        }).thenRun(() -> {
+            SpeakingSessionResponse snapshot = sessions.socketSnapshot(sessionId, connection.learnerId);
+            synchronized (controllerLock(sessionId)) {
+                if (snapshot.controllerEpoch() != connection.epoch) {
+                    connection.active = false;
+                    connections.remove(connectionId, connection);
+                    currentControllers.remove(sessionId, connection);
+                    connection.emit.accept(Map.of("type", "CONTROLLER_CHANGED",
+                            "controllerEpoch", snapshot.controllerEpoch(), "revision", snapshot.revision()));
+                    return;
+                }
+                sendLocked(connection, "CONNECTED", null, Map.of("sessionId", sessionId,
+                        "snapshot", snapshot), snapshot);
+            }
+        });
     }
 
     public void start(String connectionId, String turnId, long epoch) {
@@ -223,7 +250,8 @@ public class SpeakingRealtimeService {
         Instant waitStarted = Instant.now();
         try {
             ConversationEvaluator.Result result = evaluator.evaluate(snapshot.content(), turn.getTranscript(),
-                    history.stream().skip(Math.max(0, history.size() - 5)).toList(), snapshot.achievedGoalIds());
+                    history.stream().skip(Math.max(0, history.size() - 5)).toList(), snapshot.achievedGoalIds(),
+                    snapshot.opening() == null ? null : snapshot.opening().reply());
             sessions.assessed(c.sessionId, turnId, result);
             sessions.recordUsage(c.sessionId, turnId, SpeakingUsageSegment.Kind.AI_WAIT,
                     waitStarted, min(Instant.now(), waitStarted.plusSeconds(10)));
@@ -405,6 +433,22 @@ public class SpeakingRealtimeService {
                 }));
     }
 
+    @EventListener
+    public void onOpeningUpdated(SpeakingSessionService.OpeningUpdated event) {
+        workers.execute(() -> {
+            Connection connection = currentControllers.get(event.sessionId());
+            if (connection == null || !connection.learnerId.equals(event.learnerId())) return;
+            try {
+                SpeakingSessionResponse snapshot = sessions.socketSnapshot(event.sessionId(), event.learnerId());
+                synchronized (controllerLock(event.sessionId())) {
+                    sendLocked(connection, "OPENING_UPDATED", null, Map.of("snapshot", snapshot), snapshot);
+                }
+            } catch (fit.iuh.engolearn.speaking.exception.SpeakingException ignored) {
+                // The session may have been deleted before delivery.
+            }
+        });
+    }
+
     private Connection require(String connectionId) {
         Connection c = connections.get(connectionId);
         if (c == null || !c.active) throw new IllegalStateException("Socket no longer controls this session");
@@ -432,9 +476,9 @@ public class SpeakingRealtimeService {
         c.emit.accept(event);
     }
 
-    private void recoverReplacedTurn(Connection previous) {
-        if (!demoManagerEnabled || previous == null || previous.turnId == null || !previous.processing) return;
-        recoverDemoTurn(previous, previous.turnId);
+    private void recoverReplacedTurn(Connection previous, String turnId) {
+        if (!demoManagerEnabled || previous == null || turnId == null) return;
+        recoverDemoTurn(previous, turnId);
     }
 
     private void recoverClosedTurn(Connection connection, String turnId) {

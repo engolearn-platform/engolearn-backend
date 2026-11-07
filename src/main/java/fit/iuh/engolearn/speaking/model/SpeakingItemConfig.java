@@ -14,6 +14,7 @@ import java.util.List;
 @EqualsAndHashCode(callSuper = true)
 public class SpeakingItemConfig extends BaseDocument {
     public enum Status { DRAFT, PUBLISHED }
+    public enum OpeningSide { LEARNER, AI }
 
     @Indexed(unique = true)
     @Field("topic_item_version_id")
@@ -22,6 +23,14 @@ public class SpeakingItemConfig extends BaseDocument {
     private String topicItemId;
     @Field("goals")
     private List<SpeakingGoal> goals;
+    @Field("context")
+    private String context;
+    @Field("learner_role")
+    private String learnerRole;
+    @Field("ai_role")
+    private String aiRole;
+    @Field("opening_side")
+    private OpeningSide openingSide;
     @Field("goal_percentage")
     private Integer goalPercentage;
     @Field("minimum_valid_turns")

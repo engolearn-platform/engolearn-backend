@@ -8,8 +8,13 @@ import fit.iuh.engolearn.speaking.repository.*;
 import fit.iuh.engolearn.topic.contract.SpeakingItemLookup;
 import fit.iuh.engolearn.topic.contract.dto.SpeakingItemDto;
 import fit.iuh.engolearn.speaking.utils.port.ConversationEvaluator;
+import fit.iuh.engolearn.speaking.utils.port.SpeakingOpeningGenerator;
 import org.junit.jupiter.api.Test;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.dao.DataAccessResourceFailureException;
+import org.springframework.test.util.ReflectionTestUtils;
 
+import java.net.URI;
 import java.lang.reflect.Proxy;
 import java.lang.reflect.Method;
 import java.time.Instant;
@@ -20,6 +25,43 @@ import java.util.function.BiFunction;
 import static org.junit.jupiter.api.Assertions.*;
 
 class SpeakingSessionServiceTest {
+    @Test void invalidOpeningConfigDoesNotReplaceOpenSession() {
+        for (int missingField = 0; missingField < 4; missingField++) {
+            Fixture fixture = new Fixture();
+            fixture.item = new SpeakingItemDto("item", "version-2", "At a cafe", "Order lunch",
+                    List.of("menu"), List.of("May I have..."));
+            SpeakingItemConfig.SpeakingItemConfigBuilder<?, ?> builder = SpeakingItemConfig.builder()
+                    .topicItemVersionId("version-2")
+                    .goals(List.of(new SpeakingGoal("g1", "Order", "Food", SpeakingGoal.Priority.REQUIRED),
+                            new SpeakingGoal("g2", "Ask", "Price", SpeakingGoal.Priority.OPTIONAL),
+                            new SpeakingGoal("g3", "Thank", "Waiter", SpeakingGoal.Priority.REQUIRED)))
+                    .context("A cafe").learnerRole("waiter").aiRole("customer")
+                    .openingSide(SpeakingItemConfig.OpeningSide.LEARNER)
+                    .minimumValidTurns(3).revision(4).status(SpeakingItemConfig.Status.PUBLISHED);
+            switch (missingField) {
+                case 0 -> builder.context(" ");
+                case 1 -> builder.learnerRole(null);
+                case 2 -> builder.aiRole("");
+                case 3 -> builder.openingSide(null);
+                default -> throw new AssertionError();
+            }
+            fixture.config = builder.build();
+            fixture.existingSession = SpeakingSession.builder().id("old-session").learnerId("learner")
+                    .openLearnerId("learner").status(SpeakingSession.Status.ACTIVE).controllerEpoch(1)
+                    .achievedGoalIds(new ArrayList<>()).build();
+
+            SpeakingException error = assertThrows(SpeakingException.class,
+                    () -> fixture.service().create("item", "request-new", true));
+
+            assertEquals("CONFIG_INVALID", error.code());
+            assertEquals("CONFIG_INVALID", assertThrows(SpeakingException.class,
+                    () -> fixture.service().create("item", "request-new", false)).code());
+            assertEquals(SpeakingSession.Status.ACTIVE, fixture.existingSession.getStatus());
+            assertEquals("old-session", fixture.existingSession.getId());
+            assertEquals(0, fixture.sessionWrites);
+        }
+    }
+
     @Test void createPinsTheItemVersionAndGoalThreshold() {
         Fixture fixture = new Fixture();
         fixture.item = new SpeakingItemDto("item", "version-2", "At a cafe", "Order lunch",
@@ -29,6 +71,9 @@ class SpeakingSessionServiceTest {
                         new SpeakingGoal("g2", "Ask", "Price", SpeakingGoal.Priority.OPTIONAL),
                         new SpeakingGoal("g3", "Thank", "Waiter", SpeakingGoal.Priority.REQUIRED)))
                 .goalPercentage(67).minimumValidTurns(5).revision(4)
+                .context("You are in a cafe. The waiter wants to help a customer choose a drink.")
+                .learnerRole("waiter").aiRole("customer")
+                .openingSide(SpeakingItemConfig.OpeningSide.LEARNER)
                 .status(SpeakingItemConfig.Status.PUBLISHED).build();
 
         var response = fixture.service().create("item", "request-1", false);
@@ -38,8 +83,174 @@ class SpeakingSessionServiceTest {
         assertEquals("REQUIRED_GOALS_V2", response.content().completionPolicyVersion());
         assertNull(response.content().goalPercentage());
         assertEquals(2, response.content().requiredGoalCount());
+        assertEquals("You are in a cafe. The waiter wants to help a customer choose a drink.",
+                response.content().context());
+        assertEquals("waiter", response.content().learnerRole());
+        assertEquals("customer", response.content().aiRole());
+        assertEquals(SpeakingItemConfig.OpeningSide.LEARNER, response.content().openingSide());
+        assertEquals(SpeakingOpening.Status.NOT_REQUIRED, response.opening().status());
+        assertTrue(response.canStartTurn());
+        assertTrue(fixture.openingRequests().isEmpty());
         assertEquals("learner", fixture.savedSession.getLearnerId());
         assertEquals("learner", fixture.savedSession.getOpenLearnerId());
+    }
+
+    @Test void aiOpeningStartsOnceAndBlocksLearnerUntilTheAudioStageSettles() {
+        Fixture fixture = new Fixture();
+        fixture.item = new SpeakingItemDto("item", "version", "Cafe", "Order", List.of(), List.of());
+        fixture.config = SpeakingItemConfig.builder().topicItemVersionId("version")
+                .goals(activeFixture("REQUIRED_GOALS_V2", null, 3).savedSession.getContent().goals())
+                .minimumValidTurns(3).context("Order a drink").learnerRole("customer").aiRole("waiter")
+                .openingSide(SpeakingItemConfig.OpeningSide.AI).status(SpeakingItemConfig.Status.PUBLISHED).build();
+        SpeakingSessionService service = fixture.service();
+
+        var created = service.create("item", "session", false);
+        var duplicate = service.create("item", "session", false);
+        assertEquals(SpeakingOpening.Status.GENERATING, created.opening().status());
+        assertEquals(created.opening(), duplicate.opening());
+        assertEquals(1, fixture.openingRequests().size());
+        assertFalse(created.canStartTurn());
+        assertEquals("OPENING_PENDING", assertThrows(SpeakingException.class,
+                () -> service.requireSocketController("session", "learner", 1)).code());
+
+        var attempt = fixture.openingRequests().getFirst();
+        assertTrue(service.acceptOpeningDraft(attempt, draft()));
+        assertFalse(service.get("session").canStartTurn());
+        service.settleOpeningAudio(attempt, null);
+
+        var fallback = service.resume("session", "resume-1");
+        assertEquals(SpeakingOpening.Status.TEXT_ONLY, fallback.opening().status());
+        assertEquals(draft().reply(), fallback.opening().reply());
+        assertEquals(draft().hintExampleEn(), fallback.opening().hintExampleEn());
+        assertTrue(fallback.canStartTurn());
+        assertEquals(0, fallback.committedTurnCount());
+        assertEquals(0, fallback.validTurnCount());
+        assertEquals(1, fixture.openingRequests().size());
+    }
+
+    @Test void retryRequiresCurrentControllerAndNeverReusesARequestId() {
+        Fixture fixture = openingFixture();
+        SpeakingSessionService service = fixture.service();
+        service.failOpening(currentAttempt(fixture));
+        assertEquals(SpeakingOpening.Status.FAILED, service.get("session").opening().status());
+
+        assertEquals("CONTROLLER_CHANGED", assertThrows(SpeakingException.class,
+                () -> service.retryOpening("session", 0, "retry-a")).code());
+        assertEquals(SpeakingOpening.Status.GENERATING, service.retryOpening("session", 1, "retry-a").opening().status());
+        service.retryOpening("session", 1, "retry-a");
+        var firstRetry = fixture.openingRequests().getFirst();
+        service.failOpening(firstRetry);
+        service.retryOpening("session", 1, "retry-b");
+        var secondRetry = fixture.openingRequests().getLast();
+        assertFalse(service.acceptOpeningDraft(firstRetry, draft()));
+        service.failOpening(secondRetry);
+        service.retryOpening("session", 1, "retry-a");
+        assertEquals(2, fixture.openingRequests().size());
+        assertEquals(SpeakingOpening.Status.FAILED, service.get("session").opening().status());
+    }
+
+    @Test void socketTicketCannotAcquireControlAfterSessionResumesElsewhere() {
+        Fixture fixture = openingFixture();
+        SpeakingSessionService service = fixture.service();
+        String ticket = service.ticket("session", 1).ticket();
+
+        service.resume("session", "other-tab");
+
+        assertEquals("CONTROLLER_CHANGED", assertThrows(SpeakingException.class,
+                () -> service.consumeTicket(ticket, "session")).code());
+        assertEquals(2, service.consumeTicket(service.ticket("session", 2).ticket(),
+                "session").getControllerEpoch());
+    }
+
+    @Test void reconcilesOpeningWritesAfterAcknowledgementFailure() {
+        Fixture fixture = openingFixture();
+        SpeakingSessionService service = fixture.service();
+        var attempt = currentAttempt(fixture);
+        fixture.failNextSessionAcknowledgement = true;
+
+        assertThrows(DataAccessResourceFailureException.class, () -> service.acceptOpeningDraft(attempt, draft()));
+        assertTrue(service.acceptOpeningDraft(attempt, draft()));
+        assertEquals(SpeakingOpening.Status.SYNTHESIZING, service.get("session").opening().status());
+
+        fixture.failNextSessionAcknowledgement = true;
+        assertThrows(DataAccessResourceFailureException.class, () -> service.settleOpeningAudio(attempt, openingAsset()));
+        service.settleOpeningAudio(attempt, openingAsset());
+        assertEquals(SpeakingOpening.Status.READY, service.get("session").opening().status());
+        assertEquals(2, fixture.events.stream().filter(SpeakingSessionService.OpeningUpdated.class::isInstance).count());
+        assertEquals(1, fixture.audioAssets.size());
+    }
+
+    @Test void persistedInvalidOpeningSideReturnsConfigInvalid() {
+        Fixture fixture = new Fixture();
+        fixture.item = new SpeakingItemDto("item", "version", "Cafe", "Order", List.of(), List.of());
+        fixture.configReadFailure = new IllegalArgumentException("No enum constant OpeningSide.PARTNER");
+
+        assertEquals("CONFIG_INVALID", assertThrows(SpeakingException.class,
+                () -> fixture.service().create("item", "new", false)).code());
+        assertEquals(0, fixture.sessionWrites);
+    }
+
+    @Test void openingAudioIsAvailableToOwnerUntilExpiryOrSoftDeletion() {
+        Fixture fixture = openingFixture();
+        SpeakingSessionService service = fixture.service();
+        var attempt = currentAttempt(fixture);
+        service.acceptOpeningDraft(attempt, draft());
+        var asset = openingAsset();
+        service.settleOpeningAudio(attempt, asset);
+
+        var ready = service.get("session");
+        assertEquals(SpeakingOpening.Status.READY, ready.opening().status());
+        assertTrue(ready.opening().aiAudioAvailable());
+        assertNotNull(service.openingPlayback("session").url());
+        fixture.learner = "intruder";
+        assertEquals("SESSION_FORBIDDEN", assertThrows(SpeakingException.class,
+                () -> service.openingPlayback("session")).code());
+        fixture.learner = "learner";
+        asset.setPlaybackUntil(Instant.now().minusSeconds(1));
+        assertFalse(service.get("session").opening().aiAudioAvailable());
+        assertEquals("AUDIO_EXPIRED", assertThrows(SpeakingException.class,
+                () -> service.openingPlayback("session")).code());
+        fixture.savedSession.setDeletedAt(Instant.now());
+        assertEquals("SESSION_FORBIDDEN", assertThrows(SpeakingException.class,
+                () -> service.openingPlayback("session")).code());
+    }
+
+    @Test void recoveryCancelsPendingOpeningAndRejectsLateAudio() {
+        Fixture fixture = openingFixture();
+        SpeakingSessionService service = fixture.service();
+        var attempt = currentAttempt(fixture);
+        service.acceptOpeningDraft(attempt, draft());
+
+        service.recoverAfterRestart();
+        service.settleOpeningAudio(attempt, openingAsset());
+
+        var snapshot = service.get("session");
+        assertEquals(SpeakingSession.EndReason.SERVICE_RESTART, snapshot.endReason());
+        assertEquals(SpeakingOpening.Status.CANCELLED, snapshot.opening().status());
+        assertFalse(snapshot.canStartTurn());
+        assertNull(snapshot.opening().hintExampleEn());
+        assertTrue(fixture.audioAssets.isEmpty());
+    }
+
+    private static Fixture openingFixture() {
+        Fixture fixture = activeFixture("REQUIRED_GOALS_V2", null, 3);
+        fixture.savedSession.setOpening(SpeakingOpening.initial(SpeakingItemConfig.OpeningSide.AI));
+        return fixture;
+    }
+
+    private static SpeakingSessionService.OpeningRequested currentAttempt(Fixture fixture) {
+        return new SpeakingSessionService.OpeningRequested("session",
+                fixture.savedSession.getOpening().attemptId(), fixture.savedSession.getContent());
+    }
+
+    private static SpeakingOpeningGenerator.Draft draft() {
+        return new SpeakingOpeningGenerator.Draft("Can I get you a drink?", "I'd like an iced coffee.");
+    }
+
+    private static SpeakingAudioAsset openingAsset() {
+        return SpeakingAudioAsset.builder().id("session:opening").sessionId("session")
+                .kind(SpeakingAudioAsset.Kind.AI_OPENING).cloudinaryPublicId("opening")
+                .format("mp3").playbackUntil(Instant.now().plusSeconds(60)).build();
     }
 
     @Test void audioIsRejectedBeforeLookupWhenAnotherLearnerOwnsTheSession() {
@@ -238,22 +449,48 @@ class SpeakingSessionServiceTest {
         SpeakingItemDto item;
         SpeakingItemConfig config;
         SpeakingSession savedSession;
+        SpeakingSession existingSession;
+        int sessionWrites;
         int audioReads;
+        RuntimeException configReadFailure;
+        boolean failNextSessionAcknowledgement;
         List<SpeakingUsageSegment> segments = new ArrayList<>();
         List<SpeakingTurn> turns = new ArrayList<>();
         Map<String, SpeakingAssessmentRecord> assessmentRecords = new HashMap<>();
+        Map<String, SpeakingAudioAsset> audioAssets = new HashMap<>();
+        List<Object> events = new ArrayList<>();
+
+        List<SpeakingSessionService.OpeningRequested> openingRequests() {
+            return events.stream().filter(SpeakingSessionService.OpeningRequested.class::isInstance)
+                    .map(SpeakingSessionService.OpeningRequested.class::cast).toList();
+        }
 
         SpeakingSessionService service() {
             CurrentUserProvider users = proxy(CurrentUserProvider.class, (name, args) ->
                     name.equals("requireCurrentUserId") ? learner : Optional.empty());
             SpeakingItemLookup items = proxy(SpeakingItemLookup.class, (name, args) -> Optional.ofNullable(item));
-            SpeakingItemConfigRepository configs = proxy(SpeakingItemConfigRepository.class,
-                    (name, args) -> Optional.ofNullable(config));
+            SpeakingItemConfigRepository configs = proxy(SpeakingItemConfigRepository.class, (name, args) -> {
+                if (configReadFailure != null) throw configReadFailure;
+                return Optional.ofNullable(config);
+            });
             SpeakingSessionRepository sessions = proxy(SpeakingSessionRepository.class, (name, args) -> {
                 if (name.equals("findById")) return savedSession != null
                         && savedSession.getId().equals(args[0]) ? Optional.of(savedSession) : Optional.empty();
-                if (name.equals("save")) { savedSession = (SpeakingSession) args[0]; return savedSession; }
-                if (name.equals("findFirstByLearnerIdAndStatusInAndDeletedAtIsNull")) return Optional.empty();
+                if (name.equals("save")) {
+                    sessionWrites++;
+                    savedSession = (SpeakingSession) args[0];
+                    if (failNextSessionAcknowledgement) {
+                        failNextSessionAcknowledgement = false;
+                        throw new DataAccessResourceFailureException("Acknowledgement lost");
+                    }
+                    return savedSession;
+                }
+                if (name.equals("findFirstByLearnerIdAndStatusInAndDeletedAtIsNull")) {
+                    return Optional.ofNullable(existingSession);
+                }
+                if (name.equals("findByStatusIn") && savedSession != null && savedSession.isOpen()) {
+                    return List.of(savedSession);
+                }
                 return List.of();
             });
             SpeakingTurnRepository turns = proxy(SpeakingTurnRepository.class, (name, args) -> {
@@ -279,15 +516,23 @@ class SpeakingSessionServiceTest {
                     });
             SpeakingAudioAssetRepository audio = proxy(SpeakingAudioAssetRepository.class, (name, args) -> {
                 audioReads++;
+                if (name.equals("findById")) return Optional.ofNullable(audioAssets.get(args[0]));
+                if (name.equals("save")) {
+                    var asset = (SpeakingAudioAsset) args[0];
+                    audioAssets.put(asset.getId(), asset);
+                    return asset;
+                }
                 return List.of();
             });
             SpeakingUsageSegmentRepository usage = proxy(SpeakingUsageSegmentRepository.class, (name, args) -> {
                 if (name.equals("save")) { segments.add((SpeakingUsageSegment) args[0]); return args[0]; }
                 return List.of();
             });
-            MediaStorage media = proxy(MediaStorage.class, (name, args) -> null);
-            return new SpeakingSessionService(users, items, configs, sessions,
+            MediaStorage media = proxy(MediaStorage.class, (name, args) -> URI.create("https://example.test/audio"));
+            SpeakingSessionService service = new SpeakingSessionService(users, items, configs, sessions,
                     turns, assessments, audio, usage, media);
+            ReflectionTestUtils.setField(service, "events", (ApplicationEventPublisher) events::add);
+            return service;
         }
     }
 
