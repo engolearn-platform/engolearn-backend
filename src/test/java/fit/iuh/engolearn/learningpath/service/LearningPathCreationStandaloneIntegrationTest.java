@@ -5,7 +5,11 @@ import com.mongodb.client.MongoClients;
 import fit.iuh.engolearn.learningpath.dto.request.CreateLearningPathRequest;
 import fit.iuh.engolearn.learningpath.model.LearningPath;
 import fit.iuh.engolearn.learningpath.repository.LearningPathRepository;
-import fit.iuh.engolearn.learningpath.repository.PeriodicTestReadRepository;
+import fit.iuh.engolearn.assessment.repository.MongoAssessmentRepository;
+import fit.iuh.engolearn.assessment.service.impl.AssessmentContractsServiceImpl;
+import fit.iuh.engolearn.assessment.service.AssessmentTransactions;
+import fit.iuh.engolearn.learningpath.service.impl.LearningPathCreationServiceImpl;
+import fit.iuh.engolearn.learningpath.service.impl.LearningPathRecommendationServiceImpl;
 import fit.iuh.engolearn.learningpath.repository.QuestionPoolRepository;
 import java.util.ArrayList;
 import java.util.List;
@@ -56,25 +60,26 @@ class LearningPathCreationStandaloneIntegrationTest {
                     + UUID.randomUUID().toString().replace("-", ""));
             try {
                 String userId = new ObjectId().toHexString();
-                ObjectId attemptId = new ObjectId();
+                String attemptId = "native-standalone-result";
                 seedPeriodicTest(template, userId, attemptId);
                 seedQuestions(template);
 
                 LearningPathRepository paths = mock(LearningPathRepository.class);
-                when(paths.findBySourceAttemptId(attemptId)).thenAnswer(invocation ->
+                when(paths.findBySourceAssessmentAttemptId(attemptId)).thenAnswer(invocation ->
                         Optional.ofNullable(template.findOne(Query.query(
-                                Criteria.where("source.attempt_id").is(attemptId)), LearningPath.class)));
+                                Criteria.where("source.assessment_attempt_id").is(attemptId)), LearningPath.class)));
                 when(paths.findByUserIdAndActiveTrue(userId)).thenReturn(List.of());
                 when(paths.save(any(LearningPath.class))).thenAnswer(invocation ->
                         template.save(invocation.getArgument(0, LearningPath.class)));
-                PeriodicTestReadRepository periodicTests = new PeriodicTestReadRepository(template);
+                var periodicTests = new AssessmentContractsServiceImpl(new MongoAssessmentRepository(template),
+                        mock(AssessmentTransactions.class), new org.springframework.mock.env.MockEnvironment());
                 QuestionPoolRepository questionPool = new QuestionPoolRepository(template);
-                LearningPathRecommendationService recommendations = new LearningPathRecommendationService(
+                LearningPathRecommendationService recommendations = new LearningPathRecommendationServiceImpl(
                         periodicTests, paths, questionPool);
-                LearningPathCreationService creation = new LearningPathCreationService(
-                        recommendations, periodicTests, paths, questionPool, new LearningPlanGenerator());
+                LearningPathCreationService creation = new LearningPathCreationServiceImpl(
+                        recommendations, periodicTests, paths, questionPool);
                 CreateLearningPathRequest request = new CreateLearningPathRequest(
-                        attemptId.toHexString(), List.of("Reading for Gist"));
+                        attemptId, List.of("Reading for Gist"));
 
                 var first = creation.create(request, userId);
                 var repeated = creation.create(request, userId);
@@ -102,30 +107,18 @@ class LearningPathCreationStandaloneIntegrationTest {
         }
     }
 
-    private void seedPeriodicTest(MongoTemplate template, String userId, ObjectId attemptId) {
-        template.getCollection("attempts").insertOne(new Document("_id", attemptId)
-                .append("user_id", userId)
-                .append("type", "PERIODIC")
-                .append("status", "COMPLETED")
-                .append("result", new Document("level", "A2")));
-        List<String> skills = List.of("Reading for Gist", "Reading for Specific Information",
-                "Reading for Detail & Relationship", "Vocabulary in Context",
-                "Inference & Author's View");
+    private void seedPeriodicTest(MongoTemplate template, String userId, String attemptId) {
         List<Document> results = new ArrayList<>();
-        for (int index = 0; index < skills.size(); index++) {
-            int percent = index == 0 ? 20 : 80;
-            results.add(new Document("_id", new ObjectId())
-                    .append("attempt_id", attemptId)
-                    .append("user_id", userId)
-                    .append("micro_skill", skills.get(index))
-                    .append("skill", "READING")
-                    .append("correct", percent / 10)
-                    .append("total", 10)
-                    .append("percent", percent)
-                    .append("band", "A2")
-                    .append("is_valid", true));
+        for (String code : List.of("R02", "R01", "R04", "L01", "L03")) {
+            int correct = code.equals("R02") ? 2 : 8;
+            results.add(new Document("code", code).append("correct", correct).append("total", 10)
+                    .append("percentage", correct * 10).append("band", correct < 5 ? "NEEDS_PRACTICE" : "MEETS_THRESHOLD"));
         }
-        template.getCollection("micro_skill_results").insertMany(results);
+        template.getCollection("assessment_attempts").insertOne(new Document("_id", attemptId)
+                .append("user_id", userId).append("status", "READY").append("level", "A2")
+                .append("submitted_at", java.util.Date.from(java.time.Instant.now()))
+                .append("paper", new Document("paper_id", "native-paper").append("demonstration", false))
+                .append("skill_results", results));
     }
 
     private void seedQuestions(MongoTemplate template) {

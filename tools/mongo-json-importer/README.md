@@ -53,8 +53,10 @@ MONGO_IMPORT_OBJECT_ID_FIELDS=none
 ```
 
 Use explicit Extended JSON (`{"$oid":"..."}`) for every field that must remain an ObjectId,
-such as a Learning Path `_id`, question snapshot `path_id`, or legacy projection `attempt_id`.
-Keep `user_id` as plain JSON text, and preserve native Assessment attempt IDs as strings.
+such as a Learning Path `_id` or question snapshot `path_id`.
+Keep `user_id`, `source.assessment_attempt_id`, and `source.paper_id` as plain JSON text.
+Assessment owns its native attempt IDs; preserve their original BSON representation in
+`assessment_attempts._id`. Learning Path no longer requires `attempts` or `micro_skill_results`.
 Disabling automatic conversion does not disable Extended JSON decoding. Inspect the full
 dataset first: a bare 24-hex `_id` also remains a string with this setting.
 

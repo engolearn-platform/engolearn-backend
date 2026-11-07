@@ -35,6 +35,102 @@ class LearningPathIdHttpIntegrationTest extends AbstractMongoIntegrationTest {
     private JwtTokenService tokens;
 
     @Test
+    void aNewlySubmittedAssessmentImmediatelySupportsRecommendationCreationAndTheResultLink() throws Exception {
+        String owner = "pfc-demo-learner-v2";
+        String attemptId = "native-submitted-assessment";
+        seedAccount(owner);
+        seedEligibleProjection(owner, attemptId);
+        Document input = Document.parse(java.nio.file.Files.readString(java.nio.file.Path.of(
+                "tools/mongo-json-importer/samples/assessment-paper-v2.json")));
+        Document paper = input.get("collections", Document.class).getList("assessment_papers", Document.class).getFirst();
+        paper.remove("_id");
+        paper.put("paper_id", "native-submitted-paper");
+        paper.put("demonstration", false);
+        Document answers = new Document();
+        java.util.Map<String, Integer> counts = new java.util.HashMap<>();
+        for (Document unit : paper.getList("units", Document.class)) {
+            for (Document question : unit.getList("questions", Document.class)) {
+                String code = question.getString("skill_code");
+                int position = counts.merge(code, 1, Integer::sum);
+                int key = question.getInteger("correct_option");
+                answers.put(question.getInteger("number").toString(), position <= (code.equals("R02") ? 2 : 5) ? key : (key + 1) % 4);
+            }
+        }
+        String bindingHash = java.util.HexFormat.of().formatHex(java.security.MessageDigest.getInstance("SHA-256")
+                .digest("native-test-binding".getBytes(java.nio.charset.StandardCharsets.UTF_8)));
+        mongoTemplate.getCollection("assessment_attempts").updateOne(new Document("_id", attemptId),
+                new Document("$set", new Document("status", "ACTIVE").append("paper", paper).append("answers", answers)
+                        .append("binding_hash", bindingHash).append("unit_index", 12).append("phase", "ANSWER")
+                        .append("unit_started_at", Date.from(Instant.now())).append("started_at", Date.from(Instant.now()))
+                        .append("next_due_at", Date.from(Instant.now().plusSeconds(1800))))
+                        .append("$unset", new Document("skill_results", "").append("submitted_at", "").append("level", "")));
+        mongoTemplate.getCollection("assessment_profiles").insertOne(new Document("user_id", owner)
+                .append("initial_level", "A2").append("current_level", "A2").append("highest_level", "A2"));
+        String base = "http://localhost:" + port;
+        String recommendationUrl = base + "/api/learning-paths/recommendation/by-assessment?assessmentAttemptId=" + attemptId;
+        assertThatThrownBy(() -> authenticatedGet(recommendationUrl, owner)).isInstanceOf(HttpClientErrorException.NotFound.class);
+
+        JsonMapper mapper = JsonMapper.builder().build();
+        JsonNode submitted = mapper.readTree(authenticatedRequest(base + "/api/v1/assessment/attempts/" + attemptId + "/submit",
+                HttpMethod.POST, "{\"confirmed\":true}", owner)).path("data");
+        assertThat(submitted.path("status").asString()).isEqualTo("READY");
+        JsonNode recommendation = mapper.readTree(authenticatedGet(recommendationUrl, owner)).path("data");
+        assertThat(recommendation.path("state").asString()).isEqualTo("AVAILABLE");
+        String body = "{\"assessmentAttemptId\":\"" + attemptId + "\",\"microSkills\":[\"Reading for Gist\"]}";
+        JsonNode created = mapper.readTree(authenticatedRequest(base + "/api/learning-paths/by-assessment", HttpMethod.POST, body, owner)).path("data");
+        assertThat(created.path("created").asBoolean()).isTrue();
+        JsonNode items = mapper.readTree(authenticatedGet(base + "/api/learning-paths", owner)).path("data").path("items");
+        assertThat(items.size()).isEqualTo(1);
+        assertThat(items.get(0).path("sourceAssessmentAttemptId").asString()).isEqualTo(attemptId);
+        JsonNode result = mapper.readTree(authenticatedGet(base + "/api/v1/assessment/attempts/" + attemptId + "/result", owner)).path("data");
+        assertThat(result.path("id").asString()).isEqualTo(attemptId);
+        assertThat(result.path("score").asInt()).isEqualTo(44);
+        assertThat(mongoTemplate.collectionExists("attempts")).isFalse();
+        assertThat(mongoTemplate.collectionExists("micro_skill_results")).isFalse();
+    }
+
+    @Test
+    void concurrentCreationOfTheSameNativeAssessmentReturnsOnePath() throws Exception {
+        String owner = "pfc-demo-learner-v2";
+        seedAccount(owner);
+        seedEligibleProjection(owner, "concurrent-native-id");
+        var resolver = new org.springframework.data.mongodb.core.index.MongoPersistentEntityIndexResolver(
+                mongoTemplate.getConverter().getMappingContext());
+        resolver.resolveIndexFor(fit.iuh.engolearn.learningpath.model.LearningPath.class)
+                .forEach(index -> mongoTemplate.indexOps(fit.iuh.engolearn.learningpath.model.LearningPath.class).ensureIndex(index));
+        String url = "http://localhost:" + port + "/api/learning-paths/by-assessment";
+        String body = "{\"assessmentAttemptId\":\"concurrent-native-id\",\"microSkills\":[\"Reading for Gist\"]}";
+        try (var executor = java.util.concurrent.Executors.newFixedThreadPool(2)) {
+            var one = executor.submit(() -> authenticatedRequest(url, HttpMethod.POST, body, owner));
+            var two = executor.submit(() -> authenticatedRequest(url, HttpMethod.POST, body, owner));
+            JsonMapper mapper = JsonMapper.builder().build();
+            var first = mapper.readTree(one.get(20, java.util.concurrent.TimeUnit.SECONDS)).path("data");
+            var second = mapper.readTree(two.get(20, java.util.concurrent.TimeUnit.SECONDS)).path("data");
+            assertThat(first.path("pathId").asString()).isEqualTo(second.path("pathId").asString());
+            assertThat(first.path("created").asBoolean() || second.path("created").asBoolean()).isTrue();
+            assertThat(mongoTemplate.getCollection("learning_paths").countDocuments()).isEqualTo(1);
+        }
+    }
+
+    @Test
+    void hexadecimalAssessmentIdsUseTheCanonicalIdForIdempotency() {
+        String owner = "pfc-demo-learner-v2";
+        String nativeId = new ObjectId().toHexString();
+        seedAccount(owner);
+        seedEligibleProjection(owner, nativeId);
+        String url = "http://localhost:" + port + "/api/learning-paths/by-assessment";
+        String body = "{\"assessmentAttemptId\":\"%s\",\"microSkills\":[\"Reading for Gist\"]}";
+        JsonMapper mapper = JsonMapper.builder().build();
+        var first = mapper.readTree(authenticatedRequest(url, HttpMethod.POST, body.formatted(nativeId.toUpperCase(java.util.Locale.ROOT)), owner)).path("data");
+        var repeated = mapper.readTree(authenticatedRequest(url, HttpMethod.POST, body.formatted(nativeId), owner)).path("data");
+        assertThat(first.path("created").asBoolean()).isTrue();
+        assertThat(repeated.path("created").asBoolean()).isFalse();
+        assertThat(first.path("pathId").asString()).isEqualTo(repeated.path("pathId").asString());
+        assertThat(mongoTemplate.getCollection("learning_paths").find().first()
+                .get("source", Document.class).getString("assessment_attempt_id")).isEqualTo(nativeId);
+    }
+
+    @Test
     void closedDayResultReturnsReviewOverHttp() {
         ObjectId id = new ObjectId();
         String userId = new ObjectId().toHexString();
@@ -161,7 +257,7 @@ class LearningPathIdHttpIntegrationTest extends AbstractMongoIntegrationTest {
     void anotherUsersPeriodicTestCannotBeRecommendedOrUsedToCreateAPath() {
         String ownerId = new ObjectId().toHexString();
         String otherUserId = new ObjectId().toHexString();
-        ObjectId attemptId = new ObjectId();
+        String attemptId = "owned-assessment-id";
         seedAccount(ownerId);
         seedAccount(otherUserId);
         seedPeriodicTest(attemptId, ownerId);
@@ -184,7 +280,7 @@ class LearningPathIdHttpIntegrationTest extends AbstractMongoIntegrationTest {
 
         ObjectId pathId = new ObjectId();
         Document existing = new Document("_id", pathId).append("user_id", ownerId)
-                .append("source", new Document("attempt_id", attemptId))
+                .append("source", new Document("assessment_attempt_id", attemptId))
                 .append("status", "COMPLETED").append("is_active", false);
         mongoTemplate.getCollection("learning_paths").insertOne(existing);
         JsonNode ownedPath = mapper.readTree(authenticatedRequest(base, HttpMethod.POST, body, ownerId)).path("data");
@@ -204,70 +300,47 @@ class LearningPathIdHttpIntegrationTest extends AbstractMongoIntegrationTest {
 
     @ParameterizedTest
     @ValueSource(strings = {"pfc-demo-learner-v2", "6aeea4550ca583c5809979b7"})
-    void nativeAssessmentRecommendationResolvesOnlyTheOwnersCompletedProjectionWithoutWrites(String ownerId) {
+    void nativeAssessmentRecommendationResolvesOnlyTheOwnersCompletedResultWithoutWrites(String ownerId) {
         String otherId = new ObjectId().toHexString();
-        ObjectId attemptId = new ObjectId();
         String nativeId = "assessment-" + UUID.randomUUID();
         seedAccount(ownerId);
         seedAccount(otherId);
-        seedPeriodicTest(attemptId, ownerId);
-        mongoTemplate.getCollection("attempts").updateOne(new Document("_id", attemptId),
-                new Document("$set", new Document("assessment_source_attempt_id", nativeId)));
-        mongoTemplate.getCollection("micro_skill_results").updateOne(
-                new Document("attempt_id", attemptId).append("micro_skill", "Reading for Gist"),
-                new Document("$set", new Document("correct", 2).append("percent", 20)));
-        mongoTemplate.getCollection("question_pool").insertMany(IntStream.range(0, 30).mapToObj(i ->
-                new Document("question_id", "pool-" + i).append("micro_skill", "Reading for Gist")
-                        .append("level", "A2").append("status", "ACTIVE")).toList());
-        Document before = mongoTemplate.getCollection("attempts").find(new Document("_id", attemptId)).first();
-        List<Document> resultsBefore = mongoTemplate.getCollection("micro_skill_results").find()
-                .into(new java.util.ArrayList<>());
+        seedEligibleProjection(ownerId, nativeId);
+        Document before = mongoTemplate.getCollection("assessment_attempts").find(new Document("_id", nativeId)).first();
         String base = "http://localhost:" + port + "/api/learning-paths/recommendation";
         String url = base + "/by-assessment?assessmentAttemptId=" + nativeId;
         JsonMapper mapper = JsonMapper.builder().build();
         JsonNode resolved = mapper.readTree(authenticatedGet(url, ownerId)).path("data");
-        assertThat(resolved).isEqualTo(mapper.readTree(authenticatedGet(
-                base + "?attemptId=" + attemptId, ownerId)).path("data"));
+        assertThat(resolved).isEqualTo(mapper.readTree(authenticatedGet(base + "?attemptId=" + nativeId, ownerId)).path("data"));
         assertThat(resolved.path("state").asString()).isEqualTo("AVAILABLE");
         assertThat(resolved.path("microSkills").size()).isEqualTo(1);
         assertThat(resolved.path("microSkills").get(0).path("name").asString()).isEqualTo("Reading for Gist");
-        assertThatThrownBy(() -> authenticatedGet(url + "&userId=" + ownerId, otherId))
-                .isInstanceOf(HttpClientErrorException.NotFound.class);
-        assertThatThrownBy(() -> authenticatedGet(base + "/by-assessment?assessmentAttemptId=missing", ownerId))
-                .isInstanceOf(HttpClientErrorException.NotFound.class);
-        assertThatThrownBy(() -> authenticatedGet(base + "/by-assessment?assessmentAttemptId=" + attemptId, ownerId))
-                .isInstanceOf(HttpClientErrorException.NotFound.class);
-        assertThatThrownBy(() -> authenticatedGet(base + "/by-assessment", ownerId))
-                .isInstanceOf(HttpClientErrorException.BadRequest.class);
+        assertThatThrownBy(() -> authenticatedGet(url + "&userId=" + ownerId, otherId)).isInstanceOf(HttpClientErrorException.NotFound.class);
+        assertThatThrownBy(() -> authenticatedGet(base + "/by-assessment?assessmentAttemptId=missing", ownerId)).isInstanceOf(HttpClientErrorException.NotFound.class);
+        assertThatThrownBy(() -> authenticatedGet(base + "/by-assessment", ownerId)).isInstanceOf(HttpClientErrorException.BadRequest.class);
         for (String invalid : List.of("", "x".repeat(101))) {
             assertThatThrownBy(() -> authenticatedGet(base + "/by-assessment?assessmentAttemptId=" + invalid, ownerId))
                     .isInstanceOf(HttpClientErrorException.BadRequest.class);
         }
-        assertThatThrownBy(() -> restTemplate.getForObject(url, String.class))
-                .isInstanceOf(HttpClientErrorException.Unauthorized.class);
-        assertThat(mongoTemplate.getCollection("attempts").find(new Document("_id", attemptId)).first()).isEqualTo(before);
-        assertThat(mongoTemplate.getCollection("micro_skill_results").find().into(new java.util.ArrayList<>()))
-                .containsExactlyElementsOf(resultsBefore);
+        assertThatThrownBy(() -> restTemplate.getForObject(url, String.class)).isInstanceOf(HttpClientErrorException.Unauthorized.class);
+        assertThat(mongoTemplate.getCollection("assessment_attempts").find(new Document("_id", nativeId)).first()).isEqualTo(before);
         assertThat(mongoTemplate.getCollection("learning_paths").countDocuments()).isZero();
         assertThat(mongoTemplate.getCollection("learning_path_questions").countDocuments()).isZero();
+        assertThat(mongoTemplate.collectionExists("attempts")).isFalse();
+        assertThat(mongoTemplate.collectionExists("micro_skill_results")).isFalse();
     }
 
     @Test
-    void nativeAssessmentRecommendationRejectsIncompleteOrNonPeriodicProjections() {
-        String ownerId = new ObjectId().toHexString();
-        ObjectId attemptId = new ObjectId();
+    void nativeAssessmentRecommendationRejectsUnfinishedOrInvalidResults() {
+        String ownerId = "pfc-demo-learner-v2";
         seedAccount(ownerId);
-        seedPeriodicTest(attemptId, ownerId);
-        String url = "http://localhost:" + port
-                + "/api/learning-paths/recommendation/by-assessment?assessmentAttemptId=native-id";
-        mongoTemplate.getCollection("attempts").updateOne(new Document("_id", attemptId),
-                new Document("$set", new Document("assessment_source_attempt_id", "native-id").append("status", "IN_PROGRESS")));
-        assertThatThrownBy(() -> authenticatedGet(url, ownerId))
-                .isInstanceOf(HttpClientErrorException.NotFound.class);
-        mongoTemplate.getCollection("attempts").updateOne(new Document("_id", attemptId),
-                new Document("$set", new Document("status", "COMPLETED").append("type", "PLACEMENT")));
-        assertThatThrownBy(() -> authenticatedGet(url, ownerId))
-                .isInstanceOf(HttpClientErrorException.NotFound.class);
+        seedPeriodicTest("native-id", ownerId);
+        String url = "http://localhost:" + port + "/api/learning-paths/recommendation/by-assessment?assessmentAttemptId=native-id";
+        for (String status : List.of("ACTIVE", "NO_RESULT", "ABANDONED")) {
+            mongoTemplate.getCollection("assessment_attempts").updateOne(new Document("_id", "native-id"),
+                    new Document("$set", new Document("status", status)));
+            assertThatThrownBy(() -> authenticatedGet(url, ownerId)).isInstanceOf(HttpClientErrorException.NotFound.class);
+        }
         assertThat(mongoTemplate.getCollection("learning_paths").countDocuments()).isZero();
     }
 
@@ -277,8 +350,8 @@ class LearningPathIdHttpIntegrationTest extends AbstractMongoIntegrationTest {
         String otherId = new ObjectId().toHexString();
         seedAccount(ownerId);
         seedAccount(otherId);
-        ObjectId attemptId = seedEligibleProjection(ownerId, "native-create-id");
-        Document sourceBefore = mongoTemplate.getCollection("attempts").find(new Document("_id", attemptId)).first();
+        String attemptId = seedEligibleProjection(ownerId, "native-create-id");
+        Document sourceBefore = mongoTemplate.getCollection("assessment_attempts").find(new Document("_id", attemptId)).first();
         String base = "http://localhost:" + port + "/api/learning-paths";
         String url = base + "/by-assessment";
         String body = "{\"assessmentAttemptId\":\"native-create-id\",\"microSkills\":[\"Reading for Gist\"]}";
@@ -337,7 +410,7 @@ class LearningPathIdHttpIntegrationTest extends AbstractMongoIntegrationTest {
                 .isInstanceOf(HttpClientErrorException.NotFound.class);
         assertThat(mongoTemplate.getCollection("learning_paths").countDocuments()).isEqualTo(1);
         assertThat(mongoTemplate.getCollection("learning_path_questions").countDocuments()).isEqualTo(30);
-        assertThat(mongoTemplate.getCollection("attempts").find(new Document("_id", attemptId)).first()).isEqualTo(sourceBefore);
+        assertThat(mongoTemplate.getCollection("assessment_attempts").find(new Document("_id", attemptId)).first()).isEqualTo(sourceBefore);
     }
 
     @Test
@@ -365,10 +438,10 @@ class LearningPathIdHttpIntegrationTest extends AbstractMongoIntegrationTest {
     }
 
     @Test
-    void nativeAssessmentCreationValidatesTheBodyAndRequiresACompletedProjection() {
+    void nativeAssessmentCreationValidatesTheBodyAndRequiresACompletedResult() {
         String ownerId = new ObjectId().toHexString();
         seedAccount(ownerId);
-        ObjectId attemptId = seedEligibleProjection(ownerId, "native-validation-id");
+        String attemptId = seedEligibleProjection(ownerId, "native-validation-id");
         String url = "http://localhost:" + port + "/api/learning-paths/by-assessment";
         for (String body : List.of("{}",
                 "{\"assessmentAttemptId\":\" \",\"microSkills\":[\"Reading for Gist\"]}",
@@ -383,9 +456,9 @@ class LearningPathIdHttpIntegrationTest extends AbstractMongoIntegrationTest {
         assertThatThrownBy(() -> authenticatedRequest(url, HttpMethod.POST, missing, ownerId))
                 .isInstanceOf(HttpClientErrorException.NotFound.class);
         String valid = "{\"assessmentAttemptId\":\"native-validation-id\",\"microSkills\":[\"Reading for Gist\"]}";
-        for (Document changed : List.of(new Document("status", "IN_PROGRESS"),
-                new Document("status", "COMPLETED").append("type", "PLACEMENT"))) {
-            mongoTemplate.getCollection("attempts").updateOne(new Document("_id", attemptId), new Document("$set", changed));
+        for (Document changed : List.of(new Document("status", "ACTIVE"),
+                new Document("status", "ABANDONED"))) {
+            mongoTemplate.getCollection("assessment_attempts").updateOne(new Document("_id", attemptId), new Document("$set", changed));
             assertThatThrownBy(() -> authenticatedRequest(url, HttpMethod.POST, valid, ownerId))
                     .isInstanceOf(HttpClientErrorException.NotFound.class);
         }
@@ -395,27 +468,17 @@ class LearningPathIdHttpIntegrationTest extends AbstractMongoIntegrationTest {
 
     @Test
     void listAndSearchExposeOnlyOwnedCompletedAssessmentMappingsAndPreserveSourceIds() {
-        String ownerId = new ObjectId().toHexString();
+        String ownerId = "pfc-demo-learner-v2";
         String otherId = new ObjectId().toHexString();
         seedAccount(ownerId);
         seedAccount(otherId);
-        ObjectId linkedId = new ObjectId();
-        ObjectId unmappedId = new ObjectId();
-        ObjectId foreignId = new ObjectId();
-        ObjectId blankId = new ObjectId();
-        ObjectId placementId = new ObjectId();
-        ObjectId unfinishedId = new ObjectId();
-        ObjectId missingId = new ObjectId();
-        ObjectId malformedId = new ObjectId();
-        mongoTemplate.getCollection("attempts").insertMany(List.of(
-                assessmentProjection(linkedId, ownerId, "native-linked-id"),
-                assessmentProjection(unmappedId, ownerId, null),
-                assessmentProjection(foreignId, otherId, "foreign-native-id"),
-                assessmentProjection(blankId, ownerId, " "),
-                assessmentProjection(placementId, ownerId, "placement-native-id").append("type", "PLACEMENT"),
-                assessmentProjection(unfinishedId, ownerId, "unfinished-native-id").append("status", "IN_PROGRESS"),
-                assessmentProjection(malformedId, ownerId, "unused").append("assessment_source_attempt_id", 123)));
-        List<ObjectId> sourceIds = List.of(linkedId, unmappedId, foreignId, blankId, placementId, unfinishedId, missingId, malformedId);
+        mongoTemplate.getCollection("assessment_attempts").insertMany(List.of(
+                assessmentProjection("native-linked-id", ownerId, "READY"),
+                assessmentProjection("foreign-id", otherId, "READY"),
+                assessmentProjection("abandoned-id", ownerId, "ABANDONED"),
+                assessmentProjection("active-id", ownerId, "ACTIVE"),
+                assessmentProjection("no-result-id", ownerId, "NO_RESULT")));
+        List<String> sourceIds = List.of("native-linked-id", "missing-id", "foreign-id", " ", "abandoned-id", "active-id", "no-result-id");
         List<Document> pathDocuments = new ArrayList<>();
         for (int index = 0; index <= sourceIds.size(); index++) {
             Document path = new Document("_id", new ObjectId()).append("user_id", ownerId)
@@ -423,62 +486,51 @@ class LearningPathIdHttpIntegrationTest extends AbstractMongoIntegrationTest {
                     .append("created_date", "2026-11-01")
                     .append("created_at", Date.from(Instant.parse("2026-11-01T03:00:00Z").plusSeconds(index)))
                     .append("micro_skills", List.of(new Document("micro_skill", "Reading for Gist")));
-            if (index < sourceIds.size()) path.append("source", new Document("attempt_id", sourceIds.get(index)));
+            if (index < sourceIds.size()) path.append("source", new Document("assessment_attempt_id", sourceIds.get(index)));
             pathDocuments.add(path);
         }
         mongoTemplate.getCollection("learning_paths").insertMany(pathDocuments);
-        List<Document> sourcesBefore = mongoTemplate.getCollection("attempts").find().into(new ArrayList<>());
+        List<Document> sourcesBefore = mongoTemplate.getCollection("assessment_attempts").find().into(new ArrayList<>());
         String base = "http://localhost:" + port + "/api/learning-paths";
         JsonMapper mapper = JsonMapper.builder().build();
         for (String suffix : List.of("?status=ACTIVE", "/search?keyword=01/11/2026", "/search?keyword=Gist")) {
             JsonNode items = mapper.readTree(authenticatedGet(base + suffix, ownerId)).path("data").path("items");
-            assertThat(items.size()).as("Items for %s", suffix).isEqualTo(pathDocuments.size());
+            assertThat(items.size()).isEqualTo(pathDocuments.size());
             int linkedCount = 0;
             for (JsonNode item : items) {
                 assertThat(item.has("sourceAttemptId")).isFalse();
                 if (item.path("id").asString().equals(pathDocuments.getFirst().getObjectId("_id").toHexString())) {
                     assertThat(item.path("sourceAssessmentAttemptId").asString()).isEqualTo("native-linked-id");
                     linkedCount++;
-                } else {
-                    assertThat(item.path("sourceAssessmentAttemptId").isNull()).isTrue();
-                }
+                } else assertThat(item.path("sourceAssessmentAttemptId").isNull()).isTrue();
             }
             assertThat(linkedCount).isEqualTo(1);
-            JsonNode otherItems = mapper.readTree(authenticatedGet(base + suffix + "&userId=" + ownerId, otherId))
-                    .path("data").path("items");
-            assertThat(otherItems.size()).isZero();
+            assertThat(mapper.readTree(authenticatedGet(base + suffix + "&userId=" + ownerId, otherId))
+                    .path("data").path("items").size()).isZero();
         }
-        assertThat(mongoTemplate.getCollection("learning_paths").find().into(new ArrayList<>()))
-                .containsExactlyElementsOf(pathDocuments);
-        assertThat(mongoTemplate.getCollection("attempts").find().into(new ArrayList<>()))
-                .containsExactlyElementsOf(sourcesBefore);
+        assertThat(mongoTemplate.getCollection("learning_paths").find().into(new ArrayList<>())).containsExactlyElementsOf(pathDocuments);
+        assertThat(mongoTemplate.getCollection("assessment_attempts").find().into(new ArrayList<>())).containsExactlyElementsOf(sourcesBefore);
     }
 
-    private Document assessmentProjection(ObjectId attemptId, String userId, String nativeId) {
-        Document document = new Document("_id", attemptId).append("user_id", userId)
-                .append("type", "PERIODIC").append("status", "COMPLETED");
-        if (nativeId != null) document.append("assessment_source_attempt_id", nativeId);
-        return document;
+    private Document assessmentProjection(String attemptId, String userId, String status) {
+        return new Document("_id", ObjectId.isValid(attemptId) ? new ObjectId(attemptId) : attemptId).append("user_id", userId).append("status", status).append("version", 0L)
+                .append("paper", new Document("paper_id", "native-paper").append("series", "NATIVE").append("version", 2).append("demonstration", false));
     }
 
-    private ObjectId seedEligibleProjection(String userId, String nativeId) {
-        ObjectId attemptId = new ObjectId();
-        seedPeriodicTest(attemptId, userId);
-        mongoTemplate.getCollection("attempts").updateOne(new Document("_id", attemptId),
-                new Document("$set", new Document("assessment_source_attempt_id", nativeId)));
-        mongoTemplate.getCollection("micro_skill_results").updateOne(
-                new Document("attempt_id", attemptId).append("micro_skill", "Reading for Gist"),
-                new Document("$set", new Document("correct", 2).append("percent", 20)));
+    private String seedEligibleProjection(String userId, String nativeId) {
+        seedPeriodicTest(nativeId, userId);
+        mongoTemplate.getCollection("assessment_attempts").updateOne(new Document("_id", ObjectId.isValid(nativeId) ? new ObjectId(nativeId) : nativeId),
+                new Document("$set", new Document("skill_results.0.correct", 2).append("skill_results.0.percentage", 20)
+                        .append("skill_results.0.band", "NEEDS_PRACTICE").append("correct_count", 22).append("reading_correct", 12)));
         List<Document> options = List.of(new Document("option_id", "A").append("text", "A"),
-                new Document("option_id", "B").append("text", "B"),
-                new Document("option_id", "C").append("text", "C"),
+                new Document("option_id", "B").append("text", "B"), new Document("option_id", "C").append("text", "C"),
                 new Document("option_id", "D").append("text", "D"));
         mongoTemplate.getCollection("question_pool").insertMany(IntStream.range(0, 30).mapToObj(i ->
                 new Document("question_id", "native-pool-" + i).append("micro_skill", "Reading for Gist")
                         .append("skill", "READING").append("level", "A2").append("status", "ACTIVE")
                         .append("prompt", "Question " + i).append("options", options)
                         .append("correct_option_id", "A").append("explanation", "Explanation")).toList());
-        return attemptId;
+        return nativeId;
     }
 
     private void seedPracticeDay(ObjectId pathId, String userId) {
@@ -507,17 +559,15 @@ class LearningPathIdHttpIntegrationTest extends AbstractMongoIntegrationTest {
         mongoTemplate.getCollection("learning_path_questions").insertMany(snapshots);
     }
 
-    private void seedPeriodicTest(ObjectId attemptId, String userId) {
-        mongoTemplate.getCollection("attempts").insertOne(new Document("_id", attemptId)
-                .append("user_id", userId).append("type", "PERIODIC").append("status", "COMPLETED")
-                .append("result", new Document("level", "A2")));
-        List<String> skills = List.of("Reading for Gist", "Reading for Specific Information",
-                "Reading for Detail & Relationship", "Vocabulary in Context", "Inference & Author's View");
-        mongoTemplate.getCollection("micro_skill_results").insertMany(skills.stream().map(skill ->
-                new Document("attempt_id", attemptId).append("user_id", userId)
-                        .append("micro_skill", skill).append("skill", "READING")
-                        .append("correct", 8).append("total", 10).append("percent", 80)
-                        .append("band", "A2").append("is_valid", true)).toList());
+    private void seedPeriodicTest(String attemptId, String userId) {
+        List<Document> results = List.of("R02", "R01", "R04", "L01", "L03").stream().map(code ->
+                new Document("code", code).append("name", code).append("example", "Example")
+                        .append("section", code.startsWith("L") ? "LISTENING" : "READING")
+                        .append("correct", 5).append("total", 10).append("percentage", 50).append("band", "MONITOR")).toList();
+        mongoTemplate.getCollection("assessment_attempts").insertOne(assessmentProjection(attemptId, userId, "READY")
+                .append("submitted_at", Date.from(Instant.now())).append("level", "A2")
+                .append("correct_count", 25).append("reading_correct", 15).append("listening_correct", 10)
+                .append("analysis_grants", List.of("retained-test-grant")).append("skill_results", results));
     }
 
     private void seedAccount(String userId) {
@@ -544,6 +594,7 @@ class LearningPathIdHttpIntegrationTest extends AbstractMongoIntegrationTest {
                 .append("revoked", false));
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.add("X-Assessment-Binding", "native-test-binding");
         headers.add(HttpHeaders.COOKIE, "ACCESS_TOKEN="
                 + tokens.create(userId, sessionId, "access", 900));
         return restTemplate.exchange(url, method, new HttpEntity<>(body, headers), String.class).getBody();

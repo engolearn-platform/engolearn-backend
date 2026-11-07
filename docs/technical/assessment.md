@@ -61,10 +61,27 @@ joins the start transaction; failed profile/attempt writes roll back consumption
 are bounded. Request/command IDs and answer sequences protect replays and stale writes.
 
 Assessment calls Subscription/Quota only through their public contracts and does not read
-their collections. It does not write User or Learning Path state. Existing result-provider
-contracts remain unchanged. A real Placement integration must supply
+their collections. It does not write User or Learning Path state. The result-provider contract is described below. A real Placement integration must supply
 `AssessmentBaselineSource`; absent baseline blocks starting. The dev baseline adapter is
 active only in `dev & !prod`. Demonstration papers/attempts are excluded outside development.
+
+## Learning Path result contract
+
+`AssessmentResults` is the public in-process result provider. `latest(userId)` remains available.
+`findCompleted(userId, assessmentAttemptId)` reads that exact owner's READY result, rather
+than selecting the latest. `findCompletedAttemptIds(userId, ids)` checks a batch with one
+owner/status-filtered query and returns only valid IDs. Missing, foreign, unfinished and
+hidden demonstration sources are absent; demonstration visibility remains `dev & !prod`.
+
+DTOs include native attempt/paper IDs, submitted time, level and all measured skill codes,
+counts, percentages and contract band values. Returned collections are defensive copies.
+The calls never settle or grade an active attempt, consume quota, or write grants/results.
+They are independent of full-analysis display grants, as the earlier `latest` contract was.
+The frontend result/review APIs still apply their existing Subscription display policy.
+
+Learning Path owns eligibility, pool-name mapping, frozen baselines and path creation.
+Assessment does not write Learning Path state or populate the legacy `attempts` /
+`micro_skill_results` collections. See the [Learning Path contract](learningpath/learning-path-list-api.md).
 
 ## HTTP API
 

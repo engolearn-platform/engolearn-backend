@@ -1,20 +1,18 @@
 package fit.iuh.engolearn.learningpath.model;
 
-import org.bson.types.ObjectId;
-
 import java.util.Date;
 import java.util.List;
 
 public record PeriodicTestSnapshot(
-        ObjectId attemptId,
+        String attemptId,
         String userId,
         String level,
-        ObjectId testSetId,
+        String paperId,
         Date takenAt,
         List<MicroSkillResult> results
 ) {
     public record MicroSkillResult(
-            ObjectId resultId,
+            String code,
             String microSkill,
             String skill,
             int correct,

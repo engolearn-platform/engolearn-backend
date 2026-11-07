@@ -37,6 +37,10 @@ class LearningPathMappingTest {
         Date createdAt = Date.from(Instant.parse("2026-10-27T03:00:00Z"));
         Document original = new Document("_id", id)
                 .append("user_id", "pfc-demo-learner-v2")
+                .append("source", new Document("assessment_attempt_id", "native-assessment-id")
+                        .append("paper_id", "native-paper").append("taken_at", createdAt))
+                .append("micro_skills", List.of(new Document("micro_skill", "Reading for Gist")
+                        .append("baseline", new Document("skill_code", "R02").append("percent", 40.0))))
                 .append("created_at", createdAt)
                 .append("status", "CANCELLED")
                 .append("cancel", new Document("reason", "INACTIVITY"))
@@ -51,6 +55,8 @@ class LearningPathMappingTest {
 
         assertThat(path.getId()).isEqualTo(id.toHexString());
         assertThat(path.getUserId()).isEqualTo("pfc-demo-learner-v2");
+        assertThat(path.getSource().getAssessmentAttemptId()).isEqualTo("native-assessment-id");
+        assertThat(path.getMicroSkills().getFirst().getBaseline().getSkillCode()).isEqualTo("R02");
         assertThat(path.getCreatedAt()).isEqualTo(createdAt.toInstant());
         assertThat(path.getStatus()).isEqualTo(LearningPathStatus.CANCELLED);
         assertThat(path.getCancel().getReason()).isEqualTo(LearningPathCancelReason.INACTIVITY);
@@ -67,6 +73,8 @@ class LearningPathMappingTest {
 
         assertThat(written.get("_id")).isEqualTo(id);
         assertThat(written.getString("user_id")).isEqualTo("pfc-demo-learner-v2");
+        assertThat(written.get("source", Document.class).getString("assessment_attempt_id")).isEqualTo("native-assessment-id");
+        assertThat(written.get("source", Document.class).getString("paper_id")).isEqualTo("native-paper");
         assertThat(written.getDate("created_at")).isEqualTo(createdAt);
         assertThat(written.getString("status")).isEqualTo("CANCELLED");
         assertThat(written.get("cancel", Document.class).getString("reason"))

@@ -33,7 +33,7 @@ public interface LearningPathRepository extends MongoRepository<LearningPath, St
 
     Optional<LearningPath> findByIdAndUserId(ObjectId id, String userId);
 
-    Optional<LearningPath> findBySourceAttemptId(ObjectId attemptId);
+    Optional<LearningPath> findBySourceAssessmentAttemptId(String assessmentAttemptId);
 
     List<LearningPath> findByUserIdAndActiveTrue(String userId);
 }

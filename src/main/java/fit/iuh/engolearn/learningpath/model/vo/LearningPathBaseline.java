@@ -1,39 +1,27 @@
 package fit.iuh.engolearn.learningpath.model.vo;
 
 import fit.iuh.engolearn.shared.EmbeddedDocument;
-
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
-import org.bson.types.ObjectId;
 import org.springframework.data.mongodb.core.mapping.Field;
 
+@Getter
 @Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class LearningPathBaseline implements EmbeddedDocument {
-
+    @Field("correct")
     private Integer correct;
+    @Field("total")
     private Integer total;
+    @Field("percent")
     private Double percent;
+    @Field("band")
     private String band;
-
-    @Field("result_id")
-    private ObjectId resultId;
-
-    public Integer getCorrect() {
-        return correct;
-    }
-
-    public Integer getTotal() {
-        return total;
-    }
-
-    public Double getPercent() {
-        return percent;
-    }
-
-    public String getBand() {
-        return band;
-    }
-
-    public ObjectId getResultId() {
-        return resultId;
-    }
+    @Field("skill_code")
+    private String skillCode;
 }

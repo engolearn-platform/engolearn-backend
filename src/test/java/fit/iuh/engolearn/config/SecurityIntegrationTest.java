@@ -87,7 +87,7 @@ class SecurityIntegrationTest {
     private static final String USER_ID = "68f8f3a9b9e4a12345678901";
     private static final String OTHER_USER_ID = "68f8f3a9b9e4a12345678902";
     private static final String PATH_ID = "68f8f3a9b9e4a12345678903";
-    private static final String ATTEMPT_ID = "68f8f3a9b9e4a12345678904";
+    private static final String ATTEMPT_ID = "native-assessment-source";
     private static final String SESSION_ID = "security-integration-session";
     private static final String DAY_URL = "/api/learning-paths/" + PATH_ID + "/weeks/1/days/1";
     private static final String CREATE_BODY = """
