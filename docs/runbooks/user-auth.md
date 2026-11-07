@@ -4,7 +4,7 @@ Local setup for registration, login, refresh and current-session logout through 
 
 ## Local setup
 
-1. Use a MongoDB replica set or sharded cluster. Registration writes the user and profile in one transaction. Keep `APP_DB`, `APP_USER` and `APP_PASSWORD` in the ignored local `.env` matched to that service.
+1. Use a MongoDB replica set or sharded cluster. Registration writes the user, profile and initial subscription account in one transaction. New accounts have unused Trial eligibility and use the published FREE policy until Trial/Premium activation. Quota projections remain lazy and missing counters read as zero usage. No legacy-account backfill is performed. Keep `APP_DB`, `APP_USER` and `APP_PASSWORD` in the ignored local `.env` matched to that service.
 2. Set `AUTH_JWT_SECRET` to a private random value of at least 32 bytes; keep it stable across restarts and never commit it. The base application configuration requires this value.
 3. Enable `engolearn.mongodb.transactions.enabled=true` in the active configuration. The `dev` profile sets this flag, but MongoDB must still support transactions. Registration rejects execution without an active transaction before writing either document.
 4. Run `.\mvnw.cmd spring-boot:run` from the backend root, start the frontend proxy, then open `/profile` to register or log in.

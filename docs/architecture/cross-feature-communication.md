@@ -8,6 +8,8 @@ This document owns communication mechanisms, caller/provider obligations and the
 
 ## Allowed communication
 
+New-account registration joins User and Subscription initialization in one Mongo transaction through `SubscriptionAccountInitialization`. This synchronous enrollment creates subscription history before registration succeeds. It does not invoke Payment or Quota and does not replace durable entitlement delivery.
+
 Dev operator exception (2026-11-01, explicitly user-approved): Subscription may synchronously invoke payment.contract.DevPaymentReset while both dev-only capabilities join one local Mongo transaction to release an unresolved test purchase. Both are absent unless dev is active, prod is absent and the explicit flag is enabled. Payment retains ownership of financial eligibility/audit; Subscription retains ownership of source/account guards. No financial outcome fact or entitlement change is fabricated. Ordinary purchase/refund/entitlement flows retain durable Outbox boundaries. See [dev release](../runbooks/dev-purchase-reset.md).
 
 1. **Contract call** — call the provider's public capability interface; callers must not access its entities or repositories.
@@ -56,7 +58,7 @@ A new dependency needs an explicit reason and approval. Keep this table in sync 
 |---|---|
 | `dictionary` | None |
 | `topic` | `dictionary`, `user.contract` |
-| `user` | None |
+| `user` | `subscription.contract.SubscriptionAccountInitialization` for new-account enrollment in the registration Mongo transaction |
 | `subscription` | `payment.contract` for purchase/refund commands and results; conditional dev-only reset capability as described above |
 | `quota` | `subscription.contract` (effective-entitlement lookup and durable Subscription-owned facts) |
 | `payment` | None; must never depend on Subscription |

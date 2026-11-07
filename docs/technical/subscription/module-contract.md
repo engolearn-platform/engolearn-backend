@@ -28,6 +28,7 @@ Payment command intake deduplicates transport identity and business reference. D
 
 | Capability / fact | Consumer | Meaning |
 | --- | --- | --- |
+| `SubscriptionAccountInitialization.initializeNewAccount(userId)` | User registration | Requires the caller's Mongo transaction. Creates NEW_ACCOUNT history with unused Trial and zero revisions. Existing valid history is preserved. Missing legacy provenance fails unavailable. Failure rolls back registration together with user/profile writes. |
 | `EffectiveEntitlementProvider.resolveEffectiveEntitlement(userId, at)` | Quota | Effective policy at server time; returns `EffectiveEntitlementDto`, fails unavailable instead of assuming Free |
 | `EntitlementChangedEvent` | Quota | New effective entitlement snapshot/version; refresh selection without usage reset |
 | `QuotaPolicyActivatedEvent` | Quota | Stable activation ID/sequence, scope/version/snapshot, changed types and effective time; actual activation, not future save |
