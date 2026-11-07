@@ -3,6 +3,7 @@ package fit.iuh.engolearn.learningpath.service;
 import fit.iuh.engolearn.learningpath.model.enums.LearningPathStatus;
 
 import fit.iuh.engolearn.learningpath.dto.request.CreateLearningPathRequest;
+import fit.iuh.engolearn.learningpath.dto.request.CreateLearningPathByAssessmentRequest;
 import fit.iuh.engolearn.learningpath.dto.response.CreateLearningPathResponse;
 import fit.iuh.engolearn.learningpath.dto.response.LearningPathRecommendationResponse;
 import fit.iuh.engolearn.learningpath.exception.RecommendationChangedException;
@@ -58,6 +59,15 @@ public class LearningPathCreationService {
         this.paths = paths;
         this.questionPool = questionPool;
         this.planGenerator = planGenerator;
+    }
+
+    public CreateLearningPathResponse createForAssessment(CreateLearningPathByAssessmentRequest request,
+                                                          String actorUserId) {
+        ObjectId attemptId = periodicTests.findCompletedPeriodicIdByAssessmentAttemptId(
+                        request.assessmentAttemptId(), new ObjectId(actorUserId))
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                        "Chưa có dữ liệu đề xuất lộ trình cho bài đánh giá này"));
+        return create(new CreateLearningPathRequest(attemptId.toHexString(), request.microSkills()), actorUserId);
     }
 
     public CreateLearningPathResponse create(CreateLearningPathRequest request, String actorUserId) {

@@ -53,9 +53,8 @@ not create or synchronize projections for newly submitted assessments. A new Ass
 without that projection returns 404. Production delivery of those projections remains a
 separate integration boundary. Clients must not guess ObjectIds or maintain ID maps.
 
-The Assessment frontend displays the recommendation and a disabled “Tạo lộ trình học tập”
-button for UI review. Creation is not connected to this adapter; its native ID must not be
-passed to the existing ObjectId-only create endpoint.
+The Assessment frontend displays the recommendation and opens a confirmation dialog before
+creation. Native IDs use the create adapter below, rather than the ObjectId-only endpoint.
 
 ## Create
 
@@ -73,6 +72,32 @@ server recalculates it. If it changed, it returns `409 ProblemDetail` with the c
 `recommendation` property; request a new confirmation before retrying. On success, the shared
 `ApiResponse` contains `{ "pathId": "...", "created": true }`. If that periodic test already
 created a path, it returns the existing ID with `created: false`.
+
+### Create from an Assessment result
+
+`POST /api/learning-paths/by-assessment` accepts:
+
+```json
+{
+  "assessmentAttemptId": "<native Assessment ID>",
+  "microSkills": ["Inference & Author's View"]
+}
+```
+
+The native ID is required, nonblank and at most 100 characters. The skill list must contain
+1–5 nonblank names and match the full latest `AVAILABLE` recommendation. The adapter resolves
+the authenticated user's completed periodic projection using the same lookup as Recommendation
+and delegates to existing creation. Missing/foreign/incomplete projections return 404; invalid
+bodies return 400 and unauthenticated requests return 401. A stale confirmation returns the
+existing 409 response and current recommendation, without creating a path.
+
+The response remains `{ "pathId": "...", "created": true|false }` in `ApiResponse`.
+Sequential retries for an already-created source return the existing owned path. The frontend
+sends POST only after the learner confirms, disables actions while the request is pending,
+and navigates to `/learning-paths/:pathId?week=1` after success. Opening/cancelling the dialog
+does not write data. On 409 it reloads Recommendation and requires a new confirmation.
+As with Recommendation, newly submitted Assessments without an imported projection remain
+unsupported. No projection synchronization or extra question content is added by this adapter.
 
 Creation samples 30 distinct ACTIVE questions per eligible micro-skill, assigns 10 per week,
 and builds all three weeks immediately. It saves immutable question snapshots first, then the
