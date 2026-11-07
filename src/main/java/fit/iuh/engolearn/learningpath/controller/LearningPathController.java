@@ -17,6 +17,7 @@ import fit.iuh.engolearn.learningpath.dto.response.LearningPathDetailResponse;
 import fit.iuh.engolearn.learningpath.dto.response.LearningPathListResponse;
 import fit.iuh.engolearn.learningpath.dto.request.LearningPathListStatus;
 import fit.iuh.engolearn.learningpath.dto.request.CreateLearningPathRequest;
+import fit.iuh.engolearn.learningpath.dto.request.CreateLearningPathByAssessmentRequest;
 import fit.iuh.engolearn.learningpath.dto.request.SaveLearningPathAnswerDraftRequest;
 import fit.iuh.engolearn.learningpath.dto.response.CreateLearningPathResponse;
 import fit.iuh.engolearn.learningpath.dto.response.LearningPathRecommendationResponse;
@@ -77,12 +78,30 @@ public class LearningPathController {
         return ApiResponse.ok(recommendationService.recommend(principal.getId(), attemptId));
     }
 
+    @GetMapping("/recommendation/by-assessment")
+    public ApiResponse<LearningPathRecommendationResponse> getRecommendationByAssessment(
+            @NotBlank(message = "assessmentAttemptId không được để trống")
+            @Size(max = 100, message = "assessmentAttemptId không được vượt quá 100 ký tự")
+            @RequestParam String assessmentAttemptId,
+            @AuthenticationPrincipal AuthenticatedUserPrincipal principal
+    ) {
+        return ApiResponse.ok(recommendationService.recommendForAssessment(principal.getId(), assessmentAttemptId));
+    }
+
     @PostMapping
     public ApiResponse<CreateLearningPathResponse> createLearningPath(
             @Valid @RequestBody CreateLearningPathRequest request,
             @AuthenticationPrincipal AuthenticatedUserPrincipal principal
     ) {
         return ApiResponse.ok(creationService.create(request, principal.getId()));
+    }
+
+    @PostMapping("/by-assessment")
+    public ApiResponse<CreateLearningPathResponse> createLearningPathByAssessment(
+            @Valid @RequestBody CreateLearningPathByAssessmentRequest request,
+            @AuthenticationPrincipal AuthenticatedUserPrincipal principal
+    ) {
+        return ApiResponse.ok(creationService.createForAssessment(request, principal.getId()));
     }
 
     @GetMapping

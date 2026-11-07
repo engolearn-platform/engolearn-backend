@@ -56,6 +56,7 @@ A new dependency needs an explicit reason and approval. Keep this table in sync 
 
 | Feature | May depend on, through contract |
 |---|---|
+| `assessment` | `subscription.contract` (effective entitlements), `quota.contract` (atomic consumption) |
 | `dictionary` | None |
 | `topic` | `dictionary`, `user.contract` |
 | `user` | `subscription.contract.SubscriptionAccountInitialization` for new-account enrollment in the registration Mongo transaction |

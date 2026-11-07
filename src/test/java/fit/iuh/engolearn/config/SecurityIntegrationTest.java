@@ -144,6 +144,17 @@ class SecurityIntegrationTest {
         verifyNoLearningPathCalls();
     }
 
+    @ParameterizedTest
+    @ValueSource(strings = {"/api/v1/assessment/preparation", "/api/v1/assessment/attempts"})
+    void assessmentEndpointsRequireAuthenticationWithProblemDetail(String path) throws Exception {
+        mockMvc.perform(get(path))
+                .andExpect(status().isUnauthorized())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.code").value("AUTHENTICATION_REQUIRED"))
+                .andExpect(jsonPath("$.instance").value(path))
+                .andExpect(header().string("Cache-Control", "no-store"));
+    }
+
     @Test
     void anonymousRequestToTheCurrentUserEndpointIsUnauthorized() throws Exception {
         mockMvc.perform(get("/api/v1/auth/me"))
@@ -248,8 +259,14 @@ class SecurityIntegrationTest {
         String endpoint = path.split("\\?", 2)[0];
         if (endpoint.equals("/api/learning-paths/recommendation")) {
             verify(recommendationService).recommend(USER_ID, ATTEMPT_ID);
+        } else if (endpoint.equals("/api/learning-paths/recommendation/by-assessment")) {
+            verify(recommendationService).recommendForAssessment(USER_ID, "native-assessment-id");
         } else if (endpoint.equals("/api/learning-paths/search")) {
             verify(learningPathService).search(USER_ID, "Gist");
+        } else if (endpoint.equals("/api/learning-paths/by-assessment")) {
+            verify(creationService).createForAssessment(
+                    new fit.iuh.engolearn.learningpath.dto.request.CreateLearningPathByAssessmentRequest(
+                            "native-assessment-id", List.of("Reading for Gist")), USER_ID);
         } else if (path.equals("/api/learning-paths") && method == HttpMethod.POST) {
             verify(creationService).create(new CreateLearningPathRequest(
                     ATTEMPT_ID, List.of("Reading for Gist")), USER_ID);
@@ -362,7 +379,10 @@ class SecurityIntegrationTest {
                 Arguments.of(HttpMethod.GET, "/api/learning-paths", ""),
                 Arguments.of(HttpMethod.GET, "/api/learning-paths/search?keyword=Gist", ""),
                 Arguments.of(HttpMethod.GET, "/api/learning-paths/recommendation?attemptId=" + ATTEMPT_ID, ""),
+                Arguments.of(HttpMethod.GET, "/api/learning-paths/recommendation/by-assessment?assessmentAttemptId=native-assessment-id", ""),
                 Arguments.of(HttpMethod.POST, "/api/learning-paths", CREATE_BODY),
+                Arguments.of(HttpMethod.POST, "/api/learning-paths/by-assessment",
+                        "{\"assessmentAttemptId\":\"native-assessment-id\",\"microSkills\":[\"Reading for Gist\"]}"),
                 Arguments.of(HttpMethod.GET, "/api/learning-paths/" + PATH_ID, ""),
                 Arguments.of(HttpMethod.POST, DAY_URL + "/start", ""),
                 Arguments.of(HttpMethod.PUT, DAY_URL + "/questions/q-1/draft", "{\"selectedOptionId\":\"A\"}"),
