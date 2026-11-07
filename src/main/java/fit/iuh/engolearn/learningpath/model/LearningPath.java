@@ -14,20 +14,34 @@ import fit.iuh.engolearn.learningpath.model.vo.LearningPathWeek;
 import fit.iuh.engolearn.shared.BaseDocument;
 import java.util.Date;
 import java.util.List;
-import lombok.Setter;
-import org.bson.types.ObjectId;
+import lombok.*;
+import lombok.experimental.SuperBuilder;
+import org.springframework.data.mongodb.core.index.CompoundIndex;
+import org.springframework.data.mongodb.core.index.CompoundIndexes;
 import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.mongodb.core.mapping.Field;
 
 @Document(collection = "learning_paths")
+@Getter
 @Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@SuperBuilder
+@CompoundIndexes({
+    @CompoundIndex(name = "uq_learning_path_assessment_attempt", def = "{'source.assessment_attempt_id':1}",
+            unique = true, partialFilter = "{'source.assessment_attempt_id':{'$type':'string'}}"),
+    @CompoundIndex(name = "uq_active_path_user_micro_skill", def = "{'user_id':1,'micro_skills.micro_skill':1}",
+            unique = true, partialFilter = "{'is_active':true}")
+})
 public class LearningPath extends BaseDocument {
 
+    @Field("revision")
     private Long revision;
 
     @Field("user_id")
-    private ObjectId userId;
+    private String userId;
 
+    @Field("source")
     private LearningPathSource source;
 
     @Field("created_date")
@@ -36,8 +50,11 @@ public class LearningPath extends BaseDocument {
     @Field("ended_at")
     private Date endedAt;
 
+    @Field("level")
     private String level;
+    @Field("k")
     private Integer k;
+    @Field("status")
     private LearningPathStatus status;
 
     @Field("is_active")
@@ -46,6 +63,7 @@ public class LearningPath extends BaseDocument {
     @Field("current_week_no")
     private Integer currentWeekNo;
 
+    @Field("config")
     private LearningPathConfig config;
 
     @Field("micro_skills")
@@ -54,90 +72,20 @@ public class LearningPath extends BaseDocument {
     @Field("baseline_total")
     private LearningPathBaselineTotal baselineTotal;
 
+    @Field("progress")
     private LearningPathProgress progress;
 
+    @Field("inactivity")
     private LearningPathInactivity inactivity;
 
     @Field("next_run_at")
     private Date nextRunAt;
 
+    @Field("weeks")
     private List<LearningPathWeek> weeks;
+    @Field("summary")
     private LearningPathSummary summary;
+    @Field("cancel")
     private LearningPathCancel cancel;
 
-    public Long getRevision() {
-        return revision;
-    }
-
-    public ObjectId getUserId() {
-        return userId;
-    }
-
-    public LearningPathSource getSource() {
-        return source;
-    }
-
-    public String getCreatedDate() {
-        return createdDate;
-    }
-
-    public Date getEndedAt() {
-        return endedAt;
-    }
-
-    public String getLevel() {
-        return level;
-    }
-
-    public Integer getK() {
-        return k;
-    }
-
-    public LearningPathStatus getStatus() {
-        return status;
-    }
-
-    public Boolean getActive() {
-        return active;
-    }
-
-    public Integer getCurrentWeekNo() {
-        return currentWeekNo;
-    }
-
-    public LearningPathConfig getConfig() {
-        return config;
-    }
-
-    public List<LearningPathMicroSkillSnapshot> getMicroSkills() {
-        return microSkills;
-    }
-
-    public LearningPathBaselineTotal getBaselineTotal() {
-        return baselineTotal;
-    }
-
-    public LearningPathProgress getProgress() {
-        return progress;
-    }
-
-    public LearningPathInactivity getInactivity() {
-        return inactivity;
-    }
-
-    public Date getNextRunAt() {
-        return nextRunAt;
-    }
-
-    public List<LearningPathWeek> getWeeks() {
-        return weeks;
-    }
-
-    public LearningPathSummary getSummary() {
-        return summary;
-    }
-
-    public LearningPathCancel getCancel() {
-        return cancel;
-    }
 }

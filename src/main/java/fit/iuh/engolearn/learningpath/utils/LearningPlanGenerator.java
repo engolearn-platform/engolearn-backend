@@ -1,4 +1,4 @@
-package fit.iuh.engolearn.learningpath.service;
+package fit.iuh.engolearn.learningpath.utils;
 
 import fit.iuh.engolearn.learningpath.model.enums.LearningPathDayStatus;
 import fit.iuh.engolearn.learningpath.model.enums.LearningPathWeekStatus;
@@ -18,9 +18,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import org.bson.Document;
-import org.springframework.stereotype.Component;
 
-@Component
 public class LearningPlanGenerator {
 
     private static final ZoneOffset LEARNING_ZONE = ZoneOffset.ofHours(7);

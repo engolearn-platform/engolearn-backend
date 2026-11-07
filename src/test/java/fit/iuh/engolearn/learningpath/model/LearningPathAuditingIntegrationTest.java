@@ -25,13 +25,14 @@ class LearningPathAuditingIntegrationTest extends AbstractMongoIntegrationTest {
         LearningPath path = new LearningPath();
         path.setId(id.toHexString());
         path.setCreatedAt(createdAt);
-        path.setUserId(new ObjectId());
+        path.setUserId("pfc-demo-learner-v2");
 
         paths.save(path);
 
         Document stored = mongoTemplate.getCollection("learning_paths").find(new Document("_id", id)).first();
         assertThat(stored).isNotNull();
         assertThat(stored.get("_id")).isEqualTo(id);
+        assertThat(stored.getString("user_id")).isEqualTo("pfc-demo-learner-v2");
         assertThat(stored.getDate("created_at")).isEqualTo(Date.from(createdAt));
         assertThat(stored.getDate("updated_at")).isNotNull();
         assertThat(paths.findById(id.toHexString())).get()

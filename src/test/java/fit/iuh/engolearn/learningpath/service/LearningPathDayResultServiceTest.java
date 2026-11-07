@@ -30,7 +30,7 @@ import static org.mockito.Mockito.when;
 
 class LearningPathDayResultServiceTest {
     private final ObjectId pathId = new ObjectId();
-    private final ObjectId userId = new ObjectId();
+    private final String userId = "pfc-demo-learner-v2";
     private final LearningPathRepository paths = mock(LearningPathRepository.class);
     private final LearningPathQuestionRepository questions = mock(LearningPathQuestionRepository.class);
     private final LearningPathDayResultService service = new LearningPathDayResultService(paths, questions);
@@ -40,7 +40,7 @@ class LearningPathDayResultServiceTest {
         LearningPath path = path(LearningPathDayStatus.CLOSED);
         when(paths.findByIdAndUserId(pathId, userId)).thenReturn(Optional.of(path));
         when(questions.findSnapshots(eq(pathId), eq(userId), anyList())).thenReturn(snapshots());
-        var result = service.getResult(pathId.toHexString(), 1, 1, userId.toHexString());
+        var result = service.getResult(pathId.toHexString(), 1, 1, userId);
         assertThat(result.answered()).isZero();
         assertThat(result.practiceScore()).isNull();
         assertThat(result.questions()).hasSize(10).allSatisfy(question -> {
@@ -58,7 +58,7 @@ class LearningPathDayResultServiceTest {
         path.getWeeks().getFirst().getDays().getFirst().setCloseReason(LearningPathDayCloseReason.SUBMITTED);
         when(paths.findByIdAndUserId(pathId, userId)).thenReturn(Optional.of(path));
         when(questions.findSnapshots(eq(pathId), eq(userId), anyList())).thenReturn(snapshots());
-        assertThat(service.getResult(pathId.toHexString(), 1, 1, userId.toHexString()).status())
+        assertThat(service.getResult(pathId.toHexString(), 1, 1, userId).status())
                 .isEqualTo("SUBMITTED");
     }
 
@@ -66,14 +66,14 @@ class LearningPathDayResultServiceTest {
     void submittedDayCanBeReviewed() {
         when(paths.findByIdAndUserId(pathId, userId)).thenReturn(Optional.of(path(LearningPathDayStatus.SUBMITTED)));
         when(questions.findSnapshots(eq(pathId), eq(userId), anyList())).thenReturn(snapshots());
-        assertThat(service.getResult(pathId.toHexString(), 1, 1, userId.toHexString()).status())
+        assertThat(service.getResult(pathId.toHexString(), 1, 1, userId).status())
                 .isEqualTo("SUBMITTED");
     }
 
     @Test
     void openDayDoesNotExposeSnapshots() {
         when(paths.findByIdAndUserId(pathId, userId)).thenReturn(Optional.of(path(LearningPathDayStatus.IN_PROGRESS)));
-        assertThatThrownBy(() -> service.getResult(pathId.toHexString(), 1, 1, userId.toHexString()))
+        assertThatThrownBy(() -> service.getResult(pathId.toHexString(), 1, 1, userId))
                 .isInstanceOfSatisfying(ResponseStatusException.class,
                         ex -> assertThat(ex.getStatusCode()).isEqualTo(HttpStatus.CONFLICT));
         verify(questions, never()).findSnapshots(eq(pathId), eq(userId), anyList());
@@ -84,7 +84,7 @@ class LearningPathDayResultServiceTest {
         LearningPath path = path(LearningPathDayStatus.CLOSED);
         path.setStatus(LearningPathStatus.CANCELLED);
         when(paths.findByIdAndUserId(pathId, userId)).thenReturn(Optional.of(path));
-        assertThatThrownBy(() -> service.getResult(pathId.toHexString(), 1, 1, userId.toHexString()))
+        assertThatThrownBy(() -> service.getResult(pathId.toHexString(), 1, 1, userId))
                 .isInstanceOfSatisfying(ResponseStatusException.class,
                         ex -> assertThat(ex.getStatusCode()).isEqualTo(HttpStatus.CONFLICT));
         verify(questions, never()).findSnapshots(eq(pathId), eq(userId), anyList());
@@ -93,7 +93,7 @@ class LearningPathDayResultServiceTest {
     @Test
     void missingPathOrWrongOwnerReturnsNotFound() {
         when(paths.findByIdAndUserId(pathId, userId)).thenReturn(Optional.empty());
-        assertThatThrownBy(() -> service.getResult(pathId.toHexString(), 1, 1, userId.toHexString()))
+        assertThatThrownBy(() -> service.getResult(pathId.toHexString(), 1, 1, userId))
                 .isInstanceOfSatisfying(ResponseStatusException.class,
                         ex -> assertThat(ex.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND));
     }
@@ -102,7 +102,7 @@ class LearningPathDayResultServiceTest {
     void missingSnapshotFailsInsteadOfReturningPartialReview() {
         when(paths.findByIdAndUserId(pathId, userId)).thenReturn(Optional.of(path(LearningPathDayStatus.CLOSED)));
         when(questions.findSnapshots(eq(pathId), eq(userId), anyList())).thenReturn(snapshots().subList(0, 9));
-        assertThatThrownBy(() -> service.getResult(pathId.toHexString(), 1, 1, userId.toHexString()))
+        assertThatThrownBy(() -> service.getResult(pathId.toHexString(), 1, 1, userId))
                 .isInstanceOf(IllegalStateException.class);
     }
 

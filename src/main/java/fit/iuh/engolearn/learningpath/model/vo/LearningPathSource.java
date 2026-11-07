@@ -1,33 +1,24 @@
 package fit.iuh.engolearn.learningpath.model.vo;
 
-import fit.iuh.engolearn.shared.EmbeddedDocument;
-
 import java.util.Date;
+import fit.iuh.engolearn.shared.EmbeddedDocument;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
-import org.bson.types.ObjectId;
 import org.springframework.data.mongodb.core.mapping.Field;
 
+@Getter
 @Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class LearningPathSource implements EmbeddedDocument {
-
-    @Field("attempt_id")
-    private ObjectId attemptId;
-
-    @Field("test_set_id")
-    private ObjectId testSetId;
-
+    @Field("assessment_attempt_id")
+    private String assessmentAttemptId;
+    @Field("paper_id")
+    private String paperId;
     @Field("taken_at")
     private Date takenAt;
-
-    public ObjectId getAttemptId() {
-        return attemptId;
-    }
-
-    public ObjectId getTestSetId() {
-        return testSetId;
-    }
-
-    public Date getTakenAt() {
-        return takenAt;
-    }
 }

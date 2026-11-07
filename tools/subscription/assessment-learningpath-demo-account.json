@@ -1,0 +1,13 @@
+{
+  "manifestId": "assessment-learningpath-demo-account-v1",
+  "environment": "assessment-learningpath-development-only",
+  "plans": [],
+  "policies": [],
+  "accounts": [
+    {
+      "userId": "pfc-demo-learner-v2",
+      "trialUsed": false,
+      "provenance": "NEW_ACCOUNT"
+    }
+  ]
+}

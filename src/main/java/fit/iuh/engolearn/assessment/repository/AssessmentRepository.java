@@ -2,11 +2,14 @@ package fit.iuh.engolearn.assessment.repository;
 import fit.iuh.engolearn.assessment.model.*;
 import java.time.Instant;
 import java.util.List;
+import java.util.Set;
 public interface AssessmentRepository {
     record DevelopmentBaseline(boolean valid,String level) {}
     void ensureGate(String user);
     void lock(String user);
     AssessmentAttempt attempt(String id,String user);
+    AssessmentAttempt completedAttempt(String id,String user,boolean includeDemonstration);
+    Set<String> completedAttemptIds(String user,Set<String> ids,boolean includeDemonstration);
     AssessmentAttempt request(String user,String request);
     AssessmentAttempt active(String user);
     List<AssessmentAttempt> history(String user,int page,int size,boolean includeDemonstration);

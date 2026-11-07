@@ -42,7 +42,7 @@ class LearningPathAnswerDraftServiceTest {
     private static final Instant NOW = Instant.parse("2026-10-09T03:00:00Z");
     private static final Date MIDNIGHT = Date.from(Instant.parse("2026-10-09T17:00:00Z"));
     private final ObjectId pathId = new ObjectId();
-    private final ObjectId userId = new ObjectId();
+    private final String userId = "pfc-demo-learner-v2";
     private final LearningPathRepository paths = mock(LearningPathRepository.class);
     private final LearningPathPracticeRepository practice = mock(LearningPathPracticeRepository.class);
     private final LearningPathQuestionRepository questions = mock(LearningPathQuestionRepository.class);
@@ -58,7 +58,7 @@ class LearningPathAnswerDraftServiceTest {
         when(practice.saveDraft(any(), any(), eq(1), eq(1), eq("q-1"),
                 any(), any(), any(), any(), any(), any(), any())).thenReturn(true);
 
-        var result = service.save(pathId.toHexString(), 1, 1, "q-1", userId.toHexString(),
+        var result = service.save(pathId.toHexString(), 1, 1, "q-1", userId,
                 new SaveLearningPathAnswerDraftRequest("B"));
 
         assertThat(result.selectedOptionId()).isEqualTo("B");
@@ -79,7 +79,7 @@ class LearningPathAnswerDraftServiceTest {
         when(paths.findByIdAndUserId(pathId, userId)).thenReturn(Optional.of(path));
 
         assertThatThrownBy(() -> service.save(pathId.toHexString(), 1, 1, "q-1",
-                userId.toHexString(), new SaveLearningPathAnswerDraftRequest("B")))
+                userId, new SaveLearningPathAnswerDraftRequest("B")))
                 .isInstanceOfSatisfying(ResponseStatusException.class,
                         error -> assertThat(error.getStatusCode()).isEqualTo(HttpStatus.CONFLICT));
         verify(practice, never()).saveDraft(any(), any(), any(Integer.class),
@@ -93,7 +93,7 @@ class LearningPathAnswerDraftServiceTest {
                 .thenReturn(List.of(snapshot()));
 
         assertThatThrownBy(() -> service.save(pathId.toHexString(), 1, 1, "q-1",
-                userId.toHexString(), new SaveLearningPathAnswerDraftRequest("D")))
+                userId, new SaveLearningPathAnswerDraftRequest("D")))
                 .isInstanceOfSatisfying(ResponseStatusException.class,
                         error -> assertThat(error.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST));
     }

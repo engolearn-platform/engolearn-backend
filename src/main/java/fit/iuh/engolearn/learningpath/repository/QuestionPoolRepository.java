@@ -49,7 +49,7 @@ public class QuestionPoolRepository {
                 .collect(Collectors.toMap(d -> d.getString("passage_id"), Function.identity()));
     }
 
-    public void insertSnapshots(ObjectId pathId, ObjectId userId, List<Document> questions,
+    public void insertSnapshots(ObjectId pathId, String userId, List<Document> questions,
                                 Map<String, Document> passages, Date createdAt) {
         List<Document> snapshots = questions.stream()
                 .map(question -> snapshot(pathId, userId, question, passages, createdAt))
@@ -63,7 +63,7 @@ public class QuestionPoolRepository {
                 .and("status").is("ACTIVE");
     }
 
-    private Document snapshot(ObjectId pathId, ObjectId userId, Document question,
+    private Document snapshot(ObjectId pathId, String userId, Document question,
                               Map<String, Document> passages, Date createdAt) {
         String passageId = question.getString("passage_id");
         Document passage = passageId == null ? null : passages.get(passageId);

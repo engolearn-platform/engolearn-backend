@@ -1,2 +1,5 @@
 package fit.iuh.engolearn.assessment.contract.dto;
-public record AssessmentSkillDto(String code,int correct,int total) {}
+
+import fit.iuh.engolearn.assessment.contract.enums.AssessmentSkillBand;
+
+public record AssessmentSkillDto(String code,int correct,int total,int percentage,AssessmentSkillBand band) {}

@@ -3,6 +3,8 @@ package fit.iuh.engolearn.assessment.repository;
 import fit.iuh.engolearn.assessment.model.*;
 import java.time.Instant;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 import org.bson.Document;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.*;
@@ -22,6 +24,21 @@ public class MongoAssessmentRepository implements AssessmentRepository {
     }
     public AssessmentAttempt attempt(String id,String user) {
         return mongo.findOne(Query.query(where("_id").is(id).and("user_id").is(user)),AssessmentAttempt.class);
+    }
+    public AssessmentAttempt completedAttempt(String id,String user,boolean includeDemonstration) {
+        var criteria=where("_id").is(id).and("user_id").is(user).and("status").is("READY");
+        if(!includeDemonstration) criteria=criteria.and("paper.demonstration").ne(true);
+        var query=Query.query(criteria);
+        query.fields().include("submitted_at","level","paper.paper_id","skill_results");
+        return mongo.findOne(query,AssessmentAttempt.class);
+    }
+    public Set<String> completedAttemptIds(String user,Set<String> ids,boolean includeDemonstration) {
+        if(ids.isEmpty()) return Set.of();
+        var criteria=where("_id").in(ids).and("user_id").is(user).and("status").is("READY");
+        if(!includeDemonstration) criteria=criteria.and("paper.demonstration").ne(true);
+        var query=Query.query(criteria);
+        query.fields().include("_id");
+        return mongo.find(query,AssessmentAttempt.class).stream().map(AssessmentAttempt::getId).collect(Collectors.toUnmodifiableSet());
     }
     public AssessmentAttempt request(String user,String request) {
         return mongo.findOne(Query.query(where("user_id").is(user).and("request_id").is(request)),AssessmentAttempt.class);
