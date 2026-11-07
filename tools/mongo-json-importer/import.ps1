@@ -77,7 +77,7 @@ if ([string]::IsNullOrWhiteSpace($mongoUri)) {
 $resolvedFiles = @()
 if ([string]::IsNullOrWhiteSpace($File)) {
     if (-not (Test-Path -LiteralPath $samplesDirectory -PathType Container)) { throw "Samples directory not found: $samplesDirectory" }
-    $resolvedFiles = @(Get-ChildItem -LiteralPath $samplesDirectory -Filter '*.json' -File | Sort-Object Name | ForEach-Object { $_.FullName })
+    $resolvedFiles = @(Get-ChildItem -LiteralPath $samplesDirectory -Filter '*.json' -File -Recurse | Sort-Object FullName | ForEach-Object { $_.FullName })
     if ($resolvedFiles.Count -eq 0) { throw "No *.json files found in '$samplesDirectory'." }
 } else {
     if ([IO.Path]::IsPathRooted($File)) { $candidate = [IO.Path]::GetFullPath($File) }
