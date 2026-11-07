@@ -61,6 +61,39 @@ class SpeakingDemoRuntimeTest {
     }
 
     @Test
+    void v2ComposerAssessmentSettlesPinnedGoalIdIntoPersistedSessionState() {
+        SettlementFixture fixture = SettlementFixture.active();
+        fixture.session.setContent(new SpeakingContentSnapshot("item", "version", "Cafe", "Order",
+                List.of(new SpeakingGoal("cafe", "Cafe", "Order a drink and ask a small question",
+                        SpeakingGoal.Priority.REQUIRED)), null, 1, List.of(), List.of(), 1,
+                "REQUIRED_GOALS_V2"));
+        fixture.turns.add(fixture.pendingTurn("turn-v2", 1));
+        fixture.session.setCommittedTurnCount(1);
+        String candidate = "{\"contractVersion\":\"speaking.ai.draft.v2\",\"assessment\":{"
+                + "\"turnValidityProposal\":\"VALID\",\"userIntent\":\"STATEMENT\","
+                + "\"goalEvidence\":[{\"goalId\":\"cafe\",\"quote\":\"Where is it?\"}],"
+                + "\"resourceEvidence\":[],\"corrections\":[],\"hintExampleEn\":null,\"hintLeadVi\":null},"
+                + "\"dialogue\":{\"proposedAct\":\"REACT_AND_INVITE\",\"spokenReply\":\"Nice.\","
+                + "\"continuationType\":\"INVITATION\",\"primaryQuestion\":null,\"targetGoalId\":null}}";
+        SpeakingDemoComposer composer = new SpeakingDemoComposer(request -> new GatewayOutcome.Success(
+                new ProviderRawDraft(candidate,
+                        new ProviderRawDraft.ProviderMetadata("test", 200, "id", "STOP", 1L, 1L, 2L))),
+                new SpeakingDraftValidator(MAPPER), new ConversationManager());
+        SpeakingSessionResponse history = new SpeakingSessionResponse("session", fixture.session.getContent(),
+                SpeakingSession.Status.ACTIVE, null, Instant.now(), Instant.now().plusSeconds(1200), null,
+                0, 1, List.of(), List.of(), false, false, 7, 1L, true, null, List.of());
+
+        SpeakingDemoAssessment assessment = composer.assess(fixture.session, history, "I order food");
+
+        assertEquals(List.of("cafe"), assessment.proposal().goalEvidence().stream()
+                .map(SpeakingAssessmentRecord.GoalEvidence::goalId).toList());
+        assertTrue(settle(fixture.service(), "session", "turn-v2", 7, assessment));
+        assertEquals(List.of("cafe"), fixture.session.getAchievedGoalIds());
+        assertEquals(List.of("cafe"), fixture.assessments.get("turn-v2").getGoalEvidence().stream()
+                .map(SpeakingAssessmentRecord.GoalEvidence::goalId).toList());
+    }
+
+    @Test
     void validEvidenceWithoutAuthorizedReplyIsPersistedWithoutSpeech() {
         SettlementFixture fixture = SettlementFixture.active();
         fixture.turns.add(fixture.pendingTurn("turn-quiet", 1));

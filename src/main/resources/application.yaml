@@ -34,6 +34,7 @@ engolearn:
       api-secret: ${CLOUDINARY_API_SECRET:}
   speaking:
     demo:
+      enabled: true
       manager:
         enabled: true
     assemblyai:

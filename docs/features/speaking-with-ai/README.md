@@ -58,6 +58,27 @@ guidance; an unsuitable candidate falls back to clarification. Closing turns
 use a short goodbye and suppress both hint fields. Shared validation and live
 conversation quality evidence remain required before production activation.
 
+### V2 goal evidence and hints (2026-11-05)
+
+The V2 goal-evidence policy follows the user-approved baseline change:
+the LLM decides whether the learner fulfilled a goal in context and returns
+its pinned `goalId` and a nonblank `quote`. The backend accepts evidence for
+pinned, not-yet-achieved goals once per goal. It does not compare the quote
+with the transcript or goal description, or reject goal evidence because it
+contains questions, negation or quotation marks. Quote accuracy and semantic
+assessment are the LLM's responsibility; the prompt still instructs it to
+quote the current finalized learner turn and use history only as context.
+Consequently, a wrong model assessment or an invented quote may be accepted
+when its goal ID is valid. V1/legacy and resource-evidence checks are unchanged.
+
+For BR-F1.15 and BR-F1.41, the V2 prompt requires exactly one short English
+learner-next-turn example (`hintExampleEn`) on every valid continuing,
+nonclosing turn; a short Vietnamese lead (`hintLeadVi`) is optional. Closing
+and terminal delivery keep suppressing hints. This is a prompt requirement
+only: missing hints do not invalidate an otherwise valid assessment, and no
+retry or backend hint fallback is added. Public schemas and stored historical
+assessments remain unchanged; existing sessions are not re-assessed.
+
 The manager runtime is disabled by default. Run the isolated backend with the
 existing Speaking demo gate and the manager flag explicitly enabled:
 
@@ -89,6 +110,15 @@ the legacy evaluator path.
 
 ## Verification
 
+- 2026-11-05 V2 goal/hint update: validator, prompt, composer, runtime, manager
+  and gateway suites passed (147 tests, no failures/errors); independent review
+  found no remaining issues. Full `mvnw.cmd -q verify` was attempted both inside
+  and outside the sandbox and failed. The outside-sandbox run reported 558
+  tests, 3 failures, 128 errors: context startup hit HTTP-client loopback
+  `Invalid argument: connect`; TopicBrowseServiceImplTest, TopicQuizAnswerTest
+  and TopicQuizReadTest also failed. Full-repository verification is incomplete;
+  live provider/browser validation remains pending. Logs are in
+  `target/speaking-v2-verify.log` and `target/speaking-v2-verify-unsandboxed.log`.
 - `mvnw.cmd -q -DskipTests compile`: passed after provider, WebSocket, REST, and Cloudinary code.
 - `mvnw.cmd -q '-Dtest=ArchitectureTest,SpeakingItemConfigTest,SpeakingSessionServiceTest' test`: passed. An earlier Mockito-based service test stalled because dynamic JVM attachment was denied on this host; it was replaced by interface fakes, then passed. No test was disabled.
 - `.\mvnw.cmd -q verify`: BUILD SUCCESS; 327 tests ran with 0 failures and 0 errors, and 14 Docker-dependent tests were skipped because no Docker environment was available. Spring context checks also logged the expected unavailable MongoDB connection to `localhost:1`; the full Maven verification still completed successfully.

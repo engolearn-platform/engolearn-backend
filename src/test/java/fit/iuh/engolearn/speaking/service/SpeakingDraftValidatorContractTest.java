@@ -224,6 +224,89 @@ class SpeakingDraftValidatorContractTest {
         assertNull(proposal.hintLeadVi());
     }
 
+    @Test
+    void v2AcceptsPinnedGoalIdsWithoutRecheckingNaturalLanguageEvidence() {
+        var validator = new SpeakingDraftValidator(MAPPER);
+        var context = context("Can I have a small iced coffee, please? I don't want milk.", List.of(
+                new SpeakingGoal("choose-small-size", "Choose the small size",
+                        "Specify that you want a small drink.", SpeakingGoal.Priority.REQUIRED),
+                new SpeakingGoal("answer-about-milk", "Answer the milk question",
+                        "Tell the barista whether you want milk.", SpeakingGoal.Priority.OPTIONAL),
+                new SpeakingGoal("ask-price", "Ask for the price",
+                        "Ask the barista how much the drink costs.", SpeakingGoal.Priority.REQUIRED)), Map.of());
+        String response = v2("STATEMENT", "[{\"goalId\":\"choose-small-size\",\"quote\":\"Can I have a small iced coffee, please?\"},"
+                + "{\"goalId\":\"answer-about-milk\",\"quote\":\"I don't want milk.\"},"
+                + "{\"goalId\":\"ask-price\",\"quote\":\"'How much is the drink?'\"},"
+                + "{\"goalId\":\"unknown\",\"quote\":\"Anything\"}]");
+
+        var proposal = validator.validateV2(response, context);
+
+        assertEquals(List.of("choose-small-size", "answer-about-milk", "ask-price"), proposal.goalEvidence().stream()
+                .map(SpeakingAssessmentRecord.GoalEvidence::goalId).toList());
+        assertEquals("Can I have a small iced coffee, please?", proposal.goalEvidence().get(0).quote());
+        assertEquals("I don't want milk.", proposal.goalEvidence().get(1).quote());
+        assertEquals("'How much is the drink?'", proposal.goalEvidence().get(2).quote());
+    }
+
+    @Test
+    void v2IgnoresAlreadyAchievedAndDuplicateGoalIdsAndKeepsV1Filtering() {
+        var validator = new SpeakingDraftValidator(MAPPER);
+        var context = new SpeakingDraftValidator.ValidationContext("I want coffee.",
+                new SpeakingContentSnapshot("item", "version", "title", "description", List.of(
+                        new SpeakingGoal("coffee", "Coffee", "large coffee", SpeakingGoal.Priority.REQUIRED),
+                        new SpeakingGoal("tea", "Tea", "tea", SpeakingGoal.Priority.REQUIRED)),
+                        null, 2, List.of(), List.of(), 1L, "REQUIRED_GOALS_V2"), Map.of(), List.of("tea"));
+        String response = v2("STATEMENT", "[{\"goalId\":\"coffee\",\"quote\":\"not in transcript\"},"
+                + "{\"goalId\":\"coffee\",\"quote\":\"duplicate\"},{\"goalId\":\"tea\",\"quote\":\"achieved\"}]");
+
+        var v2Proposal = validator.validateV2(response, context);
+        var noEvidence = validator.validateV2(v2("STATEMENT", "[]"), context);
+        String v1 = fixture("ACT-01").path("response").toString()
+                .replace("\"goalEvidence\":[]", "\"goalEvidence\":[{\"goalId\":\"coffee\",\"quote\":\"not in transcript\"}]");
+
+        assertEquals(List.of("coffee"), v2Proposal.goalEvidence().stream()
+                .map(SpeakingAssessmentRecord.GoalEvidence::goalId).toList());
+        assertTrue(noEvidence.goalEvidence().isEmpty());
+        assertTrue(validator.validate(v1, context).goalEvidence().isEmpty());
+    }
+
+    @Test
+    void v2StillRejectsBlankGoalEvidenceFieldsAndKeepsResourceValidation() {
+        var validator = new SpeakingDraftValidator(MAPPER);
+        var context = context("I want coffee.", List.of(
+                new SpeakingGoal("coffee", "Coffee", "coffee", SpeakingGoal.Priority.REQUIRED)),
+                Map.of("coffee", new SpeakingDraftValidator.PinnedResource("coffee", "VOCABULARY", "coffee"),
+                        "tea", new SpeakingDraftValidator.PinnedResource("tea", "EXPRESSION", "tea")));
+        assertThrows(SpeakingDraftValidationException.class,
+                () -> validator.validateV2(v2("STATEMENT", "[{\"goalId\":\"coffee\",\"quote\":\" \"}]"), context));
+        assertThrows(SpeakingDraftValidationException.class,
+                () -> validator.validateV2(v2("STATEMENT", "[{\"goalId\":\" \",\"quote\":\"coffee\"}]"), context));
+        assertThrows(SpeakingDraftValidationException.class,
+                () -> validator.validateV2(v2("STATEMENT", "[{\"quote\":\"coffee\"}]"), context));
+        assertThrows(SpeakingDraftValidationException.class,
+                () -> validator.validateV2(v2("STATEMENT", "[{\"goalId\":\"coffee\"}]"), context));
+
+        var proposal = validator.validateV2(v2WithResource("[]",
+                "[{\"resourceId\":\"coffee\",\"resourceKind\":\"VOCABULARY\",\"quote\":\"coffee\"},"
+                        + "{\"resourceId\":\"tea\",\"resourceKind\":\"EXPRESSION\",\"quote\":\"tea\"}]"), context);
+        assertEquals(1, proposal.resourceEvidence().size());
+        assertEquals("coffee", proposal.resourceEvidence().get(0).quote());
+    }
+
+    private static String v2(String intent, String goals) {
+        return v2WithResource(goals, "[]").replace("\"userIntent\":\"STATEMENT\"",
+                "\"userIntent\":\"" + intent + "\"");
+    }
+
+    private static String v2WithResource(String goals, String resources) {
+        return "{\"contractVersion\":\"speaking.ai.draft.v2\",\"assessment\":{"
+                + "\"turnValidityProposal\":\"VALID\",\"userIntent\":\"STATEMENT\","
+                + "\"goalEvidence\":" + goals + ",\"resourceEvidence\":" + resources
+                + ",\"corrections\":[],\"hintExampleEn\":null,\"hintLeadVi\":null},"
+                + "\"dialogue\":{\"proposedAct\":\"REACT_AND_INVITE\",\"spokenReply\":\"Okay.\","
+                + "\"continuationType\":\"INVITATION\",\"primaryQuestion\":null,\"targetGoalId\":null}}";
+    }
+
     private static Stream<String> reviewedFixtureIds() {
         return Stream.concat(Stream.of("ACT-01", "ACT-02", "ACT-03", "ACT-04", "ACT-05", "ACT-06", "ACT-07",
                         "REC-01", "REC-02"), Stream.of("BAD-01", "BAD-02", "BAD-03", "BAD-04", "BAD-05", "BAD-06",

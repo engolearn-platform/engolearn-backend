@@ -1,5 +1,7 @@
 package fit.iuh.engolearn.speaking.model;
 
-public record SpeakingGoal(String id, String title, String description, Priority priority) {
+import org.springframework.data.mongodb.core.mapping.Field;
+
+public record SpeakingGoal(@Field("id") String id, String title, String description, Priority priority) {
     public enum Priority { REQUIRED, OPTIONAL }
 }

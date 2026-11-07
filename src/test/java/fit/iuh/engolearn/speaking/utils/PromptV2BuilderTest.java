@@ -71,6 +71,33 @@ class PromptV2BuilderTest {
         assertTrue(prompt.contains("QUESTION | INVITATION | ACTION_PROMPT | CONFIRMATION | NONE"));
     }
 
+    @Test
+    void assignsSemanticGoalFulfillmentJudgmentToLlmUsingCurrentTurnEvidence() {
+        var prompt = new PromptV2Builder(mapper).build(request("Did it cost five dollars?", "Cafe", "It cost five dollars."));
+
+        assertTrue(prompt.contains("Judge semantic fulfillment of each pinned goal using the meaning of the current finalized learner transcript"));
+        assertTrue(prompt.contains("A question or a negated statement may fulfill a goal when its meaning does so"));
+        assertTrue(prompt.contains("Choose goal IDs only from the pinned goals"));
+        assertTrue(prompt.contains("Evidence quotes must be copied from the current finalized learner transcript"));
+        assertTrue(prompt.contains("History is context only and never evidence for the current turn"));
+        assertTrue(prompt.contains("The backend validates goal IDs, schema, deduplication and already-achieved goals; it does not recheck goal quote provenance or semantic meaning"));
+        assertTrue(!prompt.contains("evidence provenance, goal achievement"));
+    }
+
+    @Test
+    void requiresHintOnlyForValidContinuingNonclosingTurns() {
+        var prompt = new PromptV2Builder(mapper).build(request("I want coffee.", "Cafe", "Hello."));
+
+        assertTrue(prompt.contains("For a VALID continuing turn that is not closing, hintExampleEn must be exactly one nonempty, short English next utterance"));
+        assertTrue(prompt.contains("fit the partner's spokenReply"));
+        assertTrue(prompt.contains("never the partner's reply or a statement of what the partner wants"));
+        assertTrue(prompt.contains("hintLeadVi is optional"));
+        assertTrue(prompt.contains("INVALID and UNCERTAIN turns have no hint"));
+        assertTrue(prompt.contains("A closing utterance gets a short goodbye with no question and no hint"));
+        assertTrue(prompt.contains("The backend owns actual session ending and hint suppression"));
+        assertTrue(!prompt.contains("optional short English example"));
+    }
+
     private SpeakingAiRequestV1 request(String transcript, String title, String historyLearner) {
         return new SpeakingAiRequestV1("speaking.ai.draft.v1", "speaking.ai.prompt.v2",
                 new SpeakingAiRequestV1.PinnedSnapshot("item-v1", "version-v1", title,

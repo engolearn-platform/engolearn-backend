@@ -74,7 +74,11 @@ public final class SpeakingDraftValidator {
     }
 
     public ValidatedTurnProposal validate(String rawJson, ValidationContext context) {
-        SpeakingAiDraftResponseV1 draft = validateSchema(rawJson);
+        return validateInternal(validateSchema(rawJson), context, false);
+    }
+
+    private ValidatedTurnProposal validateInternal(SpeakingAiDraftResponseV1 draft, ValidationContext context,
+            boolean trustV2GoalAssessment) {
         if (draft.assessment().turnValidityProposal() == SpeakingAiDraftResponseV1.TurnValidity.INVALID) {
             return ValidatedTurnProposal.invalid();
         }
@@ -88,7 +92,8 @@ public final class SpeakingDraftValidator {
                     .filter(candidate -> candidate.id().equals(evidence.goalId()))
                     .findFirst().orElse(null);
             if (goal != null && !context.achievedGoalIds().contains(goal.id())
-                    && goalIds.add(goal.id()) && semanticallySupportsGoal(evidence, goal, context.currentTranscript())) {
+                    && goalIds.add(goal.id()) && (trustV2GoalAssessment
+                    || semanticallySupportsGoal(evidence, goal, context.currentTranscript()))) {
                 acceptedGoals.add(new SpeakingAssessmentRecord.GoalEvidence(evidence.goalId(), evidence.quote()));
             }
         }
@@ -150,7 +155,7 @@ public final class SpeakingDraftValidator {
                 .matcher(rawJson).replaceFirst("");
         normalized = normalized.replace("speaking.ai.draft.v2", "speaking.ai.draft.v1")
                 .replace("hintExampleEn", "hintVi");
-        ValidatedTurnProposal proposal = validate(normalized, context);
+        ValidatedTurnProposal proposal = validateInternal(validateSchema(normalized), context, true);
         if (proposal.userIntent() == SpeakingAiDraftResponseV1.UserIntent.CLOSING_UTTERANCE) {
             hintExampleEn = null;
             hintLeadVi = null;

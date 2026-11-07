@@ -7,6 +7,8 @@ target/
 .artifacts/
 .superpowers/
 docs/superpowers/
+./.codegraph
+./.codex
 
 ### ENV ###
 .env
