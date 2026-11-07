@@ -9,17 +9,21 @@ Run commands from the repository root:
     Copy-Item .env.example .env
     Copy-Item .\tools\mongo-json-importer\.env.example .\tools\mongo-json-importer\.env
 
-    # Check every JSON file in samples/; writes nothing
+    # Check every JSON file in samples/ and all nested folders; writes nothing
     .\tools\mongo-json-importer\import.ps1 -DryRun
 
-    # Import every JSON file in samples/
+    # Import every JSON file in samples/ and all nested folders
     .\tools\mongo-json-importer\import.ps1
 
     # Check or import one specific JSON file
     .\tools\mongo-json-importer\import.ps1 -File .\tools\mongo-json-importer\samples\example.json -DryRun
     .\tools\mongo-json-importer\import.ps1 -File .\tools\mongo-json-importer\samples\example.json
 
-When -File is omitted, all *.json files directly inside tools/mongo-json-importer/samples/ are loaded in filename order. Every input file is parsed and preflighted before the first write.
+    # Check or import one file inside a module folder
+    .\tools\mongo-json-importer\import.ps1 -File .\tools\mongo-json-importer\samples\assessment\papers.json -DryRun
+    .\tools\mongo-json-importer\import.ps1 -File .\tools\mongo-json-importer\samples\assessment\papers.json
+
+When -File is omitted, all *.json files inside tools/mongo-json-importer/samples/ are loaded recursively, including files in nested module folders. Files are processed in sorted full-path order (equivalent to relative-path order under the common samples directory). Every input file is parsed and preflighted before the first write.
 
 ## Input format
 
