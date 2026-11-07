@@ -8,7 +8,7 @@ The structure is required for new code and code being refactored. Existing code 
 
 ```text
 fit.iuh.engolearn
-├── <feature>                 current features: topic, dictionary, user, learningpath, subscription, quota, payment
+├── <feature>                 current features: topic, dictionary, user, learningpath, subscription, quota, payment, placement
 │   ├── contract              public capability interfaces
 │   │   ├── dto               public input/result DTOs
 │   │   ├── event             published facts

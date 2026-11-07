@@ -1,0 +1,147 @@
+{
+  "metadata" : {
+    "name" : "engolearn-placement-v3-selection",
+    "version" : 1,
+    "source_sha256" : "ce5f8862f5710d53451ec597004c1635e792804dda920b85bb131b2edf99bfb6",
+    "test_set_id" : "PLT-V3-DEV-001-V1"
+  },
+  "blueprint" : {
+    "A1" : {
+      "reading" : 4,
+      "listening" : 1
+    },
+    "A2" : {
+      "reading" : 4,
+      "listening" : 1
+    },
+    "B1" : {
+      "reading" : 3,
+      "listening" : 2
+    },
+    "B2" : {
+      "reading" : 3,
+      "listening" : 2
+    }
+  },
+  "questions" : [ {
+    "order_index" : 1,
+    "question_id" : "PLT-Q-A1-R-0001-V3",
+    "skill" : "READING",
+    "level" : "A1",
+    "semantic_family_id" : null
+  }, {
+    "order_index" : 2,
+    "question_id" : "PLT-Q-A1-R-0002-V3",
+    "skill" : "READING",
+    "level" : "A1",
+    "semantic_family_id" : null
+  }, {
+    "order_index" : 3,
+    "question_id" : "PLT-Q-A1-R-0003-V3",
+    "skill" : "READING",
+    "level" : "A1",
+    "semantic_family_id" : null
+  }, {
+    "order_index" : 4,
+    "question_id" : "PLT-Q-A1-R-0004-V3",
+    "skill" : "READING",
+    "level" : "A1",
+    "semantic_family_id" : null
+  }, {
+    "order_index" : 5,
+    "question_id" : "PLT-Q-A2-R-0001-V3",
+    "skill" : "READING",
+    "level" : "A2",
+    "semantic_family_id" : null
+  }, {
+    "order_index" : 6,
+    "question_id" : "PLT-Q-A2-R-0002-V3",
+    "skill" : "READING",
+    "level" : "A2",
+    "semantic_family_id" : null
+  }, {
+    "order_index" : 7,
+    "question_id" : "PLT-Q-A2-R-0003-V3",
+    "skill" : "READING",
+    "level" : "A2",
+    "semantic_family_id" : null
+  }, {
+    "order_index" : 8,
+    "question_id" : "PLT-Q-A2-R-0004-V3",
+    "skill" : "READING",
+    "level" : "A2",
+    "semantic_family_id" : null
+  }, {
+    "order_index" : 9,
+    "question_id" : "PLT-Q-B1-R-0001-V3",
+    "skill" : "READING",
+    "level" : "B1",
+    "semantic_family_id" : null
+  }, {
+    "order_index" : 10,
+    "question_id" : "PLT-Q-B1-R-0002-V3",
+    "skill" : "READING",
+    "level" : "B1",
+    "semantic_family_id" : null
+  }, {
+    "order_index" : 11,
+    "question_id" : "PLT-Q-B1-R-0003-V3",
+    "skill" : "READING",
+    "level" : "B1",
+    "semantic_family_id" : null
+  }, {
+    "order_index" : 12,
+    "question_id" : "PLT-Q-B2-R-0001-V3",
+    "skill" : "READING",
+    "level" : "B2",
+    "semantic_family_id" : "B2-R-1"
+  }, {
+    "order_index" : 13,
+    "question_id" : "PLT-Q-B2-R-0002-V3",
+    "skill" : "READING",
+    "level" : "B2",
+    "semantic_family_id" : "B2-R-2"
+  }, {
+    "order_index" : 14,
+    "question_id" : "PLT-Q-B2-R-0003-V3",
+    "skill" : "READING",
+    "level" : "B2",
+    "semantic_family_id" : "B2-R-3"
+  }, {
+    "order_index" : 15,
+    "question_id" : "PLT-Q-A1-L-0001-V3",
+    "skill" : "LISTENING",
+    "level" : "A1",
+    "semantic_family_id" : null
+  }, {
+    "order_index" : 16,
+    "question_id" : "PLT-Q-A2-L-0001-V3",
+    "skill" : "LISTENING",
+    "level" : "A2",
+    "semantic_family_id" : null
+  }, {
+    "order_index" : 17,
+    "question_id" : "PLT-Q-B1-L-0001-V3",
+    "skill" : "LISTENING",
+    "level" : "B1",
+    "semantic_family_id" : null
+  }, {
+    "order_index" : 18,
+    "question_id" : "PLT-Q-B1-L-0002-V3",
+    "skill" : "LISTENING",
+    "level" : "B1",
+    "semantic_family_id" : null
+  }, {
+    "order_index" : 19,
+    "question_id" : "PLT-Q-B2-L-0003-V3",
+    "skill" : "LISTENING",
+    "level" : "B2",
+    "semantic_family_id" : "B2-R-7"
+  }, {
+    "order_index" : 20,
+    "question_id" : "PLT-Q-B2-L-0004-V3",
+    "skill" : "LISTENING",
+    "level" : "B2",
+    "semantic_family_id" : "B2-R-4"
+  } ]
+}

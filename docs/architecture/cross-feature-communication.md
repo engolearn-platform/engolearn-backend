@@ -60,6 +60,7 @@ A new dependency needs an explicit reason and approval. Keep this table in sync 
 | `subscription` | `payment.contract` for purchase/refund commands and results; conditional dev-only reset capability as described above |
 | `quota` | `subscription.contract` (effective-entitlement lookup and durable Subscription-owned facts) |
 | `payment` | None; must never depend on Subscription |
+| `placement` | None |
 
 Payment owns commands in `payment.contract.dto` and facts in `payment.contract.event`; Subscription owns the receiving result consumer. Payment must never import Subscription types. Quota consumes Subscription-owned entitlement/policy facts and can resolve effective entitlements through its public capability.
 

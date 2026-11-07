@@ -1,0 +1,170 @@
+{
+  "schema_version": 1,
+  "collection": "placement_questions",
+  "generator": "engolearn-backend/tools/placement/build-mongo-seed.mjs",
+  "source": {
+    "import": {
+      "path": "data/bank-320/package-placement-320-v3/placement-320-compact-v3.import.json",
+      "bytes": 1166231,
+      "sha256": "4339949e4e8760cc804b691a49dcd7dbd353164046a98cb9437245e42d3f39dc"
+    },
+    "schema": {
+      "path": "data/bank-320/package-placement-320-v3/placement-bank-v3.schema.json",
+      "bytes": 6895,
+      "sha256": "e614a41eb2cc17f93a2a9a0884590ca70de08ffb4bfaae0e500478c9280b99ed"
+    },
+    "validation": {
+      "path": "data/bank-320/package-placement-320-v3/V3-VALIDATION-AND-TIMING.json",
+      "bytes": 3406,
+      "sha256": "d52fcea59fdbb6978a55624fed1ce10c7ac2841e8cc167abac9fae64389adc47"
+    },
+    "readme": {
+      "path": "data/bank-320/package-placement-320-v3/README-COMPLETE-V3.md",
+      "bytes": 3669,
+      "sha256": "4166ff4b56a66ddfbb25b69e8bc39594b82dbc7c29f5a6ece38db10ffcee0387"
+    },
+    "audio_manifests": [
+      {
+        "path": "data/bank-320/package-placement-320-v3/batches/A1-compact-v3/audio-manifest.json",
+        "bytes": 11542,
+        "sha256": "e5572b10a2a2fd64f98df8f1f71c5291975bf5f8711a57c8daf8060980454bd1"
+      },
+      {
+        "path": "data/bank-320/package-placement-320-v3/batches/A2-compact-v3/audio-manifest.json",
+        "bytes": 12627,
+        "sha256": "f759878a9a8b034756ca66574b33a4753f1866e88fe126b06607be2727ab00ea"
+      },
+      {
+        "path": "data/bank-320/package-placement-320-v3/batches/B1-compact-v3/audio-manifest.json",
+        "bytes": 27018,
+        "sha256": "25e9527d70f1fff8ef66e0cc0972ee580cf13cd0a4a00dd7937bc5c1e04367ba"
+      },
+      {
+        "path": "data/bank-320/package-placement-320-v3/batches/B2-compact-v3/audio-manifest.json",
+        "bytes": 25787,
+        "sha256": "01bb7e67ef384c15d5fa7c95bfb9937db7f3fff1a54a3a0887a7e7a2aa3de2f9"
+      }
+    ],
+    "metadata": {
+      "name": "placement-320-compact-v3",
+      "version": 3,
+      "questionCount": 320,
+      "readingCount": 224,
+      "listeningCount": 96,
+      "contentStatus": "DRAFT",
+      "humanReviewStatus": "PENDING",
+      "cefrCalibration": "NOT_ESTABLISHED",
+      "audioHostingStatus": "NOT_CONFIGURED"
+    }
+  },
+  "output": {
+    "questions": {
+      "path": "engolearn-backend/data/placement/seed/placement_questions.mongo.json",
+      "bytes": 1106714,
+      "sha256": "ce5f8862f5710d53451ec597004c1635e792804dda920b85bb131b2edf99bfb6",
+      "documents": 320
+    },
+    "audio_manifest": {
+      "path": "engolearn-backend/data/placement/seed/placement_audio_manifest.json",
+      "bytes": 113464,
+      "sha256": "bbe1d0176265aa2e6fc4b41b9b38c934b74020e6e431263c1c3b2866adb6b8df",
+      "assets": 96
+    },
+    "schema": {
+      "path": "engolearn-backend/data/placement/seed/placement_questions.mongo.schema.json",
+      "bytes": 8720,
+      "sha256": "7c15746e2f5dfec9d12d51b2ba9ade7d79e79fcfcf27a5f0c61bb5c132e24195"
+    }
+  },
+  "counts": {
+    "total": 320,
+    "reading": 224,
+    "listening": 96,
+    "status": {
+      "DRAFT": 320
+    },
+    "levels": {
+      "A1": {
+        "total": 80,
+        "reading": 64,
+        "listening": 16,
+        "answers": {
+          "a": 20,
+          "b": 20,
+          "c": 20,
+          "d": 20
+        }
+      },
+      "A2": {
+        "total": 80,
+        "reading": 64,
+        "listening": 16,
+        "answers": {
+          "a": 20,
+          "b": 20,
+          "c": 20,
+          "d": 20
+        }
+      },
+      "B1": {
+        "total": 80,
+        "reading": 48,
+        "listening": 32,
+        "answers": {
+          "a": 20,
+          "b": 20,
+          "c": 20,
+          "d": 20
+        }
+      },
+      "B2": {
+        "total": 80,
+        "reading": 48,
+        "listening": 32,
+        "answers": {
+          "a": 20,
+          "b": 20,
+          "c": 20,
+          "d": 20
+        }
+      }
+    }
+  },
+  "integrity": {
+    "uniqueQuestionIds": 320,
+    "uniqueContentGroupIds": 320,
+    "uniqueReadingPassages": 224,
+    "uniqueListeningTranscripts": 96,
+    "uniqueAudioHashes": 96,
+    "duplicatePromptGroups": 6,
+    "duplicatePromptQuestions": 12,
+    "b2Questions": 80,
+    "b2UniqueSemanticFamilies": 50,
+    "b2SharedFamilies": 30,
+    "b2SharedPairs": 30,
+    "source_output_ids_match": true,
+    "source_output_content_match": true,
+    "audio_assets": 96,
+    "audio_bytes": 48428354,
+    "audio_unique_groups": 96,
+    "audio_unique_filenames": 96,
+    "audio_unique_hashes": 96
+  },
+  "checks": {
+    "source_structure": "PASS",
+    "source_semantics": "PASS",
+    "source_output_integrity": "PASS",
+    "audio_files_checksummed": "PASS",
+    "audio_duration_verified_from_wav": "PASS",
+    "json_schema_engine": "NOT_RUN",
+    "mongo_writes": 0,
+    "database_writes": 0
+  },
+  "notes": [
+    "Seed contains DRAFT questions only.",
+    "audio_url is null until M3 hosting is configured.",
+    "created_at and updated_at are intentionally absent; M2 persistence owns audit fields.",
+    "Source metadata.version is recorded in this manifest, not duplicated per question.",
+    "No Java, Frontend, API, Mongo repository, or MongoDB data was changed."
+  ]
+}

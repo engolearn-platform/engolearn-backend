@@ -1,0 +1,428 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:engolearn:placement:mongo-seed:questions:v1",
+  "title": "EngoLearn Placement question Mongo seed v1",
+  "type": "object",
+  "required": [
+    "_id",
+    "code",
+    "skill",
+    "level",
+    "prompt",
+    "passage",
+    "options",
+    "correct_option_id",
+    "explanation",
+    "audio_url",
+    "transcript",
+    "status",
+    "provenance"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "_id": {
+      "type": "string",
+      "pattern": "^PLT-Q-(A1|A2|B1|B2)-[RL]-[0-9]{4}-V3$"
+    },
+    "code": {
+      "type": "string",
+      "pattern": "^PLT-Q-(A1|A2|B1|B2)-[RL]-[0-9]{4}-V3$"
+    },
+    "skill": {
+      "enum": [
+        "READING",
+        "LISTENING"
+      ]
+    },
+    "level": {
+      "enum": [
+        "A1",
+        "A2",
+        "B1",
+        "B2"
+      ]
+    },
+    "prompt": {
+      "type": "string",
+      "minLength": 1
+    },
+    "passage": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "options": {
+      "type": "array",
+      "minItems": 4,
+      "maxItems": 4,
+      "items": {
+        "$ref": "#/$defs/option"
+      }
+    },
+    "correct_option_id": {
+      "enum": [
+        "a",
+        "b",
+        "c",
+        "d"
+      ]
+    },
+    "explanation": {
+      "type": "string",
+      "minLength": 1
+    },
+    "audio_url": {
+      "type": "null"
+    },
+    "transcript": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "status": {
+      "const": "DRAFT"
+    },
+    "provenance": {
+      "$ref": "#/$defs/provenance"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "skill": {
+            "const": "READING"
+          }
+        },
+        "required": [
+          "skill"
+        ]
+      },
+      "then": {
+        "properties": {
+          "passage": {
+            "type": "string",
+            "minLength": 1
+          },
+          "transcript": {
+            "type": "null"
+          },
+          "audio_url": {
+            "type": "null"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "skill": {
+            "const": "LISTENING"
+          }
+        },
+        "required": [
+          "skill"
+        ]
+      },
+      "then": {
+        "properties": {
+          "passage": {
+            "type": "null"
+          },
+          "transcript": {
+            "type": "string",
+            "minLength": 1
+          },
+          "audio_url": {
+            "type": "null"
+          },
+          "provenance": {
+            "required": [
+              "audio_group_id",
+              "audio_type",
+              "audio_file",
+              "audio_sha256",
+              "audio_duration_seconds",
+              "audio_clip_start_seconds",
+              "audio_clip_end_seconds",
+              "transcript_scope",
+              "audio_review_status"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "level": {
+            "const": "B2"
+          }
+        },
+        "required": [
+          "level"
+        ]
+      },
+      "then": {
+        "properties": {
+          "provenance": {
+            "required": [
+              "semantic_family_id",
+              "assembly_note"
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "option": {
+      "type": "object",
+      "required": [
+        "id",
+        "label",
+        "text"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "enum": [
+            "a",
+            "b",
+            "c",
+            "d"
+          ]
+        },
+        "label": {
+          "enum": [
+            "A",
+            "B",
+            "C",
+            "D"
+          ]
+        },
+        "text": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "distractor": {
+      "type": "object",
+      "required": [
+        "option_id",
+        "reason"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "option_id": {
+          "enum": [
+            "a",
+            "b",
+            "c",
+            "d"
+          ]
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "timing_policy": {
+      "type": "object",
+      "required": [
+        "reading_words_per_minute",
+        "plays_per_audio",
+        "visible_word_limit",
+        "human_timing_review"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "reading_words_per_minute": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "plays_per_audio": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "visible_word_limit": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "human_timing_review": {
+          "const": "PENDING"
+        }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "required": [
+        "standalone",
+        "adaptation_type",
+        "author",
+        "authored_on",
+        "revision",
+        "previous_draft_question_id",
+        "source_url",
+        "source_level",
+        "level_status",
+        "human_review_status",
+        "verified_by",
+        "verified_at",
+        "content_group_id",
+        "title",
+        "answer_evidence",
+        "answer_verification",
+        "level_rationale",
+        "distractor_rationales",
+        "timing_policy"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "standalone": {
+          "const": true
+        },
+        "adaptation_type": {
+          "const": "ORIGINAL_AUTHORED"
+        },
+        "author": {
+          "type": "string",
+          "minLength": 1
+        },
+        "authored_on": {
+          "type": "string",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+        },
+        "revision": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "previous_draft_question_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "source_url": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "source_level": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "level_status": {
+          "const": "PROVISIONAL_AUTHORED"
+        },
+        "human_review_status": {
+          "const": "PENDING"
+        },
+        "verified_by": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "verified_at": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "content_group_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1
+        },
+        "answer_evidence": {
+          "type": "string",
+          "minLength": 1
+        },
+        "answer_verification": {
+          "type": "string",
+          "minLength": 1
+        },
+        "level_rationale": {
+          "type": "string",
+          "minLength": 1
+        },
+        "distractor_rationales": {
+          "type": "array",
+          "minItems": 4,
+          "maxItems": 4,
+          "items": {
+            "$ref": "#/$defs/distractor"
+          }
+        },
+        "timing_policy": {
+          "$ref": "#/$defs/timing_policy"
+        },
+        "audio_group_id": {
+          "type": "string",
+          "pattern": "^PLT-(A1|A2|B1|B2)-L-G[0-9]{2}-V3$"
+        },
+        "audio_type": {
+          "const": "SYNTHETIC_TTS"
+        },
+        "audio_file": {
+          "type": "string",
+          "pattern": "^audio/[A-Za-z0-9._-]+\\.wav$"
+        },
+        "audio_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "audio_duration_seconds": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "audio_clip_start_seconds": {
+          "type": "number",
+          "minimum": 0
+        },
+        "audio_clip_end_seconds": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "answer_evidence_start_seconds": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "answer_evidence_end_seconds": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "transcript_scope": {
+          "type": "string",
+          "minLength": 1
+        },
+        "audio_review_status": {
+          "const": "PENDING"
+        },
+        "semantic_family_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "assembly_note": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  }
+}

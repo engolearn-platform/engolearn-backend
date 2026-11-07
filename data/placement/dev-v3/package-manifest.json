@@ -1,0 +1,71 @@
+{
+  "name" : "engolearn-placement-v3-dev-package",
+  "version" : 1,
+  "audio_base_url" : "http://127.0.0.1:8892",
+  "sources" : [ {
+    "path" : "engolearn-backend/data/placement/seed/placement_questions.mongo.json",
+    "sha256" : "ce5f8862f5710d53451ec597004c1635e792804dda920b85bb131b2edf99bfb6"
+  }, {
+    "path" : "engolearn-backend/data/placement/seed/placement_questions.mongo.schema.json",
+    "sha256" : "7c15746e2f5dfec9d12d51b2ba9ade7d79e79fcfcf27a5f0c61bb5c132e24195"
+  }, {
+    "path" : "engolearn-backend/data/placement/seed/placement_audio_manifest.json",
+    "sha256" : "bbe1d0176265aa2e6fc4b41b9b38c934b74020e6e431263c1c3b2866adb6b8df"
+  }, {
+    "path" : "engolearn-backend/data/placement/seed/placement_seed_manifest.json",
+    "sha256" : "610ba42e5703ccc068bea87a9008abbca32d89379f7202b6dadc871d105c9bca"
+  }, {
+    "path" : "engolearn-backend/tools/mongo-json-importer/mongodb-json-importer-data-format-guide.md",
+    "sha256" : "6e5379eb50ba30d65cf55af73934a5deeedc9b0dcb4f88ff7b11063d5b2db0f3"
+  }, {
+    "path" : "engolearn-backend/tools/mongo-json-importer/README.md",
+    "sha256" : "8f227393f11a5f53d646f2681110098d8ff3b0e6292d3fc290619ff45391990d"
+  }, {
+    "path" : "engolearn-backend/tools/mongo-json-importer/import.ps1",
+    "sha256" : "3462442882e64aaa828f2bd4d95624b4ea0c57e05e57aa542d09b1d24de3ead4"
+  }, {
+    "path" : "engolearn-backend/tools/mongo-json-importer/importer.mongosh.js",
+    "sha256" : "1198c82669f9333a9f998c8882617432294a4aa30df7606dc51c3fa9e0365608"
+  }, {
+    "path" : "engolearn-backend/src/main/java/fit/iuh/engolearn/placement/service/PlacementTestSetSnapshotFactory.java",
+    "sha256" : "7c15220592fd1c6d0aa27d76f9b398cd3dff32ba3023fe64ec4bc3c65294435e"
+  } ],
+  "outputs" : {
+    "placement-v3-questions.importer.json" : {
+      "bytes" : 1131792,
+      "sha256" : "6852d5adf64de661c330991cb4a54bf281f1aed58cff658c2120eb0021debfd8"
+    },
+    "placement-v3-test-sets.importer.json" : {
+      "bytes" : 23793,
+      "sha256" : "3a6b7896b4fd8718a7d8ab1a1987cc544d9c924945e1c432243994ae0ee4872f"
+    },
+    "selection-manifest.json" : {
+      "bytes" : 3540,
+      "sha256" : "6399f60cf0c6d1fa9f50ecffb53b503c2809380a9a3f94b89be985990f2b9b23"
+    },
+    "audio-url-manifest.json" : {
+      "bytes" : 39337,
+      "sha256" : "ca734c9350c2245b3b291592d09bdb37f4a89a888ccf1aebe61b5edc21e9a2ca"
+    }
+  },
+  "counts" : {
+    "questions" : 320,
+    "reading" : 224,
+    "listening" : 96,
+    "draft_questions" : 320,
+    "wav_assets" : 96,
+    "wav_bytes" : 48428354,
+    "test_sets" : 1,
+    "snapshot_items" : 20
+  },
+  "validation" : {
+    "source_content_and_order" : "PASS",
+    "mongo_converter_round_trip" : "PASS",
+    "snapshot_factory" : "PASS",
+    "wav_checksums" : "PASS",
+    "json_bson_parser" : "PASS",
+    "importer_database_dry_run" : "NOT_RUN — target not approved",
+    "database_writes" : 0
+  },
+  "audit_fields" : "M1 has no created_at/updated_at; kept absent. New snapshot has no fabricated timestamps."
+}

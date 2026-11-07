@@ -1,0 +1,583 @@
+{
+  "metadata" : {
+    "name" : "engolearn-placement-v3-test-sets",
+    "version" : 1,
+    "description" : "One DEV-only DRAFT snapshot; not published",
+    "source_sha256" : "ce5f8862f5710d53451ec597004c1635e792804dda920b85bb131b2edf99bfb6"
+  },
+  "collections" : {
+    "placement_test_sets" : [ {
+      "_id" : "PLT-V3-DEV-001-V1",
+      "code" : "PLT-V3-DEV-001",
+      "name" : "Placement V3 DEV draft",
+      "version" : 1,
+      "status" : "DRAFT",
+      "items" : [ {
+        "id" : "PLT-Q-A1-R-0001-V3",
+        "order_index" : 1,
+        "skill" : "READING",
+        "level" : "A1",
+        "label" : "A1 reading 1 — compact",
+        "prompt" : "Where does Lina live?",
+        "passage" : "Lina comes from Spain. She now lives in Bristol.",
+        "options" : [ {
+          "id" : "a",
+          "label" : "A",
+          "text" : "Oxford"
+        }, {
+          "id" : "b",
+          "label" : "B",
+          "text" : "Bristol"
+        }, {
+          "id" : "c",
+          "label" : "C",
+          "text" : "Madrid"
+        }, {
+          "id" : "d",
+          "label" : "D",
+          "text" : "London"
+        } ],
+        "correct_option_id" : "b",
+        "explanation" : "Đáp án B: Bristol. Đối chiếu thông tin được nêu trong ngữ liệu riêng của câu này. Ngữ liệu: “Lina comes from Spain. She now lives in Bristol.”"
+      }, {
+        "id" : "PLT-Q-A1-R-0002-V3",
+        "order_index" : 2,
+        "skill" : "READING",
+        "level" : "A1",
+        "label" : "A1 reading 2 — compact",
+        "prompt" : "Who lives with Lina?",
+        "passage" : "Lina lives with her sister Eva in a flat.",
+        "options" : [ {
+          "id" : "a",
+          "label" : "A",
+          "text" : "Her sister"
+        }, {
+          "id" : "b",
+          "label" : "B",
+          "text" : "Her cousin"
+        }, {
+          "id" : "c",
+          "label" : "C",
+          "text" : "Her mother"
+        }, {
+          "id" : "d",
+          "label" : "D",
+          "text" : "Her friend"
+        } ],
+        "correct_option_id" : "a",
+        "explanation" : "Đáp án A: Her sister. Đối chiếu thông tin được nêu trong ngữ liệu riêng của câu này. Ngữ liệu: “Lina lives with her sister Eva in a flat.”"
+      }, {
+        "id" : "PLT-Q-A1-R-0003-V3",
+        "order_index" : 3,
+        "skill" : "READING",
+        "level" : "A1",
+        "label" : "A1 reading 3 — compact",
+        "prompt" : "What does Lina study?",
+        "passage" : "Lina studies English every morning. She works at weekends.",
+        "options" : [ {
+          "id" : "a",
+          "label" : "A",
+          "text" : "History"
+        }, {
+          "id" : "b",
+          "label" : "B",
+          "text" : "Music"
+        }, {
+          "id" : "c",
+          "label" : "C",
+          "text" : "Art"
+        }, {
+          "id" : "d",
+          "label" : "D",
+          "text" : "English"
+        } ],
+        "correct_option_id" : "d",
+        "explanation" : "Đáp án D: English. Đối chiếu thông tin được nêu trong ngữ liệu riêng của câu này. Ngữ liệu: “Lina studies English every morning. She works at weekends.”"
+      }, {
+        "id" : "PLT-Q-A1-R-0004-V3",
+        "order_index" : 4,
+        "skill" : "READING",
+        "level" : "A1",
+        "label" : "A1 reading 4 — compact",
+        "prompt" : "When does Lina work?",
+        "passage" : "Lina works in a bookshop on Saturdays.",
+        "options" : [ {
+          "id" : "a",
+          "label" : "A",
+          "text" : "Mondays"
+        }, {
+          "id" : "b",
+          "label" : "B",
+          "text" : "Tuesdays"
+        }, {
+          "id" : "c",
+          "label" : "C",
+          "text" : "Fridays"
+        }, {
+          "id" : "d",
+          "label" : "D",
+          "text" : "Saturdays"
+        } ],
+        "correct_option_id" : "d",
+        "explanation" : "Đáp án D: Saturdays. Đối chiếu thông tin được nêu trong ngữ liệu riêng của câu này. Ngữ liệu: “Lina works in a bookshop on Saturdays.”"
+      }, {
+        "id" : "PLT-Q-A2-R-0001-V3",
+        "order_index" : 5,
+        "skill" : "READING",
+        "level" : "A2",
+        "label" : "A2 reading 1 — compact",
+        "prompt" : "What can early guests do?",
+        "passage" : "Your room opens at three. Arriving earlier? Reception can store your bags until then.",
+        "options" : [ {
+          "id" : "a",
+          "label" : "A",
+          "text" : "Enter their rooms"
+        }, {
+          "id" : "b",
+          "label" : "B",
+          "text" : "Leave their bags"
+        }, {
+          "id" : "c",
+          "label" : "C",
+          "text" : "Get room keys"
+        }, {
+          "id" : "d",
+          "label" : "D",
+          "text" : "Change their booking"
+        } ],
+        "correct_option_id" : "b",
+        "explanation" : "Đáp án B: Leave their bags. Khách có thể gửi hành lý; email không cho phép nhận phòng sớm. Ngữ liệu: “Your room opens at three. Arriving earlier? Reception can store your bags until then.”"
+      }, {
+        "id" : "PLT-Q-A2-R-0002-V3",
+        "order_index" : 6,
+        "skill" : "READING",
+        "level" : "A2",
+        "label" : "A2 reading 2 — compact",
+        "prompt" : "Why exchange the shirt?",
+        "passage" : "This shirt is too small. Could I exchange it? I like its colour.",
+        "options" : [ {
+          "id" : "a",
+          "label" : "A",
+          "text" : "It arrived late"
+        }, {
+          "id" : "b",
+          "label" : "B",
+          "text" : "Its sleeve tore"
+        }, {
+          "id" : "c",
+          "label" : "C",
+          "text" : "It doesn’t fit"
+        }, {
+          "id" : "d",
+          "label" : "D",
+          "text" : "Its colour faded"
+        } ],
+        "correct_option_id" : "c",
+        "explanation" : "Đáp án C: It doesn’t fit. Lý do đổi là kích thước, không phải màu hoặc thiết kế. Ngữ liệu: “This shirt is too small. Could I exchange it? I like its colour.”"
+      }, {
+        "id" : "PLT-Q-A2-R-0003-V3",
+        "order_index" : 7,
+        "skill" : "READING",
+        "level" : "A2",
+        "label" : "A2 reading 3 — compact",
+        "prompt" : "Why has the stop changed?",
+        "passage" : "Road repairs have closed the bank stop. Hospital buses now leave outside the library.",
+        "options" : [ {
+          "id" : "a",
+          "label" : "A",
+          "text" : "Road repairs"
+        }, {
+          "id" : "b",
+          "label" : "B",
+          "text" : "Hospital relocation"
+        }, {
+          "id" : "c",
+          "label" : "C",
+          "text" : "Library closure"
+        }, {
+          "id" : "d",
+          "label" : "D",
+          "text" : "Bus replacement"
+        } ],
+        "correct_option_id" : "a",
+        "explanation" : "Đáp án A: Road repairs. Thông báo nêu sửa đường; giá và thời gian hành trình không đổi. Ngữ liệu: “Road repairs have closed the bank stop. Hospital buses now leave outside the library.”"
+      }, {
+        "id" : "PLT-Q-A2-R-0004-V3",
+        "order_index" : 8,
+        "skill" : "READING",
+        "level" : "A2",
+        "label" : "A2 reading 4 — compact",
+        "prompt" : "What must students provide?",
+        "passage" : "Bring lunch on Friday’s trip: the café is closed. The school has paid for transport.",
+        "options" : [ {
+          "id" : "a",
+          "label" : "A",
+          "text" : "Coach money"
+        }, {
+          "id" : "b",
+          "label" : "B",
+          "text" : "Entrance tickets"
+        }, {
+          "id" : "c",
+          "label" : "C",
+          "text" : "Their transport"
+        }, {
+          "id" : "d",
+          "label" : "D",
+          "text" : "Their lunch"
+        } ],
+        "correct_option_id" : "d",
+        "explanation" : "Đáp án D: Their lunch. Trường trả tiền xe; học sinh phải tự chuẩn bị bữa trưa. Ngữ liệu: “Bring lunch on Friday’s trip: the café is closed. The school has paid for transport.”"
+      }, {
+        "id" : "PLT-Q-B1-R-0001-V3",
+        "order_index" : 9,
+        "skill" : "READING",
+        "level" : "B1",
+        "label" : "B1 reading 1 — compact",
+        "prompt" : "What did the writer discover?",
+        "passage" : "Lacking paid experience, I described problems I’d solved while volunteering. The interviewer was interested; I was glad I’d applied.",
+        "options" : [ {
+          "id" : "a",
+          "label" : "A",
+          "text" : "Volunteering can demonstrate skills"
+        }, {
+          "id" : "b",
+          "label" : "B",
+          "text" : "Paid employment is preferred"
+        }, {
+          "id" : "c",
+          "label" : "C",
+          "text" : "Qualifications matter more"
+        }, {
+          "id" : "d",
+          "label" : "D",
+          "text" : "Interviews require voluntary work"
+        } ],
+        "correct_option_id" : "a",
+        "explanation" : "Đáp án A: Volunteering can demonstrate skills. Kinh nghiệm tình nguyện cũng thể hiện kỹ năng giải quyết vấn đề, không bảo đảm trúng tuyển. Ngữ liệu: “Lacking paid experience, I described problems I’d solved while volunteering. The interviewer was interested; I was glad I’d applied.”"
+      }, {
+        "id" : "PLT-Q-B1-R-0002-V3",
+        "order_index" : 10,
+        "skill" : "READING",
+        "level" : "B1",
+        "label" : "B1 reading 2 — compact",
+        "prompt" : "What will the travellers change?",
+        "passage" : "A cancelled boat trip led us to a wonderful village. Next holiday, we’ll book highlights but leave some days free.",
+        "options" : [ {
+          "id" : "a",
+          "label" : "A",
+          "text" : "Choose fewer highlights"
+        }, {
+          "id" : "b",
+          "label" : "B",
+          "text" : "Allow more flexibility"
+        }, {
+          "id" : "c",
+          "label" : "C",
+          "text" : "Book every activity"
+        }, {
+          "id" : "d",
+          "label" : "D",
+          "text" : "Avoid local villages"
+        } ],
+        "correct_option_id" : "b",
+        "explanation" : "Đáp án B: Allow more flexibility. Giữ kế hoạch cần thiết nhưng dành chỗ cho trải nghiệm ngoài dự kiến. Ngữ liệu: “A cancelled boat trip led us to a wonderful village. Next holiday, we’ll book highlights but leave some days free.”"
+      }, {
+        "id" : "PLT-Q-B1-R-0003-V3",
+        "order_index" : 11,
+        "skill" : "READING",
+        "level" : "B1",
+        "label" : "B1 reading 3 — compact",
+        "prompt" : "Why is the new method better?",
+        "passage" : "Recording every unfamiliar word overwhelmed me. Choosing useful words and making personal examples helped me remember and use them.",
+        "options" : [ {
+          "id" : "a",
+          "label" : "A",
+          "text" : "It increases vocabulary lists"
+        }, {
+          "id" : "b",
+          "label" : "B",
+          "text" : "It avoids written practice"
+        }, {
+          "id" : "c",
+          "label" : "C",
+          "text" : "It speeds up reading"
+        }, {
+          "id" : "d",
+          "label" : "D",
+          "text" : "It supports practical recall"
+        } ],
+        "correct_option_id" : "d",
+        "explanation" : "Đáp án D: It supports practical recall. Chọn lọc và gắn từ với bản thân giúp nhớ và sử dụng, không phải ghi thật nhiều. Ngữ liệu: “Recording every unfamiliar word overwhelmed me. Choosing useful words and making personal examples helped me remember and use them.”"
+      }, {
+        "id" : "PLT-Q-B2-R-0001-V3",
+        "order_index" : 12,
+        "skill" : "READING",
+        "level" : "B2",
+        "label" : "B2 reading 1 — compact",
+        "prompt" : "What is the writer questioning?",
+        "passage" : "The pilot cut waiting times, although staffing increased simultaneously. Describing the improvement as proof of the software’s success would therefore be premature.",
+        "options" : [ {
+          "id" : "a",
+          "label" : "A",
+          "text" : "The pilot’s existence"
+        }, {
+          "id" : "b",
+          "label" : "B",
+          "text" : "The claimed cause"
+        }, {
+          "id" : "c",
+          "label" : "C",
+          "text" : "The measured improvement"
+        }, {
+          "id" : "d",
+          "label" : "D",
+          "text" : "The staffing figures"
+        } ],
+        "correct_option_id" : "b",
+        "explanation" : "Đáp án B: The claimed cause. Đối chiếu thông tin được nêu trong ngữ liệu riêng của câu này. Ngữ liệu: “The pilot cut waiting times, although staffing increased simultaneously. Describing the improvement as proof of the software’s success would therefore be premature.”"
+      }, {
+        "id" : "PLT-Q-B2-R-0002-V3",
+        "order_index" : 13,
+        "skill" : "READING",
+        "level" : "B2",
+        "label" : "B2 reading 2 — compact",
+        "prompt" : "What concern is expressed?",
+        "passage" : "Flexibility is welcome, provided it does not become an expectation that employees remain available whenever colleagues happen to work.",
+        "options" : [ {
+          "id" : "a",
+          "label" : "A",
+          "text" : "Flexibility may extend availability"
+        }, {
+          "id" : "b",
+          "label" : "B",
+          "text" : "Employees resist flexible hours"
+        }, {
+          "id" : "c",
+          "label" : "C",
+          "text" : "Colleagues should share identical hours"
+        }, {
+          "id" : "d",
+          "label" : "D",
+          "text" : "Availability should replace flexibility"
+        } ],
+        "correct_option_id" : "a",
+        "explanation" : "Đáp án A: Flexibility may extend availability. Đối chiếu thông tin được nêu trong ngữ liệu riêng của câu này. Ngữ liệu: “Flexibility is welcome, provided it does not become an expectation that employees remain available whenever colleagues happen to work.”"
+      }, {
+        "id" : "PLT-Q-B2-R-0003-V3",
+        "order_index" : 14,
+        "skill" : "READING",
+        "level" : "B2",
+        "label" : "B2 reading 3 — compact",
+        "prompt" : "What is the criticism?",
+        "passage" : "The reviewer calls the exhibition ambitious, then observes that its explanations assume the very knowledge visitors are supposedly there to acquire.",
+        "options" : [ {
+          "id" : "a",
+          "label" : "A",
+          "text" : "The subject lacks ambition"
+        }, {
+          "id" : "b",
+          "label" : "B",
+          "text" : "The explanations repeat basic facts"
+        }, {
+          "id" : "c",
+          "label" : "C",
+          "text" : "The visitors misunderstand its purpose"
+        }, {
+          "id" : "d",
+          "label" : "D",
+          "text" : "The presentation excludes beginners"
+        } ],
+        "correct_option_id" : "d",
+        "explanation" : "Đáp án D: The presentation excludes beginners. Đối chiếu thông tin được nêu trong ngữ liệu riêng của câu này. Ngữ liệu: “The reviewer calls the exhibition ambitious, then observes that its explanations assume the very knowledge visitors are supposedly there to acquire.”"
+      }, {
+        "id" : "PLT-Q-A1-L-0001-V3",
+        "order_index" : 15,
+        "skill" : "LISTENING",
+        "level" : "A1",
+        "label" : "A1 listening 1 — compact",
+        "prompt" : "Where is this train going?",
+        "options" : [ {
+          "id" : "a",
+          "label" : "A",
+          "text" : "Riverside"
+        }, {
+          "id" : "b",
+          "label" : "B",
+          "text" : "Greenford"
+        }, {
+          "id" : "c",
+          "label" : "C",
+          "text" : "Westlake"
+        }, {
+          "id" : "d",
+          "label" : "D",
+          "text" : "Hilltown"
+        } ],
+        "correct_option_id" : "b",
+        "explanation" : "Đáp án B: Greenford. Đối chiếu thông tin được nêu trong ngữ liệu riêng của câu này. Ngữ liệu: “This train goes to Greenford. Please have your tickets ready before the doors close.”",
+        "transcript" : "This train goes to Greenford. Please have your tickets ready before the doors close.",
+        "audio" : {
+          "url" : "http://127.0.0.1:8892/audio/e7f071b41f6d8f852f9c40c4c7b0bc1c5df9f18394814288edc58705f1fdd32a.wav",
+          "duration_seconds" : 6.444
+        }
+      }, {
+        "id" : "PLT-Q-A2-L-0001-V3",
+        "order_index" : 16,
+        "skill" : "LISTENING",
+        "level" : "A2",
+        "label" : "A2 listening 1 — compact",
+        "prompt" : "How will the guest get the key?",
+        "options" : [ {
+          "id" : "a",
+          "label" : "A",
+          "text" : "A reception desk"
+        }, {
+          "id" : "b",
+          "label" : "B",
+          "text" : "A breakfast waiter"
+        }, {
+          "id" : "c",
+          "label" : "C",
+          "text" : "Another guest"
+        }, {
+          "id" : "d",
+          "label" : "D",
+          "text" : "An entrance box"
+        } ],
+        "correct_option_id" : "d",
+        "explanation" : "Đáp án D: An entrance box. Khách lấy chìa khóa ở hộp bên cửa vì lễ tân đã đóng. Ngữ liệu: “Reception closes before you arrive tonight. Your key will be in a box beside the entrance. We have emailed the code; check in tomorrow morning.”",
+        "transcript" : "Reception closes before you arrive tonight. Your key will be in a box beside the entrance. We have emailed the code; check in tomorrow morning.",
+        "audio" : {
+          "url" : "http://127.0.0.1:8892/audio/38ae6cfb8b30d5a33ef26e661efbc44e283154cde59dd8da2ba481b1b56b42eb.wav",
+          "duration_seconds" : 10.283
+        }
+      }, {
+        "id" : "PLT-Q-B1-L-0001-V3",
+        "order_index" : 17,
+        "skill" : "LISTENING",
+        "level" : "B1",
+        "label" : "B1 listening 1 — compact",
+        "prompt" : "Why shorten the updates?",
+        "options" : [ {
+          "id" : "a",
+          "label" : "A",
+          "text" : "To reduce record keeping"
+        }, {
+          "id" : "b",
+          "label" : "B",
+          "text" : "To avoid discussing problems"
+        }, {
+          "id" : "c",
+          "label" : "C",
+          "text" : "To postpone team decisions"
+        }, {
+          "id" : "d",
+          "label" : "D",
+          "text" : "To focus on action"
+        } ],
+        "correct_option_id" : "d",
+        "explanation" : "Đáp án D: To focus on action. Báo cáo tập trung vào tiến độ, vướng mắc và quyết định cần hỗ trợ. Ngữ liệu: “My detailed updates kept our meetings long. My manager needed progress, problems and decisions requiring help. I now report those first and keep the details available. Meetings lead to clearer action.”",
+        "transcript" : "My detailed updates kept our meetings long. My manager needed progress, problems and decisions requiring help. I now report those first and keep the details available. Meetings lead to clearer action.",
+        "audio" : {
+          "url" : "http://127.0.0.1:8892/audio/035cd8e71db26d1049ed8b6d92c06f472776c7769584c8e0317350a84bb2f273.wav",
+          "duration_seconds" : 14.532
+        }
+      }, {
+        "id" : "PLT-Q-B1-L-0002-V3",
+        "order_index" : 18,
+        "skill" : "LISTENING",
+        "level" : "B1",
+        "label" : "B1 listening 2 — compact",
+        "prompt" : "Why choose the festival?",
+        "options" : [ {
+          "id" : "a",
+          "label" : "A",
+          "text" : "The journey was shorter"
+        }, {
+          "id" : "b",
+          "label" : "B",
+          "text" : "The opportunity was temporary"
+        }, {
+          "id" : "c",
+          "label" : "C",
+          "text" : "The museum had closed"
+        }, {
+          "id" : "d",
+          "label" : "D",
+          "text" : "The owner bought tickets"
+        } ],
+        "correct_option_id" : "b",
+        "explanation" : "Đáp án B: The opportunity was temporary. Lễ hội khó lặp lại còn lịch tham quan bảo tàng có thể dời. Ngữ liệu: “We’d planned a museum visit, but a café owner invited us to a festival that afternoon. The museum would be open tomorrow; the festival wouldn’t. We changed our plans.”",
+        "transcript" : "We’d planned a museum visit, but a café owner invited us to a festival that afternoon. The museum would be open tomorrow; the festival wouldn’t. We changed our plans.",
+        "audio" : {
+          "url" : "http://127.0.0.1:8892/audio/34c63e05c8eed246e1ca06307728f8826f592d71ebb3cd24951bdd94d0ad089f.wav",
+          "duration_seconds" : 14.897
+        }
+      }, {
+        "id" : "PLT-Q-B2-L-0003-V3",
+        "order_index" : 19,
+        "skill" : "LISTENING",
+        "level" : "B2",
+        "label" : "B2 listening 3 — compact",
+        "prompt" : "What is the implied criticism?",
+        "options" : [ {
+          "id" : "a",
+          "label" : "A",
+          "text" : "The detail may obscure priorities"
+        }, {
+          "id" : "b",
+          "label" : "B",
+          "text" : "The subject lacks useful information"
+        }, {
+          "id" : "c",
+          "label" : "C",
+          "text" : "Newcomers should already know it"
+        }, {
+          "id" : "d",
+          "label" : "D",
+          "text" : "The guide provides too few examples"
+        } ],
+        "correct_option_id" : "a",
+        "explanation" : "Đáp án A: The detail may obscure priorities. Đối chiếu thông tin được nêu trong ngữ liệu riêng của câu này. Ngữ liệu: “The guide certainly contains plenty of information. Whether newcomers can find what matters among all that detail is another question. More isn’t automatically more helpful.”",
+        "transcript" : "The guide certainly contains plenty of information. Whether newcomers can find what matters among all that detail is another question. More isn’t automatically more helpful.",
+        "audio" : {
+          "url" : "http://127.0.0.1:8892/audio/af92dc4666cddfbd804a5e6f00a8ab48de545f253624a000d8cde89b03d6ada0.wav",
+          "duration_seconds" : 12.677
+        }
+      }, {
+        "id" : "PLT-Q-B2-L-0004-V3",
+        "order_index" : 20,
+        "skill" : "LISTENING",
+        "level" : "B2",
+        "label" : "B2 listening 4 — compact",
+        "prompt" : "How should the response be understood?",
+        "options" : [ {
+          "id" : "a",
+          "label" : "A",
+          "text" : "A funding guarantee"
+        }, {
+          "id" : "b",
+          "label" : "B",
+          "text" : "Opposition to the aim"
+        }, {
+          "id" : "c",
+          "label" : "C",
+          "text" : "Approval of budget reductions"
+        }, {
+          "id" : "d",
+          "label" : "D",
+          "text" : "Conditional support"
+        } ],
+        "correct_option_id" : "d",
+        "explanation" : "Đáp án D: Conditional support. Đối chiếu thông tin được nêu trong ngữ liệu riêng của câu này. Ngữ liệu: “We support the aim, but we haven’t committed funding. First, we need a credible account of what would be reduced elsewhere to pay for it.”",
+        "transcript" : "We support the aim, but we haven’t committed funding. First, we need a credible account of what would be reduced elsewhere to pay for it.",
+        "audio" : {
+          "url" : "http://127.0.0.1:8892/audio/650bf7462f4d83f2ec6aab6755c872e441a61bb5aade6016399f1d536bdc14ad.wav",
+          "duration_seconds" : 10.232
+        }
+      } ],
+      "_class" : "fit.iuh.engolearn.placement.model.PlacementTestSet"
+    } ]
+  }
+}
