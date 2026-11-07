@@ -106,3 +106,74 @@ replace is destructive. Use -DryRun first and inspect the report.
 - Empty samples/: add one or more JSON files or pass -File.
 - Invalid JSON, missing collections, or missing _id: fix the input file before retrying.
 - Import error: inspect the report. Earlier successful batches are not rolled back.
+
+## Shared Assessment / Learning Path demo
+
+The two datasets use account `pfc-demo-learner-v2`:
+
+| File in samples/ | Collections / documents |
+| --- | --- |
+| `assessment-demo.json` | 8 / 11: demo account/profile, baseline/gate, version-2 paper, four historical attempts and Assessment profile |
+| `learning-path-demo.json` | 4 / 766: 6 paths, 390 referenced question snapshots, 360 pool questions and 10 passages |
+
+The Assessment file replaces `assessment-paper-v2.json`; keeping the old file alongside it
+would duplicate the paper ID during multi-file preflight. No `attempts` or `micro_skill_results`
+projection is included. Snapshot/path IDs remain ObjectIds; owner IDs are strings. The 210
+orphaned local question snapshots are not part of the shared dataset.
+
+### Import and initialize
+
+Use a development replica-set database. Configure both the importer and backend for that
+same database; the backend does not automatically load these datasets at startup. In the
+importer-local `.env`, use `MONGO_IMPORT_OBJECT_ID_FIELDS=none` and
+`MONGO_IMPORT_CONFLICT_POLICY=skip`. Import the two files explicitly:
+
+```powershell
+.\tools\mongo-json-importer\import.ps1 -File .\tools\mongo-json-importer\samples\assessment-demo.json -DryRun
+.\tools\mongo-json-importer\import.ps1 -File .\tools\mongo-json-importer\samples\assessment-demo.json
+.\tools\mongo-json-importer\import.ps1 -File .\tools\mongo-json-importer\samples\learning-path-demo.json -DryRun
+.\tools\mongo-json-importer\import.ps1 -File .\tools\mongo-json-importer\samples\learning-path-demo.json
+```
+
+Inspect the reports and enter IMPORT when prompted. Skip preserves existing IDs, including
+practice progress; reimporting does not reset dates, quota, cooldown, grants or ownership of
+existing documents. Do not use replace against an existing learner database to force a replay.
+
+Initialize the shared Subscription catalog on a fresh database using its
+[existing seed](../subscription/README.md), then initialize only this demo account with
+[the account-only manifest](../subscription/assessment-learningpath-demo-account.json).
+The manifest is published through the backend, never passed to this importer. Existing
+catalogs must not be republished or overwritten to add this account.
+
+Run the backend with `dev` active, `prod` absent, and the existing Assessment audio directory:
+
+```powershell
+.\mvnw.cmd spring-boot:run '-Dspring-boot.run.arguments=--spring.profiles.active=dev --engolearn.assessment.media-directory=./tools/mongo-json-importer/samples/assessment-media --engolearn.subscription.publish-manifest=tools/subscription/assessment-learningpath-demo-account.json'
+```
+
+After the account publication succeeds, omit the publish-manifest argument on normal restarts;
+keep the profile and media directory. All 13 Assessment WAV files are already committed.
+
+### Demo account and flows
+
+Public development credentials: `assessment-demo@example.test` / `EngoLearn-Demo-2026!`.
+
+1. Open `/assessment/history`, then `/assessment/attempts/demo-history-64/result` (64/100).
+2. Open `/learning-paths`: the dataset has three completed paths, two cancelled paths and
+   one active path at export time. All six belong to the same demo account. Only the path
+   with a real matching source links to `demo-history-64`; five historical paths have no
+   linked Assessment result. Their baseline scores and practice progress are preserved.
+3. The 64-point source returns ALREADY_CREATED. To test recommendation and creation,
+   complete a new Assessment. Eligible skills still require at least 30 ACTIVE pool
+   questions at the result's level; this pool currently supports B1 only. Existing active
+   skills are excluded. Confirm creation in the dialog, then practice the new path at week 1.
+4. Subscription starts with ordinary Free access. Full skill display follows the normal
+   Trial/Premium policy; importing data does not grant a paid subscription. Assessment's
+   real cooldown and quota continue to apply.
+
+Historical dates are fixed. Startup/scheduled lifecycle processing may close days, advance
+weeks or cancel overdue active paths as time passes; importing with skip does not restart them.
+**Learning Path Listening audio is not supplied:** its five audio URLs are example.com
+placeholders. Question rendering, answers, grading and review can be demonstrated, but real
+Listening playback cannot. Assessment audio is a separate, complete set; it must not be
+substituted for unrelated Learning Path exercise audio.

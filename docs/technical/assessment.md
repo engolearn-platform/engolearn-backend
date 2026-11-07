@@ -155,7 +155,7 @@ The local handoff package includes the Windows and Atlas instructions, isolated 
 
 ### Shared development data
 
-Pull this backend branch to get the [version-2 sample paper](../../tools/mongo-json-importer/samples/assessment-paper-v2.json)
+Pull this backend branch to get the [shared Assessment demo dataset](../../tools/mongo-json-importer/samples/assessment-demo.json)
 and its [WAV files](../../tools/mongo-json-importer/samples/assessment-media). The paper is marked
 `demonstration: true` and is selectable in `dev` without `prod`.
 
@@ -165,8 +165,8 @@ and its [WAV files](../../tools/mongo-json-importer/samples/assessment-media). T
    policy at `skip`.
 
    ```powershell
-   .\tools\mongo-json-importer\import.ps1 -File .\tools\mongo-json-importer\samples\assessment-paper-v2.json -DryRun
-   .\tools\mongo-json-importer\import.ps1 -File .\tools\mongo-json-importer\samples\assessment-paper-v2.json
+   .\tools\mongo-json-importer\import.ps1 -File .\tools\mongo-json-importer\samples\assessment-demo.json -DryRun
+   .\tools\mongo-json-importer\import.ps1 -File .\tools\mongo-json-importer\samples\assessment-demo.json
    ```
 
    Run the second command only after confirming the target and the preflight report. It
@@ -224,3 +224,10 @@ Final command: `./mvnw verify` with JDK 21+. Feature checks: `AssessmentRulesTes
 tests use/clear test-owned collections in the dedicated `engolearn_pfc_test` database.
 Legacy tests import an already-started legacy snapshot; actual new starts require version 2.
 No fake assessment HTTP or in-memory Mongo replacement is used as integration evidence.
+
+
+The version-2 paper now ships inside `assessment-demo.json`, together with the public demo
+account and four historical attempts. For the shared Learning Path dataset, Subscription
+account initialization and current demo limits, follow the
+[importer guide](../../tools/mongo-json-importer/README.md#shared-assessment--learning-path-demo).
+Learning Path Listening audio placeholders do not affect the 13 supplied Assessment WAV files.

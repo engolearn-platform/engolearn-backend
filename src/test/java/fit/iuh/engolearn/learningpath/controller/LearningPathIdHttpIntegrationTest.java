@@ -41,7 +41,7 @@ class LearningPathIdHttpIntegrationTest extends AbstractMongoIntegrationTest {
         seedAccount(owner);
         seedEligibleProjection(owner, attemptId);
         Document input = Document.parse(java.nio.file.Files.readString(java.nio.file.Path.of(
-                "tools/mongo-json-importer/samples/assessment-paper-v2.json")));
+                "tools/mongo-json-importer/samples/assessment-demo.json")));
         Document paper = input.get("collections", Document.class).getList("assessment_papers", Document.class).getFirst();
         paper.remove("_id");
         paper.put("paper_id", "native-submitted-paper");
