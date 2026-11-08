@@ -3,7 +3,7 @@
 /tools/mongo/*.sh text eol=lf
 
 # Placement generated JSON is byte-checked by package tooling.
-/data/placement/**/*.json text eol=lf
+/tools/placement/data/**/*.json text eol=lf
 /tools/mongo-json-importer/samples/placement-v3-*.importer.json text eol=lf
 
 # Text inputs hashed by the Placement package manifest.

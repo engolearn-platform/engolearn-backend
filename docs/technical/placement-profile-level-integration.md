@@ -66,3 +66,12 @@ Short inline comments identify integration rationale at CAS, transaction joining
 `mvnw.cmd -Dtest=PlacementUserLevelIntegrationTest,ArchitectureTest test` exercises the isolated real Mongo transaction boundary. `PLACEMENT_LIVE_ALLOW_WRITES=1 python tools/placement/check-profile-level.py` runs new disposable local users through FE/BE. Optional historical case requires all3 PLACEMENT_HISTORICAL_EMAIL/PASSWORD/ATTEMPT settings; no historical credentials are hard-coded. The Python script is optional standard-library verification, not a runtime dependency.
 
 Evidence outside Git in C: workspace: level-red.log, level-live-results*.json, level-be-verify-final.log, level-be-comparison.json, level-integration-test.log, level-fe-build.log, level-fe-lint.log, level-auth-tests.log, placement-level-topics.png.
+
+## Pre-push concurrency review — 2026-11-09
+
+The transactional submit decorator must preserve the caller's validated revision.
+If another tab changed answers, return null so the existing submission loop reads
+and revalidates the new answer set before any finalization/profile update. This
+also applies to transaction retries. A real HTTP/Mongo regression clears all
+answers after capturing the validated attempt; stale submit must return null,
+normal submit then rejects empty answers and the user remains A1/in progress.

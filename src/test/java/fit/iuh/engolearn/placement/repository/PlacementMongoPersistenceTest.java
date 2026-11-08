@@ -335,7 +335,7 @@ class PlacementMongoPersistenceTest {
     }
 
     private static void seedQuestions() throws Exception {
-        String json = Files.readString(Path.of("data/placement/seed/placement_questions.mongo.json"));
+        String json = Files.readString(Path.of("tools/placement/data/seed/placement_questions.mongo.json"));
         @SuppressWarnings("unchecked")
         List<Map<String, Object>> raw = (List<Map<String, Object>>) MAPPER.readValue(json, List.class);
         List<Document> documents = raw.stream().map(Document::new).toList();

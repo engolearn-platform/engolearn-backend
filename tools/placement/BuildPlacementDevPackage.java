@@ -15,8 +15,8 @@ import tools.jackson.databind.ObjectMapper;
 public class BuildPlacementDevPackage {
     private static final Path BACKEND = Path.of("").toAbsolutePath().normalize();
     private static final Path REPO = BACKEND.getParent();
-    private static final Path SEED = BACKEND.resolve("data/placement/seed");
-    private static final Path OUTPUT = BACKEND.resolve("data/placement/dev-v3");
+    private static final Path SEED = BACKEND.resolve("tools/placement/data/seed");
+    private static final Path OUTPUT = BACKEND.resolve("tools/placement/data/dev-v3");
     private static final Path SAMPLES = BACKEND.resolve("tools/mongo-json-importer/samples");
     private static final ObjectMapper JSON = new ObjectMapper();
     private static final Path MEDIA = SAMPLES.resolve("placement-media");

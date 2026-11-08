@@ -1,6 +1,6 @@
 # Placement: run from a clean clone
 
-Before review/merge into main is complete, use branch `merge/placement-guest-user-main` in **both** backend and frontend repositories. Both branches have been pushed to origin.
+The current full local implementation is on BE `merge/placement-guest-user-main` and FE `fix/placement-guest-navbar`. Latest commits can still be local-only; obtain the reviewed matching pair before using this runbook on another machine.
 
 ## Requirements
 
@@ -82,3 +82,17 @@ The immutable V1 input is intentionally not regenerated.
 Historical project-wide test failures are recorded separately in
 [merge verification](placement-merge-verification.md). New acceptance evidence for
 the portable setup is recorded in placement-portable-verification.md after testing.
+
+## Placement data layout after relocation (2026-11-09)
+
+Source seed/schema/provenance files now live in `tools/placement/data/seed/`;
+development sidecars live in `tools/placement/data/dev-v3/`. Generation, validation
+and Placement persistence tests use these paths. The old backend-root `data/`
+directory is no longer required. See [tool layout](../../tools/placement/README.md#data-layout-relocated-2026-11-09).
+
+Current import inputs and all 96 WAVs remain in `tools/mongo-json-importer/samples/`.
+This relocation does not migrate Mongo data or change question/snapshot/media
+content. Parent `data/bank-320/` references in provenance remain historical external
+authoring paths and are only needed by the optional authoring-source audit.
+
+Verification and handoff details: [data relocation](placement-data-relocation.md).

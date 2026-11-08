@@ -59,19 +59,19 @@
   },
   "output": {
     "questions": {
-      "path": "engolearn-backend/data/placement/seed/placement_questions.mongo.json",
+      "path": "engolearn-backend/tools/placement/data/seed/placement_questions.mongo.json",
       "bytes": 1106714,
       "sha256": "ce5f8862f5710d53451ec597004c1635e792804dda920b85bb131b2edf99bfb6",
       "documents": 320
     },
     "audio_manifest": {
-      "path": "engolearn-backend/data/placement/seed/placement_audio_manifest.json",
+      "path": "engolearn-backend/tools/placement/data/seed/placement_audio_manifest.json",
       "bytes": 113464,
       "sha256": "bbe1d0176265aa2e6fc4b41b9b38c934b74020e6e431263c1c3b2866adb6b8df",
       "assets": 96
     },
     "schema": {
-      "path": "engolearn-backend/data/placement/seed/placement_questions.mongo.schema.json",
+      "path": "engolearn-backend/tools/placement/data/seed/placement_questions.mongo.schema.json",
       "bytes": 8720,
       "sha256": "7c15746e2f5dfec9d12d51b2ba9ade7d79e79fcfcf27a5f0c61bb5c132e24195"
     }

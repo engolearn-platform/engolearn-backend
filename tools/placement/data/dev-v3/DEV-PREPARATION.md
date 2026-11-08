@@ -19,7 +19,7 @@ Run `tools/placement/inspect-dev-target.mongosh.js` read-only before any approva
 
 Generate/check using [the Placement tool README](../../../tools/placement/README.md).
 `package-manifest.json` records input/output SHA-256, counts and validation scope.
-The two `*.importer.json` files live in `tools/mongo-json-importer/samples/` and are the only import inputs. Manifests remain in `data/placement/dev-v3/`. Selection, package and
+The two `*.importer.json` files live in `tools/mongo-json-importer/samples/` and are the only import inputs. Manifests remain in `tools/placement/data/dev-v3/`. Selection, package and
 audio manifests are sidecars, not Mongo collections and not generic importer inputs.
 
 - Questions: exact 320 canonical M1 documents, unchanged order/values/nulls, DRAFT.

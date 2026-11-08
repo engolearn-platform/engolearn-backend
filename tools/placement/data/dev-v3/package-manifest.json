@@ -3,17 +3,17 @@
   "version" : 1,
   "audio_base_url" : "/api/v1/placement/media",
   "sources" : [ {
-    "path" : "engolearn-backend/data/placement/seed/placement_questions.mongo.json",
+    "path" : "engolearn-backend/tools/placement/data/seed/placement_questions.mongo.json",
     "sha256" : "ce5f8862f5710d53451ec597004c1635e792804dda920b85bb131b2edf99bfb6"
   }, {
-    "path" : "engolearn-backend/data/placement/seed/placement_questions.mongo.schema.json",
+    "path" : "engolearn-backend/tools/placement/data/seed/placement_questions.mongo.schema.json",
     "sha256" : "7c15746e2f5dfec9d12d51b2ba9ade7d79e79fcfcf27a5f0c61bb5c132e24195"
   }, {
-    "path" : "engolearn-backend/data/placement/seed/placement_audio_manifest.json",
+    "path" : "engolearn-backend/tools/placement/data/seed/placement_audio_manifest.json",
     "sha256" : "bbe1d0176265aa2e6fc4b41b9b38c934b74020e6e431263c1c3b2866adb6b8df"
   }, {
-    "path" : "engolearn-backend/data/placement/seed/placement_seed_manifest.json",
-    "sha256" : "06cd53687e47356c6b4db97499897a92c128ef15bceabecf15ae2937f5c46852"
+    "path" : "engolearn-backend/tools/placement/data/seed/placement_seed_manifest.json",
+    "sha256" : "4c8572f38964606460e3b15f5eca1f68ae0403038bf6539cfd3cf3fe9b2595a1"
   }, {
     "path" : "engolearn-backend/tools/mongo-json-importer/mongodb-json-importer-data-format-guide.md",
     "sha256" : "6e5379eb50ba30d65cf55af73934a5deeedc9b0dcb4f88ff7b11063d5b2db0f3"

@@ -60,6 +60,7 @@ class PlacementUserLevelIntegrationTest extends AbstractMongoIntegrationTest {
     @Autowired private UserLevelLookup levels;
     @Autowired private PlacementTransactionExecutor transactions;
     @Autowired private PlacementAttemptService attempts;
+    @Autowired private PlacementDeadlineService deadlines;
     @Autowired @Qualifier("mongoTransactionManager") private PlatformTransactionManager manager;
     private Map<String, String> canonicalAnswers;
 
@@ -133,6 +134,24 @@ class PlacementUserLevelIntegrationTest extends AbstractMongoIntegrationTest {
         String id = answeredAttempt(user.client());
         request(user.client(), "POST", API + "/" + id + "/learning", null, 404);
         assertThat(request(user.client(), "GET", API + "/" + id, null, 200).path("status").asText()).isEqualTo("IN_PROGRESS");
+        assertThat(viewer(user.client())).isEqualTo("A1");
+    }
+
+    @Test
+    void staleValidatedSubmissionCannotFinalizeAnswersClearedByAnotherTab() throws Exception {
+        Browser user = register();
+        String id = answeredAttempt(user.client());
+        PlacementAttempt validated = mongoTemplate.findById(id, PlacementAttempt.class);
+        for (var answer : validated.getAnswers()) {
+            var body = new HashMap<String, Object>();
+            body.put("questionId", answer.getQuestionId());
+            body.put("selectedOptionId", null);
+            request(user.client(), "PATCH", API + "/" + id + "/answers", body, 200);
+        }
+        // The caller checked answers on an older revision; its retry must recheck that precondition.
+        assertThat(deadlines.submitBeforeDeadline(validated, java.time.Instant.now())).isNull();
+        request(user.client(), "POST", API + "/" + id + "/submit", null, 422);
+        assertThat(mongoTemplate.findById(id, PlacementAttempt.class).getStatus().name()).isEqualTo("IN_PROGRESS");
         assertThat(viewer(user.client())).isEqualTo("A1");
     }
 

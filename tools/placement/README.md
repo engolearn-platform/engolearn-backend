@@ -9,7 +9,7 @@ node tools/placement/build-dev-package.mjs
 node tools/placement/build-dev-package.mjs --check
 ```
 
-These commands use the checked-in `data/placement/seed/` and the 96 original
+These commands use the checked-in `tools/placement/data/seed/` and the 96 original
 hash-named WAVs in `tools/mongo-json-importer/samples/placement-media/`. A clone
 does not need its author's parent `data/bank-320/`. JDK 21, Node, Maven wrapper
 dependencies and mongosh (or Docker Desktop for the validation fallback) are required.
@@ -18,7 +18,7 @@ its compile step does not substitute for running the application test suite.
 
 Outputs: shared `placement-v3-questions.importer.json` and
 `placement-v3-test-sets-v2.importer.json`; sidecars remain in
-`data/placement/dev-v3/`. V1 `placement-v3-test-sets.importer.json` is retained
+`tools/placement/data/dev-v3/`. V1 `placement-v3-test-sets.importer.json` is retained
 unchanged and is not a generator output. New V2 audio URLs are relative
 `/api/v1/placement/media/<sha256>.wav`, so FE proxy and BE work on each machine.
 Optional `--audio-base-url` accepts a root-relative prefix or an HTTP(S) origin;
@@ -55,3 +55,12 @@ in committed command examples or terminal logs. All input mounts are read-only.
 ## User resume acceptance
 
 GET /api/v1/placement/attempts/current reads safe progress without creating a test. Contract, known side effects, real checks and repeat command: [placement-user-resume.md](../../docs/technical/placement-user-resume.md).
+
+## Data layout (relocated 2026-11-09)
+
+- `tools/placement/data/seed/`: canonical source questions, schema and provenance manifests used by generation/tests.
+- `tools/placement/data/dev-v3/`: generated selection/audio/package manifests and development notes; not importer inputs.
+- `tools/mongo-json-importer/samples/placement-v3-questions.importer.json` and `placement-v3-test-sets-v2.importer.json`: the only current Placement import inputs.
+- `tools/mongo-json-importer/samples/placement-media/`: bundled WAVs served by BE.
+
+The old backend-root `data/placement/` was relocated; runtime URLs, question IDs/content, V1/V2 snapshots, Mongo data and media remain unchanged. Paths beginning with parent `data/bank-320/` are historical authoring provenance outside the BE repository, used only by the optional authoring audit; they are not the removed BE data folder. Do not import seed/sidecar JSON directly or import every sample file.

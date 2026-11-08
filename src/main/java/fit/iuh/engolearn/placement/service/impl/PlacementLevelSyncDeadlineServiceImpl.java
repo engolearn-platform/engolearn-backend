@@ -34,6 +34,8 @@ public class PlacementLevelSyncDeadlineServiceImpl implements PlacementDeadlineS
         return transactions.execute(() -> {
             PlacementAttempt fresh = current(attempt.getId());
             if (fresh.getStatus() != PlacementAttemptStatus.IN_PROGRESS) return fresh;
+            // The caller validated answers on this revision; a concurrent save must trigger its validation loop again.
+            if (fresh.getRevision() != attempt.getRevision()) return null;
             PlacementAttempt finished = delegate.submitBeforeDeadline(fresh, now);
             // One commit couples the result and its profile promotion; Guest results remain unpromoted until claim.
             levels.synchronize(finished);
