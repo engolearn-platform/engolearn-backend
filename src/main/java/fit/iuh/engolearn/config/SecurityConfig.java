@@ -61,6 +61,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/topics", "/api/v1/topics/**", "/api/v1/topic-items", "/api/v1/topic-items/**",
                                 "/api/v1/topic-attempts", "/api/v1/topic-attempts/**", "/api/v1/topic-retry-sessions", "/api/v1/topic-retry-sessions/**",
                                 "/api/v1/topic-learning", "/api/v1/topic-learning/**").hasAnyRole("USER", "CONTENT_MANAGER", "ADMIN")
+                        .requestMatchers("/api/v1/assessment", "/api/v1/assessment/**").authenticated()
                         .anyRequest().permitAll()
                 );
 
@@ -103,7 +104,8 @@ public class SecurityConfig {
         ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(status,
                 exception.getMessage() == null ? status.getReasonPhrase() : exception.getMessage());
         problemDetail.setType(URI.create("about:blank"));
-        if (path.startsWith("/api/v1/subscription/") || path.startsWith("/api/v1/quota/")
+        if (path.startsWith("/api/v1/assessment/")
+                || path.startsWith("/api/v1/subscription/") || path.startsWith("/api/v1/quota/")
                 || path.startsWith("/api/v1/auth/") || path.equals("/api/learning-paths")
                 || path.startsWith("/api/learning-paths/")) {
             problemDetail.setDetail(status == HttpStatus.UNAUTHORIZED ? "Authentication is required" : "Access is denied");

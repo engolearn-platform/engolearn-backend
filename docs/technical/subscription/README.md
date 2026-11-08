@@ -4,6 +4,8 @@ Subscription owns published plans/quota policies, immutable benefits for periods
 
 Start with [flows](../../flows/subscription/README.md), then [HTTP API](api-contract.md), [data model](data-model.md) or [module contracts](module-contract.md). The [legacy OpenAPI](../subscription-quota/quota-api.openapi.yaml) remains an active frontend contract with limited coverage; it omits purchase/refund/provider routes.
 
+New user registration initializes Subscription account history through `SubscriptionAccountInitialization` in the same Mongo transaction as user/profile creation. Published FREE configuration supplies initial benefits; Quota resolves projections lazily and absent usage counters read as zero. Existing accounts are not backfilled. See the [registration setup](../../runbooks/user-auth.md) and [contract](module-contract.md#subscription-owned-contracts).
+
 | Package under `fit.iuh.engolearn.subscription` | Main responsibilities |
 | --- | --- |
 | `controller`, `dto.request`, `dto.response` | Learner/Admin HTTP adaptation, typed validation and projections |

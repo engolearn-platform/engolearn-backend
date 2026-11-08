@@ -67,7 +67,7 @@ class LearningPathDayPracticeIntegrationTest {
                     + UUID.randomUUID().toString().replace("-", ""));
             try {
                 ObjectId pathId = new ObjectId();
-                ObjectId userId = new ObjectId();
+                String userId = new ObjectId().toHexString();
                 insertPath(template, pathId, userId);
                 insertSnapshots(template, pathId, userId);
                 LearningPathRepository paths = mock(LearningPathRepository.class);
@@ -78,8 +78,8 @@ class LearningPathDayPracticeIntegrationTest {
                         paths, new LearningPathPracticeRepository(template),
                         new LearningPathQuestionRepository(template), Clock.fixed(STARTED_AT, ZoneOffset.UTC));
 
-                var first = service.start(pathId.toHexString(), 1, 1, userId.toHexString());
-                var repeated = service.start(pathId.toHexString(), 1, 1, userId.toHexString());
+                var first = service.start(pathId.toHexString(), 1, 1, userId);
+                var repeated = service.start(pathId.toHexString(), 1, 1, userId);
 
                 assertThat(first.questions()).hasSize(10);
                 assertThat(repeated.startedAt()).isEqualTo(first.startedAt());
@@ -108,7 +108,7 @@ class LearningPathDayPracticeIntegrationTest {
                     + UUID.randomUUID().toString().replace("-", ""));
             try {
                 ObjectId pathId = new ObjectId();
-                ObjectId userId = new ObjectId();
+                String userId = new ObjectId().toHexString();
                 insertPath(template, pathId, userId);
                 insertSnapshots(template, pathId, userId);
                 LearningPathRepository paths = mock(LearningPathRepository.class);
@@ -122,13 +122,13 @@ class LearningPathDayPracticeIntegrationTest {
                         paths, practice, questions, clock);
                 LearningPathAnswerDraftService draftService = new LearningPathAnswerDraftService(
                         paths, practice, questions, clock);
-                dayService.start(pathId.toHexString(), 1, 1, userId.toHexString());
+                dayService.start(pathId.toHexString(), 1, 1, userId);
 
-                draftService.save(pathId.toHexString(), 1, 1, "q-1", userId.toHexString(),
+                draftService.save(pathId.toHexString(), 1, 1, "q-1", userId,
                         new SaveLearningPathAnswerDraftRequest("A"));
-                draftService.save(pathId.toHexString(), 1, 1, "q-1", userId.toHexString(),
+                draftService.save(pathId.toHexString(), 1, 1, "q-1", userId,
                         new SaveLearningPathAnswerDraftRequest("B"));
-                var reopened = dayService.start(pathId.toHexString(), 1, 1, userId.toHexString());
+                var reopened = dayService.start(pathId.toHexString(), 1, 1, userId);
 
                 assertThat(reopened.questions().getFirst().selectedOptionId()).isEqualTo("B");
                 Document persisted = template.getCollection("learning_paths")
@@ -154,7 +154,7 @@ class LearningPathDayPracticeIntegrationTest {
             MongoTemplate template = new MongoTemplate(client, "learning_path_submit_" + UUID.randomUUID().toString().replace("-", ""));
             try {
                 ObjectId pathId = new ObjectId();
-                ObjectId userId = new ObjectId();
+                String userId = new ObjectId().toHexString();
                 insertPath(template, pathId, userId);
                 insertSnapshots(template, pathId, userId);
                 LearningPathRepository paths = mock(LearningPathRepository.class);
@@ -165,12 +165,12 @@ class LearningPathDayPracticeIntegrationTest {
                 LearningPathQuestionRepository questions = new LearningPathQuestionRepository(template);
                 Clock clock = Clock.fixed(STARTED_AT, ZoneOffset.UTC);
                 new LearningPathDayPracticeService(paths, practice, questions, clock)
-                        .start(pathId.toHexString(), 1, 1, userId.toHexString());
+                        .start(pathId.toHexString(), 1, 1, userId);
                 LearningPathAnswerDraftService drafts = new LearningPathAnswerDraftService(paths, practice, questions, clock);
-                drafts.save(pathId.toHexString(), 1, 1, "q-1", userId.toHexString(), new SaveLearningPathAnswerDraftRequest("A"));
-                drafts.save(pathId.toHexString(), 1, 1, "q-2", userId.toHexString(), new SaveLearningPathAnswerDraftRequest("B"));
+                drafts.save(pathId.toHexString(), 1, 1, "q-1", userId, new SaveLearningPathAnswerDraftRequest("A"));
+                drafts.save(pathId.toHexString(), 1, 1, "q-2", userId, new SaveLearningPathAnswerDraftRequest("B"));
                 var submission = new LearningPathDaySubmissionService(paths, practice, questions, clock)
-                        .submit(pathId.toHexString(), 1, 1, userId.toHexString());
+                        .submit(pathId.toHexString(), 1, 1, userId);
                 assertThat(submission.status()).isEqualTo("SUBMITTED");
                 assertThat(submission.answered()).isEqualTo(2);
                 assertThat(submission.correct()).isEqualTo(1);
@@ -178,7 +178,7 @@ class LearningPathDayPracticeIntegrationTest {
                 assertThat(submission.completionRate()).isEqualTo(20.0);
                 assertThat(submission.practiceScore()).isEqualTo(50.0);
                 var review = new LearningPathDayResultService(paths, questions)
-                        .getResult(pathId.toHexString(), 1, 1, userId.toHexString());
+                        .getResult(pathId.toHexString(), 1, 1, userId);
                 assertThat(review.questions()).hasSize(10);
                 assertThat(review.status()).isEqualTo("SUBMITTED");
                 assertThat(review.correct()).isEqualTo(1);
@@ -194,10 +194,10 @@ class LearningPathDayPracticeIntegrationTest {
                 assertThat(day.getString("close_reason")).isEqualTo("SUBMITTED");
                 assertThat(day.getList("items", Document.class).getFirst().get("draft")).isNull();
                 assertThat(day.getList("items", Document.class).getFirst().get("answer", Document.class).getBoolean("is_correct")).isTrue();
-                assertThatThrownBy(() -> drafts.save(pathId.toHexString(), 1, 1, "q-1", userId.toHexString(),
+                assertThatThrownBy(() -> drafts.save(pathId.toHexString(), 1, 1, "q-1", userId,
                         new SaveLearningPathAnswerDraftRequest("B"))).isInstanceOf(org.springframework.web.server.ResponseStatusException.class);
                 assertThatThrownBy(() -> new LearningPathDaySubmissionService(paths, practice, questions, clock)
-                        .submit(pathId.toHexString(), 1, 1, userId.toHexString())).isInstanceOf(org.springframework.web.server.ResponseStatusException.class);
+                        .submit(pathId.toHexString(), 1, 1, userId)).isInstanceOf(org.springframework.web.server.ResponseStatusException.class);
             } finally {
                 template.getDb().drop();
             }
@@ -210,7 +210,7 @@ class LearningPathDayPracticeIntegrationTest {
             MongoTemplate template = new MongoTemplate(client, "learning_path_race_" + UUID.randomUUID().toString().replace("-", ""));
             try {
                 ObjectId pathId = new ObjectId();
-                ObjectId userId = new ObjectId();
+                String userId = new ObjectId().toHexString();
                 insertPath(template, pathId, userId);
                 LearningPathPracticeRepository practice = new LearningPathPracticeRepository(template);
                 Date weekClose = Date.from(Instant.parse("2026-10-15T17:00:00Z"));
@@ -236,7 +236,7 @@ class LearningPathDayPracticeIntegrationTest {
             MongoTemplate template = new MongoTemplate(client, "learning_path_full_" + UUID.randomUUID().toString().replace("-", ""));
             try {
                 ObjectId pathId = new ObjectId();
-                ObjectId userId = new ObjectId();
+                String userId = new ObjectId().toHexString();
                 insertPath(template, pathId, userId);
                 insertSnapshots(template, pathId, userId);
                 LearningPathRepository paths = mock(LearningPathRepository.class);
@@ -247,17 +247,17 @@ class LearningPathDayPracticeIntegrationTest {
                 LearningPathQuestionRepository questions = new LearningPathQuestionRepository(template);
                 Clock clock = Clock.fixed(STARTED_AT, ZoneOffset.UTC);
                 new LearningPathDayPracticeService(paths, practice, questions, clock)
-                        .start(pathId.toHexString(), 1, 1, userId.toHexString());
+                        .start(pathId.toHexString(), 1, 1, userId);
                 LearningPathAnswerDraftService drafts = new LearningPathAnswerDraftService(paths, practice, questions, clock);
                 for (int index = 1; index <= 10; index++) {
-                    drafts.save(pathId.toHexString(), 1, 1, "q-" + index, userId.toHexString(), new SaveLearningPathAnswerDraftRequest("A"));
+                    drafts.save(pathId.toHexString(), 1, 1, "q-" + index, userId, new SaveLearningPathAnswerDraftRequest("A"));
                 }
                 LearningPathDaySubmissionService expired = new LearningPathDaySubmissionService(paths, practice, questions,
                         Clock.fixed(AUTO_CLOSE_AT.toInstant(), ZoneOffset.UTC));
-                assertThatThrownBy(() -> expired.submit(pathId.toHexString(), 1, 1, userId.toHexString()))
+                assertThatThrownBy(() -> expired.submit(pathId.toHexString(), 1, 1, userId))
                         .isInstanceOf(org.springframework.web.server.ResponseStatusException.class);
                 var result = new LearningPathDaySubmissionService(paths, practice, questions, clock)
-                        .submit(pathId.toHexString(), 1, 1, userId.toHexString());
+                        .submit(pathId.toHexString(), 1, 1, userId);
                 assertThat(result.status()).isEqualTo("COMPLETED");
                 assertThat(result.answered()).isEqualTo(10);
                 assertThat(result.correct()).isEqualTo(10);
@@ -276,12 +276,20 @@ class LearningPathDayPracticeIntegrationTest {
             MongoTemplate template = new MongoTemplate(client, "learning_path_id_" + UUID.randomUUID().toString().replace("-", ""));
             try {
                 ObjectId pathId = new ObjectId();
-                ObjectId userId = new ObjectId();
+                String userId = new ObjectId().toHexString();
                 insertPath(template, pathId, userId);
                 Date originalCreatedAt = Date.from(Instant.parse("2026-10-09T03:00:00Z"));
                 template.getCollection("learning_paths").updateOne(new Document("_id", pathId),
                         new Document("$set", new Document("created_at", originalCreatedAt)));
                 insertSnapshots(template, pathId, userId);
+                for (String collection : List.of("learning_paths", "learning_path_questions")) {
+                    template.getCollection(collection).updateMany(new Document("user_id", userId),
+                            new Document("$set", new Document("user_id", new ObjectId(userId))));
+                    var converted = template.getCollection(collection).updateMany(
+                            new Document("user_id", new Document("$type", "objectId")),
+                            List.of(new Document("$set", new Document("user_id", new Document("$toString", "$user_id")))));
+                    assertThat(converted.getModifiedCount()).isGreaterThan(0);
+                }
                 LearningPathRepository paths = new MongoRepositoryFactory(template)
                         .getRepository(LearningPathRepository.class);
 
@@ -304,7 +312,7 @@ class LearningPathDayPracticeIntegrationTest {
         }
     }
 
-    private void insertPath(MongoTemplate template, ObjectId pathId, ObjectId userId) {
+    private void insertPath(MongoTemplate template, ObjectId pathId, String userId) {
         List<Document> items = new ArrayList<>();
         for (int order = 1; order <= 10; order++) {
             items.add(new Document("order", order)
@@ -332,7 +340,7 @@ class LearningPathDayPracticeIntegrationTest {
         template.getCollection("learning_paths").insertOne(path);
     }
 
-    private void insertSnapshots(MongoTemplate template, ObjectId pathId, ObjectId userId) {
+    private void insertSnapshots(MongoTemplate template, ObjectId pathId, String userId) {
         List<Document> options = List.of(
                 new Document("option_id", "A").append("text", "A"),
                 new Document("option_id", "B").append("text", "B"),

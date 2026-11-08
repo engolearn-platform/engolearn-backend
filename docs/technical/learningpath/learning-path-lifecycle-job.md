@@ -14,3 +14,7 @@ For each path, overdue deadlines are processed in chronological order. At the sa
 The job updates only the affected fields in `learning_paths`, preserving other document fields. Its MongoDB update checks the expected path status, answer count, `next_run_at` and revision. Start, draft, submission and lifecycle updates increment that revision, so concurrent writes retry against current data. Existing documents without a revision are treated as the initial version.
 
 `LearningPath` inherits `BaseDocument`: its Java ID is a string, while MongoDB `_id` and question snapshot `path_id` remain BSON ObjectIds. `created_at` remains a MongoDB date. The inherited `updated_at` may be populated by Spring auditing when an entity is saved; the direct MongoDB updates used by practice and lifecycle do not guarantee that it changes on every operation.
+
+The path and question snapshot `user_id` fields are BSON strings. Lifecycle grading uses
+that string owner together with the ObjectId path ID to read the answer keys. See
+[user ID storage](learning-path-list-api.md#user-id-storage).

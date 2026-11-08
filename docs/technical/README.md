@@ -9,3 +9,5 @@ Topic contracts cover [attempts/quiz](topic/quiz-api-handoff.md), [completion/re
 Learning Path documentation covers [list/recommendation/creation](learningpath/learning-path-list-api.md), [day practice](learningpath/learning-path-day-practice-api.md) and the [lifecycle job](learningpath/learning-path-lifecycle-job.md).
 
 The [old folder router](subscription-quota/README.md) preserves compatibility. Architectural decisions remain in ADRs; earlier implementation documents and verification records are available in Git history under `docs/technical/subscription-quota/`. Other modules remain under the existing paths linked from the [documentation index](../README.md).
+
+Learner periodic assessment: [F01/F02 rules, API and compatibility](assessment.md).

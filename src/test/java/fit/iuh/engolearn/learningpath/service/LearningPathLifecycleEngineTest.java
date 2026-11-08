@@ -286,7 +286,7 @@ class LearningPathLifecycleEngineTest {
     void lifecycleServiceLoadsAnswerKeyToFinalizeDraft() {
         LearningPath path = path("2026-10-01", "2026-10-07");
         path.setId(new ObjectId().toHexString());
-        path.setUserId(new ObjectId());
+        path.setUserId("pfc-demo-learner-v2");
         startFirstDay(path, "2026-10-07", 0, 0);
         LearningPathDayItem item = path.getWeeks().getFirst().getDays().getFirst()
                 .getItems().getFirst();

@@ -87,7 +87,7 @@ class SecurityIntegrationTest {
     private static final String USER_ID = "68f8f3a9b9e4a12345678901";
     private static final String OTHER_USER_ID = "68f8f3a9b9e4a12345678902";
     private static final String PATH_ID = "68f8f3a9b9e4a12345678903";
-    private static final String ATTEMPT_ID = "68f8f3a9b9e4a12345678904";
+    private static final String ATTEMPT_ID = "native-assessment-source";
     private static final String SESSION_ID = "security-integration-session";
     private static final String DAY_URL = "/api/learning-paths/" + PATH_ID + "/weeks/1/days/1";
     private static final String CREATE_BODY = """
@@ -142,6 +142,17 @@ class SecurityIntegrationTest {
                 .andExpect(header().string("Cache-Control", "no-store"));
 
         verifyNoLearningPathCalls();
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"/api/v1/assessment/preparation", "/api/v1/assessment/attempts"})
+    void assessmentEndpointsRequireAuthenticationWithProblemDetail(String path) throws Exception {
+        mockMvc.perform(get(path))
+                .andExpect(status().isUnauthorized())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.code").value("AUTHENTICATION_REQUIRED"))
+                .andExpect(jsonPath("$.instance").value(path))
+                .andExpect(header().string("Cache-Control", "no-store"));
     }
 
     @Test
@@ -248,8 +259,14 @@ class SecurityIntegrationTest {
         String endpoint = path.split("\\?", 2)[0];
         if (endpoint.equals("/api/learning-paths/recommendation")) {
             verify(recommendationService).recommend(USER_ID, ATTEMPT_ID);
+        } else if (endpoint.equals("/api/learning-paths/recommendation/by-assessment")) {
+            verify(recommendationService).recommendForAssessment(USER_ID, "native-assessment-id");
         } else if (endpoint.equals("/api/learning-paths/search")) {
             verify(learningPathService).search(USER_ID, "Gist");
+        } else if (endpoint.equals("/api/learning-paths/by-assessment")) {
+            verify(creationService).createForAssessment(
+                    new fit.iuh.engolearn.learningpath.dto.request.CreateLearningPathByAssessmentRequest(
+                            "native-assessment-id", List.of("Reading for Gist")), USER_ID);
         } else if (path.equals("/api/learning-paths") && method == HttpMethod.POST) {
             verify(creationService).create(new CreateLearningPathRequest(
                     ATTEMPT_ID, List.of("Reading for Gist")), USER_ID);
@@ -362,7 +379,10 @@ class SecurityIntegrationTest {
                 Arguments.of(HttpMethod.GET, "/api/learning-paths", ""),
                 Arguments.of(HttpMethod.GET, "/api/learning-paths/search?keyword=Gist", ""),
                 Arguments.of(HttpMethod.GET, "/api/learning-paths/recommendation?attemptId=" + ATTEMPT_ID, ""),
+                Arguments.of(HttpMethod.GET, "/api/learning-paths/recommendation/by-assessment?assessmentAttemptId=native-assessment-id", ""),
                 Arguments.of(HttpMethod.POST, "/api/learning-paths", CREATE_BODY),
+                Arguments.of(HttpMethod.POST, "/api/learning-paths/by-assessment",
+                        "{\"assessmentAttemptId\":\"native-assessment-id\",\"microSkills\":[\"Reading for Gist\"]}"),
                 Arguments.of(HttpMethod.GET, "/api/learning-paths/" + PATH_ID, ""),
                 Arguments.of(HttpMethod.POST, DAY_URL + "/start", ""),
                 Arguments.of(HttpMethod.PUT, DAY_URL + "/questions/q-1/draft", "{\"selectedOptionId\":\"A\"}"),
