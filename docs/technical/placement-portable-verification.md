@@ -66,3 +66,7 @@ This work does not deploy shared infrastructure or publish DRAFT content.
 Repository-wide baseline failures and the earlier backend-role policy gap remain
 outside this onboarding change. Integration branch is prepared for team review;
 no merge into shared main is performed automatically.
+
+## Delivery
+
+BE code commit b76174a and FE commit f1737cc were pushed to origin on branch merge/placement-guest-user-main in their respective repositories. Team members can fetch these branches now. Review/merge into shared main remains a separate action. Local BE8080, FE3000 and legacy V1 audio8892 remain running; disposable clean-runtime services were stopped.

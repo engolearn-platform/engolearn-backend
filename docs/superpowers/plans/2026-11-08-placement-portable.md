@@ -34,4 +34,4 @@ existing differing input IDs; missing external authoring bank in a clean clone.
 ### Task 4: Fresh runtime, review and delivery
 - [x] Verify fresh replica-set import, real Guest/Auth/claim/media through FE.
 - [x] Run full verify and distinguish baseline failures; request a fresh final review.
-- [ ] Commit scoped changes and push integration branch for review when possible.
+- [x] Commit scoped changes and push integration branch for review when possible.

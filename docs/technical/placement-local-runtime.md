@@ -1,5 +1,7 @@
 # Placement: run from a clean clone
 
+Before review/merge into main is complete, use branch `merge/placement-guest-user-main` in **both** backend and frontend repositories. Both branches have been pushed to origin.
+
 ## Requirements
 
 JDK 21, Node/npm, PowerShell and Docker Desktop running Linux containers. Maven
