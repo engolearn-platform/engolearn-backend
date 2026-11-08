@@ -10,6 +10,7 @@ import fit.iuh.engolearn.topic.dto.request.GetTopicItemContentRequest;
 import fit.iuh.engolearn.topic.dto.request.GetTopicItemPositionRequest;
 import fit.iuh.engolearn.topic.dto.request.GetTopicProgressRequest;
 import fit.iuh.engolearn.topic.dto.request.SaveTopicItemPositionRequest;
+import fit.iuh.engolearn.topic.dto.response.TopicDetailResponse;
 import fit.iuh.engolearn.topic.dto.response.TopicItemContentResponse;
 import fit.iuh.engolearn.topic.dto.response.TopicItemPositionResponse;
 import fit.iuh.engolearn.topic.dto.response.TopicItemProgressResponse;
@@ -77,6 +78,7 @@ public class TopicLearningServiceImpl implements TopicLearningService, SpeakingI
     private final UserTopicItemAttemptRepository userTopicItemAttemptRepository;
     private final UserLevelLookup userLevels;
     private final TopicGenerationService generations;
+    private final TopicLearnerCatalogService catalog;
 
     // --- content -----------------------------------------------------------------------
 
@@ -86,7 +88,7 @@ public class TopicLearningServiceImpl implements TopicLearningService, SpeakingI
             ItemContext item = resolvePublishedItem(learnerId, itemId);
             UserTopicItemAttempt attempt = findActiveItemAttempt(learnerId, itemId, item.generation());
             UserTopicItemProgress progress = findItemProgress(learnerId, itemId, item.generation());
-            if (attempt == null && progress == null) {
+            if (attempt == null && progress == null && !catalogAllowsReview(learnerId, itemId, item)) {
                 requireLevelAllowed(learnerId, item.topic());
                 requirePredecessorsCompleted(learnerId, item, itemId);
             }
@@ -108,6 +110,12 @@ public class TopicLearningServiceImpl implements TopicLearningService, SpeakingI
         } catch (TopicItemNotFoundException | TopicNotFoundException | LearningPreconditionFailedException ex) {
             return Optional.empty();
         }
+    }
+
+    private boolean catalogAllowsReview(String learnerId, String itemId, ItemContext item) {
+        TopicDetailResponse detail = catalog.detail(learnerId, item.topic().getId());
+        return detail.getGeneration() == item.generation() && detail.getItems().stream()
+                .anyMatch(entry -> itemId.equals(entry.getTopicItemId()) && entry.getActions().review().allowed());
     }
 
     @Override

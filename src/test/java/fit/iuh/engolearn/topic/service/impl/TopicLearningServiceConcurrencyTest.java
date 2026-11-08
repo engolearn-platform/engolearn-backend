@@ -100,6 +100,9 @@ class TopicLearningServiceConcurrencyTest {
     @Mock
     private UserLevelLookup userLevels;
 
+    @Mock
+    private TopicLearnerCatalogService catalog;
+
     private TopicLearningServiceImpl service;
 
     /** The store the stubs read from; it is replaced between the rounds of the race. */
@@ -109,7 +112,7 @@ class TopicLearningServiceConcurrencyTest {
     void setUp() {
         service = new TopicLearningServiceImpl(topicRepository, topicVersionRepository, topicItemRepository,
                 topicItemVersionRepository, userTopicProgressRepository, userTopicItemProgressRepository,
-                userTopicAttemptRepository, userTopicItemAttemptRepository, userLevels, generations);
+                userTopicAttemptRepository, userTopicItemAttemptRepository, userLevels, generations, catalog);
     }
 
     @Test
