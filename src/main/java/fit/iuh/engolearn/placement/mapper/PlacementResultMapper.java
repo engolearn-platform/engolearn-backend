@@ -25,7 +25,7 @@ public final class PlacementResultMapper {
             PlacementAudioResponse audio = item.getAudio() == null ? null : new PlacementAudioResponse(
                     item.getAudio().getUrl(), item.getAudio().getDurationSeconds());
             return new PlacementReviewQuestionResponse(item.getId(), item.getOrder(), item.getSkill(), item.getPrompt(),
-                    item.getPassage(), options, answers.get(item.getId()), item.getCorrectOptionId(), audio);
+                    item.getPassage(), options, answers.get(item.getId()), item.getCorrectOptionId(), audio, item.getExplanation());
         }).toList();
         return new PlacementReviewResponse(attempt.getId(), attempt.getStatus(), items.size(),
                 attempt.getCorrectCount(), attempt.getPlacementLevel(), summary.incorrectCount(),
