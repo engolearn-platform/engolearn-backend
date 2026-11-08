@@ -2,6 +2,8 @@ package fit.iuh.engolearn.placement.controller.exceptionhandler;
 
 import fit.iuh.engolearn.placement.controller.PlacementAttemptController;
 import fit.iuh.engolearn.placement.controller.PlacementResultController;
+import fit.iuh.engolearn.placement.controller.PlacementLearningController;
+import fit.iuh.engolearn.user.contract.exception.UserLevelPromotionException;
 import fit.iuh.engolearn.placement.exception.PlacementRequestException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -16,8 +18,16 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
 
-@RestControllerAdvice(assignableTypes = {PlacementAttemptController.class, PlacementResultController.class})
+@RestControllerAdvice(assignableTypes = {PlacementAttemptController.class, PlacementResultController.class, PlacementLearningController.class})
 public class PlacementExceptionHandler {
+    // Cross-module failures remain retryable here; User does not expose HTTP semantics in its contract.
+    @ExceptionHandler(UserLevelPromotionException.class)
+    public ProblemDetail levelUnavailable(UserLevelPromotionException exception, HttpServletRequest request,
+                                          HttpServletResponse response) {
+        return problem(HttpStatus.SERVICE_UNAVAILABLE, "PLACEMENT_LEVEL_SYNC_UNAVAILABLE",
+                "Could not update your learning level. Please retry.", request, response);
+    }
+
     @ExceptionHandler(PlacementRequestException.class)
     public ProblemDetail placementError(PlacementRequestException exception, HttpServletRequest request,
                                         HttpServletResponse response) {
