@@ -24,7 +24,7 @@
   }
   function check(condition, message) { if (!condition) throw Error(message); }
   const api = loader(fs);
-  const files = ['placement-v3-questions.importer.json', 'placement-v3-test-sets.importer.json'].map(n => path.join(samples, n));
+  const files = ['placement-v3-questions.importer.json', 'placement-v3-test-sets-v2.importer.json'].map(n => path.join(samples, n));
   for (const fieldPatterns of ['none', '_id,*_id,*_ids']) {
     const stats = { converted: 0 };
     const data = api.loadDatasets(files, api.compileFieldPatterns(fieldPatterns), stats);
@@ -37,7 +37,7 @@
     const bank = new Map(questions.map(e => [e.document._id, e.document]));
     check(JSON.stringify(questions.map(e => e.document)) === JSON.stringify(canonical), 'Canonical fields, values and order must be unchanged');
     const set = sets[0].document;
-    check(set._id === 'PLT-V3-DEV-001-V1' && set.status === 'DRAFT' && set.items.length === 20, 'DRAFT snapshot contract');
+    check(set._id === 'PLT-V3-DEV-001-V2' && set.version === 2 && set.status === 'DRAFT' && set.items.length === 20, 'DRAFT snapshot contract');
     check(set.items.every(i => typeof i.id === 'string' && bank.has(i.id)), 'Snapshot references must resolve');
     check(set.items.slice(14).every(i => typeof i.audio.url === 'string' && typeof i.audio.duration_seconds === 'number'), 'Listening metadata');
     check(JSON.stringify(set.items.map(i => i.id)) === JSON.stringify(selection.questions.map(q => q.question_id)), 'Selection order');
@@ -62,7 +62,7 @@
       }
       if (index >= 14) {
         check(item.audio.duration_seconds === question.provenance.audio_duration_seconds, 'Decimal audio duration');
-        check(item.audio.url === media.metadata.audio_base_url + '/audio/' + question.provenance.audio_sha256 + '.wav', 'Audio URL/hash reference');
+        check(item.audio.url === media.metadata.audio_base_url + (media.metadata.audio_base_url.startsWith('/') ? '/' : '/audio/') + question.provenance.audio_sha256 + '.wav', 'Audio URL/hash reference');
       }
     }
     for (const level of ['A1', 'A2', 'B1', 'B2']) {
@@ -72,14 +72,12 @@
     print('REAL_IMPORTER_INPUT_LOADER=PASS; EJSON=PASS; objectIdFields=' + fieldPatterns + '; converted=0; collections=2; documents=321');
   }
   const crypto = require('crypto');
-  const workspace = path.dirname(root);
   check(media.assets.length === 96, '96 resolved media references');
   for (const asset of media.assets) {
     const digest = file => crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex');
-    check(digest(path.join(workspace, asset.source_path)) === asset.sha256, 'Canonical WAV checksum');
-    check(digest(path.join(workspace, 'data/bank-320/runtime-preview/audio', asset.sha256 + '.wav')) === asset.sha256, 'Existing local audio server WAV checksum');
+    check(digest(path.join(root, asset.source_path)) === asset.sha256, 'Packaged canonical WAV checksum');
   }
-  print('PLACEMENT_DOMAIN_VALIDATOR=PASS; snapshot fidelity/matrix/B2 families/references PASS; canonical and existing server WAV hashes=96/96');
+  print('PLACEMENT_DOMAIN_VALIDATOR=PASS; snapshot fidelity/matrix/B2 families/references PASS; packaged canonical WAV hashes=96/96');
   function rejects(operation, label) {
     let rejected = false;
     try { operation(); } catch (_) { rejected = true; }

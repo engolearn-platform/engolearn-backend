@@ -180,20 +180,17 @@ substituted for unrelated Learning Path exercise audio.
 
 ## Shared Placement V3 data
 
-The shared inputs are `samples/placement-v3-questions.importer.json` (320 DRAFT
-questions) and `samples/placement-v3-test-sets.importer.json` (one DRAFT snapshot,
-20 items). Their generator is `tools/placement/build-dev-package.mjs`; manifests
-stay in `data/placement/dev-v3/` and must not be imported. Generate/check from the
-backend root; see [Placement tools](../placement/README.md).
+Use `samples/placement-v3-questions.importer.json` (320 DRAFT questions) and
+`samples/placement-v3-test-sets-v2.importer.json` (one portable DRAFT snapshot).
+The V1 `placement-v3-test-sets.importer.json` stays frozen for historical attempts;
+new setup commands do not import or overwrite it. WAVs live in
+`samples/placement-media/` and BE serves them through the frontend API proxy.
 
-Import each Placement file explicitly using `-File`, after read-only preflight
-against the same database used by the backend. Keep string identifiers unchanged
-with `MONGO_IMPORT_OBJECT_ID_FIELDS=none`. Do not run the default all-samples import
-just to enable Placement. If all 321 IDs already exist and their content matches,
-no import is needed; do not replace existing documents or attempts.
+From backend root, use `tools/placement/setup-local.ps1` for read-only preflight
+and add `-Apply` to import. This wrapper compares existing content before calling
+the unmodified generic importer with skip; different content aborts without
+replacement. It selects only questions + V2 and never resets attempts. Do not use
+the default all-samples import just to enable Placement.
 
-For local development, use a MongoDB replica set and enable transactions for real
-Auth registration. The backend must use `engolearn.placement.persistence.mode=mongo`.
-The included test set is DRAFT, so also use the `dev` profile and
-`engolearn.placement.test-set.allow-draft=true`. These are local settings, not a
-production publication. The backend reads MongoDB at runtime, not these JSON files.
+See [Placement local runtime](../../docs/technical/placement-local-runtime.md)
+for prerequisites, fresh-clone setup, environment isolation and legacy V1 audio.

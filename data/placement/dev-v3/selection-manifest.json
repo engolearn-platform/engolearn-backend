@@ -3,7 +3,7 @@
     "name" : "engolearn-placement-v3-selection",
     "version" : 1,
     "source_sha256" : "ce5f8862f5710d53451ec597004c1635e792804dda920b85bb131b2edf99bfb6",
-    "test_set_id" : "PLT-V3-DEV-001-V1"
+    "test_set_id" : "PLT-V3-DEV-001-V2"
   },
   "blueprint" : {
     "A1" : {

@@ -1,117 +1,82 @@
-# Placement shared data and local runtime
+# Placement: run from a clean clone
 
-## Shared files
+## Requirements
 
-- `tools/mongo-json-importer/samples/placement-v3-questions.importer.json`: 320 DRAFT questions.
-- `tools/mongo-json-importer/samples/placement-v3-test-sets.importer.json`: one DRAFT twenty-question snapshot.
-- `data/placement/dev-v3/`: selection/audio/package manifests and preparation notes, never import inputs.
+JDK 21, Node/npm, PowerShell and Docker Desktop running Linux containers. Maven
+wrapper dependencies are downloaded on first build. No parent bank directory or
+separate Node audio server is needed for new V2 attempts.
 
-Run from the backend root:
+## Backend
 
-```powershell
-node tools/placement/build-dev-package.mjs
-node tools/placement/build-dev-package.mjs --check
-```
-
-Generator and validator use the shared sample paths. Both relocated JSON payloads
-match the committed originals exactly in parsed values, IDs and array order.
-Generated JSON and manifest-hashed repository inputs are pinned to LF so Windows
-checkout does not invalidate byte checksums. The seed manifest was refreshed
-against the current source validation metadata; canonical source questions/audio
-were not edited.
-
-## Existing development database
-
-On 2026-11-08, read-only inventory of the backend-configured database
-`engolearn_placement_dev_v3` at `127.0.0.1:27019` found replica set `engolearn-rs`,
-all 320 questions and one test set, with zero content mismatches and zero missing
-IDs. It already contained 17 attempts. No dataset re-import or replacement was
-necessary; no existing attempt was reset. Do not import every sample to enable
-Placement: that also selects unrelated Topic/Assessment/Learning Path datasets.
-
-For another developer's database, configure importer and backend to the same
-target, use `MONGO_IMPORT_OBJECT_ID_FIELDS=none`, and dry-run each Placement file
-explicitly with `-File`. Keep `fail` until existing documents have been compared;
-`skip` alone does not verify their content. The PowerShell importer runs inside
-Docker, where `mongodb:27017` maps to the local Compose service exposed on host
-port 27019. Native mongosh must use the host endpoint, not the Docker hostname.
-
-## Start local backend and frontend
-
-Root `.env` is local and ignored by Git. Its existing connection/credentials are
-preserved. Add these Spring properties to that file:
-
-```properties
-spring.profiles.active=dev
-engolearn.placement.persistence.mode=mongo
-engolearn.placement.test-set.allow-draft=true
-```
-
-Use a replica set and `engolearn.mongodb.transactions.enabled=true` for real
-registration. The pre-existing application.yaml transaction change was preserved.
-An optional configuration example is [runtime-config.example.properties](../../data/placement/dev-v3/runtime-config.example.properties).
+From `engolearn-backend`:
 
 ```powershell
-# Backend root: listens on 8080; automatically reads root .env
-.\mvnw.cmd spring-boot:run
-# Frontend root: Vite proxy defaults to backend 8080
+.\tools\placement\setup-local.ps1
+# Review database/preflight output, then import only the missing Placement inputs:
+.\tools\placement\setup-local.ps1 -Apply
+.\tools\placement\run-local.ps1
+```
+
+If .env is absent, setup creates it from .env.example and generates a JWT secret.
+Existing .env values are kept. Check host port, APP_DB and credentials before apply.
+The default host MongoDB port is 27019; inside Docker it is mongodb:27017. Existing
+Docker volumes retain their original users/passwords; this setup never resets them.
+The root .env is ignored by Git and must not be shared with credentials filled in.
+
+Setup checks actual replica-set topology, all packaged inputs/media and existing
+document content. It imports exactly the 320 questions and one V2 DRAFT test set,
+skips identical IDs, rejects different content and never writes placement_attempts.
+An explicit -Apply is required for writes; a plain setup call is read-only for DB data.
+Do not run the generic all-samples import to enable Placement.
+
+The backend listens on 8080. run-local explicitly activates `dev,placement-local`:
+Mongo Placement persistence, dev-only DRAFT access, media directory and registration
+transactions live in application-placement-local.yaml. Do not put global
+spring.profiles.active or Placement repository switches in .env: tests also read it.
+Default tests therefore keep their original sample/slice settings. Real cookie
+authentication remains enabled in the local profile; no fake user is supplied.
+
+## Frontend
+
+From `engolearn-frontend`:
+
+```powershell
+npm ci
 npm run dev
 ```
 
-Open `http://localhost:3000`. Backend startup was verified with the existing
-application database and app credentials, Mongo Placement repositories and dev
-DRAFT access. Guest -> save -> submit -> login -> claim -> result/review passed
-28/28 real HTTP assertions through the frontend proxy. Verification registered
-one real DEV test account and created one new attempt; no fake identity/result
-was inserted.
+Open http://localhost:3000. Vite proxies /api to backend 8080 by default. When using
+a different backend port, set VITE_API_PROXY_TARGET before starting Vite.
 
-## Listening server
+## Listening and historical results
 
-From the parent `EngoLearnApp` directory:
+The repo contains 96 original checksum-named WAVs (about 48 MB) under
+tools/mongo-json-importer/samples/placement-media. The V2 snapshot contains six
+relative URLs under /api/v1/placement/media, served by BE with HEAD and byte-range
+support. The media directory is configurable; only hash-named WAVs beneath its real
+path are exposed. No directory listing, metadata, credentials or arbitrary paths
+are served. Content-hash URLs can be cached; replace media only by adding a new hash.
 
-```powershell
-node .\data\bank-320\serve-runtime-audio.mjs
-```
+V1 files/IDs/version and existing DB attempts are retained unchanged. New starts
+choose the newest version of each code within the selected status; PUBLISHED still
+wins over DRAFT. Attempt/result/review reads keep the exact assigned ID/version.
+Old V1 snapshots contain localhost:8892 URLs: retain the previous audio server on
+the original developer machine while those historical attempts need it. They are
+not silently migrated or republished. Fresh team setup imports V2 only.
 
-The existing server listens on 127.0.0.1:8892 and reads hash-named WAV files from
-`data/bank-320/runtime-preview/audio/`. The backend returns their URLs from the
-Mongo snapshot. Relocating importer JSON does not relocate or re-host the WAVs.
-Native audible playback is a separate check from HTTP delivery.
-
-For historical merge-suite results, see [merge verification](placement-merge-verification.md).
-The current task's checks must be reported separately from those earlier results.
-
-Audio HTTP verification on the same run passed for all six snapshot Listening
-URLs: HEAD 200 with audio/wav, byte-range GET 206, CORS allowing the frontend,
-and full-file SHA-256 matching each hash-named URL. The pre-existing server on
-8892 was a temporary Node audio wrapper with wildcard public CORS; it was left
-running unchanged. The repository command above is the repeatable startup option.
-Native speaker output was not manually listened to during these HTTP checks.
-
-## Verification of the shared-data migration (2026-11-08)
-
-- Package generation and `--check`: PASS; actual importer input parsing and
-  Placement content checks: PASS; 96/96 source/runtime WAV hashes match.
-- Read-only importer preflight against the existing configured database: 321
-  existing documents, zero missing, zero replacements, zero writes. Existing
-  document content was compared before using skip for this read-only report.
-- Real FE proxy -> BE -> configured DEV Mongo: 28/28 HTTP assertions PASS.
-- Six Listening media URLs: HEAD, Range, CORS and SHA-256 PASS.
-- ArchitectureTest: 9 checks PASS. Placement: 132 tests PASS.
-- Complete isolated test run: 681 tests, 7 failures, 48 errors, 28 skipped.
-  Every failing test identity also exists in the previously verified main
-  baseline. Full suite remains failing; this migration adds no failing identity.
-
-The local `.env` now enables dev Mongo repositories. A plain verify command reads
-those local development switches too; the first such run had 11 failures and
-17 errors, including five Placement slice-context errors from that configuration.
-Run the repository's default test setup explicitly without altering the running
-development backend:
+## Package verification and tests
 
 ```powershell
-.\mvnw.cmd verify '-Dspring.profiles.active=default' '-Dengolearn.placement.persistence.mode=sample' '-Dengolearn.placement.test-set.allow-draft=false'
+node tools/placement/build-dev-package.mjs --check
+.\mvnw.cmd verify
 ```
 
-This selects the repository's original unit/slice defaults; it does not disable
-tests or replace real integration evidence. The real HTTP acceptance above uses
-the configured Mongo backend, real cookie auth and real registration transactions.
+The package check uses only checked-in seed/media and validates Mongo conversion,
+20-question selection and all 96 WAV hashes. mongosh is used if installed, otherwise
+Docker runs its offline validator. Only `--verify-authoring-source` additionally
+requires the original external bank. See [tool details](../../tools/placement/README.md).
+The immutable V1 input is intentionally not regenerated.
+
+Historical project-wide test failures are recorded separately in
+[merge verification](placement-merge-verification.md). New acceptance evidence for
+the portable setup is recorded in placement-portable-verification.md after testing.

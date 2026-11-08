@@ -12,3 +12,5 @@
 /tools/mongo-json-importer/import.ps1 text eol=lf
 /tools/mongo-json-importer/importer.mongosh.js text eol=lf
 /src/main/java/fit/iuh/engolearn/placement/service/PlacementTestSetSnapshotFactory.java text eol=lf
+
+/tools/mongo-json-importer/samples/placement-media/*.wav -text

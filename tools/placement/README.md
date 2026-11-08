@@ -1,71 +1,53 @@
-# Placement data tools
+# Placement data and local development tools
 
-Read the shared [data-format guide](../mongo-json-importer/mongodb-json-importer-data-format-guide.md)
-and [importer README](../mongo-json-importer/README.md) before preparing an import.
-The shared importer is read-only input to these tools; it is never modified.
+Start with [local runtime](../../docs/technical/placement-local-runtime.md).
 
-## Canonical M1 (immutable)
-
-```powershell
-node tools/placement/build-mongo-seed.mjs --check
-```
-
-## DEV V3 package (local only)
-
-Prerequisites: Node, JDK 21, Maven wrapper dependencies, native `mongosh` on PATH.
-Run from `engolearn-backend`:
+## Portable package
 
 ```powershell
 node tools/placement/build-dev-package.mjs
 node tools/placement/build-dev-package.mjs --check
 ```
 
-Optional DEV origin (regenerate and check with the same argument):
+These commands use the checked-in `data/placement/seed/` and the 96 original
+hash-named WAVs in `tools/mongo-json-importer/samples/placement-media/`. A clone
+does not need its author's parent `data/bank-320/`. JDK 21, Node, Maven wrapper
+dependencies and mongosh (or Docker Desktop for the validation fallback) are required.
+The wrapper compiles models to run the real MappingMongoConverter/snapshot factory;
+its compile step does not substitute for running the application test suite.
+
+Outputs: shared `placement-v3-questions.importer.json` and
+`placement-v3-test-sets-v2.importer.json`; sidecars remain in
+`data/placement/dev-v3/`. V1 `placement-v3-test-sets.importer.json` is retained
+unchanged and is not a generator output. New V2 audio URLs are relative
+`/api/v1/placement/media/<sha256>.wav`, so FE proxy and BE work on each machine.
+Optional `--audio-base-url` accepts a root-relative prefix or an HTTP(S) origin;
+an explicit origin retains the historical `/audio/` URL convention.
+
+## Optional authoring-bank audit
 
 ```powershell
-node tools/placement/build-dev-package.mjs --audio-base-url http://localhost:8892
-node tools/placement/build-dev-package.mjs --check --audio-base-url http://localhost:8892
+node tools/placement/build-dev-package.mjs --check --verify-authoring-source
 ```
 
-The default is `http://127.0.0.1:8892`, not a production URL. Changing the origin
-does not start/reconfigure a media server. No files are copied into the JAR.
+Only this audit requires the original parent `data/bank-320/package-placement-320-v3`.
+`build-mongo-seed.mjs` remains the original authoring tool. Portable checks verify
+the committed seed-output checksums, snapshot content and all 96 packaged WAVs.
+They do not claim to contact MongoDB or play sound.
 
-The wrapper checks M1 without writing, compiles existing Backend models/factory
-with tests skipped, builds a temporary dependency classpath, and launches the Java
-source tool. Temporary classpath files are removed. Build/cache files can change;
-`--check` does not write the generated package or canonical datasets.
+## Setup and run
 
-`BuildPlacementDevPackage.java` uses the real snapshot factory and an offline
-`MappingMongoConverter` with `NoOpDbRefResolver`, not a Mongo client or Spring
-application context. Output is deterministic UTF-8/LF with no wall-clock audit
-timestamps. The canonical question documents keep their field/value order.
+```powershell
+.\tools\placement\setup-local.ps1
+.\tools\placement\setup-local.ps1 -Apply
+.\tools\placement\run-local.ps1
+```
 
-`validate-dev-package.mongosh.js` runs with `mongosh --nodb --norc`. It evaluates the
-unmodified shared importer in memory, replaces only its `main()` invocation with
-an export of its input-loader functions, and supplies a Mongo constructor that
-always throws. It uses genuine mongosh EJSON, verifies the actual loader with
-both `none` and default ObjectId patterns, checks Placement semantics independently,
-and tests eight rejected input cases. It does not run importer DB preflight.
-If the importer entry point changes, the harness fails and requires review.
+Setup initializes a missing local .env with a random JWT secret, ensures the Compose
+replica set is healthy and performs input/content preflight. An existing .env is
+never overwritten. No -Apply means no data writes. Existing identical IDs are skipped;
+different content is rejected. The generic importer is not modified.
 
-Generated files use two locations:
-
-- **Shared import inputs in `tools/mongo-json-importer/samples/`:** `placement-v3-questions.importer.json`,
-  `placement-v3-test-sets.importer.json`.
-- **Sidecars in `data/placement/dev-v3/`, never import:** `selection-manifest.json`, `audio-url-manifest.json`,
-  `package-manifest.json`.
-
-Canonical M1 has no audit timestamps, and wrapping it does not add/remove any.
-The new snapshot similarly has no fabricated `created_at`/`updated_at`. Import
-execution must retain a real operator/import log; the generic importer does not
-invoke Spring auditing. Converter-generated `_class` on the snapshot is retained.
-
-## Local runtime and database inventory
-
-Follow [Placement local runtime](../../docs/technical/placement-local-runtime.md)
-for current shared-data paths, backend startup and existing-database verification.
-The old `inspect-dev-target.mongosh.js` script targets the historical native
-27017 proposal; it does not inspect the active Compose endpoint on host 27019.
-Use the connection configured for the actual backend/importer before importing.
-The shared `import.ps1` starts Compose MongoDB even for `-DryRun`; select each
-Placement input explicitly, rather than importing every dataset in samples.
+`-NoStartMongo -Network <network> -MongoUri <uri> -Database <name>` is available
+for an explicitly selected isolated DEV/test replica set. Do not put credentials
+in committed command examples or terminal logs. All input mounts are read-only.

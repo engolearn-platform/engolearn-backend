@@ -44,3 +44,8 @@ Mongo Express Web UI: [http://localhost:8081](http://localhost:8081) - Credentia
 ## Learner periodic assessment
 
 See the [F01/F02 contract](docs/technical/assessment.md). The Windows and Atlas demo is distributed with the local handoff package. New papers use Listening-first rules version 2; stored legacy attempts retain their original snapshot.
+
+
+## Placement local development
+
+See [fresh-clone Placement setup](docs/technical/placement-local-runtime.md) for shared data, bundled Listening media, safe import and explicit local profile startup.

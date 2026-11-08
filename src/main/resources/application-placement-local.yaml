@@ -1,0 +1,11 @@
+# Opt in with dev,placement-local; this file is not active during default tests.
+engolearn:
+  placement:
+    persistence:
+      mode: mongo
+    test-set:
+      allow-draft: true
+    media-directory: ./tools/mongo-json-importer/samples/placement-media
+  mongodb:
+    transactions:
+      enabled: true

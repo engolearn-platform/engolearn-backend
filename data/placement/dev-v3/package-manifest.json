@@ -1,7 +1,7 @@
 {
   "name" : "engolearn-placement-v3-dev-package",
   "version" : 1,
-  "audio_base_url" : "http://127.0.0.1:8892",
+  "audio_base_url" : "/api/v1/placement/media",
   "sources" : [ {
     "path" : "engolearn-backend/data/placement/seed/placement_questions.mongo.json",
     "sha256" : "ce5f8862f5710d53451ec597004c1635e792804dda920b85bb131b2edf99bfb6"
@@ -19,7 +19,7 @@
     "sha256" : "6e5379eb50ba30d65cf55af73934a5deeedc9b0dcb4f88ff7b11063d5b2db0f3"
   }, {
     "path" : "engolearn-backend/tools/mongo-json-importer/README.md",
-    "sha256" : "83cc0de06ccee777491579125085942be8145bb252e4e463de824f2a7ae99f59"
+    "sha256" : "638416ddaf9cba46ecf9bb538ff57bd378a1bfa68dcb257758f784bef789513c"
   }, {
     "path" : "engolearn-backend/tools/mongo-json-importer/import.ps1",
     "sha256" : "14c6c7ceaeff714be0e3bda274323f27301a4bca484ea1502f5f2d269b568f64"
@@ -35,17 +35,17 @@
       "bytes" : 1131792,
       "sha256" : "6852d5adf64de661c330991cb4a54bf281f1aed58cff658c2120eb0021debfd8"
     },
-    "placement-v3-test-sets.importer.json" : {
-      "bytes" : 23793,
-      "sha256" : "3a6b7896b4fd8718a7d8ab1a1987cc544d9c924945e1c432243994ae0ee4872f"
+    "placement-v3-test-sets-v2.importer.json" : {
+      "bytes" : 23772,
+      "sha256" : "9aec595db34d50a1f26fbb7ad2ccfdc2d10c70f2b30cfc2ddaae9d2e3ddb3892"
     },
     "selection-manifest.json" : {
       "bytes" : 3540,
-      "sha256" : "6399f60cf0c6d1fa9f50ecffb53b503c2809380a9a3f94b89be985990f2b9b23"
+      "sha256" : "04134ab9e94d2d23d68bb2d46f34c43c29e39f68c0270a1adb7ad9e5dc3f9296"
     },
     "audio-url-manifest.json" : {
-      "bytes" : 39337,
-      "sha256" : "ca734c9350c2245b3b291592d09bdb37f4a89a888ccf1aebe61b5edc21e9a2ca"
+      "bytes" : 53547,
+      "sha256" : "dc74ed3ab911aaefc3b2e9fac18710043518616ff85bb30dec55d3950a669762"
     }
   },
   "counts" : {

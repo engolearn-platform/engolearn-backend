@@ -2,680 +2,776 @@
   "metadata" : {
     "name" : "engolearn-placement-v3-dev-audio",
     "version" : 1,
-    "audio_base_url" : "http://127.0.0.1:8892",
+    "audio_base_url" : "/api/v1/placement/media",
     "playback_verified" : false
   },
   "assets" : [ {
     "question_id" : "PLT-Q-A1-L-0001-V3",
-    "source_path" : "data/bank-320/package-placement-320-v3/batches/A1-compact-v3/audio/PLT-A1-L-G01-V3.wav",
+    "source_path" : "tools/mongo-json-importer/samples/placement-media/e7f071b41f6d8f852f9c40c4c7b0bc1c5df9f18394814288edc58705f1fdd32a.wav",
+    "authoring_source_path" : "data/bank-320/package-placement-320-v3/batches/A1-compact-v3/audio/PLT-A1-L-G01-V3.wav",
     "sha256" : "e7f071b41f6d8f852f9c40c4c7b0bc1c5df9f18394814288edc58705f1fdd32a",
     "bytes" : 284208,
     "duration_seconds" : 6.444,
-    "url" : "http://127.0.0.1:8892/audio/e7f071b41f6d8f852f9c40c4c7b0bc1c5df9f18394814288edc58705f1fdd32a.wav"
+    "url" : "/api/v1/placement/media/e7f071b41f6d8f852f9c40c4c7b0bc1c5df9f18394814288edc58705f1fdd32a.wav"
   }, {
     "question_id" : "PLT-Q-A1-L-0002-V3",
-    "source_path" : "data/bank-320/package-placement-320-v3/batches/A1-compact-v3/audio/PLT-A1-L-G02-V3.wav",
+    "source_path" : "tools/mongo-json-importer/samples/placement-media/ad42d2ed8e5205c4a4801e7a243305a33d1dd9465edf1bdd0d5afb6ee77923bc.wav",
+    "authoring_source_path" : "data/bank-320/package-placement-320-v3/batches/A1-compact-v3/audio/PLT-A1-L-G02-V3.wav",
     "sha256" : "ad42d2ed8e5205c4a4801e7a243305a33d1dd9465edf1bdd0d5afb6ee77923bc",
     "bytes" : 322122,
     "duration_seconds" : 7.303,
-    "url" : "http://127.0.0.1:8892/audio/ad42d2ed8e5205c4a4801e7a243305a33d1dd9465edf1bdd0d5afb6ee77923bc.wav"
+    "url" : "/api/v1/placement/media/ad42d2ed8e5205c4a4801e7a243305a33d1dd9465edf1bdd0d5afb6ee77923bc.wav"
   }, {
     "question_id" : "PLT-Q-A1-L-0003-V3",
-    "source_path" : "data/bank-320/package-placement-320-v3/batches/A1-compact-v3/audio/PLT-A1-L-G03-V3.wav",
+    "source_path" : "tools/mongo-json-importer/samples/placement-media/45d465e430376e6e501b04dc3d18d7d00df283ae66ddfd3d1a3bb725a63c6944.wav",
+    "authoring_source_path" : "data/bank-320/package-placement-320-v3/batches/A1-compact-v3/audio/PLT-A1-L-G03-V3.wav",
     "sha256" : "45d465e430376e6e501b04dc3d18d7d00df283ae66ddfd3d1a3bb725a63c6944",
     "bytes" : 344398,
     "duration_seconds" : 7.808,
-    "url" : "http://127.0.0.1:8892/audio/45d465e430376e6e501b04dc3d18d7d00df283ae66ddfd3d1a3bb725a63c6944.wav"
+    "url" : "/api/v1/placement/media/45d465e430376e6e501b04dc3d18d7d00df283ae66ddfd3d1a3bb725a63c6944.wav"
   }, {
     "question_id" : "PLT-Q-A1-L-0004-V3",
-    "source_path" : "data/bank-320/package-placement-320-v3/batches/A1-compact-v3/audio/PLT-A1-L-G04-V3.wav",
+    "source_path" : "tools/mongo-json-importer/samples/placement-media/49f1c82bbf7448998654f98a9db2209686811d00070a1855e56242d40a5dd40a.wav",
+    "authoring_source_path" : "data/bank-320/package-placement-320-v3/batches/A1-compact-v3/audio/PLT-A1-L-G04-V3.wav",
     "sha256" : "49f1c82bbf7448998654f98a9db2209686811d00070a1855e56242d40a5dd40a",
     "bytes" : 246504,
     "duration_seconds" : 5.589,
-    "url" : "http://127.0.0.1:8892/audio/49f1c82bbf7448998654f98a9db2209686811d00070a1855e56242d40a5dd40a.wav"
+    "url" : "/api/v1/placement/media/49f1c82bbf7448998654f98a9db2209686811d00070a1855e56242d40a5dd40a.wav"
   }, {
     "question_id" : "PLT-Q-A1-L-0005-V3",
-    "source_path" : "data/bank-320/package-placement-320-v3/batches/A1-compact-v3/audio/PLT-A1-L-G05-V3.wav",
+    "source_path" : "tools/mongo-json-importer/samples/placement-media/5893df2e014d02af62423b0ea4e88577cea48e4550e5012f42b6c45470f0149f.wav",
+    "authoring_source_path" : "data/bank-320/package-placement-320-v3/batches/A1-compact-v3/audio/PLT-A1-L-G05-V3.wav",
     "sha256" : "5893df2e014d02af62423b0ea4e88577cea48e4550e5012f42b6c45470f0149f",
     "bytes" : 299868,
     "duration_seconds" : 6.799,
-    "url" : "http://127.0.0.1:8892/audio/5893df2e014d02af62423b0ea4e88577cea48e4550e5012f42b6c45470f0149f.wav"
+    "url" : "/api/v1/placement/media/5893df2e014d02af62423b0ea4e88577cea48e4550e5012f42b6c45470f0149f.wav"
   }, {
     "question_id" : "PLT-Q-A1-L-0006-V3",
-    "source_path" : "data/bank-320/package-placement-320-v3/batches/A1-compact-v3/audio/PLT-A1-L-G06-V3.wav",
+    "source_path" : "tools/mongo-json-importer/samples/placement-media/5d0c07c44038edf8383f83604efee6fab381ecb2fa48109ae6403a3ed3a55e54.wav",
+    "authoring_source_path" : "data/bank-320/package-placement-320-v3/batches/A1-compact-v3/audio/PLT-A1-L-G06-V3.wav",
     "sha256" : "5d0c07c44038edf8383f83604efee6fab381ecb2fa48109ae6403a3ed3a55e54",
     "bytes" : 226008,
     "duration_seconds" : 5.124,
-    "url" : "http://127.0.0.1:8892/audio/5d0c07c44038edf8383f83604efee6fab381ecb2fa48109ae6403a3ed3a55e54.wav"
+    "url" : "/api/v1/placement/media/5d0c07c44038edf8383f83604efee6fab381ecb2fa48109ae6403a3ed3a55e54.wav"
   }, {
     "question_id" : "PLT-Q-A1-L-0007-V3",
-    "source_path" : "data/bank-320/package-placement-320-v3/batches/A1-compact-v3/audio/PLT-A1-L-G07-V3.wav",
+    "source_path" : "tools/mongo-json-importer/samples/placement-media/615f9c3f02d250ab8aa46413189c894b05d6acc0a7fe20144f41233289f046d2.wav",
+    "authoring_source_path" : "data/bank-320/package-placement-320-v3/batches/A1-compact-v3/audio/PLT-A1-L-G07-V3.wav",
     "sha256" : "615f9c3f02d250ab8aa46413189c894b05d6acc0a7fe20144f41233289f046d2",
     "bytes" : 283978,
     "duration_seconds" : 6.438,
-    "url" : "http://127.0.0.1:8892/audio/615f9c3f02d250ab8aa46413189c894b05d6acc0a7fe20144f41233289f046d2.wav"
+    "url" : "/api/v1/placement/media/615f9c3f02d250ab8aa46413189c894b05d6acc0a7fe20144f41233289f046d2.wav"
   }, {
     "question_id" : "PLT-Q-A1-L-0008-V3",
-    "source_path" : "data/bank-320/package-placement-320-v3/batches/A1-compact-v3/audio/PLT-A1-L-G08-V3.wav",
+    "source_path" : "tools/mongo-json-importer/samples/placement-media/bfcb713f5787a018a7f4e91c98c3c2866843af9fb8db6ac1d34b780767449f64.wav",
+    "authoring_source_path" : "data/bank-320/package-placement-320-v3/batches/A1-compact-v3/audio/PLT-A1-L-G08-V3.wav",
     "sha256" : "bfcb713f5787a018a7f4e91c98c3c2866843af9fb8db6ac1d34b780767449f64",
     "bytes" : 240556,
     "duration_seconds" : 5.454,
-    "url" : "http://127.0.0.1:8892/audio/bfcb713f5787a018a7f4e91c98c3c2866843af9fb8db6ac1d34b780767449f64.wav"
+    "url" : "/api/v1/placement/media/bfcb713f5787a018a7f4e91c98c3c2866843af9fb8db6ac1d34b780767449f64.wav"
   }, {
     "question_id" : "PLT-Q-A1-L-0009-V3",
-    "source_path" : "data/bank-320/package-placement-320-v3/batches/A1-compact-v3/audio/PLT-A1-L-G09-V3.wav",
+    "source_path" : "tools/mongo-json-importer/samples/placement-media/359f56646db1bad818989cf2f08302d298aee110b5be6f86fb666f8a528bba69.wav",
+    "authoring_source_path" : "data/bank-320/package-placement-320-v3/batches/A1-compact-v3/audio/PLT-A1-L-G09-V3.wav",
     "sha256" : "359f56646db1bad818989cf2f08302d298aee110b5be6f86fb666f8a528bba69",
     "bytes" : 317056,
     "duration_seconds" : 7.188,
-    "url" : "http://127.0.0.1:8892/audio/359f56646db1bad818989cf2f08302d298aee110b5be6f86fb666f8a528bba69.wav"
+    "url" : "/api/v1/placement/media/359f56646db1bad818989cf2f08302d298aee110b5be6f86fb666f8a528bba69.wav"
   }, {
     "question_id" : "PLT-Q-A1-L-0010-V3",
-    "source_path" : "data/bank-320/package-placement-320-v3/batches/A1-compact-v3/audio/PLT-A1-L-G10-V3.wav",
+    "source_path" : "tools/mongo-json-importer/samples/placement-media/8b43233c2faecb313487b11e12d09aee45113e8be26fe93a56d1e75237d70778.wav",
+    "authoring_source_path" : "data/bank-320/package-placement-320-v3/batches/A1-compact-v3/audio/PLT-A1-L-G10-V3.wav",
     "sha256" : "8b43233c2faecb313487b11e12d09aee45113e8be26fe93a56d1e75237d70778",
     "bytes" : 300092,
     "duration_seconds" : 6.804,
-    "url" : "http://127.0.0.1:8892/audio/8b43233c2faecb313487b11e12d09aee45113e8be26fe93a56d1e75237d70778.wav"
+    "url" : "/api/v1/placement/media/8b43233c2faecb313487b11e12d09aee45113e8be26fe93a56d1e75237d70778.wav"
   }, {
     "question_id" : "PLT-Q-A1-L-0011-V3",
-    "source_path" : "data/bank-320/package-placement-320-v3/batches/A1-compact-v3/audio/PLT-A1-L-G11-V3.wav",
+    "source_path" : "tools/mongo-json-importer/samples/placement-media/4165847377724df3463ab9bf5f8cbabe1b54a44bad99f564d6e21f2528394f65.wav",
+    "authoring_source_path" : "data/bank-320/package-placement-320-v3/batches/A1-compact-v3/audio/PLT-A1-L-G11-V3.wav",
     "sha256" : "4165847377724df3463ab9bf5f8cbabe1b54a44bad99f564d6e21f2528394f65",
     "bytes" : 329406,
     "duration_seconds" : 7.468,
-    "url" : "http://127.0.0.1:8892/audio/4165847377724df3463ab9bf5f8cbabe1b54a44bad99f564d6e21f2528394f65.wav"
+    "url" : "/api/v1/placement/media/4165847377724df3463ab9bf5f8cbabe1b54a44bad99f564d6e21f2528394f65.wav"
   }, {
     "question_id" : "PLT-Q-A1-L-0012-V3",
-    "source_path" : "data/bank-320/package-placement-320-v3/batches/A1-compact-v3/audio/PLT-A1-L-G12-V3.wav",
+    "source_path" : "tools/mongo-json-importer/samples/placement-media/0dabb34c94766b0607e4857967a2c065beccbb50c6f4ac76ee3f3756da494c45.wav",
+    "authoring_source_path" : "data/bank-320/package-placement-320-v3/batches/A1-compact-v3/audio/PLT-A1-L-G12-V3.wav",
     "sha256" : "0dabb34c94766b0607e4857967a2c065beccbb50c6f4ac76ee3f3756da494c45",
     "bytes" : 296338,
     "duration_seconds" : 6.719,
-    "url" : "http://127.0.0.1:8892/audio/0dabb34c94766b0607e4857967a2c065beccbb50c6f4ac76ee3f3756da494c45.wav"
+    "url" : "/api/v1/placement/media/0dabb34c94766b0607e4857967a2c065beccbb50c6f4ac76ee3f3756da494c45.wav"
   }, {
     "question_id" : "PLT-Q-A1-L-0013-V3",
-    "source_path" : "data/bank-320/package-placement-320-v3/batches/A1-compact-v3/audio/PLT-A1-L-G13-V3.wav",
+    "source_path" : "tools/mongo-json-importer/samples/placement-media/7ab9e69c1f8a078333833b6ed1fbcf3585f0ede822949b95686f8a16410498cd.wav",
+    "authoring_source_path" : "data/bank-320/package-placement-320-v3/batches/A1-compact-v3/audio/PLT-A1-L-G13-V3.wav",
     "sha256" : "7ab9e69c1f8a078333833b6ed1fbcf3585f0ede822949b95686f8a16410498cd",
     "bytes" : 246504,
     "duration_seconds" : 5.589,
-    "url" : "http://127.0.0.1:8892/audio/7ab9e69c1f8a078333833b6ed1fbcf3585f0ede822949b95686f8a16410498cd.wav"
+    "url" : "/api/v1/placement/media/7ab9e69c1f8a078333833b6ed1fbcf3585f0ede822949b95686f8a16410498cd.wav"
   }, {
     "question_id" : "PLT-Q-A1-L-0014-V3",
-    "source_path" : "data/bank-320/package-placement-320-v3/batches/A1-compact-v3/audio/PLT-A1-L-G14-V3.wav",
+    "source_path" : "tools/mongo-json-importer/samples/placement-media/95329356616e131faf23d3daad22beb2471c9c8c5e5671fc8738395d8e37b66b.wav",
+    "authoring_source_path" : "data/bank-320/package-placement-320-v3/batches/A1-compact-v3/audio/PLT-A1-L-G14-V3.wav",
     "sha256" : "95329356616e131faf23d3daad22beb2471c9c8c5e5671fc8738395d8e37b66b",
     "bytes" : 255764,
     "duration_seconds" : 5.799,
-    "url" : "http://127.0.0.1:8892/audio/95329356616e131faf23d3daad22beb2471c9c8c5e5671fc8738395d8e37b66b.wav"
+    "url" : "/api/v1/placement/media/95329356616e131faf23d3daad22beb2471c9c8c5e5671fc8738395d8e37b66b.wav"
   }, {
     "question_id" : "PLT-Q-A1-L-0015-V3",
-    "source_path" : "data/bank-320/package-placement-320-v3/batches/A1-compact-v3/audio/PLT-A1-L-G15-V3.wav",
+    "source_path" : "tools/mongo-json-importer/samples/placement-media/ecf4e19a7ea624855296bf1e1ce6792cd4efc40c645674f6c9143c5c10ae9052.wav",
+    "authoring_source_path" : "data/bank-320/package-placement-320-v3/batches/A1-compact-v3/audio/PLT-A1-L-G15-V3.wav",
     "sha256" : "ecf4e19a7ea624855296bf1e1ce6792cd4efc40c645674f6c9143c5c10ae9052",
     "bytes" : 260176,
     "duration_seconds" : 5.899,
-    "url" : "http://127.0.0.1:8892/audio/ecf4e19a7ea624855296bf1e1ce6792cd4efc40c645674f6c9143c5c10ae9052.wav"
+    "url" : "/api/v1/placement/media/ecf4e19a7ea624855296bf1e1ce6792cd4efc40c645674f6c9143c5c10ae9052.wav"
   }, {
     "question_id" : "PLT-Q-A1-L-0016-V3",
-    "source_path" : "data/bank-320/package-placement-320-v3/batches/A1-compact-v3/audio/PLT-A1-L-G16-V3.wav",
+    "source_path" : "tools/mongo-json-importer/samples/placement-media/42958102680517082c1367dc64dbe67d4c10cf2080f4764e4d52450f23621c9f.wav",
+    "authoring_source_path" : "data/bank-320/package-placement-320-v3/batches/A1-compact-v3/audio/PLT-A1-L-G16-V3.wav",
     "sha256" : "42958102680517082c1367dc64dbe67d4c10cf2080f4764e4d52450f23621c9f",
     "bytes" : 232186,
     "duration_seconds" : 5.264,
-    "url" : "http://127.0.0.1:8892/audio/42958102680517082c1367dc64dbe67d4c10cf2080f4764e4d52450f23621c9f.wav"
+    "url" : "/api/v1/placement/media/42958102680517082c1367dc64dbe67d4c10cf2080f4764e4d52450f23621c9f.wav"
   }, {
     "question_id" : "PLT-Q-A2-L-0001-V3",
-    "source_path" : "data/bank-320/package-placement-320-v3/batches/A2-compact-v3/audio/PLT-A2-L-G01-V3.wav",
+    "source_path" : "tools/mongo-json-importer/samples/placement-media/38ae6cfb8b30d5a33ef26e661efbc44e283154cde59dd8da2ba481b1b56b42eb.wav",
+    "authoring_source_path" : "data/bank-320/package-placement-320-v3/batches/A2-compact-v3/audio/PLT-A2-L-G01-V3.wav",
     "sha256" : "38ae6cfb8b30d5a33ef26e661efbc44e283154cde59dd8da2ba481b1b56b42eb",
     "bytes" : 453518,
     "duration_seconds" : 10.283,
-    "url" : "http://127.0.0.1:8892/audio/38ae6cfb8b30d5a33ef26e661efbc44e283154cde59dd8da2ba481b1b56b42eb.wav"
+    "url" : "/api/v1/placement/media/38ae6cfb8b30d5a33ef26e661efbc44e283154cde59dd8da2ba481b1b56b42eb.wav"
   }, {
     "question_id" : "PLT-Q-A2-L-0002-V3",
-    "source_path" : "data/bank-320/package-placement-320-v3/batches/A2-compact-v3/audio/PLT-A2-L-G02-V3.wav",
+    "source_path" : "tools/mongo-json-importer/samples/placement-media/c31c51ec5cc4f823eefdaf8b3d2197f5bb3568d5472eebf03c87754928f4cbb5.wav",
+    "authoring_source_path" : "data/bank-320/package-placement-320-v3/batches/A2-compact-v3/audio/PLT-A2-L-G02-V3.wav",
     "sha256" : "c31c51ec5cc4f823eefdaf8b3d2197f5bb3568d5472eebf03c87754928f4cbb5",
     "bytes" : 446018,
     "duration_seconds" : 10.113,
-    "url" : "http://127.0.0.1:8892/audio/c31c51ec5cc4f823eefdaf8b3d2197f5bb3568d5472eebf03c87754928f4cbb5.wav"
+    "url" : "/api/v1/placement/media/c31c51ec5cc4f823eefdaf8b3d2197f5bb3568d5472eebf03c87754928f4cbb5.wav"
   }, {
     "question_id" : "PLT-Q-A2-L-0003-V3",
-    "source_path" : "data/bank-320/package-placement-320-v3/batches/A2-compact-v3/audio/PLT-A2-L-G03-V3.wav",
+    "source_path" : "tools/mongo-json-importer/samples/placement-media/60907e67330035a62b205353743de27e86354eac57455821adc7bf87c72bfeec.wav",
+    "authoring_source_path" : "data/bank-320/package-placement-320-v3/batches/A2-compact-v3/audio/PLT-A2-L-G03-V3.wav",
     "sha256" : "60907e67330035a62b205353743de27e86354eac57455821adc7bf87c72bfeec",
     "bytes" : 396634,
     "duration_seconds" : 8.993,
-    "url" : "http://127.0.0.1:8892/audio/60907e67330035a62b205353743de27e86354eac57455821adc7bf87c72bfeec.wav"
+    "url" : "/api/v1/placement/media/60907e67330035a62b205353743de27e86354eac57455821adc7bf87c72bfeec.wav"
   }, {
     "question_id" : "PLT-Q-A2-L-0004-V3",
-    "source_path" : "data/bank-320/package-placement-320-v3/batches/A2-compact-v3/audio/PLT-A2-L-G04-V3.wav",
+    "source_path" : "tools/mongo-json-importer/samples/placement-media/56344385f704e6c30bc9d9af540c5aa63fc35bd8b77d83d018c216c91626b21b.wav",
+    "authoring_source_path" : "data/bank-320/package-placement-320-v3/batches/A2-compact-v3/audio/PLT-A2-L-G04-V3.wav",
     "sha256" : "56344385f704e6c30bc9d9af540c5aa63fc35bd8b77d83d018c216c91626b21b",
     "bytes" : 471160,
     "duration_seconds" : 10.683,
-    "url" : "http://127.0.0.1:8892/audio/56344385f704e6c30bc9d9af540c5aa63fc35bd8b77d83d018c216c91626b21b.wav"
+    "url" : "/api/v1/placement/media/56344385f704e6c30bc9d9af540c5aa63fc35bd8b77d83d018c216c91626b21b.wav"
   }, {
     "question_id" : "PLT-Q-A2-L-0005-V3",
-    "source_path" : "data/bank-320/package-placement-320-v3/batches/A2-compact-v3/audio/PLT-A2-L-G05-V3.wav",
+    "source_path" : "tools/mongo-json-importer/samples/placement-media/761d166f84f7340960168226ca3dcea14721d714c8b13b359e49ac251e73192f.wav",
+    "authoring_source_path" : "data/bank-320/package-placement-320-v3/batches/A2-compact-v3/audio/PLT-A2-L-G05-V3.wav",
     "sha256" : "761d166f84f7340960168226ca3dcea14721d714c8b13b359e49ac251e73192f",
     "bytes" : 451756,
     "duration_seconds" : 10.243,
-    "url" : "http://127.0.0.1:8892/audio/761d166f84f7340960168226ca3dcea14721d714c8b13b359e49ac251e73192f.wav"
+    "url" : "/api/v1/placement/media/761d166f84f7340960168226ca3dcea14721d714c8b13b359e49ac251e73192f.wav"
   }, {
     "question_id" : "PLT-Q-A2-L-0006-V3",
-    "source_path" : "data/bank-320/package-placement-320-v3/batches/A2-compact-v3/audio/PLT-A2-L-G06-V3.wav",
+    "source_path" : "tools/mongo-json-importer/samples/placement-media/dc4024c4a0b2fce2e2679be3a0bb60539681deb2b502abc7eee3fc11bbde04f6.wav",
+    "authoring_source_path" : "data/bank-320/package-placement-320-v3/batches/A2-compact-v3/audio/PLT-A2-L-G06-V3.wav",
     "sha256" : "dc4024c4a0b2fce2e2679be3a0bb60539681deb2b502abc7eee3fc11bbde04f6",
     "bytes" : 535762,
     "duration_seconds" : 12.148,
-    "url" : "http://127.0.0.1:8892/audio/dc4024c4a0b2fce2e2679be3a0bb60539681deb2b502abc7eee3fc11bbde04f6.wav"
+    "url" : "/api/v1/placement/media/dc4024c4a0b2fce2e2679be3a0bb60539681deb2b502abc7eee3fc11bbde04f6.wav"
   }, {
     "question_id" : "PLT-Q-A2-L-0007-V3",
-    "source_path" : "data/bank-320/package-placement-320-v3/batches/A2-compact-v3/audio/PLT-A2-L-G07-V3.wav",
+    "source_path" : "tools/mongo-json-importer/samples/placement-media/0828992c5a9bd3e2ff06c0cde01d63ffb517b816cddb241f26dbb6ab186b17cc.wav",
+    "authoring_source_path" : "data/bank-320/package-placement-320-v3/batches/A2-compact-v3/audio/PLT-A2-L-G07-V3.wav",
     "sha256" : "0828992c5a9bd3e2ff06c0cde01d63ffb517b816cddb241f26dbb6ab186b17cc",
     "bytes" : 546780,
     "duration_seconds" : 12.398,
-    "url" : "http://127.0.0.1:8892/audio/0828992c5a9bd3e2ff06c0cde01d63ffb517b816cddb241f26dbb6ab186b17cc.wav"
+    "url" : "/api/v1/placement/media/0828992c5a9bd3e2ff06c0cde01d63ffb517b816cddb241f26dbb6ab186b17cc.wav"
   }, {
     "question_id" : "PLT-Q-A2-L-0008-V3",
-    "source_path" : "data/bank-320/package-placement-320-v3/batches/A2-compact-v3/audio/PLT-A2-L-G08-V3.wav",
+    "source_path" : "tools/mongo-json-importer/samples/placement-media/47fc12644a64fc93712b87360261b59cdcd2e2bcd0bd91fc2075f79e37706dbc.wav",
+    "authoring_source_path" : "data/bank-320/package-placement-320-v3/batches/A2-compact-v3/audio/PLT-A2-L-G08-V3.wav",
     "sha256" : "47fc12644a64fc93712b87360261b59cdcd2e2bcd0bd91fc2075f79e37706dbc",
     "bytes" : 587336,
     "duration_seconds" : 13.317,
-    "url" : "http://127.0.0.1:8892/audio/47fc12644a64fc93712b87360261b59cdcd2e2bcd0bd91fc2075f79e37706dbc.wav"
+    "url" : "/api/v1/placement/media/47fc12644a64fc93712b87360261b59cdcd2e2bcd0bd91fc2075f79e37706dbc.wav"
   }, {
     "question_id" : "PLT-Q-A2-L-0009-V3",
-    "source_path" : "data/bank-320/package-placement-320-v3/batches/A2-compact-v3/audio/PLT-A2-L-G09-V3.wav",
+    "source_path" : "tools/mongo-json-importer/samples/placement-media/9857eecbceab788f52bc117c03e4c454e8d716cd327238fb3fc5b863e31d5b76.wav",
+    "authoring_source_path" : "data/bank-320/package-placement-320-v3/batches/A2-compact-v3/audio/PLT-A2-L-G09-V3.wav",
     "sha256" : "9857eecbceab788f52bc117c03e4c454e8d716cd327238fb3fc5b863e31d5b76",
     "bytes" : 475770,
     "duration_seconds" : 10.787,
-    "url" : "http://127.0.0.1:8892/audio/9857eecbceab788f52bc117c03e4c454e8d716cd327238fb3fc5b863e31d5b76.wav"
+    "url" : "/api/v1/placement/media/9857eecbceab788f52bc117c03e4c454e8d716cd327238fb3fc5b863e31d5b76.wav"
   }, {
     "question_id" : "PLT-Q-A2-L-0010-V3",
-    "source_path" : "data/bank-320/package-placement-320-v3/batches/A2-compact-v3/audio/PLT-A2-L-G10-V3.wav",
+    "source_path" : "tools/mongo-json-importer/samples/placement-media/920d1311bcdd810778fd87eb6af2b9ea50252c9b36898ace28ca164a23ad00c7.wav",
+    "authoring_source_path" : "data/bank-320/package-placement-320-v3/batches/A2-compact-v3/audio/PLT-A2-L-G10-V3.wav",
     "sha256" : "920d1311bcdd810778fd87eb6af2b9ea50252c9b36898ace28ca164a23ad00c7",
     "bytes" : 523608,
     "duration_seconds" : 11.872,
-    "url" : "http://127.0.0.1:8892/audio/920d1311bcdd810778fd87eb6af2b9ea50252c9b36898ace28ca164a23ad00c7.wav"
+    "url" : "/api/v1/placement/media/920d1311bcdd810778fd87eb6af2b9ea50252c9b36898ace28ca164a23ad00c7.wav"
   }, {
     "question_id" : "PLT-Q-A2-L-0011-V3",
-    "source_path" : "data/bank-320/package-placement-320-v3/batches/A2-compact-v3/audio/PLT-A2-L-G11-V3.wav",
+    "source_path" : "tools/mongo-json-importer/samples/placement-media/f3c755609a437bfbf53e0242e8d621c45898caefa653b2a341f57c0ca1211d01.wav",
+    "authoring_source_path" : "data/bank-320/package-placement-320-v3/batches/A2-compact-v3/audio/PLT-A2-L-G11-V3.wav",
     "sha256" : "f3c755609a437bfbf53e0242e8d621c45898caefa653b2a341f57c0ca1211d01",
     "bytes" : 403234,
     "duration_seconds" : 9.143,
-    "url" : "http://127.0.0.1:8892/audio/f3c755609a437bfbf53e0242e8d621c45898caefa653b2a341f57c0ca1211d01.wav"
+    "url" : "/api/v1/placement/media/f3c755609a437bfbf53e0242e8d621c45898caefa653b2a341f57c0ca1211d01.wav"
   }, {
     "question_id" : "PLT-Q-A2-L-0012-V3",
-    "source_path" : "data/bank-320/package-placement-320-v3/batches/A2-compact-v3/audio/PLT-A2-L-G12-V3.wav",
+    "source_path" : "tools/mongo-json-importer/samples/placement-media/027657a1fcaac0abff60a933c55b3fd7f476ce21a0cf060be6e34098d1766683.wav",
+    "authoring_source_path" : "data/bank-320/package-placement-320-v3/batches/A2-compact-v3/audio/PLT-A2-L-G12-V3.wav",
     "sha256" : "027657a1fcaac0abff60a933c55b3fd7f476ce21a0cf060be6e34098d1766683",
     "bytes" : 464086,
     "duration_seconds" : 10.522,
-    "url" : "http://127.0.0.1:8892/audio/027657a1fcaac0abff60a933c55b3fd7f476ce21a0cf060be6e34098d1766683.wav"
+    "url" : "/api/v1/placement/media/027657a1fcaac0abff60a933c55b3fd7f476ce21a0cf060be6e34098d1766683.wav"
   }, {
     "question_id" : "PLT-Q-A2-L-0013-V3",
-    "source_path" : "data/bank-320/package-placement-320-v3/batches/A2-compact-v3/audio/PLT-A2-L-G13-V3.wav",
+    "source_path" : "tools/mongo-json-importer/samples/placement-media/000bd752de10c39da248e546fb45b6f2c6d425bc1f638496ee24c4473ffbc59d.wav",
+    "authoring_source_path" : "data/bank-320/package-placement-320-v3/batches/A2-compact-v3/audio/PLT-A2-L-G13-V3.wav",
     "sha256" : "000bd752de10c39da248e546fb45b6f2c6d425bc1f638496ee24c4473ffbc59d",
     "bytes" : 499154,
     "duration_seconds" : 11.318,
-    "url" : "http://127.0.0.1:8892/audio/000bd752de10c39da248e546fb45b6f2c6d425bc1f638496ee24c4473ffbc59d.wav"
+    "url" : "/api/v1/placement/media/000bd752de10c39da248e546fb45b6f2c6d425bc1f638496ee24c4473ffbc59d.wav"
   }, {
     "question_id" : "PLT-Q-A2-L-0014-V3",
-    "source_path" : "data/bank-320/package-placement-320-v3/batches/A2-compact-v3/audio/PLT-A2-L-G14-V3.wav",
+    "source_path" : "tools/mongo-json-importer/samples/placement-media/defbd36ae4b23f61d1915ae2ab58a4d451d0d056349103dee88af511daf5ea48.wav",
+    "authoring_source_path" : "data/bank-320/package-placement-320-v3/batches/A2-compact-v3/audio/PLT-A2-L-G14-V3.wav",
     "sha256" : "defbd36ae4b23f61d1915ae2ab58a4d451d0d056349103dee88af511daf5ea48",
     "bytes" : 479974,
     "duration_seconds" : 10.883,
-    "url" : "http://127.0.0.1:8892/audio/defbd36ae4b23f61d1915ae2ab58a4d451d0d056349103dee88af511daf5ea48.wav"
+    "url" : "/api/v1/placement/media/defbd36ae4b23f61d1915ae2ab58a4d451d0d056349103dee88af511daf5ea48.wav"
   }, {
     "question_id" : "PLT-Q-A2-L-0015-V3",
-    "source_path" : "data/bank-320/package-placement-320-v3/batches/A2-compact-v3/audio/PLT-A2-L-G15-V3.wav",
+    "source_path" : "tools/mongo-json-importer/samples/placement-media/649caf340f896ee537192721f0935fefa9859395cf665595b1e315482a14e302.wav",
+    "authoring_source_path" : "data/bank-320/package-placement-320-v3/batches/A2-compact-v3/audio/PLT-A2-L-G15-V3.wav",
     "sha256" : "649caf340f896ee537192721f0935fefa9859395cf665595b1e315482a14e302",
     "bytes" : 529568,
     "duration_seconds" : 12.007,
-    "url" : "http://127.0.0.1:8892/audio/649caf340f896ee537192721f0935fefa9859395cf665595b1e315482a14e302.wav"
+    "url" : "/api/v1/placement/media/649caf340f896ee537192721f0935fefa9859395cf665595b1e315482a14e302.wav"
   }, {
     "question_id" : "PLT-Q-A2-L-0016-V3",
-    "source_path" : "data/bank-320/package-placement-320-v3/batches/A2-compact-v3/audio/PLT-A2-L-G16-V3.wav",
+    "source_path" : "tools/mongo-json-importer/samples/placement-media/acc841ec657dee7968968bde097f2f1080a484af1b84daeeb4b6064c5ab61717.wav",
+    "authoring_source_path" : "data/bank-320/package-placement-320-v3/batches/A2-compact-v3/audio/PLT-A2-L-G16-V3.wav",
     "sha256" : "acc841ec657dee7968968bde097f2f1080a484af1b84daeeb4b6064c5ab61717",
     "bytes" : 479980,
     "duration_seconds" : 10.883,
-    "url" : "http://127.0.0.1:8892/audio/acc841ec657dee7968968bde097f2f1080a484af1b84daeeb4b6064c5ab61717.wav"
+    "url" : "/api/v1/placement/media/acc841ec657dee7968968bde097f2f1080a484af1b84daeeb4b6064c5ab61717.wav"
   }, {
     "question_id" : "PLT-Q-B1-L-0001-V3",
-    "source_path" : "data/bank-320/package-placement-320-v3/batches/B1-compact-v3/audio/PLT-B1-L-G01-V3.wav",
+    "source_path" : "tools/mongo-json-importer/samples/placement-media/035cd8e71db26d1049ed8b6d92c06f472776c7769584c8e0317350a84bb2f273.wav",
+    "authoring_source_path" : "data/bank-320/package-placement-320-v3/batches/B1-compact-v3/audio/PLT-B1-L-G01-V3.wav",
     "sha256" : "035cd8e71db26d1049ed8b6d92c06f472776c7769584c8e0317350a84bb2f273",
     "bytes" : 640894,
     "duration_seconds" : 14.532,
-    "url" : "http://127.0.0.1:8892/audio/035cd8e71db26d1049ed8b6d92c06f472776c7769584c8e0317350a84bb2f273.wav"
+    "url" : "/api/v1/placement/media/035cd8e71db26d1049ed8b6d92c06f472776c7769584c8e0317350a84bb2f273.wav"
   }, {
     "question_id" : "PLT-Q-B1-L-0002-V3",
-    "source_path" : "data/bank-320/package-placement-320-v3/batches/B1-compact-v3/audio/PLT-B1-L-G02-V3.wav",
+    "source_path" : "tools/mongo-json-importer/samples/placement-media/34c63e05c8eed246e1ca06307728f8826f592d71ebb3cd24951bdd94d0ad089f.wav",
+    "authoring_source_path" : "data/bank-320/package-placement-320-v3/batches/B1-compact-v3/audio/PLT-B1-L-G02-V3.wav",
     "sha256" : "34c63e05c8eed246e1ca06307728f8826f592d71ebb3cd24951bdd94d0ad089f",
     "bytes" : 656982,
     "duration_seconds" : 14.897,
-    "url" : "http://127.0.0.1:8892/audio/34c63e05c8eed246e1ca06307728f8826f592d71ebb3cd24951bdd94d0ad089f.wav"
+    "url" : "/api/v1/placement/media/34c63e05c8eed246e1ca06307728f8826f592d71ebb3cd24951bdd94d0ad089f.wav"
   }, {
     "question_id" : "PLT-Q-B1-L-0003-V3",
-    "source_path" : "data/bank-320/package-placement-320-v3/batches/B1-compact-v3/audio/PLT-B1-L-G03-V3.wav",
+    "source_path" : "tools/mongo-json-importer/samples/placement-media/aa6a50dd9db60c766223bbaa2e8e040ccc3fb1bc72f22984e1a5f7bb693140c3.wav",
+    "authoring_source_path" : "data/bank-320/package-placement-320-v3/batches/B1-compact-v3/audio/PLT-B1-L-G03-V3.wav",
     "sha256" : "aa6a50dd9db60c766223bbaa2e8e040ccc3fb1bc72f22984e1a5f7bb693140c3",
     "bytes" : 556668,
     "duration_seconds" : 12.622,
-    "url" : "http://127.0.0.1:8892/audio/aa6a50dd9db60c766223bbaa2e8e040ccc3fb1bc72f22984e1a5f7bb693140c3.wav"
+    "url" : "/api/v1/placement/media/aa6a50dd9db60c766223bbaa2e8e040ccc3fb1bc72f22984e1a5f7bb693140c3.wav"
   }, {
     "question_id" : "PLT-Q-B1-L-0004-V3",
-    "source_path" : "data/bank-320/package-placement-320-v3/batches/B1-compact-v3/audio/PLT-B1-L-G04-V3.wav",
+    "source_path" : "tools/mongo-json-importer/samples/placement-media/aed5122e5d4fa59fa6b7fa54982e66d6ea1fa31d994cbed89bd79f44af40d57c.wav",
+    "authoring_source_path" : "data/bank-320/package-placement-320-v3/batches/B1-compact-v3/audio/PLT-B1-L-G04-V3.wav",
     "sha256" : "aed5122e5d4fa59fa6b7fa54982e66d6ea1fa31d994cbed89bd79f44af40d57c",
     "bytes" : 628324,
     "duration_seconds" : 14.247,
-    "url" : "http://127.0.0.1:8892/audio/aed5122e5d4fa59fa6b7fa54982e66d6ea1fa31d994cbed89bd79f44af40d57c.wav"
+    "url" : "/api/v1/placement/media/aed5122e5d4fa59fa6b7fa54982e66d6ea1fa31d994cbed89bd79f44af40d57c.wav"
   }, {
     "question_id" : "PLT-Q-B1-L-0005-V3",
-    "source_path" : "data/bank-320/package-placement-320-v3/batches/B1-compact-v3/audio/PLT-B1-L-G05-V3.wav",
+    "source_path" : "tools/mongo-json-importer/samples/placement-media/5a33bc3b49f129cdbceed87d890739c6396c30587e0db3b466ddb7b4ffdc58cd.wav",
+    "authoring_source_path" : "data/bank-320/package-placement-320-v3/batches/B1-compact-v3/audio/PLT-B1-L-G05-V3.wav",
     "sha256" : "5a33bc3b49f129cdbceed87d890739c6396c30587e0db3b466ddb7b4ffdc58cd",
     "bytes" : 556682,
     "duration_seconds" : 12.622,
-    "url" : "http://127.0.0.1:8892/audio/5a33bc3b49f129cdbceed87d890739c6396c30587e0db3b466ddb7b4ffdc58cd.wav"
+    "url" : "/api/v1/placement/media/5a33bc3b49f129cdbceed87d890739c6396c30587e0db3b466ddb7b4ffdc58cd.wav"
   }, {
     "question_id" : "PLT-Q-B1-L-0006-V3",
-    "source_path" : "data/bank-320/package-placement-320-v3/batches/B1-compact-v3/audio/PLT-B1-L-G06-V3.wav",
+    "source_path" : "tools/mongo-json-importer/samples/placement-media/81e61627b6fba5ba81aa5bbcc451a018f4d835187fe7da373a0d02201370f8c6.wav",
+    "authoring_source_path" : "data/bank-320/package-placement-320-v3/batches/B1-compact-v3/audio/PLT-B1-L-G06-V3.wav",
     "sha256" : "81e61627b6fba5ba81aa5bbcc451a018f4d835187fe7da373a0d02201370f8c6",
     "bytes" : 560436,
     "duration_seconds" : 12.707,
-    "url" : "http://127.0.0.1:8892/audio/81e61627b6fba5ba81aa5bbcc451a018f4d835187fe7da373a0d02201370f8c6.wav"
+    "url" : "/api/v1/placement/media/81e61627b6fba5ba81aa5bbcc451a018f4d835187fe7da373a0d02201370f8c6.wav"
   }, {
     "question_id" : "PLT-Q-B1-L-0007-V3",
-    "source_path" : "data/bank-320/package-placement-320-v3/batches/B1-compact-v3/audio/PLT-B1-L-G07-V3.wav",
+    "source_path" : "tools/mongo-json-importer/samples/placement-media/d07c8d64aaf50fb1cd8f9921b7ce2958e2d46c0d004806171be0a13541198ef8.wav",
+    "authoring_source_path" : "data/bank-320/package-placement-320-v3/batches/B1-compact-v3/audio/PLT-B1-L-G07-V3.wav",
     "sha256" : "d07c8d64aaf50fb1cd8f9921b7ce2958e2d46c0d004806171be0a13541198ef8",
     "bytes" : 659202,
     "duration_seconds" : 14.947,
-    "url" : "http://127.0.0.1:8892/audio/d07c8d64aaf50fb1cd8f9921b7ce2958e2d46c0d004806171be0a13541198ef8.wav"
+    "url" : "/api/v1/placement/media/d07c8d64aaf50fb1cd8f9921b7ce2958e2d46c0d004806171be0a13541198ef8.wav"
   }, {
     "question_id" : "PLT-Q-B1-L-0008-V3",
-    "source_path" : "data/bank-320/package-placement-320-v3/batches/B1-compact-v3/audio/PLT-B1-L-G08-V3.wav",
+    "source_path" : "tools/mongo-json-importer/samples/placement-media/ddf18df6a61028e3bb856e2dd6141fc946fd2027a940f64a9334fadd98642bf4.wav",
+    "authoring_source_path" : "data/bank-320/package-placement-320-v3/batches/B1-compact-v3/audio/PLT-B1-L-G08-V3.wav",
     "sha256" : "ddf18df6a61028e3bb856e2dd6141fc946fd2027a940f64a9334fadd98642bf4",
     "bytes" : 568586,
     "duration_seconds" : 12.892,
-    "url" : "http://127.0.0.1:8892/audio/ddf18df6a61028e3bb856e2dd6141fc946fd2027a940f64a9334fadd98642bf4.wav"
+    "url" : "/api/v1/placement/media/ddf18df6a61028e3bb856e2dd6141fc946fd2027a940f64a9334fadd98642bf4.wav"
   }, {
     "question_id" : "PLT-Q-B1-L-0009-V3",
-    "source_path" : "data/bank-320/package-placement-320-v3/batches/B1-compact-v3/audio/PLT-B1-L-G09-V3.wav",
+    "source_path" : "tools/mongo-json-importer/samples/placement-media/64698d5d40d543db15528482d7fdde1829f047ee87bf1321763f0f59b389ed40.wav",
+    "authoring_source_path" : "data/bank-320/package-placement-320-v3/batches/B1-compact-v3/audio/PLT-B1-L-G09-V3.wav",
     "sha256" : "64698d5d40d543db15528482d7fdde1829f047ee87bf1321763f0f59b389ed40",
     "bytes" : 640888,
     "duration_seconds" : 14.532,
-    "url" : "http://127.0.0.1:8892/audio/64698d5d40d543db15528482d7fdde1829f047ee87bf1321763f0f59b389ed40.wav"
+    "url" : "/api/v1/placement/media/64698d5d40d543db15528482d7fdde1829f047ee87bf1321763f0f59b389ed40.wav"
   }, {
     "question_id" : "PLT-Q-B1-L-0010-V3",
-    "source_path" : "data/bank-320/package-placement-320-v3/batches/B1-compact-v3/audio/PLT-B1-L-G10-V3.wav",
+    "source_path" : "tools/mongo-json-importer/samples/placement-media/9fc18a4e6b0c7e6a653a669619f01373e5e340776669ea011714e4be040d454c.wav",
+    "authoring_source_path" : "data/bank-320/package-placement-320-v3/batches/B1-compact-v3/audio/PLT-B1-L-G10-V3.wav",
     "sha256" : "9fc18a4e6b0c7e6a653a669619f01373e5e340776669ea011714e4be040d454c",
     "bytes" : 675284,
     "duration_seconds" : 15.312,
-    "url" : "http://127.0.0.1:8892/audio/9fc18a4e6b0c7e6a653a669619f01373e5e340776669ea011714e4be040d454c.wav"
+    "url" : "/api/v1/placement/media/9fc18a4e6b0c7e6a653a669619f01373e5e340776669ea011714e4be040d454c.wav"
   }, {
     "question_id" : "PLT-Q-B1-L-0011-V3",
-    "source_path" : "data/bank-320/package-placement-320-v3/batches/B1-compact-v3/audio/PLT-B1-L-G11-V3.wav",
+    "source_path" : "tools/mongo-json-importer/samples/placement-media/76102028977be6eefaeebc572525d433d70d2650a8bfe68ae1bcf51a11dcd8c4.wav",
+    "authoring_source_path" : "data/bank-320/package-placement-320-v3/batches/B1-compact-v3/audio/PLT-B1-L-G11-V3.wav",
     "sha256" : "76102028977be6eefaeebc572525d433d70d2650a8bfe68ae1bcf51a11dcd8c4",
     "bytes" : 668438,
     "duration_seconds" : 15.156,
-    "url" : "http://127.0.0.1:8892/audio/76102028977be6eefaeebc572525d433d70d2650a8bfe68ae1bcf51a11dcd8c4.wav"
+    "url" : "/api/v1/placement/media/76102028977be6eefaeebc572525d433d70d2650a8bfe68ae1bcf51a11dcd8c4.wav"
   }, {
     "question_id" : "PLT-Q-B1-L-0012-V3",
-    "source_path" : "data/bank-320/package-placement-320-v3/batches/B1-compact-v3/audio/PLT-B1-L-G12-V3.wav",
+    "source_path" : "tools/mongo-json-importer/samples/placement-media/9cde8853492aa2e269c2de4ab19e4c0d2fb8f69425c3c4154ab4b76ca6fc343a.wav",
+    "authoring_source_path" : "data/bank-320/package-placement-320-v3/batches/B1-compact-v3/audio/PLT-B1-L-G12-V3.wav",
     "sha256" : "9cde8853492aa2e269c2de4ab19e4c0d2fb8f69425c3c4154ab4b76ca6fc343a",
     "bytes" : 635600,
     "duration_seconds" : 14.412,
-    "url" : "http://127.0.0.1:8892/audio/9cde8853492aa2e269c2de4ab19e4c0d2fb8f69425c3c4154ab4b76ca6fc343a.wav"
+    "url" : "/api/v1/placement/media/9cde8853492aa2e269c2de4ab19e4c0d2fb8f69425c3c4154ab4b76ca6fc343a.wav"
   }, {
     "question_id" : "PLT-Q-B1-L-0013-V3",
-    "source_path" : "data/bank-320/package-placement-320-v3/batches/B1-compact-v3/audio/PLT-B1-L-G13-V3.wav",
+    "source_path" : "tools/mongo-json-importer/samples/placement-media/31a7cd91d01d6785e7b712114290ae68cfe222679314a3f65469fdc7497d294c.wav",
+    "authoring_source_path" : "data/bank-320/package-placement-320-v3/batches/B1-compact-v3/audio/PLT-B1-L-G13-V3.wav",
     "sha256" : "31a7cd91d01d6785e7b712114290ae68cfe222679314a3f65469fdc7497d294c",
     "bytes" : 531330,
     "duration_seconds" : 12.047,
-    "url" : "http://127.0.0.1:8892/audio/31a7cd91d01d6785e7b712114290ae68cfe222679314a3f65469fdc7497d294c.wav"
+    "url" : "/api/v1/placement/media/31a7cd91d01d6785e7b712114290ae68cfe222679314a3f65469fdc7497d294c.wav"
   }, {
     "question_id" : "PLT-Q-B1-L-0014-V3",
-    "source_path" : "data/bank-320/package-placement-320-v3/batches/B1-compact-v3/audio/PLT-B1-L-G14-V3.wav",
+    "source_path" : "tools/mongo-json-importer/samples/placement-media/8d6681c5193c200796d35c389ab49cfb2bda3f5c869ba972a4ee88774bfc15d7.wav",
+    "authoring_source_path" : "data/bank-320/package-placement-320-v3/batches/B1-compact-v3/audio/PLT-B1-L-G14-V3.wav",
     "sha256" : "8d6681c5193c200796d35c389ab49cfb2bda3f5c869ba972a4ee88774bfc15d7",
     "bytes" : 770308,
     "duration_seconds" : 17.466,
-    "url" : "http://127.0.0.1:8892/audio/8d6681c5193c200796d35c389ab49cfb2bda3f5c869ba972a4ee88774bfc15d7.wav"
+    "url" : "/api/v1/placement/media/8d6681c5193c200796d35c389ab49cfb2bda3f5c869ba972a4ee88774bfc15d7.wav"
   }, {
     "question_id" : "PLT-Q-B1-L-0015-V3",
-    "source_path" : "data/bank-320/package-placement-320-v3/batches/B1-compact-v3/audio/PLT-B1-L-G15-V3.wav",
+    "source_path" : "tools/mongo-json-importer/samples/placement-media/5456f6e5d2cb81a49e413e56cfc770c71dd9992bb68692714f577d9f2c3b6a92.wav",
+    "authoring_source_path" : "data/bank-320/package-placement-320-v3/batches/B1-compact-v3/audio/PLT-B1-L-G15-V3.wav",
     "sha256" : "5456f6e5d2cb81a49e413e56cfc770c71dd9992bb68692714f577d9f2c3b6a92",
     "bytes" : 503980,
     "duration_seconds" : 11.427,
-    "url" : "http://127.0.0.1:8892/audio/5456f6e5d2cb81a49e413e56cfc770c71dd9992bb68692714f577d9f2c3b6a92.wav"
+    "url" : "/api/v1/placement/media/5456f6e5d2cb81a49e413e56cfc770c71dd9992bb68692714f577d9f2c3b6a92.wav"
   }, {
     "question_id" : "PLT-Q-B1-L-0016-V3",
-    "source_path" : "data/bank-320/package-placement-320-v3/batches/B1-compact-v3/audio/PLT-B1-L-G16-V3.wav",
+    "source_path" : "tools/mongo-json-importer/samples/placement-media/9700556c8c132ac9a0e1d2ebb52a6d7c6dc89c0de5d5c24ba7feced14a89dce7.wav",
+    "authoring_source_path" : "data/bank-320/package-placement-320-v3/batches/B1-compact-v3/audio/PLT-B1-L-G16-V3.wav",
     "sha256" : "9700556c8c132ac9a0e1d2ebb52a6d7c6dc89c0de5d5c24ba7feced14a89dce7",
     "bytes" : 584238,
     "duration_seconds" : 13.247,
-    "url" : "http://127.0.0.1:8892/audio/9700556c8c132ac9a0e1d2ebb52a6d7c6dc89c0de5d5c24ba7feced14a89dce7.wav"
+    "url" : "/api/v1/placement/media/9700556c8c132ac9a0e1d2ebb52a6d7c6dc89c0de5d5c24ba7feced14a89dce7.wav"
   }, {
     "question_id" : "PLT-Q-B1-L-0017-V3",
-    "source_path" : "data/bank-320/package-placement-320-v3/batches/B1-compact-v3/audio/PLT-B1-L-G17-V3.wav",
+    "source_path" : "tools/mongo-json-importer/samples/placement-media/353db74174a4201a9a6ac915ae58e92d968fcbabfa65bdf387c638da20776ad0.wav",
+    "authoring_source_path" : "data/bank-320/package-placement-320-v3/batches/B1-compact-v3/audio/PLT-B1-L-G17-V3.wav",
     "sha256" : "353db74174a4201a9a6ac915ae58e92d968fcbabfa65bdf387c638da20776ad0",
     "bytes" : 585114,
     "duration_seconds" : 13.267,
-    "url" : "http://127.0.0.1:8892/audio/353db74174a4201a9a6ac915ae58e92d968fcbabfa65bdf387c638da20776ad0.wav"
+    "url" : "/api/v1/placement/media/353db74174a4201a9a6ac915ae58e92d968fcbabfa65bdf387c638da20776ad0.wav"
   }, {
     "question_id" : "PLT-Q-B1-L-0018-V3",
-    "source_path" : "data/bank-320/package-placement-320-v3/batches/B1-compact-v3/audio/PLT-B1-L-G18-V3.wav",
+    "source_path" : "tools/mongo-json-importer/samples/placement-media/3f0c9067358cb93d7ec3a78d4c58f5d14c6a7c1dd14428564ecf1fc8a993a17a.wav",
+    "authoring_source_path" : "data/bank-320/package-placement-320-v3/batches/B1-compact-v3/audio/PLT-B1-L-G18-V3.wav",
     "sha256" : "3f0c9067358cb93d7ec3a78d4c58f5d14c6a7c1dd14428564ecf1fc8a993a17a",
     "bytes" : 598120,
     "duration_seconds" : 13.562,
-    "url" : "http://127.0.0.1:8892/audio/3f0c9067358cb93d7ec3a78d4c58f5d14c6a7c1dd14428564ecf1fc8a993a17a.wav"
+    "url" : "/api/v1/placement/media/3f0c9067358cb93d7ec3a78d4c58f5d14c6a7c1dd14428564ecf1fc8a993a17a.wav"
   }, {
     "question_id" : "PLT-Q-B1-L-0019-V3",
-    "source_path" : "data/bank-320/package-placement-320-v3/batches/B1-compact-v3/audio/PLT-B1-L-G19-V3.wav",
+    "source_path" : "tools/mongo-json-importer/samples/placement-media/0bc9e8574089a5fce63eeea2c5ee9f0476a5dee71f7046771c77dd9a30e18373.wav",
+    "authoring_source_path" : "data/bank-320/package-placement-320-v3/batches/B1-compact-v3/audio/PLT-B1-L-G19-V3.wav",
     "sha256" : "0bc9e8574089a5fce63eeea2c5ee9f0476a5dee71f7046771c77dd9a30e18373",
     "bytes" : 736130,
     "duration_seconds" : 16.691,
-    "url" : "http://127.0.0.1:8892/audio/0bc9e8574089a5fce63eeea2c5ee9f0476a5dee71f7046771c77dd9a30e18373.wav"
+    "url" : "/api/v1/placement/media/0bc9e8574089a5fce63eeea2c5ee9f0476a5dee71f7046771c77dd9a30e18373.wav"
   }, {
     "question_id" : "PLT-Q-B1-L-0020-V3",
-    "source_path" : "data/bank-320/package-placement-320-v3/batches/B1-compact-v3/audio/PLT-B1-L-G20-V3.wav",
+    "source_path" : "tools/mongo-json-importer/samples/placement-media/c6b10025f99cacd0e830e4dc26da487c47aadaa85ee773525f99fa5d8fad14d3.wav",
+    "authoring_source_path" : "data/bank-320/package-placement-320-v3/batches/B1-compact-v3/audio/PLT-B1-L-G20-V3.wav",
     "sha256" : "c6b10025f99cacd0e830e4dc26da487c47aadaa85ee773525f99fa5d8fad14d3",
     "bytes" : 554028,
     "duration_seconds" : 12.562,
-    "url" : "http://127.0.0.1:8892/audio/c6b10025f99cacd0e830e4dc26da487c47aadaa85ee773525f99fa5d8fad14d3.wav"
+    "url" : "/api/v1/placement/media/c6b10025f99cacd0e830e4dc26da487c47aadaa85ee773525f99fa5d8fad14d3.wav"
   }, {
     "question_id" : "PLT-Q-B1-L-0021-V3",
-    "source_path" : "data/bank-320/package-placement-320-v3/batches/B1-compact-v3/audio/PLT-B1-L-G21-V3.wav",
+    "source_path" : "tools/mongo-json-importer/samples/placement-media/ebcecc6d055f94022adca12b5bc884f4b47e6cc70b530a2a6e5c44d976f9e262.wav",
+    "authoring_source_path" : "data/bank-320/package-placement-320-v3/batches/B1-compact-v3/audio/PLT-B1-L-G21-V3.wav",
     "sha256" : "ebcecc6d055f94022adca12b5bc884f4b47e6cc70b530a2a6e5c44d976f9e262",
     "bytes" : 611792,
     "duration_seconds" : 13.872,
-    "url" : "http://127.0.0.1:8892/audio/ebcecc6d055f94022adca12b5bc884f4b47e6cc70b530a2a6e5c44d976f9e262.wav"
+    "url" : "/api/v1/placement/media/ebcecc6d055f94022adca12b5bc884f4b47e6cc70b530a2a6e5c44d976f9e262.wav"
   }, {
     "question_id" : "PLT-Q-B1-L-0022-V3",
-    "source_path" : "data/bank-320/package-placement-320-v3/batches/B1-compact-v3/audio/PLT-B1-L-G22-V3.wav",
+    "source_path" : "tools/mongo-json-importer/samples/placement-media/b9f4770c1cb9107ffb2a2a515bb9ff8d61cfd86874750e4833ceac06fe88d76a.wav",
+    "authoring_source_path" : "data/bank-320/package-placement-320-v3/batches/B1-compact-v3/audio/PLT-B1-L-G22-V3.wav",
     "sha256" : "b9f4770c1cb9107ffb2a2a515bb9ff8d61cfd86874750e4833ceac06fe88d76a",
     "bytes" : 616856,
     "duration_seconds" : 13.987,
-    "url" : "http://127.0.0.1:8892/audio/b9f4770c1cb9107ffb2a2a515bb9ff8d61cfd86874750e4833ceac06fe88d76a.wav"
+    "url" : "/api/v1/placement/media/b9f4770c1cb9107ffb2a2a515bb9ff8d61cfd86874750e4833ceac06fe88d76a.wav"
   }, {
     "question_id" : "PLT-Q-B1-L-0023-V3",
-    "source_path" : "data/bank-320/package-placement-320-v3/batches/B1-compact-v3/audio/PLT-B1-L-G23-V3.wav",
+    "source_path" : "tools/mongo-json-importer/samples/placement-media/fbbecc2cd8f2dd69d4e2f54acd35b1821936d3a48655e0844921e8ea91d3614b.wav",
+    "authoring_source_path" : "data/bank-320/package-placement-320-v3/batches/B1-compact-v3/audio/PLT-B1-L-G23-V3.wav",
     "sha256" : "fbbecc2cd8f2dd69d4e2f54acd35b1821936d3a48655e0844921e8ea91d3614b",
     "bytes" : 534850,
     "duration_seconds" : 12.127,
-    "url" : "http://127.0.0.1:8892/audio/fbbecc2cd8f2dd69d4e2f54acd35b1821936d3a48655e0844921e8ea91d3614b.wav"
+    "url" : "/api/v1/placement/media/fbbecc2cd8f2dd69d4e2f54acd35b1821936d3a48655e0844921e8ea91d3614b.wav"
   }, {
     "question_id" : "PLT-Q-B1-L-0024-V3",
-    "source_path" : "data/bank-320/package-placement-320-v3/batches/B1-compact-v3/audio/PLT-B1-L-G24-V3.wav",
+    "source_path" : "tools/mongo-json-importer/samples/placement-media/65a3da5347489f6e245c6675bfa51ccc4538c76604f21b32a4b3915d39e76317.wav",
+    "authoring_source_path" : "data/bank-320/package-placement-320-v3/batches/B1-compact-v3/audio/PLT-B1-L-G24-V3.wav",
     "sha256" : "65a3da5347489f6e245c6675bfa51ccc4538c76604f21b32a4b3915d39e76317",
     "bytes" : 652362,
     "duration_seconds" : 14.792,
-    "url" : "http://127.0.0.1:8892/audio/65a3da5347489f6e245c6675bfa51ccc4538c76604f21b32a4b3915d39e76317.wav"
+    "url" : "/api/v1/placement/media/65a3da5347489f6e245c6675bfa51ccc4538c76604f21b32a4b3915d39e76317.wav"
   }, {
     "question_id" : "PLT-Q-B1-L-0025-V3",
-    "source_path" : "data/bank-320/package-placement-320-v3/batches/B1-compact-v3/audio/PLT-B1-L-G25-V3.wav",
+    "source_path" : "tools/mongo-json-importer/samples/placement-media/360ecdc64dec194e34927d48fd320a51d0d5aac6febc5ff13fe9253c6c339061.wav",
+    "authoring_source_path" : "data/bank-320/package-placement-320-v3/batches/B1-compact-v3/audio/PLT-B1-L-G25-V3.wav",
     "sha256" : "360ecdc64dec194e34927d48fd320a51d0d5aac6febc5ff13fe9253c6c339061",
     "bytes" : 652564,
     "duration_seconds" : 14.796,
-    "url" : "http://127.0.0.1:8892/audio/360ecdc64dec194e34927d48fd320a51d0d5aac6febc5ff13fe9253c6c339061.wav"
+    "url" : "/api/v1/placement/media/360ecdc64dec194e34927d48fd320a51d0d5aac6febc5ff13fe9253c6c339061.wav"
   }, {
     "question_id" : "PLT-Q-B1-L-0026-V3",
-    "source_path" : "data/bank-320/package-placement-320-v3/batches/B1-compact-v3/audio/PLT-B1-L-G26-V3.wav",
+    "source_path" : "tools/mongo-json-importer/samples/placement-media/17033f09286629953a1c85ed3d26e74a84d0f3b8d07ccec01f2b2ba61d9fd63d.wav",
+    "authoring_source_path" : "data/bank-320/package-placement-320-v3/batches/B1-compact-v3/audio/PLT-B1-L-G26-V3.wav",
     "sha256" : "17033f09286629953a1c85ed3d26e74a84d0f3b8d07ccec01f2b2ba61d9fd63d",
     "bytes" : 682134,
     "duration_seconds" : 15.467,
-    "url" : "http://127.0.0.1:8892/audio/17033f09286629953a1c85ed3d26e74a84d0f3b8d07ccec01f2b2ba61d9fd63d.wav"
+    "url" : "/api/v1/placement/media/17033f09286629953a1c85ed3d26e74a84d0f3b8d07ccec01f2b2ba61d9fd63d.wav"
   }, {
     "question_id" : "PLT-Q-B1-L-0027-V3",
-    "source_path" : "data/bank-320/package-placement-320-v3/batches/B1-compact-v3/audio/PLT-B1-L-G27-V3.wav",
+    "source_path" : "tools/mongo-json-importer/samples/placement-media/b8744096eda2f18d2e95c6159d1f7d321b0e64194c77af30e9410122ae5f6f89.wav",
+    "authoring_source_path" : "data/bank-320/package-placement-320-v3/batches/B1-compact-v3/audio/PLT-B1-L-G27-V3.wav",
     "sha256" : "b8744096eda2f18d2e95c6159d1f7d321b0e64194c77af30e9410122ae5f6f89",
     "bytes" : 646196,
     "duration_seconds" : 14.652,
-    "url" : "http://127.0.0.1:8892/audio/b8744096eda2f18d2e95c6159d1f7d321b0e64194c77af30e9410122ae5f6f89.wav"
+    "url" : "/api/v1/placement/media/b8744096eda2f18d2e95c6159d1f7d321b0e64194c77af30e9410122ae5f6f89.wav"
   }, {
     "question_id" : "PLT-Q-B1-L-0028-V3",
-    "source_path" : "data/bank-320/package-placement-320-v3/batches/B1-compact-v3/audio/PLT-B1-L-G28-V3.wav",
+    "source_path" : "tools/mongo-json-importer/samples/placement-media/846acdec564858cf8c2201f2bc452c275eb84acff802dfd4652b692b94a47aa4.wav",
+    "authoring_source_path" : "data/bank-320/package-placement-320-v3/batches/B1-compact-v3/audio/PLT-B1-L-G28-V3.wav",
     "sha256" : "846acdec564858cf8c2201f2bc452c275eb84acff802dfd4652b692b94a47aa4",
     "bytes" : 582912,
     "duration_seconds" : 13.217,
-    "url" : "http://127.0.0.1:8892/audio/846acdec564858cf8c2201f2bc452c275eb84acff802dfd4652b692b94a47aa4.wav"
+    "url" : "/api/v1/placement/media/846acdec564858cf8c2201f2bc452c275eb84acff802dfd4652b692b94a47aa4.wav"
   }, {
     "question_id" : "PLT-Q-B1-L-0029-V3",
-    "source_path" : "data/bank-320/package-placement-320-v3/batches/B1-compact-v3/audio/PLT-B1-L-G29-V3.wav",
+    "source_path" : "tools/mongo-json-importer/samples/placement-media/50b4ee294b2ea557ac2e2df7c85a41940755f7c21cad13d0b2d6d284efe018c1.wav",
+    "authoring_source_path" : "data/bank-320/package-placement-320-v3/batches/B1-compact-v3/audio/PLT-B1-L-G29-V3.wav",
     "sha256" : "50b4ee294b2ea557ac2e2df7c85a41940755f7c21cad13d0b2d6d284efe018c1",
     "bytes" : 673524,
     "duration_seconds" : 15.272,
-    "url" : "http://127.0.0.1:8892/audio/50b4ee294b2ea557ac2e2df7c85a41940755f7c21cad13d0b2d6d284efe018c1.wav"
+    "url" : "/api/v1/placement/media/50b4ee294b2ea557ac2e2df7c85a41940755f7c21cad13d0b2d6d284efe018c1.wav"
   }, {
     "question_id" : "PLT-Q-B1-L-0030-V3",
-    "source_path" : "data/bank-320/package-placement-320-v3/batches/B1-compact-v3/audio/PLT-B1-L-G30-V3.wav",
+    "source_path" : "tools/mongo-json-importer/samples/placement-media/f229740dd34e09081fb1bbf0e891568650d8163b5c64495c067d67b5d553286d.wav",
+    "authoring_source_path" : "data/bank-320/package-placement-320-v3/batches/B1-compact-v3/audio/PLT-B1-L-G30-V3.wav",
     "sha256" : "f229740dd34e09081fb1bbf0e891568650d8163b5c64495c067d67b5d553286d",
     "bytes" : 633824,
     "duration_seconds" : 14.371,
-    "url" : "http://127.0.0.1:8892/audio/f229740dd34e09081fb1bbf0e891568650d8163b5c64495c067d67b5d553286d.wav"
+    "url" : "/api/v1/placement/media/f229740dd34e09081fb1bbf0e891568650d8163b5c64495c067d67b5d553286d.wav"
   }, {
     "question_id" : "PLT-Q-B1-L-0031-V3",
-    "source_path" : "data/bank-320/package-placement-320-v3/batches/B1-compact-v3/audio/PLT-B1-L-G31-V3.wav",
+    "source_path" : "tools/mongo-json-importer/samples/placement-media/8728ca94122508a9cc9b3545ea76e5cd5afb8d1fdf7289439ab361da64b562b1.wav",
+    "authoring_source_path" : "data/bank-320/package-placement-320-v3/batches/B1-compact-v3/audio/PLT-B1-L-G31-V3.wav",
     "sha256" : "8728ca94122508a9cc9b3545ea76e5cd5afb8d1fdf7289439ab361da64b562b1",
     "bytes" : 637150,
     "duration_seconds" : 14.447,
-    "url" : "http://127.0.0.1:8892/audio/8728ca94122508a9cc9b3545ea76e5cd5afb8d1fdf7289439ab361da64b562b1.wav"
+    "url" : "/api/v1/placement/media/8728ca94122508a9cc9b3545ea76e5cd5afb8d1fdf7289439ab361da64b562b1.wav"
   }, {
     "question_id" : "PLT-Q-B1-L-0032-V3",
-    "source_path" : "data/bank-320/package-placement-320-v3/batches/B1-compact-v3/audio/PLT-B1-L-G32-V3.wav",
+    "source_path" : "tools/mongo-json-importer/samples/placement-media/72755abb653636c3bdd538bc7869c053816924ad2c604729866c15b633d4bdfd.wav",
+    "authoring_source_path" : "data/bank-320/package-placement-320-v3/batches/B1-compact-v3/audio/PLT-B1-L-G32-V3.wav",
     "sha256" : "72755abb653636c3bdd538bc7869c053816924ad2c604729866c15b633d4bdfd",
     "bytes" : 617088,
     "duration_seconds" : 13.992,
-    "url" : "http://127.0.0.1:8892/audio/72755abb653636c3bdd538bc7869c053816924ad2c604729866c15b633d4bdfd.wav"
+    "url" : "/api/v1/placement/media/72755abb653636c3bdd538bc7869c053816924ad2c604729866c15b633d4bdfd.wav"
   }, {
     "question_id" : "PLT-Q-B2-L-0001-V3",
-    "source_path" : "data/bank-320/package-placement-320-v3/batches/B2-compact-v3/audio/PLT-B2-L-G01-V3.wav",
+    "source_path" : "tools/mongo-json-importer/samples/placement-media/047b8e567ce04b15a1544b4b5ddc9fb60c45a7b141a10674b33fc1bb6441e80f.wav",
+    "authoring_source_path" : "data/bank-320/package-placement-320-v3/batches/B2-compact-v3/audio/PLT-B2-L-G01-V3.wav",
     "sha256" : "047b8e567ce04b15a1544b4b5ddc9fb60c45a7b141a10674b33fc1bb6441e80f",
     "bytes" : 512808,
     "duration_seconds" : 11.627,
-    "url" : "http://127.0.0.1:8892/audio/047b8e567ce04b15a1544b4b5ddc9fb60c45a7b141a10674b33fc1bb6441e80f.wav"
+    "url" : "/api/v1/placement/media/047b8e567ce04b15a1544b4b5ddc9fb60c45a7b141a10674b33fc1bb6441e80f.wav"
   }, {
     "question_id" : "PLT-Q-B2-L-0002-V3",
-    "source_path" : "data/bank-320/package-placement-320-v3/batches/B2-compact-v3/audio/PLT-B2-L-G02-V3.wav",
+    "source_path" : "tools/mongo-json-importer/samples/placement-media/6eec73459666e216e2626fb299ed380815a5de607624dea2f0b671a22e655788.wav",
+    "authoring_source_path" : "data/bank-320/package-placement-320-v3/batches/B2-compact-v3/audio/PLT-B2-L-G02-V3.wav",
     "sha256" : "6eec73459666e216e2626fb299ed380815a5de607624dea2f0b671a22e655788",
     "bytes" : 543454,
     "duration_seconds" : 12.322,
-    "url" : "http://127.0.0.1:8892/audio/6eec73459666e216e2626fb299ed380815a5de607624dea2f0b671a22e655788.wav"
+    "url" : "/api/v1/placement/media/6eec73459666e216e2626fb299ed380815a5de607624dea2f0b671a22e655788.wav"
   }, {
     "question_id" : "PLT-Q-B2-L-0003-V3",
-    "source_path" : "data/bank-320/package-placement-320-v3/batches/B2-compact-v3/audio/PLT-B2-L-G03-V3.wav",
+    "source_path" : "tools/mongo-json-importer/samples/placement-media/af92dc4666cddfbd804a5e6f00a8ab48de545f253624a000d8cde89b03d6ada0.wav",
+    "authoring_source_path" : "data/bank-320/package-placement-320-v3/batches/B2-compact-v3/audio/PLT-B2-L-G03-V3.wav",
     "sha256" : "af92dc4666cddfbd804a5e6f00a8ab48de545f253624a000d8cde89b03d6ada0",
     "bytes" : 559106,
     "duration_seconds" : 12.677,
-    "url" : "http://127.0.0.1:8892/audio/af92dc4666cddfbd804a5e6f00a8ab48de545f253624a000d8cde89b03d6ada0.wav"
+    "url" : "/api/v1/placement/media/af92dc4666cddfbd804a5e6f00a8ab48de545f253624a000d8cde89b03d6ada0.wav"
   }, {
     "question_id" : "PLT-Q-B2-L-0004-V3",
-    "source_path" : "data/bank-320/package-placement-320-v3/batches/B2-compact-v3/audio/PLT-B2-L-G04-V3.wav",
+    "source_path" : "tools/mongo-json-importer/samples/placement-media/650bf7462f4d83f2ec6aab6755c872e441a61bb5aade6016399f1d536bdc14ad.wav",
+    "authoring_source_path" : "data/bank-320/package-placement-320-v3/batches/B2-compact-v3/audio/PLT-B2-L-G04-V3.wav",
     "sha256" : "650bf7462f4d83f2ec6aab6755c872e441a61bb5aade6016399f1d536bdc14ad",
     "bytes" : 451298,
     "duration_seconds" : 10.232,
-    "url" : "http://127.0.0.1:8892/audio/650bf7462f4d83f2ec6aab6755c872e441a61bb5aade6016399f1d536bdc14ad.wav"
+    "url" : "/api/v1/placement/media/650bf7462f4d83f2ec6aab6755c872e441a61bb5aade6016399f1d536bdc14ad.wav"
   }, {
     "question_id" : "PLT-Q-B2-L-0005-V3",
-    "source_path" : "data/bank-320/package-placement-320-v3/batches/B2-compact-v3/audio/PLT-B2-L-G05-V3.wav",
+    "source_path" : "tools/mongo-json-importer/samples/placement-media/b655c8abea76e1f8050ab2a16b1485650ce2d2bc7fb3c9af041254248a0adb4d.wav",
+    "authoring_source_path" : "data/bank-320/package-placement-320-v3/batches/B2-compact-v3/audio/PLT-B2-L-G05-V3.wav",
     "sha256" : "b655c8abea76e1f8050ab2a16b1485650ce2d2bc7fb3c9af041254248a0adb4d",
     "bytes" : 469596,
     "duration_seconds" : 10.647,
-    "url" : "http://127.0.0.1:8892/audio/b655c8abea76e1f8050ab2a16b1485650ce2d2bc7fb3c9af041254248a0adb4d.wav"
+    "url" : "/api/v1/placement/media/b655c8abea76e1f8050ab2a16b1485650ce2d2bc7fb3c9af041254248a0adb4d.wav"
   }, {
     "question_id" : "PLT-Q-B2-L-0006-V3",
-    "source_path" : "data/bank-320/package-placement-320-v3/batches/B2-compact-v3/audio/PLT-B2-L-G06-V3.wav",
+    "source_path" : "tools/mongo-json-importer/samples/placement-media/f176057501b4c37958215491475a92476e41d50a81217d2095db7e53f7189d6a.wav",
+    "authoring_source_path" : "data/bank-320/package-placement-320-v3/batches/B2-compact-v3/audio/PLT-B2-L-G06-V3.wav",
     "sha256" : "f176057501b4c37958215491475a92476e41d50a81217d2095db7e53f7189d6a",
     "bytes" : 523840,
     "duration_seconds" : 11.877,
-    "url" : "http://127.0.0.1:8892/audio/f176057501b4c37958215491475a92476e41d50a81217d2095db7e53f7189d6a.wav"
+    "url" : "/api/v1/placement/media/f176057501b4c37958215491475a92476e41d50a81217d2095db7e53f7189d6a.wav"
   }, {
     "question_id" : "PLT-Q-B2-L-0007-V3",
-    "source_path" : "data/bank-320/package-placement-320-v3/batches/B2-compact-v3/audio/PLT-B2-L-G07-V3.wav",
+    "source_path" : "tools/mongo-json-importer/samples/placement-media/eab4b4fe05a8e840668f3f5039a3008147b6b21a183f71502a44728f112a3714.wav",
+    "authoring_source_path" : "data/bank-320/package-placement-320-v3/batches/B2-compact-v3/audio/PLT-B2-L-G07-V3.wav",
     "sha256" : "eab4b4fe05a8e840668f3f5039a3008147b6b21a183f71502a44728f112a3714",
     "bytes" : 595250,
     "duration_seconds" : 13.497,
-    "url" : "http://127.0.0.1:8892/audio/eab4b4fe05a8e840668f3f5039a3008147b6b21a183f71502a44728f112a3714.wav"
+    "url" : "/api/v1/placement/media/eab4b4fe05a8e840668f3f5039a3008147b6b21a183f71502a44728f112a3714.wav"
   }, {
     "question_id" : "PLT-Q-B2-L-0008-V3",
-    "source_path" : "data/bank-320/package-placement-320-v3/batches/B2-compact-v3/audio/PLT-B2-L-G08-V3.wav",
+    "source_path" : "tools/mongo-json-importer/samples/placement-media/e802c9bb66514bc5e15294dbda40a0ddb0079a89cd399af8d508037dfb38aadd.wav",
+    "authoring_source_path" : "data/bank-320/package-placement-320-v3/batches/B2-compact-v3/audio/PLT-B2-L-G08-V3.wav",
     "sha256" : "e802c9bb66514bc5e15294dbda40a0ddb0079a89cd399af8d508037dfb38aadd",
     "bytes" : 484812,
     "duration_seconds" : 10.992,
-    "url" : "http://127.0.0.1:8892/audio/e802c9bb66514bc5e15294dbda40a0ddb0079a89cd399af8d508037dfb38aadd.wav"
+    "url" : "/api/v1/placement/media/e802c9bb66514bc5e15294dbda40a0ddb0079a89cd399af8d508037dfb38aadd.wav"
   }, {
     "question_id" : "PLT-Q-B2-L-0009-V3",
-    "source_path" : "data/bank-320/package-placement-320-v3/batches/B2-compact-v3/audio/PLT-B2-L-G09-V3.wav",
+    "source_path" : "tools/mongo-json-importer/samples/placement-media/887db207f09471879daab8b066476149338054a9e1e70e841e602b88b42c51f4.wav",
+    "authoring_source_path" : "data/bank-320/package-placement-320-v3/batches/B2-compact-v3/audio/PLT-B2-L-G09-V3.wav",
     "sha256" : "887db207f09471879daab8b066476149338054a9e1e70e841e602b88b42c51f4",
     "bytes" : 499138,
     "duration_seconds" : 11.317,
-    "url" : "http://127.0.0.1:8892/audio/887db207f09471879daab8b066476149338054a9e1e70e841e602b88b42c51f4.wav"
+    "url" : "/api/v1/placement/media/887db207f09471879daab8b066476149338054a9e1e70e841e602b88b42c51f4.wav"
   }, {
     "question_id" : "PLT-Q-B2-L-0010-V3",
-    "source_path" : "data/bank-320/package-placement-320-v3/batches/B2-compact-v3/audio/PLT-B2-L-G10-V3.wav",
+    "source_path" : "tools/mongo-json-importer/samples/placement-media/1d41396e4bd053103b1b7a1c3ed454bb02b87fc3339f7a19aaa76ad0db8e017b.wav",
+    "authoring_source_path" : "data/bank-320/package-placement-320-v3/batches/B2-compact-v3/audio/PLT-B2-L-G10-V3.wav",
     "sha256" : "1d41396e4bd053103b1b7a1c3ed454bb02b87fc3339f7a19aaa76ad0db8e017b",
     "bytes" : 393544,
     "duration_seconds" : 8.923,
-    "url" : "http://127.0.0.1:8892/audio/1d41396e4bd053103b1b7a1c3ed454bb02b87fc3339f7a19aaa76ad0db8e017b.wav"
+    "url" : "/api/v1/placement/media/1d41396e4bd053103b1b7a1c3ed454bb02b87fc3339f7a19aaa76ad0db8e017b.wav"
   }, {
     "question_id" : "PLT-Q-B2-L-0011-V3",
-    "source_path" : "data/bank-320/package-placement-320-v3/batches/B2-compact-v3/audio/PLT-B2-L-G11-V3.wav",
+    "source_path" : "tools/mongo-json-importer/samples/placement-media/952c91f5e758a2c27628716d88daab397441c63c7e6aab4e3356a5f73a9d1d3f.wav",
+    "authoring_source_path" : "data/bank-320/package-placement-320-v3/batches/B2-compact-v3/audio/PLT-B2-L-G11-V3.wav",
     "sha256" : "952c91f5e758a2c27628716d88daab397441c63c7e6aab4e3356a5f73a9d1d3f",
     "bytes" : 485260,
     "duration_seconds" : 11.003,
-    "url" : "http://127.0.0.1:8892/audio/952c91f5e758a2c27628716d88daab397441c63c7e6aab4e3356a5f73a9d1d3f.wav"
+    "url" : "/api/v1/placement/media/952c91f5e758a2c27628716d88daab397441c63c7e6aab4e3356a5f73a9d1d3f.wav"
   }, {
     "question_id" : "PLT-Q-B2-L-0012-V3",
-    "source_path" : "data/bank-320/package-placement-320-v3/batches/B2-compact-v3/audio/PLT-B2-L-G12-V3.wav",
+    "source_path" : "tools/mongo-json-importer/samples/placement-media/1c4d84cc56f4a96e1ae5718dca1bea7c492d90d870641fe56771d73c2e546e14.wav",
+    "authoring_source_path" : "data/bank-320/package-placement-320-v3/batches/B2-compact-v3/audio/PLT-B2-L-G12-V3.wav",
     "sha256" : "1c4d84cc56f4a96e1ae5718dca1bea7c492d90d870641fe56771d73c2e546e14",
     "bytes" : 544988,
     "duration_seconds" : 12.357,
-    "url" : "http://127.0.0.1:8892/audio/1c4d84cc56f4a96e1ae5718dca1bea7c492d90d870641fe56771d73c2e546e14.wav"
+    "url" : "/api/v1/placement/media/1c4d84cc56f4a96e1ae5718dca1bea7c492d90d870641fe56771d73c2e546e14.wav"
   }, {
     "question_id" : "PLT-Q-B2-L-0013-V3",
-    "source_path" : "data/bank-320/package-placement-320-v3/batches/B2-compact-v3/audio/PLT-B2-L-G13-V3.wav",
+    "source_path" : "tools/mongo-json-importer/samples/placement-media/19c73d68efd07b778c6ce9d4ebe325e5120216fe565ac36ebffbca0fbca3563e.wav",
+    "authoring_source_path" : "data/bank-320/package-placement-320-v3/batches/B2-compact-v3/audio/PLT-B2-L-G13-V3.wav",
     "sha256" : "19c73d68efd07b778c6ce9d4ebe325e5120216fe565ac36ebffbca0fbca3563e",
     "bytes" : 498264,
     "duration_seconds" : 11.297,
-    "url" : "http://127.0.0.1:8892/audio/19c73d68efd07b778c6ce9d4ebe325e5120216fe565ac36ebffbca0fbca3563e.wav"
+    "url" : "/api/v1/placement/media/19c73d68efd07b778c6ce9d4ebe325e5120216fe565ac36ebffbca0fbca3563e.wav"
   }, {
     "question_id" : "PLT-Q-B2-L-0014-V3",
-    "source_path" : "data/bank-320/package-placement-320-v3/batches/B2-compact-v3/audio/PLT-B2-L-G14-V3.wav",
+    "source_path" : "tools/mongo-json-importer/samples/placement-media/af0ae2a7ccc17bbace5173a60bf08d21a7d46588ab1c545b912c6f862842643b.wav",
+    "authoring_source_path" : "data/bank-320/package-placement-320-v3/batches/B2-compact-v3/audio/PLT-B2-L-G14-V3.wav",
     "sha256" : "af0ae2a7ccc17bbace5173a60bf08d21a7d46588ab1c545b912c6f862842643b",
     "bytes" : 381200,
     "duration_seconds" : 8.643,
-    "url" : "http://127.0.0.1:8892/audio/af0ae2a7ccc17bbace5173a60bf08d21a7d46588ab1c545b912c6f862842643b.wav"
+    "url" : "/api/v1/placement/media/af0ae2a7ccc17bbace5173a60bf08d21a7d46588ab1c545b912c6f862842643b.wav"
   }, {
     "question_id" : "PLT-Q-B2-L-0015-V3",
-    "source_path" : "data/bank-320/package-placement-320-v3/batches/B2-compact-v3/audio/PLT-B2-L-G15-V3.wav",
+    "source_path" : "tools/mongo-json-importer/samples/placement-media/996161f87a491839d7b1361ffa21dbf1806bf2e215c40e3439f3dd5238e4632a.wav",
+    "authoring_source_path" : "data/bank-320/package-placement-320-v3/batches/B2-compact-v3/audio/PLT-B2-L-G15-V3.wav",
     "sha256" : "996161f87a491839d7b1361ffa21dbf1806bf2e215c40e3439f3dd5238e4632a",
     "bytes" : 446016,
     "duration_seconds" : 10.113,
-    "url" : "http://127.0.0.1:8892/audio/996161f87a491839d7b1361ffa21dbf1806bf2e215c40e3439f3dd5238e4632a.wav"
+    "url" : "/api/v1/placement/media/996161f87a491839d7b1361ffa21dbf1806bf2e215c40e3439f3dd5238e4632a.wav"
   }, {
     "question_id" : "PLT-Q-B2-L-0016-V3",
-    "source_path" : "data/bank-320/package-placement-320-v3/batches/B2-compact-v3/audio/PLT-B2-L-G16-V3.wav",
+    "source_path" : "tools/mongo-json-importer/samples/placement-media/9db6fd1c75232b1867a3af81d121aaced3eeb49db63c4b01dc04615661a63cf1.wav",
+    "authoring_source_path" : "data/bank-320/package-placement-320-v3/batches/B2-compact-v3/audio/PLT-B2-L-G16-V3.wav",
     "sha256" : "9db6fd1c75232b1867a3af81d121aaced3eeb49db63c4b01dc04615661a63cf1",
     "bytes" : 471812,
     "duration_seconds" : 10.698,
-    "url" : "http://127.0.0.1:8892/audio/9db6fd1c75232b1867a3af81d121aaced3eeb49db63c4b01dc04615661a63cf1.wav"
+    "url" : "/api/v1/placement/media/9db6fd1c75232b1867a3af81d121aaced3eeb49db63c4b01dc04615661a63cf1.wav"
   }, {
     "question_id" : "PLT-Q-B2-L-0017-V3",
-    "source_path" : "data/bank-320/package-placement-320-v3/batches/B2-compact-v3/audio/PLT-B2-L-G17-V3.wav",
+    "source_path" : "tools/mongo-json-importer/samples/placement-media/ff333c5c747a4d97f9d59f6fa6133cfda5b48ff7f532a3f22c71cd70d3807b98.wav",
+    "authoring_source_path" : "data/bank-320/package-placement-320-v3/batches/B2-compact-v3/audio/PLT-B2-L-G17-V3.wav",
     "sha256" : "ff333c5c747a4d97f9d59f6fa6133cfda5b48ff7f532a3f22c71cd70d3807b98",
     "bytes" : 491638,
     "duration_seconds" : 11.147,
-    "url" : "http://127.0.0.1:8892/audio/ff333c5c747a4d97f9d59f6fa6133cfda5b48ff7f532a3f22c71cd70d3807b98.wav"
+    "url" : "/api/v1/placement/media/ff333c5c747a4d97f9d59f6fa6133cfda5b48ff7f532a3f22c71cd70d3807b98.wav"
   }, {
     "question_id" : "PLT-Q-B2-L-0018-V3",
-    "source_path" : "data/bank-320/package-placement-320-v3/batches/B2-compact-v3/audio/PLT-B2-L-G18-V3.wav",
+    "source_path" : "tools/mongo-json-importer/samples/placement-media/e6e46ded0ae36d96dd45d86a88aba29a3e1b3dbb1f327645f264de1473cfc30e.wav",
+    "authoring_source_path" : "data/bank-320/package-placement-320-v3/batches/B2-compact-v3/audio/PLT-B2-L-G18-V3.wav",
     "sha256" : "e6e46ded0ae36d96dd45d86a88aba29a3e1b3dbb1f327645f264de1473cfc30e",
     "bytes" : 616414,
     "duration_seconds" : 13.977,
-    "url" : "http://127.0.0.1:8892/audio/e6e46ded0ae36d96dd45d86a88aba29a3e1b3dbb1f327645f264de1473cfc30e.wav"
+    "url" : "/api/v1/placement/media/e6e46ded0ae36d96dd45d86a88aba29a3e1b3dbb1f327645f264de1473cfc30e.wav"
   }, {
     "question_id" : "PLT-Q-B2-L-0019-V3",
-    "source_path" : "data/bank-320/package-placement-320-v3/batches/B2-compact-v3/audio/PLT-B2-L-G19-V3.wav",
+    "source_path" : "tools/mongo-json-importer/samples/placement-media/d27830b70a8ef73fe5da43adeb29f6c893b3506e07008652302db6166c071af2.wav",
+    "authoring_source_path" : "data/bank-320/package-placement-320-v3/batches/B2-compact-v3/audio/PLT-B2-L-G19-V3.wav",
     "sha256" : "d27830b70a8ef73fe5da43adeb29f6c893b3506e07008652302db6166c071af2",
     "bytes" : 526916,
     "duration_seconds" : 11.947,
-    "url" : "http://127.0.0.1:8892/audio/d27830b70a8ef73fe5da43adeb29f6c893b3506e07008652302db6166c071af2.wav"
+    "url" : "/api/v1/placement/media/d27830b70a8ef73fe5da43adeb29f6c893b3506e07008652302db6166c071af2.wav"
   }, {
     "question_id" : "PLT-Q-B2-L-0020-V3",
-    "source_path" : "data/bank-320/package-placement-320-v3/batches/B2-compact-v3/audio/PLT-B2-L-G20-V3.wav",
+    "source_path" : "tools/mongo-json-importer/samples/placement-media/e3f9d135c4c016a8765b46bbe9be3311ec987b96c2763df00f0b8ec3914f0946.wav",
+    "authoring_source_path" : "data/bank-320/package-placement-320-v3/batches/B2-compact-v3/audio/PLT-B2-L-G20-V3.wav",
     "sha256" : "e3f9d135c4c016a8765b46bbe9be3311ec987b96c2763df00f0b8ec3914f0946",
     "bytes" : 490320,
     "duration_seconds" : 11.117,
-    "url" : "http://127.0.0.1:8892/audio/e3f9d135c4c016a8765b46bbe9be3311ec987b96c2763df00f0b8ec3914f0946.wav"
+    "url" : "/api/v1/placement/media/e3f9d135c4c016a8765b46bbe9be3311ec987b96c2763df00f0b8ec3914f0946.wav"
   }, {
     "question_id" : "PLT-Q-B2-L-0021-V3",
-    "source_path" : "data/bank-320/package-placement-320-v3/batches/B2-compact-v3/audio/PLT-B2-L-G21-V3.wav",
+    "source_path" : "tools/mongo-json-importer/samples/placement-media/493e66bdb31a0c723df06aff8b4a02bd10bad87206a0c5eb1b0e8bb540e886fb.wav",
+    "authoring_source_path" : "data/bank-320/package-placement-320-v3/batches/B2-compact-v3/audio/PLT-B2-L-G21-V3.wav",
     "sha256" : "493e66bdb31a0c723df06aff8b4a02bd10bad87206a0c5eb1b0e8bb540e886fb",
     "bytes" : 464744,
     "duration_seconds" : 10.537,
-    "url" : "http://127.0.0.1:8892/audio/493e66bdb31a0c723df06aff8b4a02bd10bad87206a0c5eb1b0e8bb540e886fb.wav"
+    "url" : "/api/v1/placement/media/493e66bdb31a0c723df06aff8b4a02bd10bad87206a0c5eb1b0e8bb540e886fb.wav"
   }, {
     "question_id" : "PLT-Q-B2-L-0022-V3",
-    "source_path" : "data/bank-320/package-placement-320-v3/batches/B2-compact-v3/audio/PLT-B2-L-G22-V3.wav",
+    "source_path" : "tools/mongo-json-importer/samples/placement-media/8e85e7697bab21fde3ea1dfb60db063f90878b4e012f752bb1734de4fc99f0ff.wav",
+    "authoring_source_path" : "data/bank-320/package-placement-320-v3/batches/B2-compact-v3/audio/PLT-B2-L-G22-V3.wav",
     "sha256" : "8e85e7697bab21fde3ea1dfb60db063f90878b4e012f752bb1734de4fc99f0ff",
     "bytes" : 468496,
     "duration_seconds" : 10.622,
-    "url" : "http://127.0.0.1:8892/audio/8e85e7697bab21fde3ea1dfb60db063f90878b4e012f752bb1734de4fc99f0ff.wav"
+    "url" : "/api/v1/placement/media/8e85e7697bab21fde3ea1dfb60db063f90878b4e012f752bb1734de4fc99f0ff.wav"
   }, {
     "question_id" : "PLT-Q-B2-L-0023-V3",
-    "source_path" : "data/bank-320/package-placement-320-v3/batches/B2-compact-v3/audio/PLT-B2-L-G23-V3.wav",
+    "source_path" : "tools/mongo-json-importer/samples/placement-media/228cd6ef13d431dff6e477f38aa3c72b40f98dbdf1694b7b778a611fbec5f0fb.wav",
+    "authoring_source_path" : "data/bank-320/package-placement-320-v3/batches/B2-compact-v3/audio/PLT-B2-L-G23-V3.wav",
     "sha256" : "228cd6ef13d431dff6e477f38aa3c72b40f98dbdf1694b7b778a611fbec5f0fb",
     "bytes" : 673752,
     "duration_seconds" : 15.277,
-    "url" : "http://127.0.0.1:8892/audio/228cd6ef13d431dff6e477f38aa3c72b40f98dbdf1694b7b778a611fbec5f0fb.wav"
+    "url" : "/api/v1/placement/media/228cd6ef13d431dff6e477f38aa3c72b40f98dbdf1694b7b778a611fbec5f0fb.wav"
   }, {
     "question_id" : "PLT-Q-B2-L-0024-V3",
-    "source_path" : "data/bank-320/package-placement-320-v3/batches/B2-compact-v3/audio/PLT-B2-L-G24-V3.wav",
+    "source_path" : "tools/mongo-json-importer/samples/placement-media/5900b90048f5f30165f8a6f791a9c3d5179acf36fede54b66dfffd0a9c3b747b.wav",
+    "authoring_source_path" : "data/bank-320/package-placement-320-v3/batches/B2-compact-v3/audio/PLT-B2-L-G24-V3.wav",
     "sha256" : "5900b90048f5f30165f8a6f791a9c3d5179acf36fede54b66dfffd0a9c3b747b",
     "bytes" : 561082,
     "duration_seconds" : 12.722,
-    "url" : "http://127.0.0.1:8892/audio/5900b90048f5f30165f8a6f791a9c3d5179acf36fede54b66dfffd0a9c3b747b.wav"
+    "url" : "/api/v1/placement/media/5900b90048f5f30165f8a6f791a9c3d5179acf36fede54b66dfffd0a9c3b747b.wav"
   }, {
     "question_id" : "PLT-Q-B2-L-0025-V3",
-    "source_path" : "data/bank-320/package-placement-320-v3/batches/B2-compact-v3/audio/PLT-B2-L-G25-V3.wav",
+    "source_path" : "tools/mongo-json-importer/samples/placement-media/328e450f474721b4d132e8f98ba46677a48ab9d94a57dc0e8a6202d579dcdef1.wav",
+    "authoring_source_path" : "data/bank-320/package-placement-320-v3/batches/B2-compact-v3/audio/PLT-B2-L-G25-V3.wav",
     "sha256" : "328e450f474721b4d132e8f98ba46677a48ab9d94a57dc0e8a6202d579dcdef1",
     "bytes" : 419996,
     "duration_seconds" : 9.523,
-    "url" : "http://127.0.0.1:8892/audio/328e450f474721b4d132e8f98ba46677a48ab9d94a57dc0e8a6202d579dcdef1.wav"
+    "url" : "/api/v1/placement/media/328e450f474721b4d132e8f98ba46677a48ab9d94a57dc0e8a6202d579dcdef1.wav"
   }, {
     "question_id" : "PLT-Q-B2-L-0026-V3",
-    "source_path" : "data/bank-320/package-placement-320-v3/batches/B2-compact-v3/audio/PLT-B2-L-G26-V3.wav",
+    "source_path" : "tools/mongo-json-importer/samples/placement-media/b4215a46ec642bdaca8d23c55b22e633992608bc385487d11c5f68dc1dff12e6.wav",
+    "authoring_source_path" : "data/bank-320/package-placement-320-v3/batches/B2-compact-v3/audio/PLT-B2-L-G26-V3.wav",
     "sha256" : "b4215a46ec642bdaca8d23c55b22e633992608bc385487d11c5f68dc1dff12e6",
     "bytes" : 586436,
     "duration_seconds" : 13.297,
-    "url" : "http://127.0.0.1:8892/audio/b4215a46ec642bdaca8d23c55b22e633992608bc385487d11c5f68dc1dff12e6.wav"
+    "url" : "/api/v1/placement/media/b4215a46ec642bdaca8d23c55b22e633992608bc385487d11c5f68dc1dff12e6.wav"
   }, {
     "question_id" : "PLT-Q-B2-L-0027-V3",
-    "source_path" : "data/bank-320/package-placement-320-v3/batches/B2-compact-v3/audio/PLT-B2-L-G27-V3.wav",
+    "source_path" : "tools/mongo-json-importer/samples/placement-media/c1c9e8965466e29bfaaad06eb6ffdfae6e1cbcea213967b182653aa480a9afef.wav",
+    "authoring_source_path" : "data/bank-320/package-placement-320-v3/batches/B2-compact-v3/audio/PLT-B2-L-G27-V3.wav",
     "sha256" : "c1c9e8965466e29bfaaad06eb6ffdfae6e1cbcea213967b182653aa480a9afef",
     "bytes" : 596806,
     "duration_seconds" : 13.532,
-    "url" : "http://127.0.0.1:8892/audio/c1c9e8965466e29bfaaad06eb6ffdfae6e1cbcea213967b182653aa480a9afef.wav"
+    "url" : "/api/v1/placement/media/c1c9e8965466e29bfaaad06eb6ffdfae6e1cbcea213967b182653aa480a9afef.wav"
   }, {
     "question_id" : "PLT-Q-B2-L-0028-V3",
-    "source_path" : "data/bank-320/package-placement-320-v3/batches/B2-compact-v3/audio/PLT-B2-L-G28-V3.wav",
+    "source_path" : "tools/mongo-json-importer/samples/placement-media/5f4bbdf60923397f1901c3badb45905006e09af7ae78f11e322d222e5ddcef46.wav",
+    "authoring_source_path" : "data/bank-320/package-placement-320-v3/batches/B2-compact-v3/audio/PLT-B2-L-G28-V3.wav",
     "sha256" : "5f4bbdf60923397f1901c3badb45905006e09af7ae78f11e322d222e5ddcef46",
     "bytes" : 486346,
     "duration_seconds" : 11.027,
-    "url" : "http://127.0.0.1:8892/audio/5f4bbdf60923397f1901c3badb45905006e09af7ae78f11e322d222e5ddcef46.wav"
+    "url" : "/api/v1/placement/media/5f4bbdf60923397f1901c3badb45905006e09af7ae78f11e322d222e5ddcef46.wav"
   }, {
     "question_id" : "PLT-Q-B2-L-0029-V3",
-    "source_path" : "data/bank-320/package-placement-320-v3/batches/B2-compact-v3/audio/PLT-B2-L-G29-V3.wav",
+    "source_path" : "tools/mongo-json-importer/samples/placement-media/16e36fda34836407c8d3ec95b0fe7c8d933804974ea600eda4c9ba3728b2c1f4.wav",
+    "authoring_source_path" : "data/bank-320/package-placement-320-v3/batches/B2-compact-v3/audio/PLT-B2-L-G29-V3.wav",
     "sha256" : "16e36fda34836407c8d3ec95b0fe7c8d933804974ea600eda4c9ba3728b2c1f4",
     "bytes" : 583350,
     "duration_seconds" : 13.227,
-    "url" : "http://127.0.0.1:8892/audio/16e36fda34836407c8d3ec95b0fe7c8d933804974ea600eda4c9ba3728b2c1f4.wav"
+    "url" : "/api/v1/placement/media/16e36fda34836407c8d3ec95b0fe7c8d933804974ea600eda4c9ba3728b2c1f4.wav"
   }, {
     "question_id" : "PLT-Q-B2-L-0030-V3",
-    "source_path" : "data/bank-320/package-placement-320-v3/batches/B2-compact-v3/audio/PLT-B2-L-G30-V3.wav",
+    "source_path" : "tools/mongo-json-importer/samples/placement-media/ea0cc5807e4da496cdbca31953ca7d5c5b0f9bf950be3d4b829fb0a6717dc522.wav",
+    "authoring_source_path" : "data/bank-320/package-placement-320-v3/batches/B2-compact-v3/audio/PLT-B2-L-G30-V3.wav",
     "sha256" : "ea0cc5807e4da496cdbca31953ca7d5c5b0f9bf950be3d4b829fb0a6717dc522",
     "bytes" : 465624,
     "duration_seconds" : 10.557,
-    "url" : "http://127.0.0.1:8892/audio/ea0cc5807e4da496cdbca31953ca7d5c5b0f9bf950be3d4b829fb0a6717dc522.wav"
+    "url" : "/api/v1/placement/media/ea0cc5807e4da496cdbca31953ca7d5c5b0f9bf950be3d4b829fb0a6717dc522.wav"
   }, {
     "question_id" : "PLT-Q-B2-L-0031-V3",
-    "source_path" : "data/bank-320/package-placement-320-v3/batches/B2-compact-v3/audio/PLT-B2-L-G31-V3.wav",
+    "source_path" : "tools/mongo-json-importer/samples/placement-media/5e98c361100e01b3ee610caa2718dc4cfc4d070b38fc9307feb07b0a2a673416.wav",
+    "authoring_source_path" : "data/bank-320/package-placement-320-v3/batches/B2-compact-v3/audio/PLT-B2-L-G31-V3.wav",
     "sha256" : "5e98c361100e01b3ee610caa2718dc4cfc4d070b38fc9307feb07b0a2a673416",
     "bytes" : 523826,
     "duration_seconds" : 11.877,
-    "url" : "http://127.0.0.1:8892/audio/5e98c361100e01b3ee610caa2718dc4cfc4d070b38fc9307feb07b0a2a673416.wav"
+    "url" : "/api/v1/placement/media/5e98c361100e01b3ee610caa2718dc4cfc4d070b38fc9307feb07b0a2a673416.wav"
   }, {
     "question_id" : "PLT-Q-B2-L-0032-V3",
-    "source_path" : "data/bank-320/package-placement-320-v3/batches/B2-compact-v3/audio/PLT-B2-L-G32-V3.wav",
+    "source_path" : "tools/mongo-json-importer/samples/placement-media/15d81573c5b4db73b47c61a5b1f919198866f44c2b39ca098b8675d264c5160a.wav",
+    "authoring_source_path" : "data/bank-320/package-placement-320-v3/batches/B2-compact-v3/audio/PLT-B2-L-G32-V3.wav",
     "sha256" : "15d81573c5b4db73b47c61a5b1f919198866f44c2b39ca098b8675d264c5160a",
     "bytes" : 530236,
     "duration_seconds" : 12.022,
-    "url" : "http://127.0.0.1:8892/audio/15d81573c5b4db73b47c61a5b1f919198866f44c2b39ca098b8675d264c5160a.wav"
+    "url" : "/api/v1/placement/media/15d81573c5b4db73b47c61a5b1f919198866f44c2b39ca098b8675d264c5160a.wav"
   } ]
 }

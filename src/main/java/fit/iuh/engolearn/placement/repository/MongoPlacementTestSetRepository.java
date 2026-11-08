@@ -48,6 +48,7 @@ public class MongoPlacementTestSetRepository implements PlacementTestSetReposito
         List<PlacementTestSet> candidates = mongo.find(Query.query(
                         Criteria.where("status").is(status).and("items.19").exists(true)),
                 PlacementTestSet.class);
+        candidates = PlacementTestSetVersions.latest(candidates);
         if (candidates.isEmpty()) return Optional.empty();
         int index = ThreadLocalRandom.current().nextInt(candidates.size());
         return Optional.of(PlacementCopies.testSet(candidates.get(index)));

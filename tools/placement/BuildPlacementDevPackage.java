@@ -19,24 +19,32 @@ public class BuildPlacementDevPackage {
     private static final Path OUTPUT = BACKEND.resolve("data/placement/dev-v3");
     private static final Path SAMPLES = BACKEND.resolve("tools/mongo-json-importer/samples");
     private static final ObjectMapper JSON = new ObjectMapper();
-    private static final String SET_ID = "PLT-V3-DEV-001-V1";
+    private static final Path MEDIA = SAMPLES.resolve("placement-media");
+    private static final String SET_ID = "PLT-V3-DEV-001-V2";
 
     public static void main(String[] args) throws Exception {
         boolean check = false;
-        String audioBase = "http://127.0.0.1:8892";
+        boolean verifyAuthoring = false;
+        String audioBase = "/api/v1/placement/media";
         for (int i = 0; i < args.length; i++) {
             if (args[i].equals("--check")) check = true;
+            else if (args[i].equals("--verify-authoring-source")) verifyAuthoring = true;
             else if (args[i].equals("--audio-base-url") && i + 1 < args.length) audioBase = args[++i];
             else throw new IllegalArgumentException("Unknown/incomplete argument: " + args[i]);
         }
         URI uri = URI.create(audioBase);
-        require(Set.of("http", "https").contains(uri.getScheme()) && uri.getHost() != null
-                && uri.getUserInfo() == null && uri.getQuery() == null && uri.getFragment() == null
-                && (uri.getPath().isEmpty() || uri.getPath().equals("/")), "Audio base must be an HTTP(S) origin without credentials/path/query");
-        audioBase = uri.getScheme() + "://" + uri.getRawAuthority();
+        if (uri.isAbsolute()) {
+            require(Set.of("http", "https").contains(uri.getScheme()) && uri.getHost() != null
+                    && uri.getUserInfo() == null && uri.getQuery() == null && uri.getFragment() == null
+                    && (uri.getPath().isEmpty() || uri.getPath().equals("/")), "Audio base must be an HTTP(S) origin");
+            audioBase = uri.getScheme() + "://" + uri.getRawAuthority();
+        } else {
+            require(audioBase.matches("/[A-Za-z0-9/_-]+") && !audioBase.startsWith("//"), "Audio base must be a local absolute path");
+            audioBase = audioBase.replaceAll("/+$", "");
+        }
 
         Map<String,Object> seedManifest = readObject(SEED.resolve("placement_seed_manifest.json"));
-        verifyFileInfos(seedManifest.get("source"));
+        if (verifyAuthoring) verifyFileInfos(seedManifest.get("source"));
         verifyFileInfos(seedManifest.get("output"));
         Path questionFile = SEED.resolve("placement_questions.mongo.json");
         List<Map<String,Object>> raw = readArray(questionFile);
@@ -74,18 +82,19 @@ public class BuildPlacementDevPackage {
         for (Map<String,Object> asset : audio) {
             String id = (String) asset.get("question_id");
             require(audioByQuestion.put(id, asset) == null, "Duplicate audio question reference");
-            Path source = REPO.resolve((String) asset.get("source_path")).normalize();
-            require(source.startsWith(REPO.resolve("data/bank-320/package-placement-320-v3")), "Canonical audio source only");
+            Path source = MEDIA.resolve(asset.get("sha256") + ".wav");
+            if (verifyAuthoring) require(sha(REPO.resolve((String) asset.get("source_path"))).equals(asset.get("sha256")), "Authoring WAV checksum");
             require(sha(source).equals(asset.get("sha256")) && Files.size(source) == ((Number) asset.get("bytes")).longValue(), "WAV hash/size mismatch: " + id);
             audioBytes += Files.size(source);
             PlacementQuestion question = bank.get(id);
             require(question != null && question.getSkill() == PlacementSkill.LISTENING, "Audio reference outside bank");
             require(question.getProvenance().getAudioSha256().equals(asset.get("sha256"))
                     && question.getProvenance().getAudioDurationSeconds() == ((Number) asset.get("duration_seconds")).doubleValue(), "Audio metadata mismatch");
-            resolvedAudio.add(object("question_id", id, "source_path", asset.get("source_path"),
+            resolvedAudio.add(object("question_id", id, "source_path", BACKEND.relativize(source).toString().replace('\\', '/'),
+                    "authoring_source_path", asset.get("source_path"),
                     "sha256", asset.get("sha256"), "bytes", asset.get("bytes"),
                     "duration_seconds", asset.get("duration_seconds"),
-                    "url", audioBase + "/audio/" + asset.get("sha256") + ".wav"));
+                    "url", mediaUrl(audioBase, (String) asset.get("sha256"))));
         }
         require(audioBytes == 48428354, "Canonical WAV total bytes");
 
@@ -98,7 +107,7 @@ public class BuildPlacementDevPackage {
             require(question != null, "Selection missing from canonical bank");
             if (question.getSkill() == PlacementSkill.LISTENING) {
                 var asset = audioByQuestion.get(question.getId());
-                question.setAudioUrl(audioBase + "/audio/" + asset.get("sha256") + ".wav");
+                question.setAudioUrl(mediaUrl(audioBase, (String) asset.get("sha256")));
             }
             selected.add(question);
             selections.add(object("order_index", i + 1, "question_id", question.getId(),
@@ -106,7 +115,7 @@ public class BuildPlacementDevPackage {
                     "semantic_family_id", question.getProvenance().getSemanticFamilyId()));
         }
         var snapshot = PlacementTestSetSnapshotFactory.assemble(SET_ID, "PLT-V3-DEV-001",
-                "Placement V3 DEV draft", 1, PlacementTestSetStatus.DRAFT, selected);
+                "Placement V3 DEV portable", 2, PlacementTestSetStatus.DRAFT, selected);
         Document snapshotDocument = new Document();
         converter.write(snapshot, snapshotDocument);
         Document roundTrip = new Document();
@@ -128,7 +137,7 @@ public class BuildPlacementDevPackage {
 
         LinkedHashMap<String,String> artifacts = new LinkedHashMap<>();
         artifacts.put("placement-v3-questions.importer.json", text(questionEnvelope));
-        artifacts.put("placement-v3-test-sets.importer.json", text(snapshotEnvelope));
+        artifacts.put("placement-v3-test-sets-v2.importer.json", text(snapshotEnvelope));
         artifacts.put("selection-manifest.json", text(selectionManifest));
         artifacts.put("audio-url-manifest.json", text(audioManifest));
         validateExports(artifacts, readArray(questionFile), snapshotDocument, selected, converter);
@@ -143,7 +152,7 @@ public class BuildPlacementDevPackage {
                 BACKEND.resolve("tools/mongo-json-importer/README.md"), BACKEND.resolve("tools/mongo-json-importer/import.ps1"),
                 BACKEND.resolve("tools/mongo-json-importer/importer.mongosh.js"),
                 BACKEND.resolve("src/main/java/fit/iuh/engolearn/placement/service/PlacementTestSetSnapshotFactory.java"))) {
-            sources.add(object("path", REPO.relativize(file).toString().replace('\\', '/'), "sha256", sha(file)));
+            sources.add(object("path", ("engolearn-backend/" + BACKEND.relativize(file).toString()).replace('\\', '/'), "sha256", sha(file)));
         }
         artifacts.put("package-manifest.json", text(object("name", "engolearn-placement-v3-dev-package", "version", 1,
                 "audio_base_url", audioBase, "sources", sources, "outputs", outputInfos,
@@ -168,9 +177,13 @@ public class BuildPlacementDevPackage {
         System.out.println("Placement DEV package " + (check ? "CHECK" : "BUILD") + ": PASS");
         System.out.println("Questions=320; Reading=224; Listening=96; String IDs=320; DRAFT=320; WAV=96; Test Sets=1; Items=20; Listening URLs=6");
         System.out.println("MappingMongoConverter + actual snapshot factory + BSON parsing: PASS; B2 families unique");
-        System.out.println("Audio origin=" + audioBase + "; media server NOT started; playback NOT verified");
+        System.out.println("Audio base=" + audioBase + "; media server NOT started; playback NOT verified");
         outputInfos.forEach((name, info) -> System.out.println(name + " " + info));
         System.out.println("Database writes=0; importer database DryRun: NOT_RUN — target not approved");
+    }
+
+    private static String mediaUrl(String base, String sha256) {
+        return base + (base.startsWith("/") ? "/" : "/audio/") + sha256 + ".wav";
     }
 
     private static Path artifactPath(String name) {
@@ -187,7 +200,7 @@ public class BuildPlacementDevPackage {
             var bson = BsonDocument.parse(JSON.writeValueAsString(q));
             require(bson.get("_id").isString(), "BSON question ID must remain String");
         }
-        var parsedSet = BsonDocument.parse(artifacts.get("placement-v3-test-sets.importer.json"))
+        var parsedSet = BsonDocument.parse(artifacts.get("placement-v3-test-sets-v2.importer.json"))
                 .getDocument("collections").getArray("placement_test_sets").get(0).asDocument();
         require(parsedSet.get("_id").isString() && parsedSet.get("version").isInt32(), "Snapshot ID/version BSON types");
         var items = parsedSet.getArray("items");
@@ -244,7 +257,7 @@ public class BuildPlacementDevPackage {
         if (value instanceof Map<?,?> map) {
             if (map.get("path") instanceof String path && map.get("sha256") instanceof String expected
                     && map.get("bytes") instanceof Number bytes) {
-                Path file = REPO.resolve(path);
+                Path file = path.startsWith("engolearn-backend/") ? BACKEND.resolve(path.substring("engolearn-backend/".length())) : REPO.resolve(path);
                 require(Files.size(file) == bytes.longValue() && sha(file).equals(expected), "M1 manifest integrity: " + path);
             } else for (Object nested : map.values()) verifyFileInfos(nested);
         } else if (value instanceof List<?> list) for (Object nested : list) verifyFileInfos(nested);
