@@ -6,6 +6,10 @@ authenticated access cookie. `pathId` is a MongoDB ObjectId; `weekNo` is 1–3
 and `dayNo` is 1–5. The path must belong to the authenticated user,
 the week must be open, and the day must be available before its deadlines.
 
+Owner IDs are BSON strings in paths and question snapshots, including non-ObjectId account
+IDs. Start, draft, submission, and review use the exact authenticated string for ownership
+checks. See [user ID storage](learning-path-list-api.md#user-id-storage).
+
 On the first successful request, the day becomes `IN_PROGRESS`. The server stores
 `started_at`, the `yyyy-MM-dd` date in `Asia/Ho_Chi_Minh`, and `auto_close_at` at
 the next local midnight. The path becomes `IN_PROGRESS` if it was `NOT_STARTED`.

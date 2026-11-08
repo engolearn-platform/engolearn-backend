@@ -61,10 +61,27 @@ joins the start transaction; failed profile/attempt writes roll back consumption
 are bounded. Request/command IDs and answer sequences protect replays and stale writes.
 
 Assessment calls Subscription/Quota only through their public contracts and does not read
-their collections. It does not write User or Learning Path state. Existing result-provider
-contracts remain unchanged. A real Placement integration must supply
+their collections. It does not write User or Learning Path state. The result-provider contract is described below. A real Placement integration must supply
 `AssessmentBaselineSource`; absent baseline blocks starting. The dev baseline adapter is
 active only in `dev & !prod`. Demonstration papers/attempts are excluded outside development.
+
+## Learning Path result contract
+
+`AssessmentResults` is the public in-process result provider. `latest(userId)` remains available.
+`findCompleted(userId, assessmentAttemptId)` reads that exact owner's READY result, rather
+than selecting the latest. `findCompletedAttemptIds(userId, ids)` checks a batch with one
+owner/status-filtered query and returns only valid IDs. Missing, foreign, unfinished and
+hidden demonstration sources are absent; demonstration visibility remains `dev & !prod`.
+
+DTOs include native attempt/paper IDs, submitted time, level and all measured skill codes,
+counts, percentages and contract band values. Returned collections are defensive copies.
+The calls never settle or grade an active attempt, consume quota, or write grants/results.
+They are independent of full-analysis display grants, as the earlier `latest` contract was.
+The frontend result/review APIs still apply their existing Subscription display policy.
+
+Learning Path owns eligibility, pool-name mapping, frozen baselines and path creation.
+Assessment does not write Learning Path state or populate the legacy `attempts` /
+`micro_skill_results` collections. See the [Learning Path contract](learningpath/learning-path-list-api.md).
 
 ## HTTP API
 
@@ -138,7 +155,7 @@ The local handoff package includes the Windows and Atlas instructions, isolated 
 
 ### Shared development data
 
-Pull this backend branch to get the [version-2 sample paper](../../tools/mongo-json-importer/samples/assessment-paper-v2.json)
+Pull this backend branch to get the [shared Assessment demo dataset](../../tools/mongo-json-importer/samples/assessment-demo.json)
 and its [WAV files](../../tools/mongo-json-importer/samples/assessment-media). The paper is marked
 `demonstration: true` and is selectable in `dev` without `prod`.
 
@@ -148,8 +165,8 @@ and its [WAV files](../../tools/mongo-json-importer/samples/assessment-media). T
    policy at `skip`.
 
    ```powershell
-   .\tools\mongo-json-importer\import.ps1 -File .\tools\mongo-json-importer\samples\assessment-paper-v2.json -DryRun
-   .\tools\mongo-json-importer\import.ps1 -File .\tools\mongo-json-importer\samples\assessment-paper-v2.json
+   .\tools\mongo-json-importer\import.ps1 -File .\tools\mongo-json-importer\samples\assessment-demo.json -DryRun
+   .\tools\mongo-json-importer\import.ps1 -File .\tools\mongo-json-importer\samples\assessment-demo.json
    ```
 
    Run the second command only after confirming the target and the preflight report. It
@@ -207,3 +224,10 @@ Final command: `./mvnw verify` with JDK 21+. Feature checks: `AssessmentRulesTes
 tests use/clear test-owned collections in the dedicated `engolearn_pfc_test` database.
 Legacy tests import an already-started legacy snapshot; actual new starts require version 2.
 No fake assessment HTTP or in-memory Mongo replacement is used as integration evidence.
+
+
+The version-2 paper now ships inside `assessment-demo.json`, together with the public demo
+account and four historical attempts. For the shared Learning Path dataset, Subscription
+account initialization and current demo limits, follow the
+[importer guide](../../tools/mongo-json-importer/README.md#shared-assessment--learning-path-demo).
+Learning Path Listening audio placeholders do not affect the 13 supplied Assessment WAV files.

@@ -5,7 +5,8 @@ import fit.iuh.engolearn.learningpath.model.enums.LearningPathStatus;
 import fit.iuh.engolearn.learningpath.model.vo.LearningPathSource;
 import fit.iuh.engolearn.learningpath.dto.request.LearningPathListStatus;
 import fit.iuh.engolearn.learningpath.repository.LearningPathRepository;
-import fit.iuh.engolearn.learningpath.repository.PeriodicTestReadRepository;
+import fit.iuh.engolearn.assessment.contract.AssessmentResults;
+import fit.iuh.engolearn.learningpath.service.impl.LearningPathServiceImpl;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -26,8 +27,8 @@ class LearningPathServiceIdTest {
     @Test
     void detailAndSearchPreserveIdAndSortDistinctResultsByCreationTime() {
         LearningPathRepository repository = mock(LearningPathRepository.class);
-        LearningPathService service = new LearningPathService(repository, mock(PeriodicTestReadRepository.class));
-        ObjectId userId = new ObjectId();
+        LearningPathService service = new LearningPathServiceImpl(repository, mock(AssessmentResults.class));
+        String userId = new ObjectId().toHexString();
         ObjectId olderId = new ObjectId();
         LearningPath older = path(olderId, "2026-10-27T03:00:00Z");
         LearningPath newer = path(new ObjectId(), "2026-10-28T03:00:00Z");
@@ -39,9 +40,9 @@ class LearningPathServiceIdTest {
         when(repository.countByUserIdAndStatusIn(eq(userId), anyList())).thenReturn(2L);
         when(repository.countByUserIdAndStatus(eq(userId), any())).thenReturn(0L);
 
-        assertThat(service.getDetail(olderId.toHexString(), userId.toHexString()).id())
+        assertThat(service.getDetail(olderId.toHexString(), userId).id())
                 .isEqualTo(olderId.toHexString());
-        assertThat(service.search(userId.toHexString(), "27/10/2026").items())
+        assertThat(service.search(userId, "27/10/2026").items())
                 .extracting(item -> item.id())
                 .containsExactly(newer.getId(), older.getId());
     }
@@ -49,27 +50,27 @@ class LearningPathServiceIdTest {
     @Test
     void listResolvesDistinctSourceIdsInOneOwnerScopedBatchAndKeepsTheStoredSource() {
         LearningPathRepository repository = mock(LearningPathRepository.class);
-        PeriodicTestReadRepository periodicTests = mock(PeriodicTestReadRepository.class);
-        LearningPathService service = new LearningPathService(repository, periodicTests);
-        ObjectId userId = new ObjectId();
-        ObjectId attemptId = new ObjectId();
+        AssessmentResults periodicTests = mock(AssessmentResults.class);
+        LearningPathService service = new LearningPathServiceImpl(repository, periodicTests);
+        String userId = new ObjectId().toHexString();
+        String attemptId = "native-assessment-id";
         LearningPath first = path(new ObjectId(), "2026-11-01T03:00:00Z");
         LearningPath second = path(new ObjectId(), "2026-11-02T03:00:00Z");
         LearningPath legacy = path(new ObjectId(), "2026-11-03T03:00:00Z");
         LearningPathSource source = new LearningPathSource();
-        source.setAttemptId(attemptId);
+        source.setAssessmentAttemptId(attemptId);
         first.setSource(source);
         second.setSource(source);
         when(repository.findByUserIdAndStatusInOrderByCreatedAtDesc(eq(userId), anyList()))
                 .thenReturn(List.of(first, second, legacy));
-        when(periodicTests.findAssessmentAttemptIds(List.of(attemptId), userId))
-                .thenReturn(Map.of(attemptId, "native-assessment-id"));
+        when(periodicTests.findCompletedAttemptIds(userId, java.util.Set.of(attemptId)))
+                .thenReturn(java.util.Set.of(attemptId));
 
-        assertThat(service.getByUserId(userId.toHexString(), LearningPathListStatus.ACTIVE).items())
+        assertThat(service.getByUserId(userId, LearningPathListStatus.ACTIVE).items())
                 .extracting(item -> item.sourceAssessmentAttemptId())
                 .containsExactly("native-assessment-id", "native-assessment-id", null);
-        verify(periodicTests).findAssessmentAttemptIds(List.of(attemptId), userId);
-        assertThat(first.getSource().getAttemptId()).isEqualTo(attemptId);
+        verify(periodicTests).findCompletedAttemptIds(userId, java.util.Set.of(attemptId));
+        assertThat(first.getSource().getAssessmentAttemptId()).isEqualTo(attemptId);
     }
 
     private LearningPath path(ObjectId id, String createdAt) {

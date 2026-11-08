@@ -41,9 +41,8 @@ public class LearningPathDaySubmissionService {
 
     public SubmitLearningPathDayResponse submit(String pathId, int weekNo, int dayNo, String userId) {
         ObjectId pathObjectId = new ObjectId(pathId);
-        ObjectId userObjectId = new ObjectId(userId);
         for (int attempt = 0; attempt < 3; attempt++) {
-            LearningPath path = paths.findByIdAndUserId(pathObjectId, userObjectId)
+            LearningPath path = paths.findByIdAndUserId(pathObjectId, userId)
                     .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy Learning Path"));
             LearningPathWeek week = path.getWeeks().stream().filter(w -> w.getWeekNo() == weekNo).findFirst()
                     .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy tuần luyện tập"));
@@ -58,7 +57,7 @@ public class LearningPathDaySubmissionService {
                     .map(LearningPathDayItem::getQuestionId).toList();
             Map<String, String> keys = new HashMap<>();
             if (!ids.isEmpty()) {
-                for (Document snapshot : questions.findAnswerKeys(pathObjectId, userObjectId, ids)) {
+                for (Document snapshot : questions.findAnswerKeys(pathObjectId, userId, ids)) {
                     String id = snapshot.getString("question_id");
                     String key = snapshot.getString("correct_option_id");
                     if (id == null || key == null || keys.putIfAbsent(id, key) != null) {
@@ -71,7 +70,7 @@ public class LearningPathDaySubmissionService {
             }
             Map<String, Object> changes = engine.submit(path, path.getWeeks().indexOf(week),
                     week.getDays().indexOf(day), now, keys);
-            if (practice.submit(pathObjectId, userObjectId, weekNo, dayNo, path.getRevision(),
+            if (practice.submit(pathObjectId, userId, weekNo, dayNo, path.getRevision(),
                     Date.from(clock.instant()), changes)) {
                 return new SubmitLearningPathDayResponse(pathId, weekNo, dayNo, day.getStatus().name(),
                         day.getClosedAt(), day.getProgress().getAssigned(), day.getProgress().getAnswered(),

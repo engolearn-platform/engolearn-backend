@@ -71,7 +71,8 @@ public class LearningPathController {
 
     @GetMapping("/recommendation")
     public ApiResponse<LearningPathRecommendationResponse> getRecommendation(
-            @Pattern(regexp = OBJECT_ID_PATTERN, message = "attemptId không hợp lệ")
+            @NotBlank(message = "attemptId không được để trống")
+            @Size(max = 100, message = "attemptId không được vượt quá 100 ký tự")
             @RequestParam String attemptId,
             @AuthenticationPrincipal AuthenticatedUserPrincipal principal
     ) {

@@ -49,7 +49,7 @@ class LearningPathDayPracticeServiceTest {
     private final LearningPathDayPracticeService service = new LearningPathDayPracticeService(
             paths, practice, questions, Clock.fixed(NOW, ZoneOffset.UTC));
     private final ObjectId pathId = new ObjectId();
-    private final ObjectId userId = new ObjectId();
+    private final String userId = "pfc-demo-learner-v2";
 
     @Test
     void startsDayAndReturnsOrderedQuestionsWithoutAnswerKey() throws Exception {
@@ -59,7 +59,7 @@ class LearningPathDayPracticeServiceTest {
         when(practice.startDay(any(), any(), anyInt(), anyInt(),
                 any(), any(), any(), any(), any(), any(), any())).thenReturn(true);
 
-        var response = service.start(pathId.toHexString(), 1, 1, userId.toHexString());
+        var response = service.start(pathId.toHexString(), 1, 1, userId);
 
         assertThat(response.status()).isEqualTo("IN_PROGRESS");
         assertThat(response.startedAt()).isEqualTo(Date.from(NOW));
@@ -88,7 +88,7 @@ class LearningPathDayPracticeServiceTest {
         when(paths.findByIdAndUserId(pathId, userId)).thenReturn(Optional.of(path));
         when(questions.findSnapshots(any(), any(), anyList())).thenReturn(snapshots());
 
-        var response = service.start(pathId.toHexString(), 1, 1, userId.toHexString());
+        var response = service.start(pathId.toHexString(), 1, 1, userId);
 
         assertThat(response.startedAt()).isEqualTo(day.getStartedAt());
         assertThat(response.autoCloseAt()).isEqualTo(day.getAutoCloseAt());
@@ -102,7 +102,7 @@ class LearningPathDayPracticeServiceTest {
     void doesNotRevealAnotherUsersPath() {
         when(paths.findByIdAndUserId(pathId, userId)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> service.start(pathId.toHexString(), 1, 1, userId.toHexString()))
+        assertThatThrownBy(() -> service.start(pathId.toHexString(), 1, 1, userId))
                 .isInstanceOfSatisfying(ResponseStatusException.class,
                         error -> assertThat(error.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND));
         verify(questions, never()).findSnapshots(any(), any(), anyList());
@@ -115,14 +115,14 @@ class LearningPathDayPracticeServiceTest {
         week.setStatus(LearningPathWeekStatus.LOCKED);
         when(paths.findByIdAndUserId(pathId, userId)).thenReturn(Optional.of(path));
 
-        assertThatThrownBy(() -> service.start(pathId.toHexString(), 1, 1, userId.toHexString()))
+        assertThatThrownBy(() -> service.start(pathId.toHexString(), 1, 1, userId))
                 .isInstanceOfSatisfying(ResponseStatusException.class,
                         error -> assertThat(error.getStatusCode()).isEqualTo(HttpStatus.CONFLICT));
 
         week.setStatus(LearningPathWeekStatus.OPEN);
         week.getDays().getFirst().setStatus(LearningPathDayStatus.IN_PROGRESS);
         week.getDays().getFirst().setAutoCloseAt(Date.from(NOW));
-        assertThatThrownBy(() -> service.start(pathId.toHexString(), 1, 1, userId.toHexString()))
+        assertThatThrownBy(() -> service.start(pathId.toHexString(), 1, 1, userId))
                 .isInstanceOfSatisfying(ResponseStatusException.class,
                         error -> assertThat(error.getStatusCode()).isEqualTo(HttpStatus.CONFLICT));
     }
@@ -132,7 +132,7 @@ class LearningPathDayPracticeServiceTest {
         when(paths.findByIdAndUserId(pathId, userId)).thenReturn(Optional.of(path("NOT_STARTED")));
         when(questions.findSnapshots(any(), any(), anyList())).thenReturn(snapshots().subList(0, 9));
 
-        assertThatThrownBy(() -> service.start(pathId.toHexString(), 1, 1, userId.toHexString()))
+        assertThatThrownBy(() -> service.start(pathId.toHexString(), 1, 1, userId))
                 .isInstanceOf(IllegalStateException.class);
         verify(practice, never()).startDay(any(), any(), anyInt(), anyInt(),
                 any(), any(), any(), any(), any(), any(), any());
@@ -145,7 +145,7 @@ class LearningPathDayPracticeServiceTest {
         when(paths.findByIdAndUserId(pathId, userId)).thenReturn(Optional.of(path("NOT_STARTED")));
         when(questions.findSnapshots(any(), any(), anyList())).thenReturn(saved);
 
-        assertThatThrownBy(() -> service.start(pathId.toHexString(), 1, 1, userId.toHexString()))
+        assertThatThrownBy(() -> service.start(pathId.toHexString(), 1, 1, userId))
                 .isInstanceOf(IllegalStateException.class);
         verify(practice, never()).startDay(any(), any(), anyInt(), anyInt(),
                 any(), any(), any(), any(), any(), any(), any());

@@ -51,11 +51,10 @@ public class LearningPathAnswerDraftService {
                                                      String questionId, String userId,
                                                      SaveLearningPathAnswerDraftRequest request) {
         ObjectId pathObjectId = new ObjectId(pathId);
-        ObjectId userObjectId = new ObjectId(userId);
 
         for (int attempt = 0; attempt < MAX_SAVE_ATTEMPTS; attempt++) {
             Instant now = clock.instant();
-            LearningPath path = paths.findByIdAndUserId(pathObjectId, userObjectId)
+            LearningPath path = paths.findByIdAndUserId(pathObjectId, userId)
                     .orElseThrow(() -> new ResponseStatusException(
                             HttpStatus.NOT_FOUND, "Không tìm thấy Learning Path"));
             LearningPathWeek week = path.getWeeks().stream()
@@ -74,7 +73,7 @@ public class LearningPathAnswerDraftService {
                     .orElseThrow(() -> new ResponseStatusException(
                             HttpStatus.NOT_FOUND, "Không tìm thấy câu hỏi trong ngày"));
             ensureEditable(path, week, day, item, now);
-            ensureOptionExists(pathObjectId, userObjectId, questionId, request.selectedOptionId());
+            ensureOptionExists(pathObjectId, userId, questionId, request.selectedOptionId());
 
             LocalDate activityDate = LocalDate.ofInstant(now, ZONE);
             Date savedAt = Date.from(now);
@@ -89,7 +88,7 @@ public class LearningPathAnswerDraftService {
             LearningPathDraft draft = new LearningPathDraft();
             draft.setSelectedOptionId(request.selectedOptionId());
             draft.setSavedAt(savedAt);
-            if (practice.saveDraft(pathObjectId, userObjectId, weekNo, dayNo,
+            if (practice.saveDraft(pathObjectId, userId, weekNo, dayNo,
                     questionId, path.getRevision(), path.getNextRunAt(), savedAt, draft,
                     activityDate.toString(), cancelAt, nextRunAt)) {
                 return new SaveLearningPathAnswerDraftResponse(
@@ -116,7 +115,7 @@ public class LearningPathAnswerDraftService {
         }
     }
 
-    private void ensureOptionExists(ObjectId pathId, ObjectId userId,
+    private void ensureOptionExists(ObjectId pathId, String userId,
                                     String questionId, String selectedOptionId) {
         List<Document> snapshots = questions.findSnapshots(pathId, userId, List.of(questionId));
         if (snapshots.size() != 1) {

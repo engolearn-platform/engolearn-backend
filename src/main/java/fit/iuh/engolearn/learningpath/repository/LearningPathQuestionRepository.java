@@ -18,14 +18,14 @@ public class LearningPathQuestionRepository {
         this.mongoTemplate = mongoTemplate;
     }
 
-    public List<Document> findSnapshots(ObjectId pathId, ObjectId userId, List<String> questionIds) {
+    public List<Document> findSnapshots(ObjectId pathId, String userId, List<String> questionIds) {
         Query query = Query.query(Criteria.where("path_id").is(pathId)
                 .and("user_id").is(userId)
                 .and("question_id").in(questionIds));
         return mongoTemplate.find(query, Document.class, "learning_path_questions");
     }
 
-    public List<Document> findAnswerKeys(ObjectId pathId, ObjectId userId, List<String> questionIds) {
+    public List<Document> findAnswerKeys(ObjectId pathId, String userId, List<String> questionIds) {
         Query query = Query.query(Criteria.where("path_id").is(pathId)
                 .and("user_id").is(userId)
                 .and("question_id").in(questionIds));

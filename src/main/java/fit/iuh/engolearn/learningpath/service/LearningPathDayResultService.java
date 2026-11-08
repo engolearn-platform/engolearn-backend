@@ -32,8 +32,7 @@ public class LearningPathDayResultService {
 
     public LearningPathDayResultResponse getResult(String pathId, int weekNo, int dayNo, String userId) {
         ObjectId pathObjectId = new ObjectId(pathId);
-        ObjectId userObjectId = new ObjectId(userId);
-        var path = paths.findByIdAndUserId(pathObjectId, userObjectId)
+        var path = paths.findByIdAndUserId(pathObjectId, userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy Learning Path"));
         if (path.getStatus() == LearningPathStatus.CANCELLED) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Learning Path đã bị hủy và không thể mở");
@@ -67,7 +66,7 @@ public class LearningPathDayResultService {
             }
         }
         Map<String, Document> snapshots = new HashMap<>();
-        for (Document snapshot : questions.findSnapshots(pathObjectId, userObjectId, ids)) {
+        for (Document snapshot : questions.findSnapshots(pathObjectId, userId, ids)) {
             String id = snapshot.getString("question_id");
             if (id == null || snapshots.putIfAbsent(id, snapshot) != null) {
                 throw new IllegalStateException("Invalid Learning Path question snapshot");
