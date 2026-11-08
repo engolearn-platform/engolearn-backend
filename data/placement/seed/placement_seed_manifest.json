@@ -16,7 +16,7 @@
     "validation": {
       "path": "data/bank-320/package-placement-320-v3/V3-VALIDATION-AND-TIMING.json",
       "bytes": 3406,
-      "sha256": "d52fcea59fdbb6978a55624fed1ce10c7ac2841e8cc167abac9fae64389adc47"
+      "sha256": "6fb0571a653a8241bc150da8c8134a303d95d695521dd8eed5f48aaa73cec97b"
     },
     "readme": {
       "path": "data/bank-320/package-placement-320-v3/README-COMPLETE-V3.md",

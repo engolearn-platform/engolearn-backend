@@ -4,6 +4,7 @@
   const path = require('path');
   const root = process.cwd();
   const directory = path.join(root, 'data/placement/dev-v3');
+  const samples = path.join(root, 'tools/mongo-json-importer/samples');
   const canonical = JSON.parse(fs.readFileSync(path.join(root, 'data/placement/seed/placement_questions.mongo.json'), 'utf8'));
   const selection = JSON.parse(fs.readFileSync(path.join(directory, 'selection-manifest.json'), 'utf8'));
   const media = JSON.parse(fs.readFileSync(path.join(directory, 'audio-url-manifest.json'), 'utf8'));
@@ -23,7 +24,7 @@
   }
   function check(condition, message) { if (!condition) throw Error(message); }
   const api = loader(fs);
-  const files = ['placement-v3-questions.importer.json', 'placement-v3-test-sets.importer.json'].map(n => path.join(directory, n));
+  const files = ['placement-v3-questions.importer.json', 'placement-v3-test-sets.importer.json'].map(n => path.join(samples, n));
   for (const fieldPatterns of ['none', '_id,*_id,*_ids']) {
     const stats = { converted: 0 };
     const data = api.loadDatasets(files, api.compileFieldPatterns(fieldPatterns), stats);

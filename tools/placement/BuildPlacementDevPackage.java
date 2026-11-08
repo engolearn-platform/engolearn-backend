@@ -17,6 +17,7 @@ public class BuildPlacementDevPackage {
     private static final Path REPO = BACKEND.getParent();
     private static final Path SEED = BACKEND.resolve("data/placement/seed");
     private static final Path OUTPUT = BACKEND.resolve("data/placement/dev-v3");
+    private static final Path SAMPLES = BACKEND.resolve("tools/mongo-json-importer/samples");
     private static final ObjectMapper JSON = new ObjectMapper();
     private static final String SET_ID = "PLT-V3-DEV-001-V1";
 
@@ -155,12 +156,13 @@ public class BuildPlacementDevPackage {
 
         if (check) {
             for (var artifact : artifacts.entrySet()) {
-                Path file = OUTPUT.resolve(artifact.getKey());
+                Path file = artifactPath(artifact.getKey());
                 require(Files.isRegularFile(file) && Files.readString(file).equals(artifact.getValue()), "Stale/missing generated artifact: " + file);
             }
         } else {
             Files.createDirectories(OUTPUT);
-            for (var artifact : artifacts.entrySet()) Files.writeString(OUTPUT.resolve(artifact.getKey()), artifact.getValue(), StandardCharsets.UTF_8);
+            Files.createDirectories(SAMPLES);
+            for (var artifact : artifacts.entrySet()) Files.writeString(artifactPath(artifact.getKey()), artifact.getValue(), StandardCharsets.UTF_8);
         }
         require(sha(questionFile).equals(sourceSha), "Canonical M1 was changed during generation");
         System.out.println("Placement DEV package " + (check ? "CHECK" : "BUILD") + ": PASS");
@@ -169,6 +171,10 @@ public class BuildPlacementDevPackage {
         System.out.println("Audio origin=" + audioBase + "; media server NOT started; playback NOT verified");
         outputInfos.forEach((name, info) -> System.out.println(name + " " + info));
         System.out.println("Database writes=0; importer database DryRun: NOT_RUN — target not approved");
+    }
+
+    private static Path artifactPath(String name) {
+        return (name.endsWith(".importer.json") ? SAMPLES : OUTPUT).resolve(name);
     }
 
     private static void validateExports(Map<String,String> artifacts, List<Map<String,Object>> raw, Document snapshot,

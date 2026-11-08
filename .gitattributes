@@ -1,3 +1,14 @@
 /mvnw text eol=lf
 *.cmd text eol=crlf
 /tools/mongo/*.sh text eol=lf
+
+# Placement generated JSON is byte-checked by package tooling.
+/data/placement/**/*.json text eol=lf
+/tools/mongo-json-importer/samples/placement-v3-*.importer.json text eol=lf
+
+# Text inputs hashed by the Placement package manifest.
+/tools/mongo-json-importer/README.md text eol=lf
+/tools/mongo-json-importer/mongodb-json-importer-data-format-guide.md text eol=lf
+/tools/mongo-json-importer/import.ps1 text eol=lf
+/tools/mongo-json-importer/importer.mongosh.js text eol=lf
+/src/main/java/fit/iuh/engolearn/placement/service/PlacementTestSetSnapshotFactory.java text eol=lf

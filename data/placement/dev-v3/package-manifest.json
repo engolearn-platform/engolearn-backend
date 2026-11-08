@@ -13,19 +13,19 @@
     "sha256" : "bbe1d0176265aa2e6fc4b41b9b38c934b74020e6e431263c1c3b2866adb6b8df"
   }, {
     "path" : "engolearn-backend/data/placement/seed/placement_seed_manifest.json",
-    "sha256" : "610ba42e5703ccc068bea87a9008abbca32d89379f7202b6dadc871d105c9bca"
+    "sha256" : "06cd53687e47356c6b4db97499897a92c128ef15bceabecf15ae2937f5c46852"
   }, {
     "path" : "engolearn-backend/tools/mongo-json-importer/mongodb-json-importer-data-format-guide.md",
     "sha256" : "6e5379eb50ba30d65cf55af73934a5deeedc9b0dcb4f88ff7b11063d5b2db0f3"
   }, {
     "path" : "engolearn-backend/tools/mongo-json-importer/README.md",
-    "sha256" : "8f227393f11a5f53d646f2681110098d8ff3b0e6292d3fc290619ff45391990d"
+    "sha256" : "83cc0de06ccee777491579125085942be8145bb252e4e463de824f2a7ae99f59"
   }, {
     "path" : "engolearn-backend/tools/mongo-json-importer/import.ps1",
-    "sha256" : "3462442882e64aaa828f2bd4d95624b4ea0c57e05e57aa542d09b1d24de3ead4"
+    "sha256" : "14c6c7ceaeff714be0e3bda274323f27301a4bca484ea1502f5f2d269b568f64"
   }, {
     "path" : "engolearn-backend/tools/mongo-json-importer/importer.mongosh.js",
-    "sha256" : "1198c82669f9333a9f998c8882617432294a4aa30df7606dc51c3fa9e0365608"
+    "sha256" : "60d6781c0567bba2024c63000fb488d6ee8be1287bcb8ce808272e99b975f3b9"
   }, {
     "path" : "engolearn-backend/src/main/java/fit/iuh/engolearn/placement/service/PlacementTestSetSnapshotFactory.java",
     "sha256" : "7c15220592fd1c6d0aa27d76f9b398cd3dff32ba3023fe64ec4bc3c65294435e"

@@ -48,11 +48,11 @@ both `none` and default ObjectId patterns, checks Placement semantics independen
 and tests eight rejected input cases. It does not run importer DB preflight.
 If the importer entry point changes, the harness fails and requires review.
 
-Generated files are under `data/placement/dev-v3/`:
+Generated files use two locations:
 
-- **Import inputs only:** `placement-v3-questions.importer.json`,
+- **Shared import inputs in `tools/mongo-json-importer/samples/`:** `placement-v3-questions.importer.json`,
   `placement-v3-test-sets.importer.json`.
-- **Sidecars, never import:** `selection-manifest.json`, `audio-url-manifest.json`,
+- **Sidecars in `data/placement/dev-v3/`, never import:** `selection-manifest.json`, `audio-url-manifest.json`,
   `package-manifest.json`.
 
 Canonical M1 has no audit timestamps, and wrapping it does not add/remove any.
@@ -60,14 +60,12 @@ The new snapshot similarly has no fabricated `created_at`/`updated_at`. Import
 execution must retain a real operator/import log; the generic importer does not
 invoke Spring auditing. Converter-generated `_class` on the snapshot is retained.
 
-## Read-only proposed target inventory
+## Local runtime and database inventory
 
-```powershell
-mongosh --nodb --norc --quiet --file tools/placement/inspect-dev-target.mongosh.js
-```
-
-This reads `127.0.0.1:27017` and checks whether the **proposed**, unapproved
-`engolearn_placement_dev_v3` exists. It never creates a database, collection or
-index. See [DEV preparation](../../data/placement/dev-v3/DEV-PREPARATION.md) for
-execution prerequisites. Do not run the shared `import.ps1` yet: even `-DryRun`
-unconditionally starts the Compose MongoDB service before its read-only preflight.
+Follow [Placement local runtime](../../docs/technical/placement-local-runtime.md)
+for current shared-data paths, backend startup and existing-database verification.
+The old `inspect-dev-target.mongosh.js` script targets the historical native
+27017 proposal; it does not inspect the active Compose endpoint on host 27019.
+Use the connection configured for the actual backend/importer before importing.
+The shared `import.ps1` starts Compose MongoDB even for `-DryRun`; select each
+Placement input explicitly, rather than importing every dataset in samples.
