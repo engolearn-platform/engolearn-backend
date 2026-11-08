@@ -5,6 +5,7 @@ import fit.iuh.engolearn.placement.dto.response.*;
 public interface PlacementAttemptService {
     boolean isKnownGuestSession(String sessionId);
     PlacementStartOutcome start(PlacementAccessContext access);
+    PlacementCurrentAttemptResponse current(PlacementAccessContext access);
     PlacementAttemptResponse get(String attemptId, PlacementAccessContext access);
     SavePlacementAnswerResponse saveAnswer(String attemptId, String questionId, String selectedOptionId,
                                            PlacementAccessContext access);

@@ -40,28 +40,8 @@ public class PlacementAttemptServiceImpl implements PlacementAttemptService {
         Instant now = placementClock.instant();
         String guest = access.guestSessionId();
         String user = access.currentUserId();
-        if (guest != null && attempts.isKnownGuestSession(guest)) {
-            PlacementAttempt activeGuest = attempts.findActiveForGuest(guest).orElse(null);
-            if (activeGuest != null) {
-                PlacementAttempt resolved = deadlines.resolve(activeGuest, now);
-                if (resolved.getStatus() == PlacementAttemptStatus.IN_PROGRESS) return outcome(resolved, false);
-            }
-        }
-        if (user != null) {
-            PlacementAttempt result = attempts.findValidResultForUser(user).orElse(null);
-            if (result != null) return outcome(result, false);
-            PlacementAttempt active = attempts.findActiveForUser(user).orElse(null);
-            if (active != null) {
-                PlacementAttempt resolved = deadlines.resolve(active, now);
-                if (resolved.getStatus() == PlacementAttemptStatus.IN_PROGRESS) return outcome(resolved, false);
-                result = attempts.findValidResultForUser(user).orElse(null);
-                if (result != null) return outcome(result, false);
-            }
-        }
-        if (guest != null && attempts.isKnownGuestSession(guest)) {
-            PlacementAttempt blocking = attempts.findClaimableForGuest(guest, now).orElse(null);
-            if (blocking != null) return outcome(blocking, false);
-        }
+        PlacementAttempt existing = findExisting(access, now);
+        if (existing != null && existing.getStatus() != PlacementAttemptStatus.EXPIRED) return outcome(existing, false);
         if (user == null && guest == null) throw new PlacementRequestException(HttpStatus.BAD_REQUEST,
                 "PLACEMENT_GUEST_SESSION_REQUIRED", "A Guest session is required to start Placement");
         PlacementTestSet set = testSets.findPublished().orElseThrow(() -> new PlacementRequestException(
@@ -83,6 +63,55 @@ public class PlacementAttemptServiceImpl implements PlacementAttemptService {
                     "This session has an active Placement attempt owned by another identity");
         }
         return outcome(selected, selection.created());
+    }
+
+    private PlacementAttempt findExisting(PlacementAccessContext access, Instant now) {
+        String guest = access.guestSessionId();
+        String user = access.currentUserId();
+        PlacementAttempt expired = null;
+        if (guest != null && attempts.isKnownGuestSession(guest)) {
+            PlacementAttempt activeGuest = attempts.findActiveForGuest(guest).orElse(null);
+            if (activeGuest != null) {
+                PlacementAttempt resolved = deadlines.resolve(activeGuest, now);
+                if (resolved.getStatus() == PlacementAttemptStatus.IN_PROGRESS) return resolved;
+                if (resolved.getStatus() == PlacementAttemptStatus.EXPIRED) expired = resolved;
+            }
+        }
+        if (user != null) {
+            PlacementAttempt result = attempts.findValidResultForUser(user).orElse(null);
+            if (result != null) return result;
+            PlacementAttempt active = attempts.findActiveForUser(user).orElse(null);
+            if (active != null) {
+                PlacementAttempt resolved = deadlines.resolve(active, now);
+                if (resolved.getStatus() == PlacementAttemptStatus.IN_PROGRESS) return resolved;
+                if (resolved.getStatus() == PlacementAttemptStatus.EXPIRED) expired = resolved;
+                result = attempts.findValidResultForUser(user).orElse(null);
+                if (result != null) return result;
+            }
+        }
+        if (guest != null && attempts.isKnownGuestSession(guest)) {
+            PlacementAttempt blocking = attempts.findClaimableForGuest(guest, now).orElse(null);
+            if (blocking != null) return blocking;
+        }
+        return expired;
+    }
+
+    @Override
+    public PlacementCurrentAttemptResponse current(PlacementAccessContext access) {
+        Instant now = placementClock.instant();
+        PlacementAttempt attempt = findExisting(access, now);
+        if (attempt == null) return null;
+        PlacementTestSet set = requireSet(attempt);
+        var answered = attempt.getAnswers().stream()
+                .filter(a -> a.getSelectedOptionId() != null)
+                .map(a -> a.getQuestionId()).collect(java.util.stream.Collectors.toSet());
+        var ordered = set.getItems().stream().sorted(java.util.Comparator.comparingInt(PlacementSnapshotItemVo::getOrder)).toList();
+        PlacementSnapshotItemVo next = ordered.stream().filter(q -> !answered.contains(q.getId()))
+                .findFirst().orElse(ordered.getLast());
+        Instant lastSaved = attempt.getAnswers().stream().map(a -> a.getAnsweredAt())
+                .filter(java.util.Objects::nonNull).max(Instant::compareTo).orElse(null);
+        return new PlacementCurrentAttemptResponse(attempt.getId(), attempt.getStatus(), attempt.getDeadlineAt(), now,
+                ordered.size(), answered.size(), next.getSkill(), next.getOrder(), lastSaved, claimRequired(attempt));
     }
 
     @Override

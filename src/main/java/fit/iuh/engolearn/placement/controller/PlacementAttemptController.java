@@ -45,6 +45,14 @@ public class PlacementAttemptController {
         return ApiResponse.ok(outcome.response());
     }
 
+    @GetMapping("/current")
+    public ApiResponse<PlacementCurrentAttemptResponse> current(
+            @CookieValue(value = GUEST_COOKIE, required = false) String guestSessionId,
+            HttpServletResponse response) {
+        noStore(response);
+        return ApiResponse.ok(service.current(access(guestSessionId)));
+    }
+
     @GetMapping("/{attemptId}")
     public ApiResponse<PlacementAttemptResponse> get(
             @PathVariable @NotBlank String attemptId,

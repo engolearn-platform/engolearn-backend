@@ -51,3 +51,7 @@ different content is rejected. The generic importer is not modified.
 `-NoStartMongo -Network <network> -MongoUri <uri> -Database <name>` is available
 for an explicitly selected isolated DEV/test replica set. Do not put credentials
 in committed command examples or terminal logs. All input mounts are read-only.
+
+## User resume acceptance
+
+GET /api/v1/placement/attempts/current reads safe progress without creating a test. Contract, known side effects, real checks and repeat command: [placement-user-resume.md](../../docs/technical/placement-user-resume.md).
