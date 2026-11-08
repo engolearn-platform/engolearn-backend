@@ -1,168 +1,97 @@
-# Speaking with AI — BE migration
+# Speaking với AI — ánh xạ nghiệp vụ đến BE
 
-**Branch:** `feat/speaking-ai-baseline`
-**Status:** Demo slice 0–3 merged with current `main` auth; live provider/browser validation is pending.
-**Business baseline:** `SPK-UC-001..010`, `BR-38.*`, `BR-F1.*..BR-F3.*` in `docs/engolearn-business-doc/docs/usecase_spec/speaking-with-AI/`.
+**Phạm vi:** BE trên nhánh `feat/speaking-ai-baseline`. **Trạng thái:** đối chiếu theo mã nguồn, chưa phải nghiệm thu production hay kiểm thử trực tiếp với provider/trình duyệt.
 
-## Implemented on this branch
+## Nguồn và phạm vi
 
-- Added the `speaking` feature root to the architecture allow-list and documented `speaking → topic.contract`.
-- Added document models for per-item configuration, session, learner turn, assessment record, audio metadata, and usage segment. The assessment record contains no audio bytes or object key.
-- Added a narrow `SpeakingItemLookup` contract on the Topic side. It resolves a published, visible item and the version pinned by a running learning attempt, checks the current level and preceding item for a new attempt, and returns only item data needed for a Speaking snapshot.
-- Added reusable `shared.media.MediaStorage` and Cloudinary adapter. Speaking uploads WAV learner audio and MP3 AI audio through this interface as authenticated media; playback URLs expire after one minute.
-- Added REST endpoints for item configuration, current/create/replace/resume/end sessions, account/item history, detail, soft delete, audio playback, and one-use WebSocket tickets. REST identity comes from `shared.security.CurrentUserProvider`; WebSocket tickets are issued only after the owner/epoch check. Speaking REST routes require authentication in `SecurityConfig`.
-- Added PCM WebSocket handler and AssemblyAI streaming adapter, Gemini assessment, and Cartesia synthesis. Events carry `turnId`, `controllerEpoch`, and session revision. Turn IDs and usage segment IDs are stable to avoid duplicate writes.
-- Added 20-minute/30-turn limits, 60-minute Asia/Ho_Chi_Minh usage segments, 30-day learner-recording playback expiry, explicit end with up to 10 seconds for a pending assessment, three consecutive assessment-failure termination, delayed interruption after disconnect, and startup recovery.
-- Added Mongo indexes for unique item-version configuration, one open session per learner, and per-session turn sequence. Dev-only seed import accepts a JSON file containing real item/version IDs and curated goals. A separate fixed-ID dev fixture provides one published Topic item and Speaking configuration for direct integration testing.
-- Added tests for goal rounding, pinned content, ownership rejection, midnight usage split, and an empty session ending.
+- Đặc tả nghiệp vụ chuẩn: [module và BR-38.*](../../../../../docs/engolearn-business-doc/docs/usecase_spec/speaking-with-AI/00-module.md), [Feature 1 rules](../../../../../docs/engolearn-business-doc/docs/usecase_spec/speaking-with-AI/f01-speaking-session/rules.md), [Feature 2 rules](../../../../../docs/engolearn-business-doc/docs/usecase_spec/speaking-with-AI/f02-speaking-history/rules.md), [Feature 3 rules](../../../../../docs/engolearn-business-doc/docs/usecase_spec/speaking-with-AI/f03-speaking-configuration/rules.md), cùng các UC riêng trong từng thư mục.
+- Thiết kế kỹ thuật và quyết định trạng thái: [tài liệu kỹ thuật Speaking](../../technical/speaking-ai/README.md).
+- Mã BE dẫn chiếu dưới đây là bằng chứng triển khai, không thay thế đặc tả nghiệp vụ.
 
-## Intended relationships
+## Trạng thái tổng quan
 
-`TopicItemVersion 1—0..1 SpeakingItemConfig`; `SpeakingSession 1—1 SpeakingContentSnapshot`; `SpeakingSession 1—n SpeakingTurn`; `SpeakingTurn 0..1—SpeakingAssessmentRecord`; `SpeakingTurn 0..n—SpeakingAudioAsset`; `SpeakingSession 1—n SpeakingUsageSegment`. Cross-feature references are IDs and Topic contract DTOs, not imported Topic entities.
-
-```mermaid
-classDiagram
-  TopicItemVersion "1" --> "0..1" SpeakingItemConfig : topicItemVersionId
-  SpeakingItemConfig "1" *-- "3..5" SpeakingGoal
-  SpeakingSession "1" *-- "1" SpeakingContentSnapshot
-  SpeakingContentSnapshot "1" *-- "3..5" SpeakingGoal
-  SpeakingSession "1" --> "0..30" SpeakingTurn : sessionId
-  SpeakingSession "1" --> "0..*" SpeakingUsageSegment : sessionId
-  SpeakingTurn "1" --> "0..1" SpeakingAssessmentRecord : turnId
-  SpeakingTurn "1" --> "0..*" SpeakingAudioAsset : turnId
-```
-
-The configuration collection is owned by Speaking. F03 authoring and synchronous publish validation are deferred; the Topic publish extension point must be designed before that work. Demo `SpeakingTopic` and its three test topics are not migrated.
-
-## Local configuration
-
-Use profile `dev` and sign in through the shared cookie auth flow. Speaking session ownership uses the authenticated account ID. Set `ASSEMBLYAI_API_KEY`, `GEMINI_API_KEY`, `CARTESIA_API_KEY`, `CARTESIA_VOICE_ID`, and `CLOUDINARY_URL` through the local `.env` or deployment secrets. No credential is committed. The optional `SPEAKING_DEV_SEED_FILE` points to a JSON array shaped like:
-
-```json
-[{"topicItemId":"<real item ID>","topicItemVersionId":"<real published version ID>","goals":[{"id":"g1","title":"...","description":"...","priority":"REQUIRED"},{"id":"g2","title":"...","description":"...","priority":"OPTIONAL"},{"id":"g3","title":"...","description":"...","priority":"REQUIRED"}],"goalPercentage":75,"minimumValidTurns":5}]
-```
-
-The default Gemini assessment model is `gemini-3.5-flash-lite`. The previous `gemini-2.5-flash` default returns HTTP 404 for new Gemini API users. Assessment failures mark the turn `FAILED` and emit `PROCESSING_ERROR` with an updated session snapshot; the server log records the underlying exception.
-
-The JSON import is for actual published Topic item versions and business-approved goals. Separately, the `dev` profile creates an isolated test fixture at item ID `690000000000000000000002` with a published Topic release, item version, and three sample Speaking goals. The fixture is idempotent, also works when the Topic collection already contains data, and is not business-approved learner content. FE can open it at `/dev/speaking-session`. F03 authoring/publish integration remains the later delivery.
-
-To use the fixed fixture, start MongoDB, run the backend with the `dev` profile, then open the FE development route. No `SPEAKING_DEV_SEED_FILE` is required for this fixture. Provider credentials and Cloudinary configuration are still needed for live audio turns.
-
-
-## Opening configuration and local café seed
-
-Each published `speaking_item_configs` document includes `context` (the scenario used for learner guidance), `learner_role`, `ai_role`, and `opening_side` (`LEARNER` or `AI`), alongside its existing item/version IDs, goals, and turn settings. The dev seed file `tools/mongo-json-importer/samples/speaking-ai-cafe-opening-configs.json` is a config-only importer pack. It keeps the existing café Topic and item/version IDs intact and contains both opening branches:
-
-| Café item | Learner / AI roles | Opening side |
+| Phạm vi | Trạng thái BE | Giới hạn chính |
 | --- | --- | --- |
-| Order a Drink (`691b00000000000000000003`, version `691b00000000000000000006`) | customer / barista | AI |
-| Correct the Order (`691b00000000000000000004`, version `691b00000000000000000007`) | customer / barista | LEARNER |
-| Pay and Leave (`691b00000000000000000005`, version `691b00000000000000000008`) | customer / barista | LEARNER |
+| BR-38.1–38.11, 38.13 | Một phần | Có luồng Speaking, snapshot nội dung, xác thực và quyền sở hữu. Chưa có bằng chứng BE triển khai hết mọi hành vi bảo mật, quyền và lưu giữ theo yêu cầu. Feature 3 chưa có workflow quản trị/publish. |
+| BR-38.12 | Chưa xác minh | Chưa có bằng chứng kiểm thử tải 10–20 phiên đồng thời hoặc p95 theo yêu cầu. |
+| SPK-UC-001–004 (F01) | Một phần | Tạo phiên, hội thoại realtime, đánh giá, kết thúc và phục hồi đã có; một số ngữ nghĩa kết thúc, bền vững và đo thời gian còn lệch/thiếu kiểm chứng. |
+| SPK-UC-005–007 (F02) | Một phần | API đọc lịch sử/chi tiết, phát audio có hạn và xóa mềm đã có; SLA, retention thực tế và tính bất biến trước tác vụ đến muộn chưa xác minh đầy đủ. |
+| SPK-UC-008–010 (F03) | Chưa triển khai | Có model cấu hình và dữ liệu dev; chưa có màn hình/quy trình Content Manager, lưu bản nháp, phân loại MINOR/MAJOR hoặc chặn publish topic. |
 
-To open a café item directly in the dev Speaking view, use `/dev/speaking-session?itemId=<item ID>` with one of the IDs above. The regular Topic route is `/topics/<topic ID>/speaking`; it resolves items through the learner flow. The fixed fixture route `/dev/speaking-session` without an `itemId` remains a separate integration fixture.
+Luồng đánh giá mặc định là `SpeakingConversationComposer` → `PromptV2Builder` qua Gemini gateway → kiểm tra bản nháp → `ConversationManager`. `GeminiConversationEvaluator` vẫn dùng được khi tắt manager. Xem [technical](../../technical/speaking-ai/README.md) để biết cờ cấu hình, alias, cách rollback và giới hạn môi trường.
 
-Session creation stores and returns the opening snapshot immediately. AI opening generation and synthesis run asynchronously after save; clients follow `OPENING_UPDATED` snapshots. A failed AI generation can be retried by the current controller with `POST /api/v1/speaking/sessions/{id}/opening/retry` and a `SpeakingControlRequest` carrying `requestId` and `controllerEpoch`. `GET /api/v1/speaking/sessions/{id}/opening/audio` returns a short-lived playback URL for the session owner's available opening audio. Opening guidance and audio do not count as learner turns. Audio-only failure keeps the generated text available without audio.
+## Luật chung BR-38.*
 
-Before importing or resetting local Speaking data, confirm the intended Mongo container, port, and database in the importer command and perform its dry-run/preflight. Keep this seed limited to the `speaking_item_configs` collection; do not use a database-wide drop/reset. The approved dev reset scope, when needed, is the six Speaking collections only: `speaking_assessments`, `speaking_audio_assets`, `speaking_item_configs`, `speaking_sessions`, `speaking_turns`, and `speaking_usage_segments`. Preserve Topic and account collections. Stop the dev backend before a reset, verify preflight targets `engolearn_db` on the intended local Mongo endpoint, and confirm the imported config item/version IDs and opening fields afterward.
-## Slice 0–3 manager demo
+| Luật | Ánh xạ và đánh giá |
+| --- | --- |
+| BR-38.1–38.4 | Speaking lưu phiên riêng và chỉ đọc Topic qua `SpeakingItemLookup`; không cập nhật tiến độ, mở khóa hay gọi Làm lại. **Đã có ranh giới BE.** UI hiện vào từ màn hình kết quả item; xem [đối chiếu FE](../../../../speaking-ai-baseline-frontend/docs/features/speaking-with-ai/user-flows.md) cho khoảng trống so với tab ở mọi chế độ. |
+| BR-38.5–38.6 | REST lấy learner từ `CurrentUserProvider`; các route Speaking được bảo vệ ở `SecurityConfig`; service kiểm tra ownership trước thao tác session. Chưa có API authoring/publish và chưa xác minh đầy đủ ma trận Content Manager. Trạng thái: **một phần**. |
+| BR-38.7 | `SpeakingItemLookup.findOpenableItem` dùng kiểm tra khả dụng item; `SpeakingSessionService.config/create` gọi contract này. Trạng thái: **đã nối điều kiện mở**, cần kiểm thử Topic theo các mode đầy đủ. |
+| BR-38.8 | Session chụp `SpeakingContentSnapshot` lúc tạo; history/detail đọc snapshot của phiên. Cấu hình mới không được áp ngược vào snapshot cũ. Trạng thái: **đã có cơ chế snapshot**. |
+| BR-38.9 | Prompt yêu cầu phản hồi tiếng Anh và phần dẫn/giải thích tiếng Việt. Kết quả phụ thuộc đánh giá mô hình; không có kiểm định chất lượng ngôn ngữ runtime. **Một phần**. |
+| BR-38.10 | Các ngưỡng vận hành được đặt trong BE/FE, không do Content Manager sửa theo item. Số lượt hợp lệ tối thiểu thuộc cấu hình nội dung từng item, khác với giới hạn tối đa 30 lượt của phiên. |
+| BR-38.11 | Assessment, transcript, turn và audio metadata là các bản ghi riêng; model assessment không chứa audio bytes/object key. Tuy vậy chưa xác nhận việc xóa/ẩn và retention đối chiếu đáp ứng toàn bộ quyền/retention nghiệp vụ. **Một phần**. |
+| BR-38.12 | **Chưa xác minh** tải 10–20 phiên và **chưa thấy** cơ chế giới hạn tải toàn module để từ chối tạo phiên với lý do quá tải. Pool xử lý lượt không phải bộ kiểm soát số phiên đang hoạt động. |
+| BR-38.13 | Filter chặn REST/WS Speaking khi có profile `prod`; ngoài `prod` cờ BE mặc định bật, không giới hạn riêng cho profile `dev`. BE dùng cookie và ID từ tài khoản, không nhận định danh demo do client tự khai. Đây là **khác biệt so với mô tả thử nghiệm**; các fixture vẫn chỉ chạy với `dev`. |
 
-The approved response-policy proposal adds the dev/demo-only draft contract
-`speaking.ai.draft.v2`. It keeps v1 readers and historical `hint` values,
-while new assessments may persist nullable `hintExampleEn` and `hintLeadVi`.
-The manager answers the learner's current meaning before connected goal
-guidance; an unsuitable candidate falls back to clarification. Closing turns
-use a short goodbye and suppress both hint fields. Shared validation and live
-conversation quality evidence remain required before production activation.
+## Ánh xạ theo use case
 
-### V2 goal evidence and hints (2026-11-05)
+| UC | Triển khai BE | Trạng thái / khoảng trống |
+| --- | --- | --- |
+| [SPK-UC-001 — Mở phiên](../../../../../docs/engolearn-business-doc/docs/usecase_spec/speaking-with-AI/f01-speaking-session/SPK-UC-001_mo_phien_luyen_noi.md) | `SpeakingController.create/current/replace`; `SpeakingSessionService.create/config`; `SpeakingItemLookup`; `SpeakingContentSnapshot`. | **Một phần.** Có mở và chụp nội dung. Quota hiện là tổng thời lượng sử dụng theo ngày Asia/Ho_Chi_Minh (60 phút) cùng giới hạn session 20 phút/30 lượt, không phải quota/subscription tích hợp đã chứng minh. Cần đối chiếu quyền tạo/replace, điều kiện quota và thực tế Subscription. |
+| [SPK-UC-002 — Hội thoại theo lượt][uc002] | `SpeakingSocketHandler`, `SpeakingRealtimeService`, `SpeakingOpeningService`, `SpeakingConversationComposer` và các adapter. | **Một phần.** Có audio streaming, mở lời AI/learner, chữ tạm/chốt và đánh giá từng lượt. V2 nhận quote không rỗng cho mục tiêu đã ghim và chưa đạt; BE không đối chiếu quote V2 với lời nói. |
+| [SPK-UC-003 — Hoàn thành/kết thúc][uc003] | `SpeakingSessionService.end/finish/finalizeClosing`, `ConversationStateView`, `ConversationManager`. | **Một phần.** Trạng thái cuối tách khỏi lý do; đủ mục tiêu Bắt buộc và số lượt hợp lệ cho phép hoàn thành, đủ mọi mục tiêu và số lượt cho phép tự kết thúc. Cửa sổ chờ và ngữ nghĩa ghi kết quả còn thiếu so với BR-F1.23. |
+| [SPK-UC-004 — Gián đoạn/sự cố][uc004] | `SpeakingRealtimeService` quản lý kết nối; `SpeakingSessionService.resume/interruptIfDisconnected/recoverAfterRestart`. | **Một phần.** Mất socket dẫn tới gián đoạn sau thời gian chờ, không giả lập End; resume có thể chuyển quyền, còn restart đi vào luồng kết thúc `SERVICE_RESTART`. Chưa kiểm chứng thu hồi quyền giữa phiên, mất mạng thực tế hoặc đa instance. |
+| [SPK-UC-005 — Xem lịch sử][uc005] | `SpeakingController.history`; `SpeakingSessionService.history` lọc theo người học, tùy chọn item, bỏ dữ liệu xóa mềm. | **Đã có.** Đọc cấp tài khoản không kiểm tra lại item có còn hiển thị; không phụ thuộc mic hay hạn mức. Chưa đo p95 ≤ 2 giây; khi API/DB không khả dụng thì không có đường đọc riêng. |
+| [SPK-UC-006 — Xem chi tiết][uc006] | `SpeakingSessionService.get/playback` đọc snapshot của phiên và audio thuộc phiên. | **Đã có.** URL ký sống 60 giây; thời hạn phát bản ghi người học là 30 ngày, không phải TTL xóa dữ liệu. Chưa đo p95 chi tiết ≤ 2 giây hay bắt đầu phát ≤ 1 giây. |
+| [SPK-UC-007 — Xóa Speaking][uc007] | `SpeakingSessionService.delete/deleteAll` kết thúc phiên đang mở, chờ trạng thái cuối rồi ghi `deletedAt`; đọc chi tiết và phát lại kiểm tra ownership/deletion. | **Đã có xóa mềm.** Chưa kiểm chứng đầy đủ thao tác đồng thời, kết quả đến muộn và hết hạn của URL đã cấp trước khi xóa. Không thay đổi dữ liệu tiến độ Topic. |
+| [SPK-UC-008 — Soạn cấu hình nháp][uc008] | `SpeakingItemConfig`, `SpeakingGoal`, repository và dev seed lưu cấu hình dùng để mở phiên. | **Chưa có luồng Content Manager.** Đọc cấu hình đã publish không thay thế việc soạn bản nháp, kiểm tra quyền hay áp dụng giá trị mặc định ở bước publish. |
+| [SPK-UC-009 — Kiểm tra publish][uc009] | `SpeakingSessionService.publishedConfig` kiểm tra cấu hình của version khi đọc cấu hình hoặc mở phiên. | **Chưa có.** Topic publish chưa gọi bộ kiểm tra này để chặn phát hành cả topic và trả danh sách item/trường lỗi theo BR-F3.6–3.7. BR-F3.8 đã bỏ. |
+| [SPK-UC-010 — Cập nhật sau publish][uc010] | `SpeakingContentSnapshot` giữ nội dung lúc tạo phiên, độc lập với cấu hình hiện tại. | **Có snapshot; chưa có workflow cập nhật.** Chưa có tác vụ phân loại MINOR/MAJOR cho Speaking, phát hành version và thông báo người học. |
 
-The V2 goal-evidence policy follows the user-approved baseline change:
-the LLM decides whether the learner fulfilled a goal in context and returns
-its pinned `goalId` and a nonblank `quote`. The backend accepts evidence for
-pinned, not-yet-achieved goals once per goal. It does not compare the quote
-with the transcript or goal description, or reject goal evidence because it
-contains questions, negation or quotation marks. Quote accuracy and semantic
-assessment are the LLM's responsibility; the prompt still instructs it to
-quote the current finalized learner turn and use history only as context.
-Consequently, a wrong model assessment or an invented quote may be accepted
-when its goal ID is valid. V1/legacy and resource-evidence checks are unchanged.
+[uc002]: ../../../../../docs/engolearn-business-doc/docs/usecase_spec/speaking-with-AI/f01-speaking-session/SPK-UC-002_thuc_hien_luot_noi.md
+[uc003]: ../../../../../docs/engolearn-business-doc/docs/usecase_spec/speaking-with-AI/f01-speaking-session/SPK-UC-003_hoan_thanh_ket_thuc_phien.md
+[uc004]: ../../../../../docs/engolearn-business-doc/docs/usecase_spec/speaking-with-AI/f01-speaking-session/SPK-UC-004_gian_doan_ket_noi_su_co.md
+[uc005]: ../../../../../docs/engolearn-business-doc/docs/usecase_spec/speaking-with-AI/f02-speaking-history/SPK-UC-005_xem_lich_su_phien.md
+[uc006]: ../../../../../docs/engolearn-business-doc/docs/usecase_spec/speaking-with-AI/f02-speaking-history/SPK-UC-006_xem_chi_tiet_phien.md
+[uc007]: ../../../../../docs/engolearn-business-doc/docs/usecase_spec/speaking-with-AI/f02-speaking-history/SPK-UC-007_xoa_du_lieu_speaking.md
+[uc008]: ../../../../../docs/engolearn-business-doc/docs/usecase_spec/speaking-with-AI/f03-speaking-configuration/SPK-UC-008_soan_cau_hinh_speaking.md
+[uc009]: ../../../../../docs/engolearn-business-doc/docs/usecase_spec/speaking-with-AI/f03-speaking-configuration/SPK-UC-009_kiem_tra_dieu_kien_publish.md
+[uc010]: ../../../../../docs/engolearn-business-doc/docs/usecase_spec/speaking-with-AI/f03-speaking-configuration/SPK-UC-010_cap_nhat_cau_hinh_sau_publish.md
 
-For BR-F1.15 and BR-F1.41, the V2 prompt requires exactly one short English
-learner-next-turn example (`hintExampleEn`) on every valid continuing,
-nonclosing turn; a short Vietnamese lead (`hintLeadVi`) is optional. Closing
-and terminal delivery keep suppressing hints. This is a prompt requirement
-only: missing hints do not invalidate an otherwise valid assessment, and no
-retry or backend hint fallback is added. Public schemas and stored historical
-assessments remain unchanged; existing sessions are not re-assessed.
+## Đối chiếu luật F01–F03
 
-The manager runtime is disabled by default. Run the isolated backend with the
-existing Speaking demo gate and the manager flag explicitly enabled:
+### F01 — SPK-UC-001–004
 
-```powershell
-.\mvnw.cmd spring-boot:run -Dspring-boot.run.profiles=dev `
-  -Dspring-boot.run.arguments="--engolearn.speaking.demo.manager.enabled=true"
-```
+| Nhóm luật | Bằng chứng và giới hạn |
+| --- | --- |
+| BR-F1.1–1.9 | Tạo phiên là lệnh riêng sau khi FE xin mic. BE kiểm tra Topic, snapshot, quota và một phiên mở theo người học. 60 phút/ngày Asia/Ho_Chi_Minh tính từ các đoạn ghi âm, chờ đánh giá tối đa 10 giây/lượt và thời gian xử lý TTS; chưa đo thời gian người học thực nghe và chưa tích hợp Quota/Subscription. Chưa đo p95 mở phiên hay xác minh ma trận trình duyệt. |
+| BR-F1.10–1.21 | Luồng tuần tự theo controller, STT tạm/chốt và đánh giá theo lượt. BE áp tuổi 20 phút, tối đa 30 lượt chốt và giới hạn thu PCM; frame vượt ngưỡng 120 giây trả lỗi thay vì tự chốt phần đã thu. Kết quả STT rỗng đi qua `TURN_EMPTY` trước khi ghi turn, chưa bao phủ trường hợp xác nhận chốt nhưng mất nội dung. `INVALID` và lỗi đánh giá tách biệt; ba lỗi liên tiếp có thể kết thúc. Chưa xác minh SLA, nhận diện ≥ 80% từ khóa hay cảnh báo mạng yếu theo ngưỡng nghiệp vụ. |
+| BR-F1.22–1.27, 1.36–1.40 | `finish` mở cửa sổ chờ tối đa 10 giây khi có `PENDING`; manager chỉ nhận kết quả trong cửa sổ đối với `LEARNER_ENDED` hoặc `TURN_LIMIT`. `finalizeClosing` chốt theo bằng chứng đã ghi, chưa đổi lượt còn `PENDING` thành `UNRESOLVED` ở hạn chót. Chưa có ghi payload bền để retry độc lập hay ghi nguyên tử toàn bộ lượt/assessment/progress; chưa xác nhận bảo vệ đồng thời đa instance. Snapshot cũ giữ chính sách tỷ lệ và số lượt đã ghim. |
+| BR-F1.28–1.35 | FE thử reconnect, BE giữ phiên và epoch, không coi đóng tab là End. Phần âm thanh chưa commit nằm trong bộ nhớ kết nối; không khôi phục để đánh giá. Startup kết thúc phiên mở theo lý do restart; chưa chứng minh đầy đủ logout/thu hồi quyền giữa phiên và mất mạng trên trình duyệt. |
 
-The flag is effective only when `engolearn.speaking.demo.enabled=true` and the
-active profile is not `prod`. The manager path keeps the existing REST and
-WebSocket event names, adds optional `demoDecision` diagnostics to committed
-`TURN_RESULT`/evaluation-failure `PROCESSING_ERROR` events, and suppresses
-normal speech for recovery, invalid, terminal, unavailable, or rejected turns.
-This demo is single-instance and intentionally does not claim Slice 4
-transaction, CAS, outbox, or delivery guarantees.
+BR-F1.41 được thể hiện một phần trong prompt và manager quyết định dialogue. Prompt hướng đến xử lý ý hiện tại trước, một nhánh tiếp nối và chào ngắn khi learner muốn dừng. Đây là hướng dẫn cho LLM, không phải đảm bảo chất lượng phản hồi hay điều khiển lifecycle từ riêng nội dung model.
 
-Rollback is the default behavior: restart with
-`--engolearn.speaking.demo.manager.enabled=false` (or omit the flag) to select
-the legacy evaluator path.
+### F02 — SPK-UC-005–007
 
-## Known gaps before acceptance
+API đọc/xóa và playback hiện hữu; audio có hạn phát lại, signed playback URL ngắn hạn. BR-F2.2, F2.6 về latency chưa có đo đạc xác nhận. BR-F2.4/F2.9 yêu cầu giữ dữ liệu hệ thống sau khi hết hạn/soft delete trong khi người học mất quyền truy cập; mã có expiry và soft-delete path nhưng cần xác nhận bằng persistence/integration tests rằng mọi đường lấy dữ liệu đều tôn trọng điều đó.
 
-- Full provider/browser and 10–20 concurrent-session tests need a running MongoDB, real test item/configuration, credentials, and Chrome/Edge/Safari. No p95 claim is made.
-- The current usage adapter measures speech-capture and provider processing intervals. It has not been validated against actual AI audio playback duration or weak-network timing. Limits are enforced from persisted segments, but cost/latency measurements need live tests.
-- The synchronous `synchronized` guards only cover one JVM; Mongo indexes and optimistic versioning protect core uniqueness, but replacement/finish concurrency across instances and an atomic assessment+progress write still need integration tests and hardening.
-- End waits for a pending assessment up to 10 seconds. Automatic endings caused by age, replacement, quota, or deletion currently finish immediately, so those paths do not yet satisfy BR-F1.23 when an assessment is pending.
-- The fixed dev fixture supports local integration testing only. Other Topic items still return `CONFIG_MISSING` until their approved Speaking configuration exists.
-- Cross-component design based on FRC v0.6 is still awaiting the independent validation/publication gate in `.opencode/workflow/artifact-conventions.md`.
+### F03 — SPK-UC-008–010
 
-## Verification
+`SpeakingItemConfig` và `publishedConfig` bao phủ phần hình dạng BR-F3.1–3.5 khi chạy: 3–5 mục tiêu, ít nhất một Bắt buộc, 3–5 lượt tối thiểu, tình huống, hai vai, bên mở lời và tài nguyên từ item. Phiên mới dùng `REQUIRED_GOALS_V2`; trường tỷ lệ cũ chỉ phục vụ tương thích snapshot. Việc trả `CONFIG_MISSING`/`CONFIG_INVALID` chặn Speaking cho item đó, chưa đáp ứng chặn publish cấp topic (BR-F3.6–3.7). Snapshot hỗ trợ BR-F3.11; luồng cập nhật BR-F3.9–3.10 còn thiếu.
 
-### Session opening, 2026-11-07
+## Điểm vào mã nguồn
 
-- Speaking, provider-adapter and architecture suites passed with 195 tests,
-  zero failures and zero errors in the complete local run.
-- Full `mvnw.cmd -q verify` ran 575 tests with 5 failures and 74 errors.
-  Failing suites are in Topic and Subscription. The report includes missing
-  test beans, an integration Mongo index-build/drop-database race, and the
-  Topic assertions already observed at the checkpoint. See
-  `target/speaking-opening-verify-local.log` and Surefire reports.
-- Backend startup succeeded on port 8080. On this Windows runner, set
-  `JDK_JAVA_OPTIONS=-Djdk.net.unixdomain.tmpdir=<worktree>/target/tmp`
-  with an existing short directory to avoid the sandbox TEMP path issue.
-  This setting was applied to the verification processes.
-- The real frontend route returned HTTP 200. Its proxy and the direct
-  protected Speaking API returned HTTP 401 without authentication.
-- Seed preflight used the existing importer with `MONGO_IMPORT_APPLY`
-  unset. The six approved Speaking collections were backed up under
-  `/tmp/engolearn-speaking-opening.vPj8r2` in `mongodb_srv`, then reset
-  and seeded in one Mongo transaction. Three café configurations were
-  inserted. Counts for 15 account/Topic collections matched before and
-  after reset.
-- Live Gemini/Cartesia checks are deferred to the user. Browser interaction
-  was blocked by the computer-use tool's URL-policy support for Cốc Cốc on
-  Windows. Audio playback, authenticated end-to-end flow and p95 latency
-  still require manual verification.
+- [SpeakingController.java](../../../src/main/java/fit/iuh/engolearn/speaking/controller/SpeakingController.java) — HTTP API.
+- [SpeakingSessionService.java](../../../src/main/java/fit/iuh/engolearn/speaking/service/SpeakingSessionService.java) — session, snapshot, lịch sử, xóa, quota/time accounting, audio playback.
+- [SpeakingRealtimeService.java](../../../src/main/java/fit/iuh/engolearn/speaking/service/SpeakingRealtimeService.java) — lượt realtime và socket lifecycle.
+- [ConversationManager.java](../../../src/main/java/fit/iuh/engolearn/speaking/service/ConversationManager.java) — quyết định phản hồi và điều kiện lifecycle.
+- [SpeakingConversationComposer.java](../../../src/main/java/fit/iuh/engolearn/speaking/service/SpeakingConversationComposer.java) — điều phối đánh giá hội thoại.
+- [SpeakingItemLookup.java](../../../src/main/java/fit/iuh/engolearn/topic/contract/SpeakingItemLookup.java) — contract đọc item từ Topic.
+- [TopicLearningServiceImpl.java](../../../src/main/java/fit/iuh/engolearn/topic/service/impl/TopicLearningServiceImpl.java) — triển khai lookup khả dụng.
+- [SpeakingItemConfig.java](../../../src/main/java/fit/iuh/engolearn/speaking/model/SpeakingItemConfig.java), [SpeakingContentSnapshot.java](../../../src/main/java/fit/iuh/engolearn/speaking/model/SpeakingContentSnapshot.java), [SpeakingAssessmentRecord.java](../../../src/main/java/fit/iuh/engolearn/speaking/model/SpeakingAssessmentRecord.java) — cấu hình, snapshot và assessment.
+- [PromptV2Builder.java](../../../src/main/java/fit/iuh/engolearn/speaking/utils/PromptV2Builder.java), [SpeakingDraftValidator.java](../../../src/main/java/fit/iuh/engolearn/speaking/service/SpeakingDraftValidator.java) — prompt/validation model output; validation không thay thế business authoring hoặc kiểm soát kết quả ngữ nghĩa.
+- [SpeakingConversationConfig.java](../../../src/main/java/fit/iuh/engolearn/config/SpeakingConversationConfig.java) — cấu hình luồng đánh giá.
+- [SpeakingAvailabilityFilter.java](../../../src/main/java/fit/iuh/engolearn/config/SpeakingAvailabilityFilter.java) — chặn route Speaking theo môi trường/cấu hình.
 
-- 2026-11-05 V2 goal/hint update: validator, prompt, composer, runtime, manager
-  and gateway suites passed (147 tests, no failures/errors); independent review
-  found no remaining issues. Full `mvnw.cmd -q verify` was attempted both inside
-  and outside the sandbox and failed. The outside-sandbox run reported 558
-  tests, 3 failures, 128 errors: context startup hit HTTP-client loopback
-  `Invalid argument: connect`; TopicBrowseServiceImplTest, TopicQuizAnswerTest
-  and TopicQuizReadTest also failed. Full-repository verification is incomplete;
-  live provider/browser validation remains pending. Logs are in
-  `target/speaking-v2-verify.log` and `target/speaking-v2-verify-unsandboxed.log`.
-- `mvnw.cmd -q -DskipTests compile`: passed after provider, WebSocket, REST, and Cloudinary code.
-- `mvnw.cmd -q '-Dtest=ArchitectureTest,SpeakingItemConfigTest,SpeakingSessionServiceTest' test`: passed. An earlier Mockito-based service test stalled because dynamic JVM attachment was denied on this host; it was replaced by interface fakes, then passed. No test was disabled.
-- `.\mvnw.cmd -q verify`: BUILD SUCCESS; 327 tests ran with 0 failures and 0 errors, and 14 Docker-dependent tests were skipped because no Docker environment was available. Spring context checks also logged the expected unavailable MongoDB connection to `localhost:1`; the full Maven verification still completed successfully.
-
-`SpeakingMongoIndexes` ensures the three uniqueness indexes at startup. A deployment with duplicate existing data must reconcile those records before startup can succeed.
+Chi tiết kỹ thuật, flags, các khác biệt đã xác nhận và kế hoạch kiểm chứng: [technical README](../../technical/speaking-ai/README.md).

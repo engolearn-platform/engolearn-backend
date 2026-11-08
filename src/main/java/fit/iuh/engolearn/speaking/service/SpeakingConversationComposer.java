@@ -6,7 +6,7 @@ import fit.iuh.engolearn.speaking.model.DialogueDecision;
 import fit.iuh.engolearn.speaking.model.GatewayOutcome;
 import fit.iuh.engolearn.speaking.model.SpeakingAiRequestV1;
 import fit.iuh.engolearn.speaking.model.SpeakingContentSnapshot;
-import fit.iuh.engolearn.speaking.model.SpeakingDemoAssessment;
+import fit.iuh.engolearn.speaking.model.SpeakingConversationAssessment;
 import fit.iuh.engolearn.speaking.model.SpeakingSession;
 import fit.iuh.engolearn.speaking.model.SpeakingTurn;
 import fit.iuh.engolearn.speaking.model.ValidatedTurnProposal;
@@ -19,21 +19,21 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
-public final class SpeakingDemoComposer {
+public final class SpeakingConversationComposer {
     private static final int MAX_HISTORY_EXCHANGES = 5;
 
     private final SpeakingAiGateway gateway;
     private final SpeakingDraftValidator validator;
     private final ConversationManager manager;
 
-    public SpeakingDemoComposer(SpeakingAiGateway gateway, SpeakingDraftValidator validator,
+    public SpeakingConversationComposer(SpeakingAiGateway gateway, SpeakingDraftValidator validator,
             ConversationManager manager) {
         this.gateway = Objects.requireNonNull(gateway, "gateway");
         this.validator = Objects.requireNonNull(validator, "validator");
         this.manager = Objects.requireNonNull(manager, "manager");
     }
 
-    public SpeakingDemoAssessment assess(SpeakingSession session, SpeakingSessionResponse historySnapshot,
+    public SpeakingConversationAssessment assess(SpeakingSession session, SpeakingSessionResponse historySnapshot,
             String finalizedTranscript) {
         Objects.requireNonNull(session, "session");
         Objects.requireNonNull(historySnapshot, "historySnapshot");
@@ -57,7 +57,7 @@ public final class SpeakingDemoComposer {
                 validationResources, achievedGoalIds);
         DialogueDecision decision = manager.decide(proposal, ConversationStateView.from(session), snapshot,
                 ConversationManager.SystemTrigger.NONE);
-        return new SpeakingDemoAssessment(proposal, decision);
+        return new SpeakingConversationAssessment(proposal, decision);
     }
 
     private ValidatedTurnProposal proposal(GatewayOutcome outcome, String transcript,

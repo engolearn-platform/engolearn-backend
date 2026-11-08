@@ -16,11 +16,11 @@ import java.util.Arrays;
 
 @Component
 @Order(Ordered.HIGHEST_PRECEDENCE)
-public class SpeakingDemoGateFilter extends OncePerRequestFilter {
+public class SpeakingAvailabilityFilter extends OncePerRequestFilter {
     private final boolean enabled;
 
-    public SpeakingDemoGateFilter(Environment environment,
-            @Value("${engolearn.speaking.demo.enabled:false}") boolean configured) {
+    public SpeakingAvailabilityFilter(Environment environment,
+            @Value("${engolearn.speaking.enabled:false}") boolean configured) {
         this.enabled = configured && Arrays.stream(environment.getActiveProfiles())
                 .noneMatch("prod"::equals);
     }

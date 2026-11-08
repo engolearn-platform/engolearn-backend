@@ -33,10 +33,9 @@ engolearn:
       api-key: ${CLOUDINARY_API_KEY:}
       api-secret: ${CLOUDINARY_API_SECRET:}
   speaking:
-    demo:
-      enabled: true
-      manager:
-        enabled: true
+    enabled: ${engolearn.speaking.demo.enabled:true}
+    manager:
+      enabled: ${engolearn.speaking.demo.manager.enabled:true}
     assemblyai:
       api-key: ${ASSEMBLYAI_API_KEY:}
     gemini:

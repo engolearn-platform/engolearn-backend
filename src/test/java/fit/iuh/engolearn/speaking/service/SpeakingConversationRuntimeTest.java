@@ -10,10 +10,8 @@ import fit.iuh.engolearn.speaking.utils.port.SpeakingAiGateway;
 import fit.iuh.engolearn.speaking.utils.port.SpeechStreamPort;
 import fit.iuh.engolearn.speaking.utils.port.SpeechSynthesisPort;
 import org.junit.jupiter.api.Test;
-import org.springframework.mock.env.MockEnvironment;
 import tools.jackson.databind.ObjectMapper;
 
-import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
@@ -32,16 +30,8 @@ import java.util.function.Consumer;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-class SpeakingDemoRuntimeTest {
+class SpeakingConversationRuntimeTest {
     private static final ObjectMapper MAPPER = new ObjectMapper();
-
-    @Test
-    void managerFlagIsEffectiveOnlyInsideTheExistingNonProductionDemoGate() throws Exception {
-        assertFalse(effectiveFlag(false, true, "dev"));
-        assertFalse(effectiveFlag(true, false, "dev"));
-        assertTrue(effectiveFlag(true, true, "dev"));
-        assertFalse(effectiveFlag(true, true, "prod"));
-    }
 
     @Test
     void demoSettlementPersistsAcceptedEvidenceAndCountersOnlyOnce() {
@@ -75,7 +65,7 @@ class SpeakingDemoRuntimeTest {
                 + "\"resourceEvidence\":[],\"corrections\":[],\"hintExampleEn\":null,\"hintLeadVi\":null},"
                 + "\"dialogue\":{\"proposedAct\":\"REACT_AND_INVITE\",\"spokenReply\":\"Nice.\","
                 + "\"continuationType\":\"INVITATION\",\"primaryQuestion\":null,\"targetGoalId\":null}}";
-        SpeakingDemoComposer composer = new SpeakingDemoComposer(request -> new GatewayOutcome.Success(
+        SpeakingConversationComposer composer = new SpeakingConversationComposer(request -> new GatewayOutcome.Success(
                 new ProviderRawDraft(candidate,
                         new ProviderRawDraft.ProviderMetadata("test", 200, "id", "STOP", 1L, 1L, 2L))),
                 new SpeakingDraftValidator(MAPPER), new ConversationManager());
@@ -83,7 +73,7 @@ class SpeakingDemoRuntimeTest {
                 SpeakingSession.Status.ACTIVE, null, Instant.now(), Instant.now().plusSeconds(1200), null,
                 0, 1, List.of(), List.of(), false, false, 7, 1L, true, null, List.of());
 
-        SpeakingDemoAssessment assessment = composer.assess(fixture.session, history, "I order food");
+        SpeakingConversationAssessment assessment = composer.assess(fixture.session, history, "I order food");
 
         assertEquals(List.of("cafe"), assessment.proposal().goalEvidence().stream()
                 .map(SpeakingAssessmentRecord.GoalEvidence::goalId).toList());
@@ -186,7 +176,7 @@ class SpeakingDemoRuntimeTest {
         AtomicInteger gatewayCalls = new AtomicInteger();
         CountDownLatch compositionStarted = new CountDownLatch(1);
         CountDownLatch allowCompletion = new CountDownLatch(1);
-        SpeakingDemoComposer composer = blockingComposer(gatewayCalls, compositionStarted, allowCompletion);
+        SpeakingConversationComposer composer = blockingComposer(gatewayCalls, compositionStarted, allowCompletion);
         FakeRealtimeSessionService sessions = FakeRealtimeSessionService.active();
         CountingTts tts = new CountingTts();
         SpeakingRealtimeService realtime = realtime(sessions, (content, transcript, history, achieved) ->
@@ -215,7 +205,7 @@ class SpeakingDemoRuntimeTest {
         AtomicInteger gatewayCalls = new AtomicInteger();
         CountDownLatch compositionStarted = new CountDownLatch(1);
         CountDownLatch allowCompletion = new CountDownLatch(1);
-        SpeakingDemoComposer composer = blockingComposer(gatewayCalls, compositionStarted, allowCompletion);
+        SpeakingConversationComposer composer = blockingComposer(gatewayCalls, compositionStarted, allowCompletion);
         FakeRealtimeSessionService sessions = FakeRealtimeSessionService.active();
         CountingTts tts = new CountingTts();
         SpeakingRealtimeService realtime = realtime(sessions, (content, transcript, history, achieved) ->
@@ -296,7 +286,7 @@ class SpeakingDemoRuntimeTest {
         AtomicInteger gatewayCalls = new AtomicInteger();
         CountDownLatch compositionStarted = new CountDownLatch(1);
         CountDownLatch allowCompletion = new CountDownLatch(1);
-        SpeakingDemoComposer composer = blockingFailingComposer(gatewayCalls, compositionStarted, allowCompletion);
+        SpeakingConversationComposer composer = blockingFailingComposer(gatewayCalls, compositionStarted, allowCompletion);
         FakeRealtimeSessionService sessions = FakeRealtimeSessionService.active();
         CountingTts tts = new CountingTts();
         SpeakingRealtimeService realtime = realtime(sessions, (content, transcript, history, achieved) ->
@@ -325,7 +315,7 @@ class SpeakingDemoRuntimeTest {
         AtomicInteger gatewayCalls = new AtomicInteger();
         CountDownLatch compositionStarted = new CountDownLatch(1);
         CountDownLatch allowCompletion = new CountDownLatch(1);
-        SpeakingDemoComposer composer = blockingFailingComposer(gatewayCalls, compositionStarted, allowCompletion);
+        SpeakingConversationComposer composer = blockingFailingComposer(gatewayCalls, compositionStarted, allowCompletion);
         FakeRealtimeSessionService sessions = FakeRealtimeSessionService.active();
         SpeakingRealtimeService realtime = realtime(sessions, (content, transcript, history, achieved) ->
                 new ConversationEvaluator.Result(true, "legacy", List.of(), List.of(), List.of(), null, List.of()),
@@ -470,8 +460,8 @@ class SpeakingDemoRuntimeTest {
 
     @Test
     void demoSettlementAndFailureHaveNoPublicEpochBypass() {
-        assertThrows(NoSuchMethodException.class, () -> SpeakingSessionService.class.getMethod("settleDemo",
-                String.class, String.class, SpeakingDemoAssessment.class));
+        assertThrows(NoSuchMethodException.class, () -> SpeakingSessionService.class.getMethod("settleConversationTurn",
+                String.class, String.class, SpeakingConversationAssessment.class));
         assertThrows(NoSuchMethodException.class, () -> SpeakingSessionService.class.getMethod("assessmentFailed",
                 String.class, String.class));
     }
@@ -479,7 +469,7 @@ class SpeakingDemoRuntimeTest {
     @Test
     void flagOffKeepsLegacyEvaluatorAndFlagOnUsesComposerDiagnosticsAndTts() throws Exception {
         AtomicInteger gatewayCalls = new AtomicInteger();
-        SpeakingDemoComposer composer = composer(gatewayCalls);
+        SpeakingConversationComposer composer = composer(gatewayCalls);
         FakeRealtimeSessionService sessions = FakeRealtimeSessionService.active();
         AtomicInteger evaluatorCalls = new AtomicInteger();
         ConversationEvaluator evaluator = (content, transcript, history, achieved) -> {
@@ -506,14 +496,14 @@ class SpeakingDemoRuntimeTest {
         assertEquals(1, sessions.settlementCalls.get());
         assertTrue(result.containsKey("demoDecision"));
         assertEquals(DialogueDecision.Outcome.NORMAL,
-                ((SpeakingDemoDecisionEvent) result.get("demoDecision")).outcome());
+                ((SpeakingDialogueDecisionEvent) result.get("demoDecision")).outcome());
         assertEquals(1, tts.calls.get());
     }
 
     @Test
     void staleControllerAndTerminalDecisionNeverReachNormalSpeech() throws Exception {
         AtomicInteger gatewayCalls = new AtomicInteger();
-        SpeakingDemoComposer composer = composer(gatewayCalls);
+        SpeakingConversationComposer composer = composer(gatewayCalls);
         FakeRealtimeSessionService sessions = FakeRealtimeSessionService.active();
         CountingTts tts = new CountingTts();
         SpeakingRealtimeService realtime = realtime(sessions, (content, transcript, history, achieved) ->
@@ -534,7 +524,7 @@ class SpeakingDemoRuntimeTest {
     @Test
     void evaluationFailureEmitsProcessingErrorDiagnosticWithoutTts() throws Exception {
         AtomicInteger gatewayCalls = new AtomicInteger();
-        SpeakingDemoComposer composer = failingComposer(gatewayCalls);
+        SpeakingConversationComposer composer = failingComposer(gatewayCalls);
         FakeRealtimeSessionService sessions = FakeRealtimeSessionService.active();
         CountingTts tts = new CountingTts();
 
@@ -547,16 +537,16 @@ class SpeakingDemoRuntimeTest {
                 .filter(event -> "PROCESSING_ERROR".equals(event.get("type"))).findFirst().orElseThrow();
         assertEquals(1, gatewayCalls.get());
         assertEquals(1, sessions.settlementCalls.get());
-        assertTrue(error.get("demoDecision") instanceof SpeakingDemoDecisionEvent);
+        assertTrue(error.get("demoDecision") instanceof SpeakingDialogueDecisionEvent);
         assertEquals(DialogueDecision.Outcome.RECOVERY,
-                ((SpeakingDemoDecisionEvent) error.get("demoDecision")).outcome());
+                ((SpeakingDialogueDecisionEvent) error.get("demoDecision")).outcome());
         assertEquals(0, tts.calls.get());
     }
 
     @Test
     void thirdEvaluationFailureEmitsSettledTerminalSnapshotAndSuppressesSpeech() throws Exception {
         AtomicInteger gatewayCalls = new AtomicInteger();
-        SpeakingDemoComposer composer = failingComposer(gatewayCalls);
+        SpeakingConversationComposer composer = failingComposer(gatewayCalls);
         FakeRealtimeSessionService sessions = FakeRealtimeSessionService.active();
         sessions.currentState.setConsecutiveEvaluationFailures(2);
         CountingTts tts = new CountingTts();
@@ -569,7 +559,7 @@ class SpeakingDemoRuntimeTest {
         Map<String, Object> error = sessions.events.stream()
                 .filter(event -> "PROCESSING_ERROR".equals(event.get("type"))).findFirst().orElseThrow();
         assertEquals(DialogueDecision.Outcome.TERMINAL,
-                ((SpeakingDemoDecisionEvent) error.get("demoDecision")).outcome());
+                ((SpeakingDialogueDecisionEvent) error.get("demoDecision")).outcome());
         assertEquals(SpeakingSession.Status.INCOMPLETE,
                 ((SpeakingSessionResponse) error.get("snapshot")).status());
         assertEquals(0, tts.calls.get());
@@ -578,7 +568,7 @@ class SpeakingDemoRuntimeTest {
     @Test
     void terminalManagerDecisionCommitsDiagnosticsButSuppressesSpeech() throws Exception {
         AtomicInteger gatewayCalls = new AtomicInteger();
-        SpeakingDemoComposer composer = composer(gatewayCalls);
+        SpeakingConversationComposer composer = composer(gatewayCalls);
         FakeRealtimeSessionService sessions = FakeRealtimeSessionService.active();
         sessions.currentState.setAchievedGoalIds(new ArrayList<>(List.of("goal-1", "goal-2")));
         CountingTts tts = new CountingTts();
@@ -592,7 +582,7 @@ class SpeakingDemoRuntimeTest {
                 .filter(event -> "TURN_RESULT".equals(event.get("type"))).findFirst().orElseThrow();
         assertEquals(1, gatewayCalls.get());
         assertEquals(DialogueDecision.Outcome.TERMINAL,
-                ((SpeakingDemoDecisionEvent) result.get("demoDecision")).outcome());
+                ((SpeakingDialogueDecisionEvent) result.get("demoDecision")).outcome());
         assertEquals(SpeakingSession.Status.COMPLETED,
                 ((SpeakingSessionResponse) result.get("snapshot")).status());
         assertEquals(0, tts.calls.get());
@@ -622,21 +612,11 @@ class SpeakingDemoRuntimeTest {
         }
     }
 
-    private static boolean effectiveFlag(boolean demo, boolean manager, String profile) throws Exception {
-        Class<?> type = Class.forName("fit.iuh.engolearn.config.SpeakingDemoManagerConfig");
-        Constructor<?> constructor = type.getConstructor(org.springframework.core.env.Environment.class,
-                boolean.class, boolean.class);
-        MockEnvironment environment = new MockEnvironment().withProperty("spring.profiles.active", profile);
-        environment.setActiveProfiles(profile);
-        Object config = constructor.newInstance(environment, demo, manager);
-        return (boolean) type.getMethod("enabled").invoke(config);
-    }
-
     private static boolean settle(SpeakingSessionService service, String sessionId, String turnId,
-            long epoch, SpeakingDemoAssessment assessment) {
+            long epoch, SpeakingConversationAssessment assessment) {
         try {
-            Method method = SpeakingSessionService.class.getMethod("settleDemo", String.class, String.class,
-                    long.class, SpeakingDemoAssessment.class);
+            Method method = SpeakingSessionService.class.getMethod("settleConversationTurn", String.class, String.class,
+                    long.class, SpeakingConversationAssessment.class);
             return (boolean) method.invoke(service, sessionId, turnId, epoch, assessment);
         } catch (ReflectiveOperationException exception) {
             throw new AssertionError("demo settlement API is missing", exception);
@@ -665,16 +645,10 @@ class SpeakingDemoRuntimeTest {
     }
 
     private static SpeakingRealtimeService realtime(SpeakingSessionService sessions,
-            ConversationEvaluator evaluator, SpeechSynthesisPort tts, SpeakingDemoComposer composer,
-            boolean enabled) throws Exception {
-        for (Constructor<?> constructor : SpeakingRealtimeService.class.getDeclaredConstructors()) {
-            if (constructor.getParameterCount() == 6) {
-                constructor.setAccessible(true);
-                return (SpeakingRealtimeService) constructor.newInstance(sessions, stream(), evaluator, tts,
-                        composer, enabled);
-            }
-        }
-        throw new AssertionError("demo realtime constructor is missing");
+            ConversationEvaluator evaluator, SpeechSynthesisPort tts, SpeakingConversationComposer composer,
+            boolean enabled) {
+        return new SpeakingRealtimeService(sessions, stream(), evaluator, tts,
+                enabled ? Optional.of(composer) : Optional.empty());
     }
 
     private static void awaitClosing(SettlementFixture fixture) throws InterruptedException {
@@ -708,7 +682,7 @@ class SpeakingDemoRuntimeTest {
         return false;
     }
 
-    private static SpeakingDemoComposer composer(AtomicInteger gatewayCalls) {
+    private static SpeakingConversationComposer composer(AtomicInteger gatewayCalls) {
         SpeakingAiGateway gateway = request -> {
             gatewayCalls.incrementAndGet();
             String raw = "{\"contractVersion\":\"speaking.ai.draft.v1\","
@@ -721,19 +695,19 @@ class SpeakingDemoRuntimeTest {
             return new GatewayOutcome.Success(new ProviderRawDraft(raw,
                     new ProviderRawDraft.ProviderMetadata("test", 200, "id", "STOP", 1L, 1L, 2L)));
         };
-        return new SpeakingDemoComposer(gateway, new SpeakingDraftValidator(MAPPER), new ConversationManager());
+        return new SpeakingConversationComposer(gateway, new SpeakingDraftValidator(MAPPER), new ConversationManager());
     }
 
-    private static SpeakingDemoComposer failingComposer(AtomicInteger gatewayCalls) {
+    private static SpeakingConversationComposer failingComposer(AtomicInteger gatewayCalls) {
         SpeakingAiGateway gateway = request -> {
             gatewayCalls.incrementAndGet();
             return new GatewayOutcome.TransportFailure(new GatewayOutcome.ProviderFailure(
                     GatewayOutcome.FailureCode.TRANSPORT, "offline", null, null, null));
         };
-        return new SpeakingDemoComposer(gateway, new SpeakingDraftValidator(MAPPER), new ConversationManager());
+        return new SpeakingConversationComposer(gateway, new SpeakingDraftValidator(MAPPER), new ConversationManager());
     }
 
-    private static SpeakingDemoComposer blockingComposer(AtomicInteger gatewayCalls,
+    private static SpeakingConversationComposer blockingComposer(AtomicInteger gatewayCalls,
             CountDownLatch compositionStarted, CountDownLatch allowCompletion) {
         SpeakingAiGateway gateway = request -> {
             gatewayCalls.incrementAndGet();
@@ -754,10 +728,10 @@ class SpeakingDemoRuntimeTest {
                             + "\"primaryQuestion\":\"Why?\",\"targetGoalId\":null}}",
                     new ProviderRawDraft.ProviderMetadata("test", 200, "id", "STOP", 1L, 1L, 2L)));
         };
-        return new SpeakingDemoComposer(gateway, new SpeakingDraftValidator(MAPPER), new ConversationManager());
+        return new SpeakingConversationComposer(gateway, new SpeakingDraftValidator(MAPPER), new ConversationManager());
     }
 
-    private static SpeakingDemoComposer blockingFailingComposer(AtomicInteger gatewayCalls,
+    private static SpeakingConversationComposer blockingFailingComposer(AtomicInteger gatewayCalls,
             CountDownLatch compositionStarted, CountDownLatch allowCompletion) {
         SpeakingAiGateway gateway = request -> {
             gatewayCalls.incrementAndGet();
@@ -770,46 +744,46 @@ class SpeakingDemoRuntimeTest {
             }
             throw new IllegalStateException("offline");
         };
-        return new SpeakingDemoComposer(gateway, new SpeakingDraftValidator(MAPPER), new ConversationManager());
+        return new SpeakingConversationComposer(gateway, new SpeakingDraftValidator(MAPPER), new ConversationManager());
     }
 
-    private static SpeakingDemoAssessment validAssessment() {
+    private static SpeakingConversationAssessment validAssessment() {
         return validAssessment(1, 1, List.of("goal-1"));
     }
 
-    private static SpeakingDemoAssessment validAssessment(int finalizedTurns, int validTurns,
+    private static SpeakingConversationAssessment validAssessment(int finalizedTurns, int validTurns,
             List<String> achievedGoals) {
         ValidatedTurnProposal proposal = ValidatedTurnProposal.valid(
                 SpeakingAiDraftResponseV1.UserIntent.STATEMENT, List.of("goal-1"),
                 new SpeakingAiDraftResponseV1.Dialogue(DialogueAct.REACT_AND_ASK, "Keep going.",
                         SpeakingAiDraftResponseV1.ContinuationType.QUESTION, "Why?", null));
-        return new SpeakingDemoAssessment(proposal, new DialogueDecision(DialogueDecision.Outcome.NORMAL,
+        return new SpeakingConversationAssessment(proposal, new DialogueDecision(DialogueDecision.Outcome.NORMAL,
                 DialogueDecision.ReasonCode.NORMAL, DialogueAct.REACT_AND_ASK, "Keep going.", null,
                 DialogueDecision.SystemTrigger.NONE, SpeakingSession.Status.ACTIVE, finalizedTurns, validTurns, 0,
                 achievedGoals, false, false, false, false));
     }
 
-    private static SpeakingDemoAssessment invalidAssessment() {
-        return new SpeakingDemoAssessment(ValidatedTurnProposal.invalid(), new DialogueDecision(
+    private static SpeakingConversationAssessment invalidAssessment() {
+        return new SpeakingConversationAssessment(ValidatedTurnProposal.invalid(), new DialogueDecision(
                 DialogueDecision.Outcome.RECOVERY, DialogueDecision.ReasonCode.INVALID_TURN, null, null, null,
                 DialogueDecision.SystemTrigger.NONE, SpeakingSession.Status.ACTIVE, 1, 0, 0, List.of(), false,
                 false, false, false));
     }
 
-    private static SpeakingDemoAssessment validNoReplyAssessment() {
+    private static SpeakingConversationAssessment validNoReplyAssessment() {
         ValidatedTurnProposal proposal = new ValidatedTurnProposal(
                 ValidatedTurnProposal.ValidityOutcome.VALID,
                 List.of(new SpeakingAssessmentRecord.GoalEvidence("goal-1", "I order food")),
                 List.of(), List.of(), null, null,
                 SpeakingAiDraftResponseV1.UserIntent.STATEMENT, List.of());
-        return new SpeakingDemoAssessment(proposal, new DialogueDecision(DialogueDecision.Outcome.NORMAL,
+        return new SpeakingConversationAssessment(proposal, new DialogueDecision(DialogueDecision.Outcome.NORMAL,
                 DialogueDecision.ReasonCode.DIALOGUE_NOT_AVAILABLE, null, null, null,
                 DialogueDecision.SystemTrigger.NONE, SpeakingSession.Status.ACTIVE, 1, 1, 0,
                 List.of("goal-1"), false, false, false, false));
     }
 
-    private static SpeakingDemoAssessment failureAssessment(int errors) {
-        return new SpeakingDemoAssessment(ValidatedTurnProposal.evaluationFailed(), new DialogueDecision(
+    private static SpeakingConversationAssessment failureAssessment(int errors) {
+        return new SpeakingConversationAssessment(ValidatedTurnProposal.evaluationFailed(), new DialogueDecision(
                 errors >= 3 ? DialogueDecision.Outcome.TERMINAL : DialogueDecision.Outcome.RECOVERY,
                 errors >= 3 ? DialogueDecision.ReasonCode.EVALUATION_ERRORS_3
                         : DialogueDecision.ReasonCode.EVALUATION_ERROR,
@@ -981,8 +955,8 @@ class SpeakingDemoRuntimeTest {
         }
         public void saveAudio(String sessionId, String turnId, SpeakingAudioAsset.Kind kind, String format,
                 String contentType, byte[] bytes) {}
-        public SpeakingSession demoState(String sessionId, String learnerId) { return currentState; }
-        public synchronized boolean recoverDemoTurn(String sessionId, String turnId, long epoch) {
+        public SpeakingSession assessmentSession(String sessionId, String learnerId) { return currentState; }
+        public synchronized boolean recoverPendingConversationTurn(String sessionId, String turnId, long epoch) {
             if (persistCommits) {
                 SpeakingTurn persisted = persistedTurns.stream()
                         .filter(candidate -> turnId.equals(candidate.getId())).findFirst().orElse(null);
@@ -1000,7 +974,7 @@ class SpeakingDemoRuntimeTest {
             turn.setEvaluationState(SpeakingTurn.EvaluationState.FAILED);
             return true;
         }
-        public synchronized boolean settleDemo(String sessionId, String turnId, long epoch, SpeakingDemoAssessment assessment) {
+        public synchronized boolean settleConversationTurn(String sessionId, String turnId, long epoch, SpeakingConversationAssessment assessment) {
             if (epoch != currentState.getControllerEpoch() || !currentState.isOpen()) return false;
             if (holdSettlement) {
                 settlementEntered.countDown();

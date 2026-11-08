@@ -413,7 +413,7 @@ public class SpeakingSessionService {
         return response(expireIfNeeded(session));
     }
 
-    public SpeakingSession demoState(String id, String learnerId) {
+    public SpeakingSession assessmentSession(String id, String learnerId) {
         SpeakingSession session = sessions.findById(id).orElseThrow(() ->
                 problem(HttpStatus.NOT_FOUND, "SESSION_NOT_FOUND", "Session not found"));
         if (!learnerId.equals(session.getLearnerId()) || session.getDeletedAt() != null) {
@@ -519,15 +519,15 @@ public class SpeakingSessionService {
         }
     }
 
-    public synchronized boolean settleDemo(String sessionId, String turnId, long controllerEpoch,
-            SpeakingDemoAssessment assessment) {
+    public synchronized boolean settleConversationTurn(String sessionId, String turnId, long controllerEpoch,
+            SpeakingConversationAssessment assessment) {
         SpeakingSession session = sessions.findById(sessionId).orElseThrow();
         session = expireIfNeeded(session);
         Optional<SpeakingTurn> found = turns.findByIdAndSessionId(turnId, sessionId);
         if (found.isEmpty()) return false;
         SpeakingTurn turn = found.get();
         if (session.getDeletedAt() != null || !session.isOpen()
-                || !demoSettlementAllowedDuringClosing(session)
+                || !conversationSettlementAllowedDuringClosing(session)
                 || session.getControllerEpoch() != controllerEpoch
                 || turn.getEvaluationState() != SpeakingTurn.EvaluationState.PENDING) return false;
 
@@ -564,11 +564,11 @@ public class SpeakingSessionService {
         }
         turns.save(turn);
         sessions.save(session);
-        settleDemoLifecycle(session, decision);
+        settleConversationLifecycle(session, decision);
         return true;
     }
 
-    private void settleDemoLifecycle(SpeakingSession session, DialogueDecision decision) {
+    private void settleConversationLifecycle(SpeakingSession session, DialogueDecision decision) {
         if (session.getClosingAt() != null) {
             finish(session, session.getClosingReason());
             return;
@@ -590,7 +590,7 @@ public class SpeakingSessionService {
         finish(session, reason);
     }
 
-    private boolean demoSettlementAllowedDuringClosing(SpeakingSession session) {
+    private boolean conversationSettlementAllowedDuringClosing(SpeakingSession session) {
         if (session.getClosingAt() == null) return true;
         SpeakingSession.EndReason reason = session.getClosingReason();
         return (reason == SpeakingSession.EndReason.LEARNER_ENDED
@@ -598,7 +598,7 @@ public class SpeakingSessionService {
                 && Instant.now().isBefore(session.getClosingAt().plusSeconds(10));
     }
 
-    public synchronized boolean recoverDemoTurn(String sessionId, String turnId, long controllerEpoch) {
+    public synchronized boolean recoverPendingConversationTurn(String sessionId, String turnId, long controllerEpoch) {
         SpeakingSession session = sessions.findById(sessionId).orElseThrow();
         session = expireIfNeeded(session);
         Optional<SpeakingTurn> found = turns.findByIdAndSessionId(turnId, sessionId);

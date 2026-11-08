@@ -6,7 +6,7 @@ import fit.iuh.engolearn.speaking.model.SpeakingSession;
 
 import java.util.List;
 
-public record SpeakingDemoDecisionEvent(
+public record SpeakingDialogueDecisionEvent(
         DialogueDecision.Outcome outcome,
         DialogueDecision.ReasonCode reasonCode,
         DialogueAct acceptedAct,
@@ -18,12 +18,12 @@ public record SpeakingDemoDecisionEvent(
         boolean completionEligible,
         boolean autoEndEligible
 ) {
-    public SpeakingDemoDecisionEvent {
+    public SpeakingDialogueDecisionEvent {
         newlyAchievedGoalIds = newlyAchievedGoalIds == null ? List.of() : List.copyOf(newlyAchievedGoalIds);
     }
 
-    public static SpeakingDemoDecisionEvent from(DialogueDecision decision) {
-        return new SpeakingDemoDecisionEvent(decision.outcome(), decision.reasonCode(), decision.acceptedAct(),
+    public static SpeakingDialogueDecisionEvent from(DialogueDecision decision) {
+        return new SpeakingDialogueDecisionEvent(decision.outcome(), decision.reasonCode(), decision.acceptedAct(),
                 decision.resultingStatus(), decision.finalizedTurnCount(), decision.validTurnCount(),
                 decision.consecutiveEvaluationErrors(), decision.newlyAchievedGoalIds(),
                 decision.completionEligible(), decision.autoEndEligible());

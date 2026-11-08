@@ -436,7 +436,7 @@ class SpeakingSessionServiceTest {
     private static boolean invokeDemoRecovery(SpeakingSessionService service, String sessionId, String turnId,
             long controllerEpoch) {
         try {
-            Method method = SpeakingSessionService.class.getMethod("recoverDemoTurn",
+            Method method = SpeakingSessionService.class.getMethod("recoverPendingConversationTurn",
                     String.class, String.class, long.class);
             return (boolean) method.invoke(service, sessionId, turnId, controllerEpoch);
         } catch (ReflectiveOperationException exception) {

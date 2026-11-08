@@ -67,7 +67,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         "engolearn.security.jwt.secret=security-integration-test-key-at-least-32-bytes",
         "engolearn.security.jwt.issuer=security-integration-test",
         "engolearn.cors.allowed-origins=http://localhost:3000",
-        "engolearn.speaking.demo.enabled=true"
+        "engolearn.speaking.enabled=true"
 })
 class SecurityIntegrationTest {
 

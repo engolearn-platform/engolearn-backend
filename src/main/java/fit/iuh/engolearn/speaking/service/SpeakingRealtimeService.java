@@ -3,7 +3,7 @@ package fit.iuh.engolearn.speaking.service;
 import fit.iuh.engolearn.speaking.dto.response.SpeakingSessionResponse;
 import fit.iuh.engolearn.speaking.model.DialogueDecision;
 import fit.iuh.engolearn.speaking.model.SpeakingAudioAsset;
-import fit.iuh.engolearn.speaking.model.SpeakingDemoAssessment;
+import fit.iuh.engolearn.speaking.model.SpeakingConversationAssessment;
 import fit.iuh.engolearn.speaking.model.SpeakingSession;
 import fit.iuh.engolearn.speaking.model.SpeakingTurn;
 import fit.iuh.engolearn.speaking.model.SpeakingUsageSegment;
@@ -11,13 +11,11 @@ import fit.iuh.engolearn.speaking.model.ValidatedTurnProposal;
 import fit.iuh.engolearn.speaking.utils.port.ConversationEvaluator;
 import fit.iuh.engolearn.speaking.utils.port.SpeechStreamPort;
 import fit.iuh.engolearn.speaking.utils.port.SpeechSynthesisPort;
+import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.env.Environment;
-import org.springframework.stereotype.Service;
 import org.springframework.context.event.EventListener;
+import org.springframework.stereotype.Service;
 
 import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;
@@ -27,6 +25,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
@@ -35,6 +34,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
 @Service
+@RequiredArgsConstructor
 public class SpeakingRealtimeService {
     private static final Logger log = LoggerFactory.getLogger(SpeakingRealtimeService.class);
     private static final int MAX_PCM_BYTES = 16000 * 2 * 120;
@@ -42,12 +42,11 @@ public class SpeakingRealtimeService {
     private final SpeechStreamPort stt;
     private final ConversationEvaluator evaluator;
     private final SpeechSynthesisPort tts;
+    private final Optional<SpeakingConversationComposer> conversationComposer;
     private final ExecutorService workers = Executors.newFixedThreadPool(8);
     private final Map<String, Connection> connections = new ConcurrentHashMap<>();
     private final Map<String, Connection> currentControllers = new ConcurrentHashMap<>();
     private final Map<String, Object> controllerLocks = new ConcurrentHashMap<>();
-    private volatile SpeakingDemoComposer demoComposer;
-    private volatile boolean demoManagerEnabled;
 
     private static final class Connection {
         private final String connectionId;
@@ -69,33 +68,6 @@ public class SpeakingRealtimeService {
             this.epoch = epoch;
             this.emit = emit;
         }
-    }
-
-    @Autowired
-    public SpeakingRealtimeService(SpeakingSessionService sessions, SpeechStreamPort stt,
-                                   ConversationEvaluator evaluator, SpeechSynthesisPort tts) {
-        this(sessions, stt, evaluator, tts, null, false);
-    }
-
-    SpeakingRealtimeService(SpeakingSessionService sessions, SpeechStreamPort stt,
-                            ConversationEvaluator evaluator, SpeechSynthesisPort tts,
-                            SpeakingDemoComposer demoComposer, boolean demoManagerEnabled) {
-        this.sessions = sessions;
-        this.stt = stt;
-        this.evaluator = evaluator;
-        this.tts = tts;
-        this.demoComposer = demoComposer;
-        this.demoManagerEnabled = demoManagerEnabled;
-    }
-
-    @Autowired(required = false)
-    void configureDemo(Environment environment,
-                       @Value("${engolearn.speaking.demo.enabled:false}") boolean demoEnabled,
-                       @Value("${engolearn.speaking.demo.manager.enabled:false}") boolean managerEnabled,
-                       SpeakingDemoComposer composer) {
-        this.demoManagerEnabled = demoEnabled && managerEnabled
-                && java.util.Arrays.stream(environment.getActiveProfiles()).noneMatch("prod"::equals);
-        this.demoComposer = composer;
     }
 
     public CompletableFuture<Void> open(String connectionId, String sessionId, String ticket,
@@ -236,8 +208,8 @@ public class SpeakingRealtimeService {
 
     private void evaluate(Connection c, SpeakingTurn turn, byte[] recording) {
         String turnId = turn.getId();
-        if (demoManagerEnabled && demoComposer != null) {
-            evaluateDemo(c, turn, recording);
+        if (conversationComposer.isPresent()) {
+            evaluateConversation(c, turn, recording, conversationComposer.get());
             return;
         }
         SpeakingSessionResponse snapshot = sessions.socketSnapshot(c.sessionId, c.learnerId);
@@ -285,24 +257,25 @@ public class SpeakingRealtimeService {
         }
     }
 
-    private void evaluateDemo(Connection c, SpeakingTurn turn, byte[] recording) {
+    private void evaluateConversation(Connection c, SpeakingTurn turn, byte[] recording,
+            SpeakingConversationComposer composer) {
         String turnId = turn.getId();
         Instant waitStarted = Instant.now();
         try {
-            SpeakingSession authoritative = sessions.demoState(c.sessionId, c.learnerId);
+            SpeakingSession authoritative = sessions.assessmentSession(c.sessionId, c.learnerId);
             if (!eligibleController(authoritative, c)) return;
             SpeakingSessionResponse snapshot = sessions.socketSnapshot(c.sessionId, c.learnerId);
-            SpeakingDemoAssessment assessment = demoComposer.assess(authoritative, snapshot, turn.getTranscript());
-            if (!eligibleController(sessions.demoState(c.sessionId, c.learnerId), c)
-                    || !sessions.settleDemo(c.sessionId, turnId, c.epoch, assessment)) return;
+            SpeakingConversationAssessment assessment = composer.assess(authoritative, snapshot, turn.getTranscript());
+            if (!eligibleController(sessions.assessmentSession(c.sessionId, c.learnerId), c)
+                    || !sessions.settleConversationTurn(c.sessionId, turnId, c.epoch, assessment)) return;
             sessions.recordUsage(c.sessionId, turnId, SpeakingUsageSegment.Kind.AI_WAIT,
                     waitStarted, min(Instant.now(), waitStarted.plusSeconds(10)));
 
-            if (!eligibleSettledDelivery(sessions.demoState(c.sessionId, c.learnerId), c)) return;
+            if (!eligibleSettledDelivery(sessions.assessmentSession(c.sessionId, c.learnerId), c)) return;
 
             DialogueDecision decision = assessment.decision();
             Map<String, Object> diagnostic = new java.util.LinkedHashMap<>();
-            diagnostic.put("demoDecision", SpeakingDemoDecisionEvent.from(decision));
+            diagnostic.put("demoDecision", SpeakingDialogueDecisionEvent.from(decision));
             if (assessment.proposal().validityOutcome() == ValidatedTurnProposal.ValidityOutcome.EVALUATION_FAILED) {
                 diagnostic.put("message", "Assessment is unavailable");
                 diagnostic.put("snapshot", sessions.socketSnapshot(c.sessionId, c.learnerId));
@@ -320,25 +293,25 @@ public class SpeakingRealtimeService {
             if (decision.outcome() == DialogueDecision.Outcome.NORMAL
                     && decision.spokenReplyToDeliver() != null
                     && !decision.spokenReplyToDeliver().isBlank()) {
-                deliverDemoReply(c, turnId, decision.spokenReplyToDeliver());
+                deliverConversationReply(c, turnId, decision.spokenReplyToDeliver());
             }
         } catch (Exception ex) {
-            log.warn("Speaking demo assessment failed for session {} turn {}", c.sessionId, turnId, ex);
-            if (!eligibleController(sessions.demoState(c.sessionId, c.learnerId), c)) return;
+            log.warn("Speaking conversation assessment failed for session {} turn {}", c.sessionId, turnId, ex);
+            if (!eligibleController(sessions.assessmentSession(c.sessionId, c.learnerId), c)) return;
             sessions.assessmentFailed(c.sessionId, turnId, c.epoch);
-            if (!eligibleController(sessions.demoState(c.sessionId, c.learnerId), c)) return;
+            if (!eligibleController(sessions.assessmentSession(c.sessionId, c.learnerId), c)) return;
             send(c, "PROCESSING_ERROR", turnId, Map.of("message", "Assessment is unavailable",
                     "snapshot", sessions.socketSnapshot(c.sessionId, c.learnerId)));
         }
     }
 
-    private void deliverDemoReply(Connection c, String turnId, String reply) {
-        if (!eligibleController(sessions.demoState(c.sessionId, c.learnerId), c)) return;
+    private void deliverConversationReply(Connection c, String turnId, String reply) {
+        if (!eligibleController(sessions.assessmentSession(c.sessionId, c.learnerId), c)) return;
         Instant replyStarted = Instant.now();
         try {
             byte[] spoken = tts.synthesize(reply);
             if (spoken.length == 0) throw new IllegalStateException("Cartesia returned empty audio");
-            if (!eligibleController(sessions.demoState(c.sessionId, c.learnerId), c)) return;
+            if (!eligibleController(sessions.assessmentSession(c.sessionId, c.learnerId), c)) return;
             sessions.saveAudio(c.sessionId, turnId, SpeakingAudioAsset.Kind.AI_REPLY,
                     "mp3", "audio/mpeg", spoken);
             sessions.recordUsage(c.sessionId, turnId, SpeakingUsageSegment.Kind.AI_REPLY,
@@ -346,7 +319,7 @@ public class SpeakingRealtimeService {
             send(c, "AI_AUDIO_READY", turnId, Map.of());
         } catch (Exception ex) {
             log.warn("AI audio failed for session {} turn {}", c.sessionId, turnId, ex);
-            if (eligibleController(sessions.demoState(c.sessionId, c.learnerId), c)) {
+            if (eligibleController(sessions.assessmentSession(c.sessionId, c.learnerId), c)) {
                 send(c, "TTS_ERROR", turnId, Map.of("message", "AI audio is unavailable"));
             }
         }
@@ -477,23 +450,23 @@ public class SpeakingRealtimeService {
     }
 
     private void recoverReplacedTurn(Connection previous, String turnId) {
-        if (!demoManagerEnabled || previous == null || turnId == null) return;
-        recoverDemoTurn(previous, turnId);
+        if (conversationComposer.isEmpty() || previous == null || turnId == null) return;
+        recoverPendingConversationTurn(previous, turnId);
     }
 
     private void recoverClosedTurn(Connection connection, String turnId) {
-        if (!demoManagerEnabled || turnId == null) return;
-        recoverDemoTurn(connection, turnId);
+        if (conversationComposer.isEmpty() || turnId == null) return;
+        recoverPendingConversationTurn(connection, turnId);
     }
 
-    private void recoverDemoTurn(Connection connection, String turnId) {
+    private void recoverPendingConversationTurn(Connection connection, String turnId) {
         try {
-            SpeakingSession current = sessions.demoState(connection.sessionId, connection.learnerId);
+            SpeakingSession current = sessions.assessmentSession(connection.sessionId, connection.learnerId);
             if (current != null) {
-                sessions.recoverDemoTurn(connection.sessionId, turnId, current.getControllerEpoch());
+                sessions.recoverPendingConversationTurn(connection.sessionId, turnId, current.getControllerEpoch());
             }
         } catch (Exception ex) {
-            log.warn("Unable to recover demo turn {} for session {}", turnId, connection.sessionId, ex);
+            log.warn("Unable to recover pending Speaking turn {} for session {}", turnId, connection.sessionId, ex);
         }
     }
 

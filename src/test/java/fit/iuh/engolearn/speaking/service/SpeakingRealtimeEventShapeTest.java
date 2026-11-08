@@ -39,7 +39,7 @@ class SpeakingRealtimeEventShapeTest {
             @Override public void close(String id) {}
         };
         var events = new ArrayList<Map<String, Object>>();
-        var realtime = new SpeakingRealtimeService(sessions, stt, null, null);
+        var realtime = new SpeakingRealtimeService(sessions, stt, null, null, java.util.Optional.empty());
 
         realtime.open("connection", "session", "ticket", events::add).join();
         realtime.start("connection", "turn-1", 7);

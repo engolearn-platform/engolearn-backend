@@ -8,12 +8,12 @@ import org.springframework.mock.web.MockHttpServletResponse;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-class SpeakingDemoGateFilterTest {
+class SpeakingAvailabilityFilterTest {
     @Test void productionRejectsSpeakingRestAndWebSocketEvenWhenConfigured() throws Exception {
         for (String path : new String[] { "/api/v1/speaking/sessions", "/ws/speaking/session" }) {
             var environment = new MockEnvironment();
             environment.setActiveProfiles("prod");
-            var filter = new SpeakingDemoGateFilter(environment, true);
+            var filter = new SpeakingAvailabilityFilter(environment, true);
             var request = new MockHttpServletRequest("GET", path);
             var response = new MockHttpServletResponse();
             var chain = new MockFilterChain();
@@ -29,7 +29,7 @@ class SpeakingDemoGateFilterTest {
     @Test void devDemoAllowsSpeakingOnlyWhenConfigured() throws Exception {
         var environment = new MockEnvironment();
         environment.setActiveProfiles("dev");
-        var filter = new SpeakingDemoGateFilter(environment, true);
+        var filter = new SpeakingAvailabilityFilter(environment, true);
         var request = new MockHttpServletRequest("GET", "/api/v1/speaking/sessions");
         var chain = new MockFilterChain();
 

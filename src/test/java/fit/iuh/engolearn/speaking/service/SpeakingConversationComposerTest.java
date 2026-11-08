@@ -6,7 +6,7 @@ import fit.iuh.engolearn.speaking.model.DialogueDecision;
 import fit.iuh.engolearn.speaking.model.GatewayOutcome;
 import fit.iuh.engolearn.speaking.model.SpeakingAiRequestV1;
 import fit.iuh.engolearn.speaking.model.SpeakingContentSnapshot;
-import fit.iuh.engolearn.speaking.model.SpeakingDemoAssessment;
+import fit.iuh.engolearn.speaking.model.SpeakingConversationAssessment;
 import fit.iuh.engolearn.speaking.model.SpeakingGoal;
 import fit.iuh.engolearn.speaking.model.SpeakingSession;
 import fit.iuh.engolearn.speaking.model.SpeakingTurn;
@@ -23,7 +23,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
-class SpeakingDemoComposerTest {
+class SpeakingConversationComposerTest {
     private static final ObjectMapper MAPPER = new ObjectMapper();
     private static final String TRANSCRIPT = "I want a coffee.";
 
@@ -40,7 +40,7 @@ class SpeakingDemoComposerTest {
         };
         SpeakingSession session = session(activeSnapshot());
 
-        SpeakingDemoAssessment assessment = composer(gateway).assess(session,
+        SpeakingConversationAssessment assessment = composer(gateway).assess(session,
                 historySnapshot(session, sixSuccessfulTurns()), TRANSCRIPT);
 
         assertEquals(1, calls.get());
@@ -91,14 +91,14 @@ class SpeakingDemoComposerTest {
                     GatewayOutcome.FailureCode.SERVER_5XX, "provider unavailable", 503, null, null));
         };
 
-        SpeakingDemoAssessment providerFailure = composer(gateway).assess(session(activeSnapshot()),
+        SpeakingConversationAssessment providerFailure = composer(gateway).assess(session(activeSnapshot()),
                 emptyHistory(), TRANSCRIPT);
         assertEquals(ValidatedTurnProposal.ValidityOutcome.EVALUATION_FAILED,
                 providerFailure.proposal().validityOutcome());
         assertEquals(DialogueDecision.ReasonCode.EVALUATION_ERROR, providerFailure.decision().reasonCode());
         assertNull(providerFailure.decision().spokenReplyToDeliver());
 
-        SpeakingDemoAssessment schemaFailure = composer(request -> {
+        SpeakingConversationAssessment schemaFailure = composer(request -> {
             calls.incrementAndGet();
             return new GatewayOutcome.Success(newRaw("{}"));
         }).assess(session(activeSnapshot()), emptyHistory(), TRANSCRIPT);
@@ -113,18 +113,18 @@ class SpeakingDemoComposerTest {
     void managerSuppressesWrapUpAnswerFirstAlreadyAchievedAndTerminalReplies() {
         SpeakingSession session = session(activeSnapshot());
 
-        SpeakingDemoAssessment wrapUp = composer(successGateway(wrapUpDraft())).assess(session, emptyHistory(), TRANSCRIPT);
+        SpeakingConversationAssessment wrapUp = composer(successGateway(wrapUpDraft())).assess(session, emptyHistory(), TRANSCRIPT);
         assertEquals(DialogueDecision.ReasonCode.DIALOGUE_NOT_AVAILABLE, wrapUp.decision().reasonCode());
         assertNull(wrapUp.decision().spokenReplyToDeliver());
 
-        SpeakingDemoAssessment answerFirst = composer(successGateway(validDraft("QUESTION", "GUIDE_GOAL",
+        SpeakingConversationAssessment answerFirst = composer(successGateway(validDraft("QUESTION", "GUIDE_GOAL",
                 "Would you like coffee?", "QUESTION", "goal-coffee", "goal-coffee", "coffee", null, null, null, null, null, null)))
                 .assess(session, emptyHistory(), "What do you recommend?");
         assertEquals(DialogueDecision.ReasonCode.CLARIFICATION_FALLBACK, answerFirst.decision().reasonCode());
         assertEquals(DialogueAct.CLARIFY, answerFirst.decision().acceptedAct());
         assertEquals("Could you clarify what you mean?", answerFirst.decision().spokenReplyToDeliver());
 
-        SpeakingDemoAssessment achievedTarget = composer(successGateway(validDraft("STATEMENT", "GUIDE_GOAL",
+        SpeakingConversationAssessment achievedTarget = composer(successGateway(validDraft("STATEMENT", "GUIDE_GOAL",
                 "Would you like coffee?", "QUESTION", "goal-coffee", "goal-coffee", "coffee", null, null, null,
                 null, null, null))).assess(session, emptyHistory(), TRANSCRIPT);
         assertEquals(DialogueDecision.ReasonCode.TARGET_ALREADY_ACHIEVED, achievedTarget.decision().reasonCode());
@@ -132,7 +132,7 @@ class SpeakingDemoComposerTest {
 
         SpeakingSession terminal = session(activeSnapshot());
         terminal.setStatus(SpeakingSession.Status.COMPLETED);
-        SpeakingDemoAssessment terminalAssessment = composer(successGateway(validDraft("STATEMENT", "REACT_AND_ASK",
+        SpeakingConversationAssessment terminalAssessment = composer(successGateway(validDraft("STATEMENT", "REACT_AND_ASK",
                 "Should I continue?", "QUESTION", "Should I continue?", null, null, null, null, null, null, null, null)))
                 .assess(terminal, emptyHistory(), TRANSCRIPT);
         assertEquals(DialogueDecision.Outcome.REJECT, terminalAssessment.decision().outcome());
@@ -143,7 +143,7 @@ class SpeakingDemoComposerTest {
     private static void assertOutcome(String rawJson, ValidatedTurnProposal.ValidityOutcome validity,
             DialogueDecision.Outcome outcome, DialogueDecision.ReasonCode reason) {
         AtomicInteger calls = new AtomicInteger();
-        SpeakingDemoAssessment assessment = composer(request -> {
+        SpeakingConversationAssessment assessment = composer(request -> {
             calls.incrementAndGet();
             return new GatewayOutcome.Success(newRaw(rawJson));
         }).assess(session(activeSnapshot()), emptyHistory(), TRANSCRIPT);
@@ -155,8 +155,8 @@ class SpeakingDemoComposerTest {
         assertNull(assessment.decision().spokenReplyToDeliver());
     }
 
-    private static SpeakingDemoComposer composer(SpeakingAiGateway gateway) {
-        return new SpeakingDemoComposer(gateway, new SpeakingDraftValidator(MAPPER), new ConversationManager());
+    private static SpeakingConversationComposer composer(SpeakingAiGateway gateway) {
+        return new SpeakingConversationComposer(gateway, new SpeakingDraftValidator(MAPPER), new ConversationManager());
     }
 
     private static SpeakingAiGateway successGateway(String rawJson) {
