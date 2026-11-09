@@ -3,6 +3,7 @@ package fit.iuh.engolearn.config;
 import fit.iuh.engolearn.user.infra.security.AccessCookieAuthFilter;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
@@ -38,6 +39,14 @@ public class SecurityConfig {
     private String allowedOrigins;
 
     @Bean
+    public FilterRegistrationBean<AccessCookieAuthFilter> accessCookieAuthFilterRegistration(
+            AccessCookieAuthFilter filter) {
+        FilterRegistrationBean<AccessCookieAuthFilter> registration = new FilterRegistrationBean<>(filter);
+        registration.setEnabled(false);
+        return registration;
+    }
+
+    @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http,
                                                    Environment environment,
                                                    AccessCookieAuthFilter accessCookieAuthFilter,
@@ -55,6 +64,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/v1/auth/register", "/api/v1/auth/login", "/api/v1/auth/refresh", "/api/v1/auth/logout").permitAll()
                         .requestMatchers("/api/v1/subscription/admin", "/api/v1/subscription/admin/**").hasRole("ADMIN")
                         .requestMatchers("/api/v1/subscription/me", "/api/v1/subscription/me/**", "/api/v1/quota/me/**").authenticated()
+                        .requestMatchers("/api/v1/speaking/**").authenticated()
                         .requestMatchers("/api/learning-paths", "/api/learning-paths/**").authenticated()
                         .requestMatchers("/api/v1/topics/mine").hasAnyRole("USER", "CONTENT_MANAGER", "ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/v1/topics", "/api/v1/topics/{topicId}").permitAll()
@@ -106,7 +116,8 @@ public class SecurityConfig {
         problemDetail.setType(URI.create("about:blank"));
         if (path.startsWith("/api/v1/assessment/")
                 || path.startsWith("/api/v1/subscription/") || path.startsWith("/api/v1/quota/")
-                || path.startsWith("/api/v1/auth/") || path.equals("/api/learning-paths")
+                || path.startsWith("/api/v1/auth/") || path.startsWith("/api/v1/speaking/")
+                || path.equals("/api/learning-paths")
                 || path.startsWith("/api/learning-paths/")) {
             problemDetail.setDetail(status == HttpStatus.UNAUTHORIZED ? "Authentication is required" : "Access is denied");
             problemDetail.setInstance(URI.create(path));

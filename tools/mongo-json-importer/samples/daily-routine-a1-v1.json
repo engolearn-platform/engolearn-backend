@@ -1,0 +1,2866 @@
+{
+  "metadata": {
+    "name": "engolearn-daily-routine-a1",
+    "version": 1,
+    "content_status": "PUBLISHED",
+    "target_backend": "feat/speaking-ai-baseline",
+    "mongo_import_object_id_fields": "none",
+    "media_status": "PENDING_UPLOAD"
+  },
+  "collections": {
+    "topics": [
+      {
+        "_id": {
+          "$oid": "672c260de000100a0000d001"
+        },
+        "title_en": "Daily Routine",
+        "title_vi": "Sinh hoạt hằng ngày",
+        "description": "Kể về một ngày đi làm bằng tiếng Anh A1. Bạn sẽ luyện nói giờ giấc, kể các việc thường làm và hẹn giờ với đồng nghiệp hoặc người ở cùng nhà.",
+        "cefr_level": "A1",
+        "category": "DAILY",
+        "order_index": 100,
+        "duration_minutes": 35,
+        "cover_url": null,
+        "tags": [
+          "daily-routine",
+          "workday",
+          "telling-time"
+        ],
+        "latest_published_version": "672c260de000100a0000d002",
+        "latest_beta_version": null,
+        "created_at": {
+          "$date": "2026-11-07T00:00:00.000Z"
+        },
+        "updated_at": {
+          "$date": "2026-11-07T16:17:04.614Z"
+        }
+      }
+    ],
+    "topic_items": [
+      {
+        "_id": {
+          "$oid": "672c260de000100a0000d101"
+        },
+        "topic_id": "672c260de000100a0000d001",
+        "created_at": {
+          "$date": "2026-11-07T00:00:00.000Z"
+        },
+        "updated_at": {
+          "$date": "2026-11-07T00:00:00.000Z"
+        }
+      },
+      {
+        "_id": {
+          "$oid": "672c260de000100a0000d102"
+        },
+        "topic_id": "672c260de000100a0000d001",
+        "created_at": {
+          "$date": "2026-11-07T00:00:00.000Z"
+        },
+        "updated_at": {
+          "$date": "2026-11-07T00:00:00.000Z"
+        }
+      },
+      {
+        "_id": {
+          "$oid": "672c260de000100a0000d103"
+        },
+        "topic_id": "672c260de000100a0000d001",
+        "created_at": {
+          "$date": "2026-11-07T00:00:00.000Z"
+        },
+        "updated_at": {
+          "$date": "2026-11-07T00:00:00.000Z"
+        }
+      },
+      {
+        "_id": {
+          "$oid": "672c260de000100a0000d104"
+        },
+        "topic_id": "672c260de000100a0000d001",
+        "created_at": {
+          "$date": "2026-11-07T00:00:00.000Z"
+        },
+        "updated_at": {
+          "$date": "2026-11-07T00:00:00.000Z"
+        }
+      },
+      {
+        "_id": {
+          "$oid": "672c260de000100a0000d105"
+        },
+        "topic_id": "672c260de000100a0000d001",
+        "created_at": {
+          "$date": "2026-11-07T00:00:00.000Z"
+        },
+        "updated_at": {
+          "$date": "2026-11-07T00:00:00.000Z"
+        }
+      }
+    ],
+    "topic_versions": [
+      {
+        "_id": {
+          "$oid": "672c260de000100a0000d002"
+        },
+        "topic_id": "672c260de000100a0000d001",
+        "version": 1,
+        "previous_version_id": null,
+        "status": "PUBLISHED",
+        "item_version_ids": [
+          "672c260de000100a0000d201",
+          "672c260de000100a0000d202",
+          "672c260de000100a0000d203",
+          "672c260de000100a0000d204",
+          "672c260de000100a0000d205"
+        ],
+        "published_at": {
+          "$date": "2026-11-07T16:17:04.614Z"
+        },
+        "created_at": {
+          "$date": "2026-11-07T00:00:00.000Z"
+        },
+        "updated_at": {
+          "$date": "2026-11-07T16:17:04.614Z"
+        }
+      }
+    ],
+    "topic_item_versions": [
+      {
+        "_id": {
+          "$oid": "672c260de000100a0000d201"
+        },
+        "topic_item_id": "672c260de000100a0000d101",
+        "topic_id": "672c260de000100a0000d001",
+        "topic_version_id": "672c260de000100a0000d002",
+        "version": 1,
+        "previous_item_version_id": null,
+        "change_type": "MAJOR",
+        "title": "Getting Ready for Work",
+        "description": "Nói giờ thức dậy, kể các việc chuẩn bị buổi sáng và cho biết khi nào bạn ra khỏi nhà.",
+        "order": 1,
+        "status": "PUBLISHED",
+        "duration_minutes": 7,
+        "context": {
+          "scenario_description": "Sáng thứ Hai, bạn và Linh ở chung căn hộ. Linh có thể đợi để hai người cùng ra trạm xe buýt. Trong lúc ăn sáng, Linh hỏi bạn thức dậy lúc mấy giờ và khi nào bạn ra khỏi nhà.",
+          "prompt": "Linh hỏi “What time do you get up?” Bạn sẽ trả lời thế nào?",
+          "dialogue": [
+            {
+              "speaker": "Linh",
+              "text_en": "What time do you get up on workdays?",
+              "text_vi": "Ngày đi làm bạn dậy lúc mấy giờ?",
+              "audio_url": null
+            },
+            {
+              "speaker": "Bạn",
+              "text_en": "I get up at six thirty.",
+              "text_vi": "Mình dậy lúc sáu giờ rưỡi.",
+              "audio_url": null
+            },
+            {
+              "speaker": "Linh",
+              "text_en": "What do you do first?",
+              "text_vi": "Bạn làm gì đầu tiên?",
+              "audio_url": null
+            },
+            {
+              "speaker": "Bạn",
+              "text_en": "I brush my teeth. Then I get dressed.",
+              "text_vi": "Mình đánh răng. Sau đó mình thay đồ.",
+              "audio_url": null
+            },
+            {
+              "speaker": "Linh",
+              "text_en": "What time do you leave home?",
+              "text_vi": "Bạn ra khỏi nhà lúc mấy giờ?",
+              "audio_url": null
+            },
+            {
+              "speaker": "Bạn",
+              "text_en": "At seven fifteen. We can go together.",
+              "text_vi": "Lúc bảy giờ mười lăm. Mình đi cùng nhau được đó.",
+              "audio_url": null
+            }
+          ],
+          "duration_sec": 90,
+          "tips": "Dùng “at” trước giờ cụ thể, chẳng hạn “at six thirty”. “Get up” là ra khỏi giường."
+        },
+        "vocabularies": [
+          {
+            "vocab_id": "dr-a1-morning-vocab-1",
+            "order_index": 1,
+            "snapshot": {
+              "word": "get up",
+              "pos": "verb phrase",
+              "phonetic": "/ɡet ʌp/",
+              "describe_vi": "thức dậy, ra khỏi giường",
+              "sense": "to get out of bed",
+              "audio_url": null,
+              "audio_en_url": null,
+              "audio_us_url": null
+            },
+            "samples": [
+              {
+                "text_en": "I get up at six thirty on Mondays.",
+                "text_vi": "Thứ Hai mình dậy lúc sáu giờ rưỡi.",
+                "audio_url": null,
+                "is_manual": true
+              }
+            ],
+            "collocations": [
+              {
+                "text": "get up early",
+                "example": {
+                  "en": "I get up early on workdays.",
+                  "vi": "Mình dậy sớm vào ngày đi làm."
+                },
+                "description_vi": "dậy sớm"
+              }
+            ],
+            "quick_check": {
+              "quiz_data": {
+                "question": "Bạn rời khỏi giường lúc sáu giờ. Cụm nào diễn tả việc đó?",
+                "options": [
+                  "get dressed",
+                  "get up",
+                  "leave home",
+                  "have breakfast"
+                ]
+              },
+              "answer_data": {
+                "correct_answer": "get up"
+              },
+              "explanation": "“Get up” là ra khỏi giường."
+            }
+          },
+          {
+            "vocab_id": "dr-a1-morning-vocab-2",
+            "order_index": 2,
+            "snapshot": {
+              "word": "brush my teeth",
+              "pos": "verb phrase",
+              "phonetic": "/brʌʃ maɪ tiːθ/",
+              "describe_vi": "đánh răng",
+              "sense": "to clean my teeth with a toothbrush",
+              "audio_url": null,
+              "audio_en_url": null,
+              "audio_us_url": null
+            },
+            "samples": [
+              {
+                "text_en": "I brush my teeth before breakfast.",
+                "text_vi": "Mình đánh răng trước bữa sáng.",
+                "audio_url": null,
+                "is_manual": true
+              }
+            ],
+            "collocations": [
+              {
+                "text": "brush my teeth first",
+                "example": {
+                  "en": "I brush my teeth first, then I get dressed.",
+                  "vi": "Mình đánh răng trước rồi thay đồ."
+                },
+                "description_vi": "đánh răng trước tiên"
+              }
+            ]
+          },
+          {
+            "vocab_id": "dr-a1-morning-vocab-3",
+            "order_index": 3,
+            "snapshot": {
+              "word": "get dressed",
+              "pos": "verb phrase",
+              "phonetic": "/ɡet drest/",
+              "describe_vi": "mặc quần áo, thay đồ",
+              "sense": "to put on clothes",
+              "audio_url": null,
+              "audio_en_url": null,
+              "audio_us_url": null
+            },
+            "samples": [
+              {
+                "text_en": "I get dressed after I brush my teeth.",
+                "text_vi": "Mình thay đồ sau khi đánh răng.",
+                "audio_url": null,
+                "is_manual": true
+              }
+            ],
+            "collocations": [
+              {
+                "text": "get dressed for work",
+                "example": {
+                  "en": "I get dressed for work at seven.",
+                  "vi": "Mình thay đồ đi làm lúc bảy giờ."
+                },
+                "description_vi": "thay đồ để đi làm"
+              }
+            ]
+          },
+          {
+            "vocab_id": "dr-a1-morning-vocab-4",
+            "order_index": 4,
+            "snapshot": {
+              "word": "leave home",
+              "pos": "verb phrase",
+              "phonetic": "/liːv hoʊm/",
+              "describe_vi": "ra khỏi nhà",
+              "sense": "to go out of the place where you live",
+              "audio_url": null,
+              "audio_en_url": null,
+              "audio_us_url": null
+            },
+            "samples": [
+              {
+                "text_en": "I leave home at seven fifteen.",
+                "text_vi": "Mình ra khỏi nhà lúc bảy giờ mười lăm.",
+                "audio_url": null,
+                "is_manual": true
+              }
+            ],
+            "collocations": [
+              {
+                "text": "leave home at seven",
+                "example": {
+                  "en": "I leave home at seven on Fridays.",
+                  "vi": "Thứ Sáu mình ra khỏi nhà lúc bảy giờ."
+                },
+                "description_vi": "ra khỏi nhà lúc bảy giờ"
+              }
+            ]
+          }
+        ],
+        "expressions": [
+          {
+            "purposes": [
+              {
+                "purpose_en": "Ask and answer about times",
+                "purpose_vi": "Hỏi và trả lời về giờ",
+                "order_index": 1,
+                "examples": [
+                  {
+                    "type": "BASIC_SUGGESTION",
+                    "text_en": "What time do you get up?",
+                    "text_vi": "Bạn dậy lúc mấy giờ?",
+                    "usage_note": "Hỏi người kia về giờ thức dậy thường ngày.",
+                    "audio_url": null,
+                    "linked_vocab_ids": [
+                      "dr-a1-morning-vocab-1"
+                    ]
+                  },
+                  {
+                    "type": "SLOT_PATTERN",
+                    "text_en": "I get up at [time].",
+                    "text_vi": "Mình dậy lúc [giờ].",
+                    "usage_note": "Thay [time] bằng giờ thức dậy của bạn, ví dụ “six thirty”.",
+                    "audio_url": null,
+                    "linked_vocab_ids": [
+                      "dr-a1-morning-vocab-1"
+                    ]
+                  }
+                ]
+              },
+              {
+                "purpose_en": "Talk about getting ready",
+                "purpose_vi": "Kể các bước chuẩn bị",
+                "order_index": 2,
+                "examples": [
+                  {
+                    "type": "BASIC_SUGGESTION",
+                    "text_en": "I brush my teeth first. Then I get dressed.",
+                    "text_vi": "Mình đánh răng trước. Sau đó mình thay đồ.",
+                    "usage_note": "Dùng “first” và “then” để kể hai việc theo thứ tự.",
+                    "audio_url": null,
+                    "linked_vocab_ids": [
+                      "dr-a1-morning-vocab-2",
+                      "dr-a1-morning-vocab-3"
+                    ]
+                  },
+                  {
+                    "type": "SLOT_PATTERN",
+                    "text_en": "I leave home at [time].",
+                    "text_vi": "Mình ra khỏi nhà lúc [giờ].",
+                    "usage_note": "Thay [time] bằng giờ bạn ra khỏi nhà.",
+                    "audio_url": null,
+                    "linked_vocab_ids": [
+                      "dr-a1-morning-vocab-4"
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "quizzes": [
+          {
+            "quiz_id": "dr-a1-morning-fill",
+            "quiz_type": "FILL_BLANK",
+            "title": "Từ lúc thức dậy đến khi ra khỏi nhà",
+            "instructions": "Đọc tình huống rồi chọn một từ tiếng Anh để điền vào chỗ trống.",
+            "order_index": 1,
+            "questions": [
+              {
+                "prompt": "I get ___ at six thirty.",
+                "quiz_data": {
+                  "scenario_vi": "Bạn ra khỏi giường lúc 6 giờ 30, ngay sau khi chuông báo thức reo."
+                },
+                "sentence": {
+                  "text_en": "I get up at six thirty.",
+                  "meaning_vi": "Mình dậy lúc sáu giờ rưỡi.",
+                  "audio_url": null
+                },
+                "options": [
+                  {
+                    "label": "A",
+                    "text_en": "in",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "B",
+                    "text_en": "up",
+                    "is_correct": true
+                  },
+                  {
+                    "label": "C",
+                    "text_en": "on",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "D",
+                    "text_en": "back",
+                    "is_correct": false
+                  }
+                ],
+                "explanation": "“Get up” nghĩa là ra khỏi giường. Dùng “at” trước giờ thức dậy."
+              },
+              {
+                "prompt": "I ___ my teeth before breakfast.",
+                "quiz_data": {
+                  "scenario_vi": "Trước bữa sáng, bạn dùng bàn chải để đánh răng."
+                },
+                "sentence": {
+                  "text_en": "I brush my teeth before breakfast.",
+                  "meaning_vi": "Mình đánh răng trước bữa sáng.",
+                  "audio_url": null
+                },
+                "options": [
+                  {
+                    "label": "A",
+                    "text_en": "brush",
+                    "is_correct": true
+                  },
+                  {
+                    "label": "B",
+                    "text_en": "wash",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "C",
+                    "text_en": "eat",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "D",
+                    "text_en": "drink",
+                    "is_correct": false
+                  }
+                ],
+                "explanation": "Dùng “brush” trong cụm “brush my teeth” để nói về việc đánh răng."
+              },
+              {
+                "prompt": "I ___ home at seven fifteen.",
+                "quiz_data": {
+                  "scenario_vi": "Thay đồ xong, bạn ra khỏi nhà lúc 7 giờ 15."
+                },
+                "sentence": {
+                  "text_en": "I leave home at seven fifteen.",
+                  "meaning_vi": "Mình ra khỏi nhà lúc bảy giờ mười lăm.",
+                  "audio_url": null
+                },
+                "options": [
+                  {
+                    "label": "A",
+                    "text_en": "get",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "B",
+                    "text_en": "stay",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "C",
+                    "text_en": "come",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "D",
+                    "text_en": "leave",
+                    "is_correct": true
+                  }
+                ],
+                "explanation": "“Leave home” diễn tả việc ra khỏi nhà. “Get home” và “come home” nói về lúc về đến nhà."
+              }
+            ]
+          },
+          {
+            "quiz_id": "dr-a1-morning-choice",
+            "quiz_type": "SITUATIONAL_CHOICE",
+            "title": "Nói về buổi sáng với bạn cùng nhà",
+            "instructions": "Đọc tình huống và chọn một câu tiếng Anh phù hợp nhất với điều bạn cần nói.",
+            "order_index": 2,
+            "questions": [
+              {
+                "prompt": "Linh hỏi “What time do you get up on workdays?” Hãy chọn câu cho biết đúng giờ bạn dậy.",
+                "quiz_data": {
+                  "scenario_vi": "Bạn thường dậy lúc 6 giờ 30 vào ngày đi làm."
+                },
+                "sentence": {
+                  "text_en": "I get up at six thirty.",
+                  "meaning_vi": "Mình dậy lúc sáu giờ rưỡi.",
+                  "audio_url": null
+                },
+                "options": [
+                  {
+                    "label": "A",
+                    "text_en": "I get up at six.",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "B",
+                    "text_en": "I get up at seven thirty.",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "C",
+                    "text_en": "I get up at six thirty.",
+                    "is_correct": true
+                  },
+                  {
+                    "label": "D",
+                    "text_en": "I leave home at six thirty.",
+                    "is_correct": false
+                  }
+                ],
+                "explanation": "Linh hỏi giờ thức dậy. “I get up at six thirty” trả lời đúng việc và đúng giờ."
+              },
+              {
+                "prompt": "Linh hỏi “What do you do first?” Hãy chọn câu nói đúng việc bạn làm đầu tiên.",
+                "quiz_data": {
+                  "scenario_vi": "Bạn đánh răng trước rồi mới thay đồ."
+                },
+                "sentence": {
+                  "text_en": "I brush my teeth first.",
+                  "meaning_vi": "Mình đánh răng trước.",
+                  "audio_url": null
+                },
+                "options": [
+                  {
+                    "label": "A",
+                    "text_en": "I brush my teeth first.",
+                    "is_correct": true
+                  },
+                  {
+                    "label": "B",
+                    "text_en": "I get dressed first.",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "C",
+                    "text_en": "I have breakfast first.",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "D",
+                    "text_en": "I leave home first.",
+                    "is_correct": false
+                  }
+                ],
+                "explanation": "“I brush my teeth first” trả lời trực tiếp việc bạn làm đầu tiên. Những câu còn lại đặt việc khác lên trước."
+              },
+              {
+                "prompt": "Linh hỏi “What time do you leave home?” Hãy chọn câu trả lời phù hợp.",
+                "quiz_data": {
+                  "scenario_vi": "Linh muốn biết khi nào bạn ra khỏi nhà để hai người đi cùng. Bạn ra khỏi nhà lúc 7 giờ 15."
+                },
+                "sentence": {
+                  "text_en": "I leave home at seven fifteen.",
+                  "meaning_vi": "Mình ra khỏi nhà lúc bảy giờ mười lăm.",
+                  "audio_url": null
+                },
+                "options": [
+                  {
+                    "label": "A",
+                    "text_en": "I leave home at seven.",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "B",
+                    "text_en": "I get up at seven fifteen.",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "C",
+                    "text_en": "I leave home at seven thirty.",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "D",
+                    "text_en": "I leave home at seven fifteen.",
+                    "is_correct": true
+                  }
+                ],
+                "explanation": "“I leave home at seven fifteen” cho Linh đúng giờ ra khỏi nhà để đợi bạn."
+              }
+            ]
+          }
+        ],
+        "published_at": {
+          "$date": "2026-11-07T16:17:04.614Z"
+        },
+        "created_at": {
+          "$date": "2026-11-07T00:00:00.000Z"
+        },
+        "updated_at": {
+          "$date": "2026-11-07T16:17:04.614Z"
+        }
+      },
+      {
+        "_id": {
+          "$oid": "672c260de000100a0000d202"
+        },
+        "topic_item_id": "672c260de000100a0000d102",
+        "topic_id": "672c260de000100a0000d001",
+        "topic_version_id": "672c260de000100a0000d002",
+        "version": 1,
+        "previous_item_version_id": null,
+        "change_type": "MAJOR",
+        "title": "Getting to Work",
+        "description": "Nói bạn đi làm bằng phương tiện gì, bắt xe ở đâu và chuyến đi mất bao lâu.",
+        "order": 2,
+        "status": "PUBLISHED",
+        "duration_minutes": 7,
+        "context": {
+          "scenario_description": "Bạn vừa đến văn phòng. Mai, một đồng nghiệp mới, sắp chuyển đến gần khu bạn ở và đang cân nhắc đi làm bằng xe buýt. Mai muốn biết bạn thường bắt xe ở đâu và đi mất bao lâu.",
+          "prompt": "Mai hỏi “How do you get to work?” Bạn sẽ nói gì về đường đi làm của mình?",
+          "dialogue": [
+            {
+              "speaker": "Mai",
+              "text_en": "How do you get to work?",
+              "text_vi": "Bạn đi làm bằng gì?",
+              "audio_url": null
+            },
+            {
+              "speaker": "Bạn",
+              "text_en": "I take the bus.",
+              "text_vi": "Mình đi xe buýt.",
+              "audio_url": null
+            },
+            {
+              "speaker": "Mai",
+              "text_en": "Where do you catch the bus?",
+              "text_vi": "Bạn bắt xe ở đâu?",
+              "audio_url": null
+            },
+            {
+              "speaker": "Bạn",
+              "text_en": "At the bus stop near my house.",
+              "text_vi": "Ở trạm xe buýt gần nhà mình.",
+              "audio_url": null
+            },
+            {
+              "speaker": "Mai",
+              "text_en": "How long does it take?",
+              "text_vi": "Đi mất bao lâu?",
+              "audio_url": null
+            },
+            {
+              "speaker": "Bạn",
+              "text_en": "About twenty minutes.",
+              "text_vi": "Khoảng hai mươi phút.",
+              "audio_url": null
+            }
+          ],
+          "duration_sec": 90,
+          "tips": "Dùng “by bus” để nói phương tiện và “take the bus” để nói bạn bắt xe buýt."
+        },
+        "vocabularies": [
+          {
+            "vocab_id": "dr-a1-commute-vocab-1",
+            "order_index": 1,
+            "snapshot": {
+              "word": "take the bus",
+              "pos": "verb phrase",
+              "phonetic": "/teɪk ðə bʌs/",
+              "describe_vi": "đi xe buýt",
+              "sense": "to travel by bus",
+              "audio_url": null,
+              "audio_en_url": null,
+              "audio_us_url": null
+            },
+            "samples": [
+              {
+                "text_en": "I take the bus to work.",
+                "text_vi": "Mình đi xe buýt đi làm.",
+                "audio_url": null,
+                "is_manual": true
+              }
+            ],
+            "collocations": [
+              {
+                "text": "take the bus to work",
+                "example": {
+                  "en": "I take the bus to work on Mondays.",
+                  "vi": "Thứ Hai mình đi xe buýt đi làm."
+                },
+                "description_vi": "đi xe buýt đi làm"
+              }
+            ]
+          },
+          {
+            "vocab_id": "dr-a1-commute-vocab-2",
+            "order_index": 2,
+            "snapshot": {
+              "word": "bus stop",
+              "pos": "noun",
+              "phonetic": "/ˈbʌs stɑːp/",
+              "describe_vi": "trạm xe buýt",
+              "sense": "a place where a bus stops for people",
+              "audio_url": null,
+              "audio_en_url": null,
+              "audio_us_url": null
+            },
+            "samples": [
+              {
+                "text_en": "The bus stop is near my house.",
+                "text_vi": "Trạm xe buýt ở gần nhà mình.",
+                "audio_url": null,
+                "is_manual": true
+              }
+            ],
+            "collocations": [
+              {
+                "text": "at the bus stop",
+                "example": {
+                  "en": "I wait at the bus stop at seven thirty.",
+                  "vi": "Mình đợi ở trạm xe buýt lúc bảy giờ rưỡi."
+                },
+                "description_vi": "ở trạm xe buýt"
+              }
+            ],
+            "quick_check": {
+              "quiz_data": {
+                "question": "Bạn đứng chờ xe buýt. Nơi đó gọi là gì?",
+                "options": [
+                  "bus stop",
+                  "office",
+                  "car park",
+                  "bike shop"
+                ]
+              },
+              "answer_data": {
+                "correct_answer": "bus stop"
+              },
+              "explanation": "“Bus stop” là nơi xe buýt dừng để đón hoặc trả khách."
+            }
+          },
+          {
+            "vocab_id": "dr-a1-commute-vocab-3",
+            "order_index": 3,
+            "snapshot": {
+              "word": "walk",
+              "pos": "verb",
+              "phonetic": "/wɔːk/",
+              "describe_vi": "đi bộ",
+              "sense": "to go somewhere on foot",
+              "audio_url": null,
+              "audio_en_url": null,
+              "audio_us_url": null
+            },
+            "samples": [
+              {
+                "text_en": "I walk to the bus stop.",
+                "text_vi": "Mình đi bộ đến trạm xe buýt.",
+                "audio_url": null,
+                "is_manual": true
+              }
+            ],
+            "collocations": [
+              {
+                "text": "walk to work",
+                "example": {
+                  "en": "I walk to work on Fridays.",
+                  "vi": "Thứ Sáu mình đi bộ đi làm."
+                },
+                "description_vi": "đi bộ đi làm"
+              }
+            ]
+          },
+          {
+            "vocab_id": "dr-a1-commute-vocab-4",
+            "order_index": 4,
+            "snapshot": {
+              "word": "minute",
+              "pos": "noun",
+              "phonetic": "/ˈmɪnɪt/",
+              "describe_vi": "phút",
+              "sense": "a period of sixty seconds",
+              "audio_url": null,
+              "audio_en_url": null,
+              "audio_us_url": null
+            },
+            "samples": [
+              {
+                "text_en": "It takes one minute to walk to the stop.",
+                "text_vi": "Đi bộ đến trạm mất một phút.",
+                "audio_url": null,
+                "is_manual": true
+              }
+            ],
+            "collocations": [
+              {
+                "text": "twenty minutes",
+                "example": {
+                  "en": "The bus ride takes twenty minutes.",
+                  "vi": "Đi xe buýt mất hai mươi phút."
+                },
+                "description_vi": "hai mươi phút"
+              }
+            ]
+          }
+        ],
+        "expressions": [
+          {
+            "purposes": [
+              {
+                "purpose_en": "Talk about how you travel",
+                "purpose_vi": "Nói về cách đi làm",
+                "order_index": 1,
+                "examples": [
+                  {
+                    "type": "BASIC_SUGGESTION",
+                    "text_en": "How do you get to work?",
+                    "text_vi": "Bạn đi làm bằng gì?",
+                    "usage_note": "Dùng để hỏi về phương tiện hoặc cách đi làm thường ngày.",
+                    "audio_url": null,
+                    "linked_vocab_ids": []
+                  },
+                  {
+                    "type": "BASIC_SUGGESTION",
+                    "text_en": "I take the bus to work.",
+                    "text_vi": "Mình đi xe buýt đi làm.",
+                    "usage_note": "Dùng khi xe buýt là phương tiện bạn đi làm.",
+                    "audio_url": null,
+                    "linked_vocab_ids": [
+                      "dr-a1-commute-vocab-1"
+                    ]
+                  },
+                  {
+                    "type": "BASIC_SUGGESTION",
+                    "text_en": "I walk to the bus stop.",
+                    "text_vi": "Mình đi bộ đến trạm xe buýt.",
+                    "usage_note": "Dùng khi kể đoạn đường bạn đi bộ trước khi lên xe.",
+                    "audio_url": null,
+                    "linked_vocab_ids": [
+                      "dr-a1-commute-vocab-2",
+                      "dr-a1-commute-vocab-3"
+                    ]
+                  }
+                ]
+              },
+              {
+                "purpose_en": "Ask and answer about travel time",
+                "purpose_vi": "Hỏi và trả lời về thời gian di chuyển",
+                "order_index": 2,
+                "examples": [
+                  {
+                    "type": "BASIC_SUGGESTION",
+                    "text_en": "How long does it take?",
+                    "text_vi": "Đi mất bao lâu?",
+                    "usage_note": "Hỏi thời gian di chuyển khi hai người đã biết đang nói về chuyến đi nào.",
+                    "audio_url": null,
+                    "linked_vocab_ids": [
+                      "dr-a1-commute-vocab-4"
+                    ]
+                  },
+                  {
+                    "type": "SLOT_PATTERN",
+                    "text_en": "It takes about [number] minutes.",
+                    "text_vi": "Mất khoảng [số] phút.",
+                    "usage_note": "Thay [number] bằng số phút ước chừng, ví dụ “twenty”.",
+                    "audio_url": null,
+                    "linked_vocab_ids": [
+                      "dr-a1-commute-vocab-4"
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "quizzes": [
+          {
+            "quiz_id": "dr-a1-commute-fill",
+            "quiz_type": "FILL_BLANK",
+            "title": "Phương tiện, trạm xe và thời gian đi làm",
+            "instructions": "Đọc tình huống rồi chọn một từ tiếng Anh để điền vào chỗ trống.",
+            "order_index": 1,
+            "questions": [
+              {
+                "prompt": "I ___ the bus to work.",
+                "quiz_data": {
+                  "scenario_vi": "Bạn đi làm bằng xe buýt và đang nói về phương tiện thường dùng."
+                },
+                "sentence": {
+                  "text_en": "I take the bus to work.",
+                  "meaning_vi": "Mình đi xe buýt đi làm.",
+                  "audio_url": null
+                },
+                "options": [
+                  {
+                    "label": "A",
+                    "text_en": "drive",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "B",
+                    "text_en": "walk",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "C",
+                    "text_en": "take",
+                    "is_correct": true
+                  },
+                  {
+                    "label": "D",
+                    "text_en": "wait",
+                    "is_correct": false
+                  }
+                ],
+                "explanation": "“Take the bus” là đi xe buýt. “Drive the bus” là lái xe buýt."
+              },
+              {
+                "prompt": "I ___ to the bus stop.",
+                "quiz_data": {
+                  "scenario_vi": "Từ nhà đến trạm xe buýt chỉ cách một đoạn ngắn, bạn đi bộ ra đó."
+                },
+                "sentence": {
+                  "text_en": "I walk to the bus stop.",
+                  "meaning_vi": "Mình đi bộ đến trạm xe buýt.",
+                  "audio_url": null
+                },
+                "options": [
+                  {
+                    "label": "A",
+                    "text_en": "drive",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "B",
+                    "text_en": "ride",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "C",
+                    "text_en": "run",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "D",
+                    "text_en": "walk",
+                    "is_correct": true
+                  }
+                ],
+                "explanation": "“Walk to” nghĩa là đi bộ đến một nơi. Câu này nói về đoạn từ nhà ra trạm."
+              },
+              {
+                "prompt": "It ___ about twenty minutes.",
+                "quiz_data": {
+                  "scenario_vi": "Chuyến xe mất khoảng 20 phút. Bạn nói thời gian xe chạy."
+                },
+                "sentence": {
+                  "text_en": "It takes about twenty minutes.",
+                  "meaning_vi": "Mất khoảng hai mươi phút.",
+                  "audio_url": null
+                },
+                "options": [
+                  {
+                    "label": "A",
+                    "text_en": "takes",
+                    "is_correct": true
+                  },
+                  {
+                    "label": "B",
+                    "text_en": "leaves",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "C",
+                    "text_en": "waits",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "D",
+                    "text_en": "comes",
+                    "is_correct": false
+                  }
+                ],
+                "explanation": "Dùng “It takes + khoảng thời gian” để nói một chuyến đi mất bao lâu."
+              }
+            ]
+          },
+          {
+            "quiz_id": "dr-a1-commute-choice",
+            "quiz_type": "SITUATIONAL_CHOICE",
+            "title": "Trả lời đồng nghiệp về đường đi làm",
+            "instructions": "Đọc tình huống và chọn một câu tiếng Anh phù hợp nhất với điều bạn cần nói.",
+            "order_index": 2,
+            "questions": [
+              {
+                "prompt": "Mai hỏi “How do you get to work?” Hãy chọn câu cho biết bạn dùng phương tiện nào để đến công ty.",
+                "quiz_data": {
+                  "scenario_vi": "Bạn đi bộ ra trạm rồi đi xe buýt đến công ty."
+                },
+                "sentence": {
+                  "text_en": "I take the bus to work.",
+                  "meaning_vi": "Mình đi xe buýt đi làm.",
+                  "audio_url": null
+                },
+                "options": [
+                  {
+                    "label": "A",
+                    "text_en": "I walk to work.",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "B",
+                    "text_en": "I take the bus to work.",
+                    "is_correct": true
+                  },
+                  {
+                    "label": "C",
+                    "text_en": "I ride my bike to work.",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "D",
+                    "text_en": "I drive to work.",
+                    "is_correct": false
+                  }
+                ],
+                "explanation": "Bạn đi bộ ra trạm nhưng đến công ty bằng xe buýt. “I take the bus to work” nói đúng phương tiện."
+              },
+              {
+                "prompt": "Mai hỏi “Where do you catch the bus?” Hãy chọn câu nói đúng nơi bạn lên xe.",
+                "quiz_data": {
+                  "scenario_vi": "Bạn bắt xe ở trạm gần nhà, không phải trạm gần văn phòng."
+                },
+                "sentence": {
+                  "text_en": "At the bus stop near my house.",
+                  "meaning_vi": "Ở trạm xe buýt gần nhà mình.",
+                  "audio_url": null
+                },
+                "options": [
+                  {
+                    "label": "A",
+                    "text_en": "At the bus stop near work.",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "B",
+                    "text_en": "At the bus stop by the school.",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "C",
+                    "text_en": "At the bus stop near the park.",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "D",
+                    "text_en": "At the bus stop near my house.",
+                    "is_correct": true
+                  }
+                ],
+                "explanation": "Mai hỏi vị trí lên xe. “Near my house” cho biết trạm đó ở gần nhà bạn."
+              },
+              {
+                "prompt": "Mai hỏi “How long is the bus ride?” Hãy chọn câu nói về thời gian ngồi trên xe.",
+                "quiz_data": {
+                  "scenario_vi": "Bạn đợi xe 5 phút. Sau khi lên xe, chuyến đi mất khoảng 20 phút."
+                },
+                "sentence": {
+                  "text_en": "About twenty minutes.",
+                  "meaning_vi": "Khoảng hai mươi phút.",
+                  "audio_url": null
+                },
+                "options": [
+                  {
+                    "label": "A",
+                    "text_en": "About twenty minutes.",
+                    "is_correct": true
+                  },
+                  {
+                    "label": "B",
+                    "text_en": "About five minutes.",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "C",
+                    "text_en": "About ten minutes.",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "D",
+                    "text_en": "About twenty-five minutes.",
+                    "is_correct": false
+                  }
+                ],
+                "explanation": "Mai hỏi thời gian ngồi trên xe. Hai mươi phút là thời gian của chuyến xe, còn năm phút là thời gian đợi."
+              }
+            ]
+          }
+        ],
+        "published_at": {
+          "$date": "2026-11-07T16:17:04.614Z"
+        },
+        "created_at": {
+          "$date": "2026-11-07T00:00:00.000Z"
+        },
+        "updated_at": {
+          "$date": "2026-11-07T16:17:04.614Z"
+        }
+      },
+      {
+        "_id": {
+          "$oid": "672c260de000100a0000d203"
+        },
+        "topic_item_id": "672c260de000100a0000d103",
+        "topic_id": "672c260de000100a0000d001",
+        "topic_version_id": "672c260de000100a0000d002",
+        "version": 1,
+        "previous_item_version_id": null,
+        "change_type": "MAJOR",
+        "title": "Lunch Break at Work",
+        "description": "Nói giờ nghỉ trưa, cho biết bạn có mang đồ ăn và hẹn đồng nghiệp gặp nhau để ăn trưa.",
+        "order": 3,
+        "status": "PUBLISHED",
+        "duration_minutes": 7,
+        "context": {
+          "scenario_description": "Gần trưa, Huy ghé bàn làm việc của bạn để rủ ăn cùng. Bạn mang cơm từ nhà và muốn ngồi ở phòng nghỉ. Huy có thể gặp bạn ở đó lúc 12 giờ 30.",
+          "prompt": "Huy hỏi “Do you want to have lunch together?” Bạn sẽ trả lời và hẹn giờ thế nào?",
+          "dialogue": [
+            {
+              "speaker": "Huy",
+              "text_en": "Do you want to have lunch together?",
+              "text_vi": "Bạn muốn ăn trưa cùng mình không?",
+              "audio_url": null
+            },
+            {
+              "speaker": "Bạn",
+              "text_en": "Sure. I brought my lunch today.",
+              "text_vi": "Được chứ. Hôm nay mình mang đồ ăn trưa theo.",
+              "audio_url": null
+            },
+            {
+              "speaker": "Huy",
+              "text_en": "When is your lunch break?",
+              "text_vi": "Bạn nghỉ trưa lúc mấy giờ?",
+              "audio_url": null
+            },
+            {
+              "speaker": "Bạn",
+              "text_en": "At twelve thirty. Can we eat in the break room?",
+              "text_vi": "Lúc mười hai giờ rưỡi. Mình ăn trong phòng nghỉ được không?",
+              "audio_url": null
+            },
+            {
+              "speaker": "Huy",
+              "text_en": "Yes. See you there at twelve thirty.",
+              "text_vi": "Được. Gặp bạn ở đó lúc mười hai giờ rưỡi nhé.",
+              "audio_url": null
+            }
+          ],
+          "duration_sec": 90,
+          "tips": "“At twelve thirty” là vào lúc 12 giờ 30. “In the break room” cho biết hai người sẽ gặp trong phòng nghỉ."
+        },
+        "vocabularies": [
+          {
+            "vocab_id": "dr-a1-lunch-vocab-1",
+            "order_index": 1,
+            "snapshot": {
+              "word": "lunch break",
+              "pos": "noun",
+              "phonetic": "/ˈlʌntʃ breɪk/",
+              "describe_vi": "giờ nghỉ trưa",
+              "sense": "time away from work or class to eat lunch",
+              "audio_url": null,
+              "audio_en_url": null,
+              "audio_us_url": null
+            },
+            "samples": [
+              {
+                "text_en": "My lunch break starts at twelve thirty.",
+                "text_vi": "Giờ nghỉ trưa của mình bắt đầu lúc mười hai giờ rưỡi.",
+                "audio_url": null,
+                "is_manual": true
+              }
+            ],
+            "collocations": [
+              {
+                "text": "during my lunch break",
+                "example": {
+                  "en": "I call my sister during my lunch break.",
+                  "vi": "Mình gọi cho chị trong giờ nghỉ trưa."
+                },
+                "description_vi": "trong giờ nghỉ trưa của mình"
+              }
+            ]
+          },
+          {
+            "vocab_id": "dr-a1-lunch-vocab-2",
+            "order_index": 2,
+            "snapshot": {
+              "word": "bring my lunch",
+              "pos": "verb phrase",
+              "phonetic": "/brɪŋ maɪ lʌntʃ/",
+              "describe_vi": "mang đồ ăn trưa theo",
+              "sense": "to take my lunch with me to work or school",
+              "audio_url": null,
+              "audio_en_url": null,
+              "audio_us_url": null
+            },
+            "samples": [
+              {
+                "text_en": "I usually bring my lunch.",
+                "text_vi": "Mình thường mang đồ ăn trưa theo.",
+                "audio_url": null,
+                "is_manual": true
+              }
+            ],
+            "collocations": [
+              {
+                "text": "bring my lunch from home",
+                "example": {
+                  "en": "I bring my lunch from home on Mondays.",
+                  "vi": "Thứ Hai mình mang đồ ăn trưa từ nhà."
+                },
+                "description_vi": "mang đồ ăn trưa từ nhà"
+              }
+            ]
+          },
+          {
+            "vocab_id": "dr-a1-lunch-vocab-3",
+            "order_index": 3,
+            "snapshot": {
+              "word": "break room",
+              "pos": "noun",
+              "phonetic": "/ˈbreɪk ruːm/",
+              "describe_vi": "phòng nghỉ ở chỗ làm",
+              "sense": "a room at work where people can sit, eat, or take a break",
+              "audio_url": null,
+              "audio_en_url": null,
+              "audio_us_url": null
+            },
+            "samples": [
+              {
+                "text_en": "We eat in the break room.",
+                "text_vi": "Bọn mình ăn trong phòng nghỉ.",
+                "audio_url": null,
+                "is_manual": true
+              }
+            ],
+            "collocations": [
+              {
+                "text": "in the break room",
+                "example": {
+                  "en": "There is a table in the break room.",
+                  "vi": "Có một cái bàn trong phòng nghỉ."
+                },
+                "description_vi": "trong phòng nghỉ"
+              }
+            ]
+          },
+          {
+            "vocab_id": "dr-a1-lunch-vocab-4",
+            "order_index": 4,
+            "snapshot": {
+              "word": "together",
+              "pos": "adverb",
+              "phonetic": "/təˈɡeðər/",
+              "describe_vi": "cùng nhau",
+              "sense": "with another person or other people",
+              "audio_url": null,
+              "audio_en_url": null,
+              "audio_us_url": null
+            },
+            "samples": [
+              {
+                "text_en": "We have lunch together on Fridays.",
+                "text_vi": "Thứ Sáu bọn mình ăn trưa cùng nhau.",
+                "audio_url": null,
+                "is_manual": true
+              }
+            ],
+            "collocations": [
+              {
+                "text": "eat together",
+                "example": {
+                  "en": "Let's eat together today.",
+                  "vi": "Hôm nay mình ăn cùng nhau nhé."
+                },
+                "description_vi": "ăn cùng nhau"
+              }
+            ],
+            "quick_check": {
+              "quiz_data": {
+                "question": "Bạn và Huy ăn cùng một bàn. Từ nào có nghĩa là “cùng nhau”?",
+                "options": [
+                  "alone",
+                  "later",
+                  "together",
+                  "outside"
+                ]
+              },
+              "answer_data": {
+                "correct_answer": "together"
+              },
+              "explanation": "“Together” diễn tả việc hai người làm cùng nhau."
+            }
+          }
+        ],
+        "expressions": [
+          {
+            "purposes": [
+              {
+                "purpose_en": "Talk about lunch plans",
+                "purpose_vi": "Nói về kế hoạch ăn trưa",
+                "order_index": 1,
+                "examples": [
+                  {
+                    "type": "BASIC_SUGGESTION",
+                    "text_en": "Do you want to have lunch together?",
+                    "text_vi": "Bạn muốn ăn trưa cùng mình không?",
+                    "usage_note": "Dùng để rủ đồng nghiệp ăn trưa cùng.",
+                    "audio_url": null,
+                    "linked_vocab_ids": [
+                      "dr-a1-lunch-vocab-4"
+                    ]
+                  },
+                  {
+                    "type": "BASIC_SUGGESTION",
+                    "text_en": "I usually bring my lunch.",
+                    "text_vi": "Mình thường mang đồ ăn trưa theo.",
+                    "usage_note": "Dùng khi nói về thói quen mang đồ ăn từ nhà. Trong hội thoại, “I brought my lunch today” nói về hôm nay.",
+                    "audio_url": null,
+                    "linked_vocab_ids": [
+                      "dr-a1-lunch-vocab-2"
+                    ]
+                  }
+                ]
+              },
+              {
+                "purpose_en": "Agree on a time and place",
+                "purpose_vi": "Hẹn giờ và nơi gặp",
+                "order_index": 2,
+                "examples": [
+                  {
+                    "type": "SLOT_PATTERN",
+                    "text_en": "My lunch break starts at [time].",
+                    "text_vi": "Giờ nghỉ trưa của mình bắt đầu lúc [giờ].",
+                    "usage_note": "Thay [time] bằng giờ bắt đầu nghỉ, ví dụ “twelve thirty”.",
+                    "audio_url": null,
+                    "linked_vocab_ids": [
+                      "dr-a1-lunch-vocab-1"
+                    ]
+                  },
+                  {
+                    "type": "POLITE_INQUIRY",
+                    "text_en": "Can we eat in the break room?",
+                    "text_vi": "Mình ăn trong phòng nghỉ được không?",
+                    "usage_note": "Dùng “Can we…?” để đề xuất nơi ăn và hỏi xem người kia có đồng ý không.",
+                    "audio_url": null,
+                    "linked_vocab_ids": [
+                      "dr-a1-lunch-vocab-3"
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "quizzes": [
+          {
+            "quiz_id": "dr-a1-lunch-fill",
+            "quiz_type": "FILL_BLANK",
+            "title": "Từ dùng khi hẹn ăn trưa",
+            "instructions": "Đọc tình huống rồi chọn một từ tiếng Anh để điền vào chỗ trống.",
+            "order_index": 1,
+            "questions": [
+              {
+                "prompt": "I usually ___ my lunch from home.",
+                "quiz_data": {
+                  "scenario_vi": "Bạn có đồ ăn mang từ nhà vào những ngày đi làm."
+                },
+                "sentence": {
+                  "text_en": "I usually bring my lunch from home.",
+                  "meaning_vi": "Mình thường mang đồ ăn trưa từ nhà.",
+                  "audio_url": null
+                },
+                "options": [
+                  {
+                    "label": "A",
+                    "text_en": "order",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "B",
+                    "text_en": "bring",
+                    "is_correct": true
+                  },
+                  {
+                    "label": "C",
+                    "text_en": "buy",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "D",
+                    "text_en": "cook",
+                    "is_correct": false
+                  }
+                ],
+                "explanation": "“Bring” là mang theo đến nơi bạn đang nói tới. “Bring my lunch from home” diễn tả việc mang đồ ăn từ nhà đến chỗ làm."
+              },
+              {
+                "prompt": "Let's have lunch ___.",
+                "quiz_data": {
+                  "scenario_vi": "Bạn và Huy muốn dùng chung bàn và ăn cùng nhau."
+                },
+                "sentence": {
+                  "text_en": "Let's have lunch together.",
+                  "meaning_vi": "Mình ăn trưa cùng nhau nhé.",
+                  "audio_url": null
+                },
+                "options": [
+                  {
+                    "label": "A",
+                    "text_en": "alone",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "B",
+                    "text_en": "later",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "C",
+                    "text_en": "outside",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "D",
+                    "text_en": "together",
+                    "is_correct": true
+                  }
+                ],
+                "explanation": "“Together” cho biết hai người ăn cùng nhau. “Alone” nghĩa là ăn một mình."
+              },
+              {
+                "prompt": "My lunch break starts ___ twelve thirty.",
+                "quiz_data": {
+                  "scenario_vi": "Bạn muốn nói giờ bắt đầu nghỉ trưa là 12 giờ 30."
+                },
+                "sentence": {
+                  "text_en": "My lunch break starts at twelve thirty.",
+                  "meaning_vi": "Giờ nghỉ trưa của mình bắt đầu lúc mười hai giờ rưỡi.",
+                  "audio_url": null
+                },
+                "options": [
+                  {
+                    "label": "A",
+                    "text_en": "at",
+                    "is_correct": true
+                  },
+                  {
+                    "label": "B",
+                    "text_en": "in",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "C",
+                    "text_en": "on",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "D",
+                    "text_en": "after",
+                    "is_correct": false
+                  }
+                ],
+                "explanation": "Dùng “at” trước một giờ cụ thể. “After twelve thirty” nghĩa là sau 12 giờ 30."
+              }
+            ]
+          },
+          {
+            "quiz_id": "dr-a1-lunch-choice",
+            "quiz_type": "SITUATIONAL_CHOICE",
+            "title": "Hẹn ăn trưa với đồng nghiệp",
+            "instructions": "Đọc tình huống và chọn một câu tiếng Anh phù hợp nhất với điều bạn cần nói.",
+            "order_index": 2,
+            "questions": [
+              {
+                "prompt": "Huy hỏi “Do you want to have lunch together?” Hãy chọn câu vừa đồng ý vừa cho biết bạn có đồ ăn mang theo.",
+                "quiz_data": {
+                  "scenario_vi": "Huy rủ ăn trưa cùng. Bạn đồng ý và đã mang cơm từ nhà."
+                },
+                "sentence": {
+                  "text_en": "Sure. I brought my lunch today.",
+                  "meaning_vi": "Được chứ. Hôm nay mình mang đồ ăn trưa theo.",
+                  "audio_url": null
+                },
+                "options": [
+                  {
+                    "label": "A",
+                    "text_en": "Sure. Let's buy lunch downstairs.",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "B",
+                    "text_en": "No, thanks. I brought my lunch.",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "C",
+                    "text_en": "Sure. I brought my lunch today.",
+                    "is_correct": true
+                  },
+                  {
+                    "label": "D",
+                    "text_en": "Sure. I don't have my lunch with me.",
+                    "is_correct": false
+                  }
+                ],
+                "explanation": "“Sure” nhận lời mời và “I brought my lunch today” cho Huy biết bạn đã có đồ ăn."
+              },
+              {
+                "prompt": "Huy hỏi “When does your lunch break start?” Hãy chọn câu trả lời về giờ bắt đầu nghỉ.",
+                "quiz_data": {
+                  "scenario_vi": "Bạn bắt đầu nghỉ lúc 12 giờ 30 và phải quay lại làm lúc 1 giờ."
+                },
+                "sentence": {
+                  "text_en": "It starts at twelve thirty.",
+                  "meaning_vi": "Bắt đầu lúc mười hai giờ rưỡi.",
+                  "audio_url": null
+                },
+                "options": [
+                  {
+                    "label": "A",
+                    "text_en": "It starts at twelve thirty.",
+                    "is_correct": true
+                  },
+                  {
+                    "label": "B",
+                    "text_en": "It starts at one.",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "C",
+                    "text_en": "It starts at twelve.",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "D",
+                    "text_en": "It ends at one.",
+                    "is_correct": false
+                  }
+                ],
+                "explanation": "Huy hỏi giờ bắt đầu, nên trả lời “It starts at twelve thirty”. Một giờ là lúc bạn quay lại làm."
+              },
+              {
+                "prompt": "Huy hỏi “Where do you want to eat?” Hãy chọn câu đề xuất đúng địa điểm.",
+                "quiz_data": {
+                  "scenario_vi": "Bạn có cơm hộp và muốn ăn ngay trong phòng nghỉ cùng Huy."
+                },
+                "sentence": {
+                  "text_en": "Can we eat in the break room?",
+                  "meaning_vi": "Mình ăn trong phòng nghỉ được không?",
+                  "audio_url": null
+                },
+                "options": [
+                  {
+                    "label": "A",
+                    "text_en": "Can we eat outside?",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "B",
+                    "text_en": "Can we eat in the break room?",
+                    "is_correct": true
+                  },
+                  {
+                    "label": "C",
+                    "text_en": "Can we eat at the café?",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "D",
+                    "text_en": "Can we eat at my desk?",
+                    "is_correct": false
+                  }
+                ],
+                "explanation": "“Can we eat in the break room?” là cách hỏi nhẹ nhàng khi đề xuất phòng nghỉ làm nơi ăn trưa."
+              }
+            ]
+          }
+        ],
+        "published_at": {
+          "$date": "2026-11-07T16:17:04.614Z"
+        },
+        "created_at": {
+          "$date": "2026-11-07T00:00:00.000Z"
+        },
+        "updated_at": {
+          "$date": "2026-11-07T16:17:04.614Z"
+        }
+      },
+      {
+        "_id": {
+          "$oid": "672c260de000100a0000d204"
+        },
+        "topic_item_id": "672c260de000100a0000d104",
+        "topic_id": "672c260de000100a0000d001",
+        "topic_version_id": "672c260de000100a0000d002",
+        "version": 1,
+        "previous_item_version_id": null,
+        "change_type": "MAJOR",
+        "title": "Making Dinner After Work",
+        "description": "Nói bạn về nhà lúc mấy giờ, định nấu món gì và nhờ người ở cùng giúp một việc nhỏ.",
+        "order": 4,
+        "status": "PUBLISHED",
+        "duration_minutes": 7,
+        "context": {
+          "scenario_description": "Sau giờ làm, bạn nhắn thoại với người ở cùng nhà là An để chốt bữa tối. Trong nhà còn gạo và trứng. Bạn có thể về lúc 6 giờ 30 để nấu cơm và muốn nhờ An rửa rau trước.",
+          "prompt": "Bạn mở đầu thế nào để nói mình có thể nấu cơm và nhờ An rửa rau?",
+          "dialogue": [
+            {
+              "speaker": "Bạn",
+              "text_en": "I can cook rice tonight.",
+              "text_vi": "Tối nay mình có thể nấu cơm.",
+              "audio_url": null
+            },
+            {
+              "speaker": "An",
+              "text_en": "Great. What time do you get home?",
+              "text_vi": "Được đó. Bạn về đến nhà lúc mấy giờ?",
+              "audio_url": null
+            },
+            {
+              "speaker": "Bạn",
+              "text_en": "At six thirty. Can you wash the vegetables?",
+              "text_vi": "Lúc sáu giờ rưỡi. Bạn rửa rau giúp mình được không?",
+              "audio_url": null
+            },
+            {
+              "speaker": "An",
+              "text_en": "Sure. Do we have eggs?",
+              "text_vi": "Được. Nhà mình có trứng không?",
+              "audio_url": null
+            },
+            {
+              "speaker": "Bạn",
+              "text_en": "Yes, we do. We can have eggs and rice.",
+              "text_vi": "Có. Mình ăn trứng với cơm nhé.",
+              "audio_url": null
+            },
+            {
+              "speaker": "An",
+              "text_en": "Sounds good. See you at home.",
+              "text_vi": "Được đó. Gặp bạn ở nhà nhé.",
+              "audio_url": null
+            }
+          ],
+          "duration_sec": 90,
+          "tips": "Trong cụm “get home”, không dùng “to” trước “home”. “Can you…?” phù hợp khi nhờ người ở cùng giúp một việc nhỏ."
+        },
+        "vocabularies": [
+          {
+            "vocab_id": "dr-a1-dinner-vocab-1",
+            "order_index": 1,
+            "snapshot": {
+              "word": "get home",
+              "pos": "verb phrase",
+              "phonetic": "/ɡet hoʊm/",
+              "describe_vi": "về đến nhà",
+              "sense": "to arrive at home",
+              "audio_url": null,
+              "audio_en_url": null,
+              "audio_us_url": null
+            },
+            "samples": [
+              {
+                "text_en": "I get home at six thirty.",
+                "text_vi": "Mình về đến nhà lúc sáu giờ rưỡi.",
+                "audio_url": null,
+                "is_manual": true
+              }
+            ],
+            "collocations": [
+              {
+                "text": "get home from work",
+                "example": {
+                  "en": "I get home from work at six.",
+                  "vi": "Mình đi làm về đến nhà lúc sáu giờ."
+                },
+                "description_vi": "đi làm về đến nhà"
+              }
+            ],
+            "quick_check": {
+              "quiz_data": {
+                "question": "Cụm nào có nghĩa là “về đến nhà”?",
+                "options": [
+                  "leave home",
+                  "stay home",
+                  "cook at home",
+                  "get home"
+                ]
+              },
+              "answer_data": {
+                "correct_answer": "get home"
+              },
+              "explanation": "“Get home” là về đến nhà."
+            }
+          },
+          {
+            "vocab_id": "dr-a1-dinner-vocab-2",
+            "order_index": 2,
+            "snapshot": {
+              "word": "cook",
+              "pos": "verb",
+              "phonetic": "/kʊk/",
+              "describe_vi": "nấu, nấu chín",
+              "sense": "to make food ready to eat with heat",
+              "audio_url": null,
+              "audio_en_url": null,
+              "audio_us_url": null
+            },
+            "samples": [
+              {
+                "text_en": "I can cook rice tonight.",
+                "text_vi": "Tối nay mình có thể nấu cơm.",
+                "audio_url": null,
+                "is_manual": true
+              }
+            ],
+            "collocations": [
+              {
+                "text": "cook dinner",
+                "example": {
+                  "en": "We cook dinner at home on Mondays.",
+                  "vi": "Thứ Hai bọn mình nấu bữa tối ở nhà."
+                },
+                "description_vi": "nấu bữa tối"
+              }
+            ]
+          },
+          {
+            "vocab_id": "dr-a1-dinner-vocab-3",
+            "order_index": 3,
+            "snapshot": {
+              "word": "rice",
+              "pos": "noun",
+              "phonetic": "/raɪs/",
+              "describe_vi": "gạo, cơm",
+              "sense": "small grains that people cook and eat",
+              "audio_url": null,
+              "audio_en_url": null,
+              "audio_us_url": null
+            },
+            "samples": [
+              {
+                "text_en": "We have rice and eggs for dinner.",
+                "text_vi": "Bữa tối bọn mình ăn cơm với trứng.",
+                "audio_url": null,
+                "is_manual": true
+              }
+            ],
+            "collocations": [
+              {
+                "text": "cook rice",
+                "example": {
+                  "en": "I cook rice after work.",
+                  "vi": "Mình nấu cơm sau giờ làm."
+                },
+                "description_vi": "nấu cơm"
+              }
+            ]
+          },
+          {
+            "vocab_id": "dr-a1-dinner-vocab-4",
+            "order_index": 4,
+            "snapshot": {
+              "word": "vegetable",
+              "pos": "noun",
+              "phonetic": "/ˈvedʒtəbəl/",
+              "describe_vi": "rau, củ",
+              "sense": "a plant or part of a plant that people eat as food",
+              "audio_url": null,
+              "audio_en_url": null,
+              "audio_us_url": null
+            },
+            "samples": [
+              {
+                "text_en": "We need vegetables for dinner.",
+                "text_vi": "Mình cần rau cho bữa tối.",
+                "audio_url": null,
+                "is_manual": true
+              }
+            ],
+            "collocations": [
+              {
+                "text": "wash the vegetables",
+                "example": {
+                  "en": "Can you wash the vegetables?",
+                  "vi": "Bạn rửa rau giúp mình được không?"
+                },
+                "description_vi": "rửa rau"
+              }
+            ]
+          }
+        ],
+        "expressions": [
+          {
+            "purposes": [
+              {
+                "purpose_en": "Make a dinner plan",
+                "purpose_vi": "Bàn chuyện nấu bữa tối",
+                "order_index": 1,
+                "examples": [
+                  {
+                    "type": "SLOT_PATTERN",
+                    "text_en": "I get home at [time].",
+                    "text_vi": "Mình về đến nhà lúc [giờ].",
+                    "usage_note": "Thay [time] bằng giờ bạn dự kiến về tới nhà.",
+                    "audio_url": null,
+                    "linked_vocab_ids": [
+                      "dr-a1-dinner-vocab-1"
+                    ]
+                  },
+                  {
+                    "type": "BASIC_SUGGESTION",
+                    "text_en": "I can cook rice tonight.",
+                    "text_vi": "Tối nay mình có thể nấu cơm.",
+                    "usage_note": "Dùng “I can…” để nhận phần việc bạn có thể làm.",
+                    "audio_url": null,
+                    "linked_vocab_ids": [
+                      "dr-a1-dinner-vocab-2",
+                      "dr-a1-dinner-vocab-3"
+                    ]
+                  }
+                ]
+              },
+              {
+                "purpose_en": "Ask for help in the kitchen",
+                "purpose_vi": "Nhờ giúp việc trong bếp",
+                "order_index": 2,
+                "examples": [
+                  {
+                    "type": "POLITE_INQUIRY",
+                    "text_en": "Can you wash the vegetables?",
+                    "text_vi": "Bạn rửa rau giúp mình được không?",
+                    "usage_note": "Hỏi người ở cùng xem họ có thể giúp rửa rau không.",
+                    "audio_url": null,
+                    "linked_vocab_ids": [
+                      "dr-a1-dinner-vocab-4"
+                    ]
+                  },
+                  {
+                    "type": "BASIC_SUGGESTION",
+                    "text_en": "Do we have eggs?",
+                    "text_vi": "Nhà mình có trứng không?",
+                    "usage_note": "Dùng “Do we have…?” khi muốn biết trong nhà còn nguyên liệu nào đó không.",
+                    "audio_url": null,
+                    "linked_vocab_ids": []
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "quizzes": [
+          {
+            "quiz_id": "dr-a1-dinner-fill",
+            "quiz_type": "FILL_BLANK",
+            "title": "Nói giờ về và chia việc nấu ăn",
+            "instructions": "Đọc tình huống rồi chọn một từ tiếng Anh để điền vào chỗ trống.",
+            "order_index": 1,
+            "questions": [
+              {
+                "prompt": "I ___ home at six thirty.",
+                "quiz_data": {
+                  "scenario_vi": "Bạn báo sẽ về tới nhà lúc 6 giờ 30."
+                },
+                "sentence": {
+                  "text_en": "I get home at six thirty.",
+                  "meaning_vi": "Mình về đến nhà lúc sáu giờ rưỡi.",
+                  "audio_url": null
+                },
+                "options": [
+                  {
+                    "label": "A",
+                    "text_en": "leave",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "B",
+                    "text_en": "stay",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "C",
+                    "text_en": "get",
+                    "is_correct": true
+                  },
+                  {
+                    "label": "D",
+                    "text_en": "have",
+                    "is_correct": false
+                  }
+                ],
+                "explanation": "“Get home” nói về lúc về đến nhà. “Leave home” nói về lúc ra khỏi nhà."
+              },
+              {
+                "prompt": "I can ___ rice tonight.",
+                "quiz_data": {
+                  "scenario_vi": "Bạn nhận phần nấu cơm bằng nồi cơm điện."
+                },
+                "sentence": {
+                  "text_en": "I can cook rice tonight.",
+                  "meaning_vi": "Tối nay mình có thể nấu cơm.",
+                  "audio_url": null
+                },
+                "options": [
+                  {
+                    "label": "A",
+                    "text_en": "cook",
+                    "is_correct": true
+                  },
+                  {
+                    "label": "B",
+                    "text_en": "buy",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "C",
+                    "text_en": "eat",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "D",
+                    "text_en": "bring",
+                    "is_correct": false
+                  }
+                ],
+                "explanation": "“Cook rice” là nấu cơm. Sau “can” dùng dạng nguyên mẫu “cook”."
+              },
+              {
+                "prompt": "Can you ___ the vegetables?",
+                "quiz_data": {
+                  "scenario_vi": "Bạn nhờ An rửa rau dưới vòi nước trước khi bạn về."
+                },
+                "sentence": {
+                  "text_en": "Can you wash the vegetables?",
+                  "meaning_vi": "Bạn rửa rau giúp mình được không?",
+                  "audio_url": null
+                },
+                "options": [
+                  {
+                    "label": "A",
+                    "text_en": "cut",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "B",
+                    "text_en": "cook",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "C",
+                    "text_en": "buy",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "D",
+                    "text_en": "wash",
+                    "is_correct": true
+                  }
+                ],
+                "explanation": "“Wash the vegetables” nghĩa là rửa rau. “Can you + động từ?” là cách nhờ ai đó làm một việc."
+              }
+            ]
+          },
+          {
+            "quiz_id": "dr-a1-dinner-choice",
+            "quiz_type": "SITUATIONAL_CHOICE",
+            "title": "Chuẩn bị bữa tối với người ở cùng",
+            "instructions": "Đọc tình huống và chọn một câu tiếng Anh phù hợp nhất với điều bạn cần nói.",
+            "order_index": 2,
+            "questions": [
+              {
+                "prompt": "Bạn sẽ nói câu nào để nhận đúng phần việc mình định làm?",
+                "quiz_data": {
+                  "scenario_vi": "Bạn muốn mở lời để An biết tối nay bạn có thể nấu cơm."
+                },
+                "sentence": {
+                  "text_en": "I can cook rice tonight.",
+                  "meaning_vi": "Tối nay mình có thể nấu cơm.",
+                  "audio_url": null
+                },
+                "options": [
+                  {
+                    "label": "A",
+                    "text_en": "I can buy some rice tonight.",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "B",
+                    "text_en": "I can cook rice tonight.",
+                    "is_correct": true
+                  },
+                  {
+                    "label": "C",
+                    "text_en": "Can you cook rice tonight?",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "D",
+                    "text_en": "I can wash the vegetables tonight.",
+                    "is_correct": false
+                  }
+                ],
+                "explanation": "“I can cook rice tonight” cho An biết bạn nhận nấu cơm. “Can you cook rice tonight?” lại là nhờ An nấu."
+              },
+              {
+                "prompt": "An hỏi “What time do you get home?” Hãy chọn câu trả lời về giờ bạn về tới nhà.",
+                "quiz_data": {
+                  "scenario_vi": "Bạn về đến nhà lúc 6 giờ 30. Bạn rời văn phòng lúc 6 giờ."
+                },
+                "sentence": {
+                  "text_en": "I get home at six thirty.",
+                  "meaning_vi": "Mình về đến nhà lúc sáu giờ rưỡi.",
+                  "audio_url": null
+                },
+                "options": [
+                  {
+                    "label": "A",
+                    "text_en": "I get home at six.",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "B",
+                    "text_en": "I leave work at six.",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "C",
+                    "text_en": "I get home at seven.",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "D",
+                    "text_en": "I get home at six thirty.",
+                    "is_correct": true
+                  }
+                ],
+                "explanation": "An hỏi giờ bạn tới nhà để tính lúc chuẩn bị bữa tối. “At six thirty” là giờ tới nhà."
+              },
+              {
+                "prompt": "Hãy chọn lời nhờ đúng việc bạn muốn An giúp.",
+                "quiz_data": {
+                  "scenario_vi": "Bạn muốn An rửa rau trước, còn việc cắt và nấu bạn sẽ làm sau."
+                },
+                "sentence": {
+                  "text_en": "Can you wash the vegetables?",
+                  "meaning_vi": "Bạn rửa rau giúp mình được không?",
+                  "audio_url": null
+                },
+                "options": [
+                  {
+                    "label": "A",
+                    "text_en": "Can you wash the vegetables?",
+                    "is_correct": true
+                  },
+                  {
+                    "label": "B",
+                    "text_en": "Can you cut the vegetables?",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "C",
+                    "text_en": "Can you cook the vegetables?",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "D",
+                    "text_en": "Can you buy some vegetables?",
+                    "is_correct": false
+                  }
+                ],
+                "explanation": "“Can you wash the vegetables?” là lời nhờ rửa rau phù hợp khi hai người chia việc."
+              }
+            ]
+          }
+        ],
+        "published_at": {
+          "$date": "2026-11-07T16:17:04.614Z"
+        },
+        "created_at": {
+          "$date": "2026-11-07T00:00:00.000Z"
+        },
+        "updated_at": {
+          "$date": "2026-11-07T16:17:04.614Z"
+        }
+      },
+      {
+        "_id": {
+          "$oid": "672c260de000100a0000d205"
+        },
+        "topic_item_id": "672c260de000100a0000d105",
+        "topic_id": "672c260de000100a0000d001",
+        "topic_version_id": "672c260de000100a0000d002",
+        "version": 1,
+        "previous_item_version_id": null,
+        "change_type": "MAJOR",
+        "title": "Getting Ready for Bed",
+        "description": "Kể thói quen trước giờ ngủ và hẹn giờ báo thức cho sáng hôm sau.",
+        "order": 5,
+        "status": "PUBLISHED",
+        "duration_minutes": 7,
+        "context": {
+          "scenario_description": "Tối thứ Hai, bạn đang ở nhà với em trai là Nam. Ngày mai hai người cần dậy lúc 6 giờ 30. Nam muốn biết bạn định đi ngủ lúc mấy giờ và ai sẽ đặt báo thức.",
+          "prompt": "Nam hỏi “What time do you go to bed?” Bạn sẽ nói giờ đi ngủ và giờ cần đặt báo thức thế nào?",
+          "dialogue": [
+            {
+              "speaker": "Nam",
+              "text_en": "What time do you go to bed?",
+              "text_vi": "Bạn đi ngủ lúc mấy giờ?",
+              "audio_url": null
+            },
+            {
+              "speaker": "Bạn",
+              "text_en": "At ten thirty. I read a book before bed.",
+              "text_vi": "Lúc mười giờ rưỡi. Mình đọc sách trước khi ngủ.",
+              "audio_url": null
+            },
+            {
+              "speaker": "Nam",
+              "text_en": "We need to get up at six thirty tomorrow.",
+              "text_vi": "Ngày mai mình cần dậy lúc sáu giờ rưỡi.",
+              "audio_url": null
+            },
+            {
+              "speaker": "Bạn",
+              "text_en": "I can set an alarm for six thirty.",
+              "text_vi": "Mình có thể đặt báo thức reo lúc sáu giờ rưỡi.",
+              "audio_url": null
+            },
+            {
+              "speaker": "Nam",
+              "text_en": "Thanks. Can you turn off the light when you go to bed?",
+              "text_vi": "Cảm ơn. Khi đi ngủ bạn tắt đèn giúp mình nhé?",
+              "audio_url": null
+            },
+            {
+              "speaker": "Bạn",
+              "text_en": "Sure. Good night!",
+              "text_vi": "Được. Ngủ ngon nhé!",
+              "audio_url": null
+            }
+          ],
+          "duration_sec": 90,
+          "tips": "“Go to bed” là đi ngủ. “Set an alarm for six thirty” là đặt báo thức để chuông reo lúc 6 giờ 30."
+        },
+        "vocabularies": [
+          {
+            "vocab_id": "dr-a1-bedtime-vocab-1",
+            "order_index": 1,
+            "snapshot": {
+              "word": "go to bed",
+              "pos": "verb phrase",
+              "phonetic": "/ɡoʊ tə bed/",
+              "describe_vi": "đi ngủ",
+              "sense": "to go to the place where you sleep because it is time to sleep",
+              "audio_url": null,
+              "audio_en_url": null,
+              "audio_us_url": null
+            },
+            "samples": [
+              {
+                "text_en": "I go to bed at ten thirty.",
+                "text_vi": "Mình đi ngủ lúc mười giờ rưỡi.",
+                "audio_url": null,
+                "is_manual": true
+              }
+            ],
+            "collocations": [
+              {
+                "text": "go to bed early",
+                "example": {
+                  "en": "I go to bed early on Sundays.",
+                  "vi": "Chủ nhật mình đi ngủ sớm."
+                },
+                "description_vi": "đi ngủ sớm"
+              }
+            ]
+          },
+          {
+            "vocab_id": "dr-a1-bedtime-vocab-2",
+            "order_index": 2,
+            "snapshot": {
+              "word": "before bed",
+              "pos": "adverbial phrase",
+              "phonetic": "/bɪˈfɔːr bed/",
+              "describe_vi": "trước khi đi ngủ",
+              "sense": "before you go to bed",
+              "audio_url": null,
+              "audio_en_url": null,
+              "audio_us_url": null
+            },
+            "samples": [
+              {
+                "text_en": "I read a book before bed.",
+                "text_vi": "Mình đọc sách trước khi đi ngủ.",
+                "audio_url": null,
+                "is_manual": true
+              }
+            ],
+            "collocations": [
+              {
+                "text": "read before bed",
+                "example": {
+                  "en": "I read before bed when I have time.",
+                  "vi": "Khi có thời gian, mình đọc sách trước khi ngủ."
+                },
+                "description_vi": "đọc sách trước khi đi ngủ"
+              }
+            ]
+          },
+          {
+            "vocab_id": "dr-a1-bedtime-vocab-3",
+            "order_index": 3,
+            "snapshot": {
+              "word": "set an alarm",
+              "pos": "verb phrase",
+              "phonetic": "/set ən əˈlɑːrm/",
+              "describe_vi": "đặt báo thức",
+              "sense": "to choose a time when an alarm will ring",
+              "audio_url": null,
+              "audio_en_url": null,
+              "audio_us_url": null
+            },
+            "samples": [
+              {
+                "text_en": "I set an alarm for six thirty.",
+                "text_vi": "Mình đặt báo thức reo lúc sáu giờ rưỡi.",
+                "audio_url": null,
+                "is_manual": true
+              }
+            ],
+            "collocations": [
+              {
+                "text": "set an alarm for six",
+                "example": {
+                  "en": "I set an alarm for six on Mondays.",
+                  "vi": "Thứ Hai mình đặt báo thức reo lúc sáu giờ."
+                },
+                "description_vi": "đặt báo thức reo lúc sáu giờ"
+              }
+            ]
+          },
+          {
+            "vocab_id": "dr-a1-bedtime-vocab-4",
+            "order_index": 4,
+            "snapshot": {
+              "word": "turn off the light",
+              "pos": "verb phrase",
+              "phonetic": "/tɝːn ɔːf ðə laɪt/",
+              "describe_vi": "tắt đèn",
+              "sense": "to make the light stop shining",
+              "audio_url": null,
+              "audio_en_url": null,
+              "audio_us_url": null
+            },
+            "samples": [
+              {
+                "text_en": "I turn off the light before I go to sleep.",
+                "text_vi": "Mình tắt đèn trước khi ngủ.",
+                "audio_url": null,
+                "is_manual": true
+              }
+            ],
+            "collocations": [
+              {
+                "text": "turn off the light at night",
+                "example": {
+                  "en": "I turn off the light at night.",
+                  "vi": "Mình tắt đèn vào buổi tối."
+                },
+                "description_vi": "tắt đèn vào buổi tối"
+              }
+            ],
+            "quick_check": {
+              "quiz_data": {
+                "question": "Bạn gạt công tắc để phòng tối. Cụm nào diễn tả việc đó?",
+                "options": [
+                  "turn on the light",
+                  "turn off the light",
+                  "set an alarm",
+                  "open the door"
+                ]
+              },
+              "answer_data": {
+                "correct_answer": "turn off the light"
+              },
+              "explanation": "“Turn off the light” nghĩa là tắt đèn."
+            }
+          }
+        ],
+        "expressions": [
+          {
+            "purposes": [
+              {
+                "purpose_en": "Talk about bedtime",
+                "purpose_vi": "Nói về giờ đi ngủ",
+                "order_index": 1,
+                "examples": [
+                  {
+                    "type": "SLOT_PATTERN",
+                    "text_en": "I go to bed at [time].",
+                    "text_vi": "Mình đi ngủ lúc [giờ].",
+                    "usage_note": "Thay [time] bằng giờ đi ngủ, ví dụ “ten thirty”.",
+                    "audio_url": null,
+                    "linked_vocab_ids": [
+                      "dr-a1-bedtime-vocab-1"
+                    ]
+                  },
+                  {
+                    "type": "BASIC_SUGGESTION",
+                    "text_en": "I read a book before bed.",
+                    "text_vi": "Mình đọc sách trước khi đi ngủ.",
+                    "usage_note": "Dùng “before bed” để kể một việc làm trước khi ngủ.",
+                    "audio_url": null,
+                    "linked_vocab_ids": [
+                      "dr-a1-bedtime-vocab-2"
+                    ]
+                  }
+                ]
+              },
+              {
+                "purpose_en": "Get ready for tomorrow morning",
+                "purpose_vi": "Chuẩn bị cho sáng hôm sau",
+                "order_index": 2,
+                "examples": [
+                  {
+                    "type": "SLOT_PATTERN",
+                    "text_en": "I can set an alarm for [time].",
+                    "text_vi": "Mình có thể đặt báo thức reo lúc [giờ].",
+                    "usage_note": "Dùng “for” trước giờ muốn chuông reo. Thay [time] bằng giờ hẹn.",
+                    "audio_url": null,
+                    "linked_vocab_ids": [
+                      "dr-a1-bedtime-vocab-3"
+                    ]
+                  },
+                  {
+                    "type": "POLITE_INQUIRY",
+                    "text_en": "Can you turn off the light?",
+                    "text_vi": "Bạn tắt đèn giúp mình được không?",
+                    "usage_note": "Dùng khi nhờ người đang ở cùng phòng tắt đèn.",
+                    "audio_url": null,
+                    "linked_vocab_ids": [
+                      "dr-a1-bedtime-vocab-4"
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "quizzes": [
+          {
+            "quiz_id": "dr-a1-bedtime-fill",
+            "quiz_type": "FILL_BLANK",
+            "title": "Giờ đi ngủ và giờ báo thức",
+            "instructions": "Đọc tình huống rồi chọn một từ tiếng Anh để điền vào chỗ trống.",
+            "order_index": 1,
+            "questions": [
+              {
+                "prompt": "I go to ___ at ten thirty.",
+                "quiz_data": {
+                  "scenario_vi": "Bạn thường đi ngủ lúc 10 giờ 30 tối."
+                },
+                "sentence": {
+                  "text_en": "I go to bed at ten thirty.",
+                  "meaning_vi": "Mình đi ngủ lúc mười giờ rưỡi.",
+                  "audio_url": null
+                },
+                "options": [
+                  {
+                    "label": "A",
+                    "text_en": "work",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "B",
+                    "text_en": "school",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "C",
+                    "text_en": "bed",
+                    "is_correct": true
+                  },
+                  {
+                    "label": "D",
+                    "text_en": "class",
+                    "is_correct": false
+                  }
+                ],
+                "explanation": "“Go to bed” nghĩa là đi ngủ. Dùng “at” trước giờ đi ngủ."
+              },
+              {
+                "prompt": "I read a book ___ bed.",
+                "quiz_data": {
+                  "scenario_vi": "Bạn đọc sách trước khi đi ngủ."
+                },
+                "sentence": {
+                  "text_en": "I read a book before bed.",
+                  "meaning_vi": "Mình đọc sách trước khi đi ngủ.",
+                  "audio_url": null
+                },
+                "options": [
+                  {
+                    "label": "A",
+                    "text_en": "in",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "B",
+                    "text_en": "before",
+                    "is_correct": true
+                  },
+                  {
+                    "label": "C",
+                    "text_en": "after",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "D",
+                    "text_en": "on",
+                    "is_correct": false
+                  }
+                ],
+                "explanation": "“Before bed” nghĩa là trước khi đi ngủ. “In bed” nói bạn đang ở trên giường khi đọc."
+              },
+              {
+                "prompt": "I set an alarm ___ six thirty.",
+                "quiz_data": {
+                  "scenario_vi": "Ngày mai bạn cần dậy lúc 6 giờ 30. Bạn đặt giờ để chuông reo vào lúc đó."
+                },
+                "sentence": {
+                  "text_en": "I set an alarm for six thirty.",
+                  "meaning_vi": "Mình đặt báo thức reo lúc sáu giờ rưỡi.",
+                  "audio_url": null
+                },
+                "options": [
+                  {
+                    "label": "A",
+                    "text_en": "at",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "B",
+                    "text_en": "after",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "C",
+                    "text_en": "by",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "D",
+                    "text_en": "for",
+                    "is_correct": true
+                  }
+                ],
+                "explanation": "Trong “set an alarm for + giờ”, “for” giới thiệu giờ chuông sẽ reo. “At six thirty” có thể chỉ lúc bạn thao tác đặt báo thức."
+              }
+            ]
+          },
+          {
+            "quiz_id": "dr-a1-bedtime-choice",
+            "quiz_type": "SITUATIONAL_CHOICE",
+            "title": "Chuẩn bị đi ngủ cùng người nhà",
+            "instructions": "Đọc tình huống và chọn một câu tiếng Anh phù hợp nhất với điều bạn cần nói.",
+            "order_index": 2,
+            "questions": [
+              {
+                "prompt": "Nam hỏi “What time do you go to bed?” Hãy chọn câu nói đúng giờ bạn đi ngủ.",
+                "quiz_data": {
+                  "scenario_vi": "Bạn đọc sách lúc 10 giờ và đi ngủ lúc 10 giờ 30."
+                },
+                "sentence": {
+                  "text_en": "I go to bed at ten thirty.",
+                  "meaning_vi": "Mình đi ngủ lúc mười giờ rưỡi.",
+                  "audio_url": null
+                },
+                "options": [
+                  {
+                    "label": "A",
+                    "text_en": "I go to bed at ten thirty.",
+                    "is_correct": true
+                  },
+                  {
+                    "label": "B",
+                    "text_en": "I read at ten thirty.",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "C",
+                    "text_en": "I go to bed at ten.",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "D",
+                    "text_en": "I go to bed at eleven.",
+                    "is_correct": false
+                  }
+                ],
+                "explanation": "Nam hỏi giờ đi ngủ. Mười giờ rưỡi là giờ ngủ, còn mười giờ là lúc bạn đọc sách."
+              },
+              {
+                "prompt": "Bạn nói gì để Nam biết bạn sẽ đặt chuông đúng giờ?",
+                "quiz_data": {
+                  "scenario_vi": "Ngày mai hai người cần dậy lúc 6 giờ 30. Bạn muốn nhận việc đặt báo thức."
+                },
+                "sentence": {
+                  "text_en": "I can set an alarm for six thirty.",
+                  "meaning_vi": "Mình có thể đặt báo thức reo lúc sáu giờ rưỡi.",
+                  "audio_url": null
+                },
+                "options": [
+                  {
+                    "label": "A",
+                    "text_en": "I can set an alarm for six.",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "B",
+                    "text_en": "I can set an alarm for seven thirty.",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "C",
+                    "text_en": "I can set an alarm for six thirty.",
+                    "is_correct": true
+                  },
+                  {
+                    "label": "D",
+                    "text_en": "Can you set an alarm for six thirty?",
+                    "is_correct": false
+                  }
+                ],
+                "explanation": "“I can set an alarm for six thirty” vừa nhận việc vừa xác nhận đúng giờ chuông reo."
+              },
+              {
+                "prompt": "Nam hỏi “Can you turn off the light?” Hãy chọn câu đồng ý làm đúng việc ngay bây giờ.",
+                "quiz_data": {
+                  "scenario_vi": "Nam đã nằm xuống và muốn phòng tối để ngủ. Công tắc ở cạnh bạn."
+                },
+                "sentence": {
+                  "text_en": "Sure. I can turn it off now.",
+                  "meaning_vi": "Được. Mình có thể tắt đèn ngay.",
+                  "audio_url": null
+                },
+                "options": [
+                  {
+                    "label": "A",
+                    "text_en": "Sure. I can turn it on.",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "B",
+                    "text_en": "Sure. I can turn it off now.",
+                    "is_correct": true
+                  },
+                  {
+                    "label": "C",
+                    "text_en": "Sure. I can turn it off in ten minutes.",
+                    "is_correct": false
+                  },
+                  {
+                    "label": "D",
+                    "text_en": "Can you turn it off?",
+                    "is_correct": false
+                  }
+                ],
+                "explanation": "“Turn it off now” cho Nam biết bạn sẽ tắt đèn ngay. “Turn it on” nghĩa là bật đèn."
+              }
+            ]
+          }
+        ],
+        "published_at": {
+          "$date": "2026-11-07T16:17:04.614Z"
+        },
+        "created_at": {
+          "$date": "2026-11-07T00:00:00.000Z"
+        },
+        "updated_at": {
+          "$date": "2026-11-07T16:17:04.614Z"
+        }
+      }
+    ],
+    "speaking_item_configs": [
+      {
+        "_id": {
+          "$oid": "672c260de000100a0000d301"
+        },
+        "topic_item_id": "672c260de000100a0000d101",
+        "topic_item_version_id": "672c260de000100a0000d201",
+        "status": "PUBLISHED",
+        "context": "Linh is your roommate. You are both getting ready for work on Monday. Linh may wait and walk to the bus stop with you. Talk about your own morning routine and the time you can leave. Ask one short question at a time.",
+        "learner_role": "A person getting ready for work in a shared apartment",
+        "ai_role": "Linh, the learner's roommate",
+        "opening_side": "AI",
+        "goals": [
+          {
+            "id": "say-get-up-time",
+            "title": "Nói giờ bạn dậy",
+            "description": "State when you get up on a workday. Accept any clear time.",
+            "priority": "REQUIRED"
+          },
+          {
+            "id": "name-first-action",
+            "title": "Nói việc bạn làm đầu tiên",
+            "description": "Name one thing you do first after getting up, such as brushing your teeth.",
+            "priority": "REQUIRED"
+          },
+          {
+            "id": "say-leaving-time",
+            "title": "Nói giờ bạn ra khỏi nhà",
+            "description": "Tell Linh what time you leave home so you can go together.",
+            "priority": "REQUIRED"
+          },
+          {
+            "id": "ask-linh-time",
+            "title": "Hỏi lại giờ Linh ra khỏi nhà",
+            "description": "Ask Linh what time they leave home.",
+            "priority": "OPTIONAL"
+          }
+        ],
+        "minimum_valid_turns": 3,
+        "revision": {
+          "$numberLong": "1"
+        },
+        "created_at": {
+          "$date": "2026-11-07T00:00:00.000Z"
+        },
+        "updated_at": {
+          "$date": "2026-11-07T16:17:04.614Z"
+        }
+      },
+      {
+        "_id": {
+          "$oid": "672c260de000100a0000d302"
+        },
+        "topic_item_id": "672c260de000100a0000d102",
+        "topic_item_version_id": "672c260de000100a0000d202",
+        "status": "PUBLISHED",
+        "context": "Mai is a new coworker who may move near your home. At the office, she asks how you normally travel to work. Use your own route or imagine one for a bus trip. Ask one short question at a time.",
+        "learner_role": "A coworker describing a usual trip to work",
+        "ai_role": "Mai, a new coworker asking about the trip",
+        "opening_side": "AI",
+        "goals": [
+          {
+            "id": "name-transport",
+            "title": "Nói bạn đi làm bằng gì",
+            "description": "Name the main way you get to work, such as taking the bus, walking, or riding a bike.",
+            "priority": "REQUIRED"
+          },
+          {
+            "id": "say-start-location",
+            "title": "Nói nơi bắt đầu chuyến đi",
+            "description": "Say where you catch the bus or where you start your trip if you use another way to travel.",
+            "priority": "REQUIRED"
+          },
+          {
+            "id": "say-travel-time",
+            "title": "Nói thời gian đi làm",
+            "description": "Say how long the trip takes. Accept any clear duration.",
+            "priority": "REQUIRED"
+          },
+          {
+            "id": "ask-mai-transport",
+            "title": "Hỏi Mai đi làm bằng gì",
+            "description": "Ask Mai how she gets to work.",
+            "priority": "OPTIONAL"
+          }
+        ],
+        "minimum_valid_turns": 3,
+        "revision": {
+          "$numberLong": "1"
+        },
+        "created_at": {
+          "$date": "2026-11-07T00:00:00.000Z"
+        },
+        "updated_at": {
+          "$date": "2026-11-07T16:17:04.614Z"
+        }
+      },
+      {
+        "_id": {
+          "$oid": "672c260de000100a0000d303"
+        },
+        "topic_item_id": "672c260de000100a0000d103",
+        "topic_item_version_id": "672c260de000100a0000d203",
+        "status": "PUBLISHED",
+        "context": "Huy is your coworker. It is almost lunchtime, and he stops by your desk to see if you want to eat together. Agree on a time and a place. You can say you brought food or plan to buy it. Ask one short question at a time.",
+        "learner_role": "An office worker making lunch plans",
+        "ai_role": "Huy, a coworker who wants to have lunch together",
+        "opening_side": "AI",
+        "goals": [
+          {
+            "id": "answer-invitation",
+            "title": "Trả lời lời rủ ăn trưa",
+            "description": "Accept Huy's invitation or suggest another time if you cannot eat now.",
+            "priority": "REQUIRED"
+          },
+          {
+            "id": "give-lunch-time",
+            "title": "Nói giờ có thể đi ăn",
+            "description": "State when your lunch break starts or give a time when you can meet.",
+            "priority": "REQUIRED"
+          },
+          {
+            "id": "suggest-lunch-place",
+            "title": "Đề xuất nơi ăn trưa",
+            "description": "Suggest a clear place to eat, such as the break room or a nearby café.",
+            "priority": "REQUIRED"
+          },
+          {
+            "id": "say-food-plan",
+            "title": "Nói bạn mang hay mua đồ ăn",
+            "description": "Tell Huy if you brought food from home or plan to buy lunch.",
+            "priority": "OPTIONAL"
+          }
+        ],
+        "minimum_valid_turns": 3,
+        "revision": {
+          "$numberLong": "1"
+        },
+        "created_at": {
+          "$date": "2026-11-07T00:00:00.000Z"
+        },
+        "updated_at": {
+          "$date": "2026-11-07T16:17:04.614Z"
+        }
+      },
+      {
+        "_id": {
+          "$oid": "672c260de000100a0000d304"
+        },
+        "topic_item_id": "672c260de000100a0000d104",
+        "topic_item_version_id": "672c260de000100a0000d204",
+        "status": "PUBLISHED",
+        "context": "You and An share an apartment. You call An after work to make a simple dinner plan. Start by saying what you can cook. Tell An when you will get home, then ask for one small task, such as washing the vegetables. An can reply and ask a short question about the plan.",
+        "learner_role": "A housemate calling after work to plan dinner",
+        "ai_role": "An, a housemate who can help get dinner ready",
+        "opening_side": "LEARNER",
+        "goals": [
+          {
+            "id": "offer-to-cook",
+            "title": "Nói món bạn có thể nấu",
+            "description": "Offer to cook one simple dish or food for dinner, such as rice, eggs, or noodles.",
+            "priority": "REQUIRED"
+          },
+          {
+            "id": "say-arrival-time",
+            "title": "Nói giờ bạn về đến nhà",
+            "description": "Say what time you will get home. Accept any clear time.",
+            "priority": "REQUIRED"
+          },
+          {
+            "id": "ask-for-kitchen-help",
+            "title": "Nhờ An giúp một việc",
+            "description": "Ask An to do one clear kitchen task, such as washing or cutting vegetables.",
+            "priority": "REQUIRED"
+          },
+          {
+            "id": "ask-about-food",
+            "title": "Hỏi về nguyên liệu có sẵn",
+            "description": "Ask whether there is an ingredient at home, such as eggs or rice.",
+            "priority": "OPTIONAL"
+          }
+        ],
+        "minimum_valid_turns": 3,
+        "revision": {
+          "$numberLong": "1"
+        },
+        "created_at": {
+          "$date": "2026-11-07T00:00:00.000Z"
+        },
+        "updated_at": {
+          "$date": "2026-11-07T16:17:04.614Z"
+        }
+      },
+      {
+        "_id": {
+          "$oid": "672c260de000100a0000d305"
+        },
+        "topic_item_id": "672c260de000100a0000d105",
+        "topic_item_version_id": "672c260de000100a0000d205",
+        "status": "PUBLISHED",
+        "context": "It is late in the evening. Nam, your brother, is at home with you. You both need to get up on time tomorrow. Talk about what you do before bed and agree on a time for an alarm. Ask one short question at a time.",
+        "learner_role": "A person getting ready for bed at home",
+        "ai_role": "Nam, the learner's brother who is planning for tomorrow morning",
+        "opening_side": "AI",
+        "goals": [
+          {
+            "id": "give-bedtime",
+            "title": "Nói giờ bạn đi ngủ",
+            "description": "Say when you go to bed. Accept any clear time.",
+            "priority": "REQUIRED"
+          },
+          {
+            "id": "name-evening-action",
+            "title": "Kể một việc trước khi ngủ",
+            "description": "Name one thing you do before bed, such as reading a book or turning off the light.",
+            "priority": "REQUIRED"
+          },
+          {
+            "id": "agree-alarm-time",
+            "title": "Chốt giờ báo thức",
+            "description": "Say what time to set the alarm for or confirm a clear time suggested by Nam.",
+            "priority": "REQUIRED"
+          },
+          {
+            "id": "say-good-night",
+            "title": "Chúc ngủ ngon",
+            "description": "Say good night to Nam at the end of the conversation.",
+            "priority": "OPTIONAL"
+          }
+        ],
+        "minimum_valid_turns": 3,
+        "revision": {
+          "$numberLong": "1"
+        },
+        "created_at": {
+          "$date": "2026-11-07T00:00:00.000Z"
+        },
+        "updated_at": {
+          "$date": "2026-11-07T16:17:04.614Z"
+        }
+      }
+    ]
+  }
+}

@@ -65,6 +65,7 @@ A new dependency needs an explicit reason and approval. Keep this table in sync 
 | `quota` | `subscription.contract` (effective-entitlement lookup and durable Subscription-owned facts) |
 | `payment` | None; must never depend on Subscription |
 | `placement` | `user.contract.UserLevelPromotion` for atomic monotonic profile promotion on owned completion/Guest claim and explicit learning activation (user-approved 2026-11-08) |
+| `speaking` | `topic` |
 
 Payment owns commands in `payment.contract.dto` and facts in `payment.contract.event`; Subscription owns the receiving result consumer. Payment must never import Subscription types. Quota consumes Subscription-owned entitlement/policy facts and can resolve effective entitlements through its public capability.
 

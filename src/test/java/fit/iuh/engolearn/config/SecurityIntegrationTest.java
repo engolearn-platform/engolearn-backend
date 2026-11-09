@@ -31,9 +31,6 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
-import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.boot.web.servlet.FilterRegistrationBean;
-import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.http.HttpMethod;
@@ -65,24 +62,14 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         AuthController.class
 })
 @Import({SecurityConfig.class, SecurityContextCurrentUserProvider.class,
-        AccessCookieAuthFilter.class, JwtTokenService.class, SecurityIntegrationTest.FilterConfig.class})
+        AccessCookieAuthFilter.class, JwtTokenService.class})
 @TestPropertySource(properties = {
         "engolearn.security.jwt.secret=security-integration-test-key-at-least-32-bytes",
         "engolearn.security.jwt.issuer=security-integration-test",
-        "engolearn.cors.allowed-origins=http://localhost:3000"
+        "engolearn.cors.allowed-origins=http://localhost:3000",
+        "engolearn.speaking.enabled=true"
 })
 class SecurityIntegrationTest {
-
-    @TestConfiguration(proxyBeanMethods = false)
-    static class FilterConfig {
-        @Bean
-        FilterRegistrationBean<AccessCookieAuthFilter> accessCookieFilterRegistration(AccessCookieAuthFilter filter) {
-            // Run authentication inside SecurityFilterChain, after its security context has been initialized.
-            FilterRegistrationBean<AccessCookieAuthFilter> registration = new FilterRegistrationBean<>(filter);
-            registration.setEnabled(false);
-            return registration;
-        }
-    }
 
     private static final String USER_ID = "68f8f3a9b9e4a12345678901";
     private static final String OTHER_USER_ID = "68f8f3a9b9e4a12345678902";
@@ -225,6 +212,13 @@ class SecurityIntegrationTest {
         mockMvc.perform(get("/api/learning-paths").header("X-Dev-User-Id", identity))
                 .andExpect(status().isUnauthorized());
         verifyNoLearningPathCalls();
+    }
+
+    @Test
+    void anonymousSpeakingRequestRequiresTheSharedSession() throws Exception {
+        mockMvc.perform(get("/api/v1/speaking/sessions/current"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("AUTHENTICATION_REQUIRED"));
     }
 
     @Test

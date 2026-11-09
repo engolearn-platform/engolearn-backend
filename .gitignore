@@ -5,6 +5,10 @@ target/
 !**/src/test/**/target/
 
 .artifacts/
+.superpowers/
+docs/superpowers/
+./.codegraph
+./.codex
 
 ### ENV ###
 .env
