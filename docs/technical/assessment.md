@@ -237,3 +237,9 @@ account and four historical attempts. For the shared Learning Path dataset, Subs
 account initialization and current demo limits, follow the
 [importer guide](../../tools/mongo-json-importer/README.md#shared-assessment--learning-path-demo).
 Learning Path Listening audio placeholders do not affect the 13 supplied Assessment WAV files.
+
+## F03 — quản trị đề nháp
+
+`CONTENT_MANAGER` và `ADMIN` có quyền dùng `/api/v1/assessment/admin/drafts`. GET trả danh sách tóm tắt theo trang (tham số `page` từ 0, 25 mục). POST nhận `series` và `name`. Nếu series đã có đề, sao chép phiên bản lớn nhất sang nháp kế tiếp. Nếu chưa có, tạo bản 1 rỗng. GET và PUT tại `/{series}` mở và lưu nội dung. PUT nhận tên, kỹ năng, phần/câu và revision lấy từ lần đọc gần nhất. Cho phép lưu thiếu nội dung và đáp án. Giao diện dùng null cho đáp án chưa chọn và 0–3 cho A–D.
+
+Nháp ở collection `assessment_paper_drafts`, khóa duy nhất theo series. Tạo trùng trả 409 DRAFT_EXISTS. Ghi theo khóa và revision trong một cập nhật MongoDB. Ghi cũ trả 409 STALE_DRAFT. Máy chủ giữ tham chiếu WAV theo vị trí unit trong đề nguồn. Lượt thi vẫn chọn từ `assessment_papers`. Phạm vi checkpoint này kết thúc ở lưu nháp.

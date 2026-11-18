@@ -1,5 +1,6 @@
 package fit.iuh.engolearn.assessment.controller.exceptionhandler;
 import fit.iuh.engolearn.assessment.controller.AssessmentController;
+import fit.iuh.engolearn.assessment.controller.AssessmentDraftController;
 
 import fit.iuh.engolearn.assessment.exception.AssessmentException;
 import fit.iuh.engolearn.quota.contract.exception.QuotaUnavailableException;
@@ -16,7 +17,7 @@ import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MissingRequestHeaderException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
-@RestControllerAdvice(assignableTypes=AssessmentController.class)
+@RestControllerAdvice(assignableTypes={AssessmentController.class, AssessmentDraftController.class})
 public class AssessmentExceptionHandler {
     @ExceptionHandler({AssessmentException.class,UnauthenticatedException.class,QuotaUnavailableException.class,SubscriptionUnavailableException.class,
             MethodArgumentNotValidException.class,HandlerMethodValidationException.class,HttpMessageNotReadableException.class,

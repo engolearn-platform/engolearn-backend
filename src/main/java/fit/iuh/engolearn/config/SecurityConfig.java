@@ -71,6 +71,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/topics", "/api/v1/topics/**", "/api/v1/topic-items", "/api/v1/topic-items/**",
                                 "/api/v1/topic-attempts", "/api/v1/topic-attempts/**", "/api/v1/topic-retry-sessions", "/api/v1/topic-retry-sessions/**",
                                 "/api/v1/topic-learning", "/api/v1/topic-learning/**").hasAnyRole("USER", "CONTENT_MANAGER", "ADMIN")
+                        .requestMatchers("/api/v1/assessment/admin/**").hasAnyRole("CONTENT_MANAGER", "ADMIN")
                         .requestMatchers("/api/v1/assessment", "/api/v1/assessment/**").authenticated()
                         .anyRequest().permitAll()
                 );
