@@ -10,6 +10,7 @@ import org.springframework.data.mongodb.core.mapping.Field;
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class PlacementSnapshotItemVo implements EmbeddedDocument {
     @Field("id") private String id;
+    @Field("code") private String code;
     @Field("order_index") private int order;
     @Field("skill") private PlacementSkill skill;
     @Field("level") private PlacementLevel level;

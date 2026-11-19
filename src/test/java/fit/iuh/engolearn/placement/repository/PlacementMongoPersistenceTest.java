@@ -3,17 +3,28 @@ package fit.iuh.engolearn.placement.repository;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoCollection;
+import fit.iuh.engolearn.placement.dto.request.CreatePlacementTestSetRequest;
+import fit.iuh.engolearn.placement.dto.request.UpdatePlacementTestSetRequest;
+import fit.iuh.engolearn.placement.exception.PlacementRequestException;
+import fit.iuh.engolearn.placement.infra.MongoPlacementTransactionExecutor;
 import fit.iuh.engolearn.placement.infra.PlacementMongoIndexConfig;
 import fit.iuh.engolearn.placement.model.PlacementAttempt;
 import fit.iuh.engolearn.placement.model.PlacementQuestion;
 import fit.iuh.engolearn.placement.model.PlacementTestSet;
 import fit.iuh.engolearn.placement.model.enums.*;
 import fit.iuh.engolearn.placement.model.vo.PlacementAnswerVo;
+import fit.iuh.engolearn.placement.model.vo.PlacementQuestionOptionVo;
+import fit.iuh.engolearn.placement.model.vo.PlacementQuestionProvenanceVo;
+import fit.iuh.engolearn.placement.service.PlacementAdminQuestionMedia;
+import fit.iuh.engolearn.placement.service.PlacementAdminTestSetService;
 import fit.iuh.engolearn.placement.service.PlacementTestSetSnapshotFactory;
+import fit.iuh.engolearn.placement.service.impl.PlacementAdminTestSetServiceImpl;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.*;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
@@ -23,19 +34,30 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.data.mongodb.MongoTransactionManager;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.SimpleMongoClientDatabaseFactory;
 import org.springframework.data.mongodb.core.index.IndexInfo;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Update;
+import org.springframework.http.HttpStatus;
 import org.springframework.mock.env.MockEnvironment;
+import org.springframework.transaction.support.TransactionTemplate;
 import tools.jackson.databind.ObjectMapper;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 class PlacementMongoPersistenceTest {
     private static final Instant NOW = Instant.parse("2026-11-07T08:00:00Z");
     private static final ObjectMapper MAPPER = new ObjectMapper();
+    private static final String TEST_AUDIO_URL = "/api/v1/placement/media/" + "a".repeat(64) + ".wav";
 
     private static MongoClient client;
     private static MongoTemplate mongo;
@@ -45,7 +67,8 @@ class PlacementMongoPersistenceTest {
     @BeforeAll
     static void startMongo() {
         try {
-            client = MongoClients.create("mongodb://localhost:27017/?serverSelectionTimeoutMS=1000");
+            client = MongoClients.create(System.getProperty("placement.test.mongo.uri",
+                    "mongodb://localhost:27017/?serverSelectionTimeoutMS=1000"));
             client.getDatabase("admin").runCommand(new Document("ping", 1));
             databaseName = "engolearn_placement_it_" + UUID.randomUUID().toString().replace("-", "");
             mongo = new MongoTemplate(new SimpleMongoClientDatabaseFactory(client, databaseName));
@@ -102,9 +125,9 @@ class PlacementMongoPersistenceTest {
         MongoPlacementQuestionRepository questions = new MongoPlacementQuestionRepository(mongo);
         List<String> previewIds = previewQuestionIds();
         List<PlacementQuestion> ordered = orderByIds(questions.findAllById(previewIds), previewIds);
-        PlacementTestSet draft = PlacementTestSetSnapshotFactory.assemble(
+        PlacementTestSet unrelatedDraft = PlacementTestSetSnapshotFactory.assemble(
                 "placement-draft", "PLT-DRAFT", "Draft", 1, PlacementTestSetStatus.DRAFT, ordered);
-        mongo.insert(draft);
+        mongo.insert(unrelatedDraft);
 
         MockEnvironment production = new MockEnvironment();
         MockEnvironment devNoOptIn = new MockEnvironment();
@@ -114,8 +137,15 @@ class PlacementMongoPersistenceTest {
 
         assertThat(new MongoPlacementTestSetRepository(mongo, production, true).findPublished()).isEmpty();
         assertThat(new MongoPlacementTestSetRepository(mongo, devNoOptIn, false).findPublished()).isEmpty();
-        assertThat(new MongoPlacementTestSetRepository(mongo, devOptIn, true).findPublished())
-                .get().extracting(PlacementTestSet::getId).isEqualTo("placement-draft");
+        var devRepository = new MongoPlacementTestSetRepository(mongo, devOptIn, true);
+        assertThat(devRepository.findPublished()).isEmpty();
+
+        mongo.insert(PlacementTestSetSnapshotFactory.assemble("PLT-V3-DEV-001-V1", "PLT-V3-DEV-001",
+                "Legacy seed", 1, PlacementTestSetStatus.DRAFT, ordered));
+        mongo.insert(PlacementTestSetSnapshotFactory.assemble("PLT-V3-DEV-001-V2", "PLT-V3-DEV-001",
+                "Portable seed", 2, PlacementTestSetStatus.DRAFT, ordered));
+        assertThat(devRepository.findPublished()).get().extracting(PlacementTestSet::getId)
+                .isEqualTo("PLT-V3-DEV-001-V2");
 
         ordered.forEach(question -> question.setStatus(PlacementQuestionStatus.ACTIVE));
         PlacementTestSet publishedOne = PlacementTestSetSnapshotFactory.assemble(
@@ -137,6 +167,126 @@ class PlacementMongoPersistenceTest {
         version.setName("mutated copy");
         assertThat(repository.findVersion("placement-published-2", 2).orElseThrow().getName())
                 .isEqualTo("Published two");
+    }
+
+    @Test
+    void compactListAndPreviewPreserveLegacyOrderWhileCopyingAnEditableVersion() {
+        List<PlacementQuestion> questions = adminQuestions();
+        mongo.insert(questions, PlacementQuestion.class);
+        PlacementTestSet seed = PlacementTestSetSnapshotFactory.assemble("PLT-V3-DEV-001-V2", "PLT-V3-DEV-001",
+                "Portable seed", 2, PlacementTestSetStatus.DRAFT, questions);
+        List<String> ids = questions.stream().map(PlacementQuestion::getId).toList();
+        seed.setItems(seed.getItems().reversed());
+        mongo.insert(seed);
+        var service = adminTestSets(testAudio());
+
+        var page = service.list("Portable", PlacementTestSetStatus.DRAFT, 0, 1);
+        assertThat(page.total()).isEqualTo(1);
+        assertThat(page.items()).singleElement().satisfies(set -> {
+            assertThat(set.questionIds()).containsExactlyElementsOf(ids);
+            assertThat(set.snapshot()).isEmpty();
+            assertThat(set.lockedSeed()).isTrue();
+        });
+        assertThat(service.get(seed.getId()).snapshot().getFirst().id()).isEqualTo(ids.getFirst());
+        assertThatThrownBy(() -> service.delete(seed.getId(), 0))
+                .isInstanceOfSatisfying(PlacementRequestException.class,
+                        error -> assertThat(error.status()).isEqualTo(HttpStatus.CONFLICT));
+
+        var next = service.newVersion(seed.getId());
+        assertThat(next.version()).isEqualTo(3);
+        assertThat(next.lockedSeed()).isFalse();
+        assertThat(next.questionIds()).containsExactlyElementsOf(ids);
+        assertThat(next.snapshot().getFirst().code()).isEqualTo("CODE-1");
+        assertThatThrownBy(() -> service.newVersion(seed.getId()))
+                .isInstanceOfSatisfying(PlacementRequestException.class,
+                        error -> assertThat(error.status()).isEqualTo(HttpStatus.CONFLICT));
+    }
+
+    @Test
+    void competingPublicationsCommitOnceAndArchiveKeepsTheOriginalSnapshot() throws Exception {
+        assumeReplicaSet();
+        List<PlacementQuestion> questions = adminQuestions();
+        mongo.insert(questions, PlacementQuestion.class);
+        var service = adminTestSets(testAudio());
+        var draft = service.create(new CreatePlacementTestSetRequest("Admin draft"));
+        var request = new UpdatePlacementTestSetRequest("Published name",
+                questions.stream().map(PlacementQuestion::getId).toList(), draft.revision());
+        assertThat(race(() -> publicationStatus(service, draft.id(), request),
+                () -> publicationStatus(service, draft.id(), request)))
+                .containsExactlyInAnyOrder(HttpStatus.OK, HttpStatus.CONFLICT);
+
+        var published = service.get(draft.id());
+        assertThat(published.revision()).isEqualTo(1);
+        assertThat(published.snapshot()).hasSize(20);
+        assertThat(published.snapshot().get(14).audioUrl()).isEqualTo(TEST_AUDIO_URL);
+        assertThat(published.snapshot().getFirst().prompt()).isEqualTo("Prompt 1");
+        mongo.updateFirst(Query.query(Criteria.where("_id").is(questions.getFirst().getId())),
+                new Update().set("prompt", "Updated question").inc("revision", 1L), PlacementQuestion.class);
+
+        var archived = service.archive(draft.id(), published.revision());
+        assertThat(archived.status()).isEqualTo(PlacementTestSetStatus.ARCHIVED);
+        assertThat(archived.revision()).isEqualTo(2);
+        assertThat(archived.snapshot()).isEqualTo(published.snapshot());
+        var learnerSets = new MongoPlacementTestSetRepository(mongo, new MockEnvironment(), false);
+        assertThat(learnerSets.findPublished()).isEmpty();
+        assertThat(learnerSets.findVersion(draft.id(), 1).orElseThrow().getItems().getFirst().getPrompt())
+                .isEqualTo("Prompt 1");
+    }
+
+    @Test
+    void rejectsIncorrectLevelMatrixEvenWithFourteenReadingAndSixListening() {
+        assumeReplicaSet();
+        List<PlacementQuestion> questions = adminQuestions();
+        questions.getFirst().setLevel(PlacementLevel.B1);
+        questions.get(16).setLevel(PlacementLevel.A1);
+        mongo.insert(questions, PlacementQuestion.class);
+        var service = adminTestSets(testAudio());
+        var draft = service.create(new CreatePlacementTestSetRequest("Admin draft"));
+        var request = new UpdatePlacementTestSetRequest("Name from publish",
+                questions.stream().map(PlacementQuestion::getId).toList(), draft.revision());
+
+        assertThat(publicationStatus(service, draft.id(), request)).isEqualTo(HttpStatus.UNPROCESSABLE_ENTITY);
+        var stored = service.get(draft.id());
+        assertThat(stored.status()).isEqualTo(PlacementTestSetStatus.DRAFT);
+        assertThat(stored.revision()).isZero();
+        assertThat(stored.name()).isEqualTo("Admin draft");
+        assertThat(stored.snapshot()).isEmpty();
+    }
+
+    @Test
+    void deactivationAfterQuestionReadPreventsPublishingAStaleActiveSnapshot() throws Exception {
+        assumeReplicaSet();
+        List<PlacementQuestion> questions = adminQuestions();
+        mongo.insert(questions, PlacementQuestion.class);
+        var media = testAudio();
+        var read = new CountDownLatch(1);
+        var proceed = new CountDownLatch(1);
+        doAnswer(call -> {
+            read.countDown();
+            assertThat(proceed.await(5, TimeUnit.SECONDS)).isTrue();
+            return null;
+        }).when(media).requirePlayable(any());
+        var service = adminTestSets(media);
+        var draft = service.create(new CreatePlacementTestSetRequest("Admin draft"));
+        var request = new UpdatePlacementTestSetRequest(draft.name(),
+                questions.stream().map(PlacementQuestion::getId).toList(), draft.revision());
+        try (var executor = Executors.newSingleThreadExecutor()) {
+            var pending = executor.submit(() -> publicationStatus(service, draft.id(), request));
+            try {
+                assertThat(read.await(5, TimeUnit.SECONDS)).isTrue();
+                mongo.updateFirst(Query.query(Criteria.where("_id").is(questions.getFirst().getId())),
+                        new Update().set("status", PlacementQuestionStatus.INACTIVE).inc("revision", 1L),
+                        PlacementQuestion.class);
+            } finally {
+                proceed.countDown();
+            }
+            assertThat(pending.get(10, TimeUnit.SECONDS))
+                    .isIn(HttpStatus.CONFLICT, HttpStatus.UNPROCESSABLE_ENTITY);
+        }
+        var stored = mongo.findById(draft.id(), PlacementTestSet.class);
+        assertThat(stored.getStatus()).isEqualTo(PlacementTestSetStatus.DRAFT);
+        assertThat(stored.getRevision()).isZero();
+        assertThat(stored.getItems()).isNullOrEmpty();
     }
 
     @Test
@@ -332,6 +482,60 @@ class PlacementMongoPersistenceTest {
                         NOW.plusSeconds(30), 1, PlacementLevel.A1, NOW.plus(Duration.ofHours(2))));
         assertThat(finishes).filteredOn(Optional::isPresent).hasSize(1);
         assertThat(mongo.findById(active.getId(), PlacementAttempt.class).getRevision()).isEqualTo(2);
+    }
+
+    private static void assumeReplicaSet() {
+        assumeTrue(mongo.getDb().runCommand(new Document("hello", 1)).containsKey("setName"),
+                "Placement publication needs a Mongo replica set");
+    }
+
+    private static PlacementAdminTestSetService adminTestSets(PlacementAdminQuestionMedia media) {
+        var transactions = new MongoPlacementTransactionExecutor(new TransactionTemplate(
+                new MongoTransactionManager(mongo.getMongoDatabaseFactory())));
+        return new PlacementAdminTestSetServiceImpl(new MongoPlacementAdminTestSetRepository(mongo),
+                new MongoPlacementQuestionRepository(mongo), media, transactions, Clock.fixed(NOW, ZoneOffset.UTC));
+    }
+
+    private static PlacementAdminQuestionMedia testAudio() {
+        var media = mock(PlacementAdminQuestionMedia.class);
+        when(media.resolve(any())).thenAnswer(call -> {
+            PlacementQuestion question = call.getArgument(0);
+            return question.getSkill() == PlacementSkill.LISTENING ? TEST_AUDIO_URL : null;
+        });
+        return media;
+    }
+
+    private static HttpStatus publicationStatus(PlacementAdminTestSetService service, String id,
+                                                UpdatePlacementTestSetRequest request) {
+        try {
+            service.publish(id, request);
+            return HttpStatus.OK;
+        } catch (PlacementRequestException error) {
+            return error.status();
+        }
+    }
+
+    private static List<PlacementQuestion> adminQuestions() {
+        var questions = new ArrayList<PlacementQuestion>();
+        var options = List.of(new PlacementQuestionOptionVo("a", "A", "First"),
+                new PlacementQuestionOptionVo("b", "B", "Second"),
+                new PlacementQuestionOptionVo("c", "C", "Third"),
+                new PlacementQuestionOptionVo("d", "D", "Fourth"));
+        for (PlacementSkill skill : List.of(PlacementSkill.READING, PlacementSkill.LISTENING)) {
+            for (PlacementLevel level : PlacementLevel.values()) {
+                int reading = level == PlacementLevel.A1 || level == PlacementLevel.A2 ? 4 : 3;
+                int required = skill == PlacementSkill.READING ? reading : 5 - reading;
+                for (int slot = 0; slot < required; slot++) {
+                    int number = questions.size() + 1;
+                    questions.add(PlacementQuestion.builder().id("adm-q-" + number).code("CODE-" + number)
+                            .skill(skill).level(level).prompt("Prompt " + number).passage("Reading passage")
+                            .transcript("Listening transcript").options(options).correctOptionId("a")
+                            .provenance(PlacementQuestionProvenanceVo.builder().audioDurationSeconds(1).build())
+                            .status(PlacementQuestionStatus.ACTIVE).build());
+                }
+            }
+        }
+        return questions;
     }
 
     private static void seedQuestions() throws Exception {

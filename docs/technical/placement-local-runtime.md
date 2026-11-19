@@ -25,11 +25,24 @@ The default host MongoDB port is 27019; inside Docker it is mongodb:27017. Exist
 Docker volumes retain their original users/passwords; this setup never resets them.
 The root .env is ignored by Git and must not be shared with credentials filled in.
 
-Setup checks actual replica-set topology, all packaged inputs/media and existing
-document content. It imports exactly the 320 questions and one V2 DRAFT test set,
-skips identical IDs, rejects different content and never writes placement_attempts.
-An explicit -Apply is required for writes; a plain setup call is read-only for DB data.
-Do not run the generic all-samples import to enable Placement.
+Setup checks the replica set, packaged media and existing content. It imports the
+320 base questions and the V2 draft. Apply then adds the Vietnamese explanations
+and a new V3 draft. Existing V1/V2 snapshots and placement_attempts are preserved.
+An explicit `-Apply` is required for writes. Use the Placement setup for these inputs.
+
+For a database that already has the question bank and V2, apply only the
+explanation revision:
+
+```powershell
+.\tools\placement\setup-local.ps1 -ExplanationsOnly
+.\tools\placement\setup-local.ps1 -ExplanationsOnly -Apply
+```
+
+This updates explanations only when the question and old explanation still match
+the seed. It preserves Admin-authored edits and stops on a conflicting V3. Future
+dev-only starts use V3 if no published set is available. For production or an
+existing published set, use normal Admin versioning and publication to release the
+updated explanations. Each attempt reviews the explanation stored in its own snapshot.
 
 The backend listens on 8080. run-local explicitly activates `dev,placement-local`:
 Mongo Placement persistence, dev-only DRAFT access, media directory and registration
@@ -64,7 +77,8 @@ choose the newest version of each code within the selected status; PUBLISHED sti
 wins over DRAFT. Attempt/result/review reads keep the exact assigned ID/version.
 Old V1 snapshots contain localhost:8892 URLs: retain the previous audio server on
 the original developer machine while those historical attempts need it. They are
-not silently migrated or republished. Fresh team setup imports V2 only.
+not silently migrated or republished. Fresh setup starts from V2 and adds V3 with
+the same portable media URLs and improved explanations.
 
 ## Package verification and tests
 

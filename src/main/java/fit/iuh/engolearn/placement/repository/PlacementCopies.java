@@ -27,8 +27,8 @@ final class PlacementCopies {
     }
 
     static PlacementTestSet testSet(PlacementTestSet source) {
-        List<PlacementSnapshotItemVo> items = source.getItems().stream().map(item ->
-                PlacementSnapshotItemVo.builder().id(item.getId()).order(item.getOrder())
+        List<PlacementSnapshotItemVo> items = source.getItems() == null ? List.of() : source.getItems().stream().map(item ->
+                PlacementSnapshotItemVo.builder().id(item.getId()).code(item.getCode()).order(item.getOrder())
                         .skill(item.getSkill()).level(item.getLevel()).label(item.getLabel())
                         .prompt(item.getPrompt()).passage(item.getPassage())
                         .correctOptionId(item.getCorrectOptionId())
@@ -40,6 +40,8 @@ final class PlacementCopies {
                         .build()).toList();
         return PlacementTestSet.builder().id(source.getId()).code(source.getCode())
                 .name(source.getName()).version(source.getVersion()).status(source.getStatus())
+                .createdAt(source.getCreatedAt()).updatedAt(source.getUpdatedAt()).revision(source.getRevision())
+                .questionIds(source.getQuestionIds() == null ? null : List.copyOf(source.getQuestionIds()))
                 .items(items).build();
     }
 }

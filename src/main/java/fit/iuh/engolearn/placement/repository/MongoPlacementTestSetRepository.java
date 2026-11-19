@@ -1,5 +1,6 @@
 package fit.iuh.engolearn.placement.repository;
 
+import fit.iuh.engolearn.placement.model.PlacementLegacySeed;
 import fit.iuh.engolearn.placement.model.PlacementTestSet;
 import fit.iuh.engolearn.placement.model.enums.PlacementTestSetStatus;
 import java.util.List;
@@ -30,11 +31,16 @@ public class MongoPlacementTestSetRepository implements PlacementTestSetReposito
 
     @Override
     public Optional<PlacementTestSet> findPublished() {
-        Optional<PlacementTestSet> published = select(PlacementTestSetStatus.PUBLISHED);
+        Optional<PlacementTestSet> published = select(Criteria.where("status").is(PlacementTestSetStatus.PUBLISHED));
         if (published.isPresent() || !allowDraft || !environment.acceptsProfiles(Profiles.of("dev"))) {
             return published;
         }
-        return select(PlacementTestSetStatus.DRAFT);
+        return select(Criteria.where("status").is(PlacementTestSetStatus.DRAFT)
+                .and("code").is(PlacementLegacySeed.CODE)
+                .and("question_ids").exists(false)
+                .orOperator(Criteria.where("_id").is(PlacementLegacySeed.V1_ID).and("version").is(1),
+                        Criteria.where("_id").is(PlacementLegacySeed.V2_ID).and("version").is(2),
+                        Criteria.where("_id").is(PlacementLegacySeed.V3_ID).and("version").is(3)));
     }
 
     @Override
@@ -44,9 +50,9 @@ public class MongoPlacementTestSetRepository implements PlacementTestSetReposito
         return set == null ? Optional.empty() : Optional.of(PlacementCopies.testSet(set));
     }
 
-    private Optional<PlacementTestSet> select(PlacementTestSetStatus status) {
-        List<PlacementTestSet> candidates = mongo.find(Query.query(
-                        Criteria.where("status").is(status).and("items.19").exists(true)),
+    private Optional<PlacementTestSet> select(Criteria eligibility) {
+        List<PlacementTestSet> candidates = mongo.find(Query.query(eligibility
+                        .and("items.19").exists(true).and("items.20").exists(false)),
                 PlacementTestSet.class);
         candidates = PlacementTestSetVersions.latest(candidates);
         if (candidates.isEmpty()) return Optional.empty();

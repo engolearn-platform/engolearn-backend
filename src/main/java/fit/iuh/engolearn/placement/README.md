@@ -1,4 +1,11 @@
-# Placement start-session reservations
+# Placement
+
+The Admin API under `/api/v1/placement/admin` requires an ADMIN access cookie
+and Mongo persistence. See the contracts for [question bank](../../../../../../../docs/technical/placement-admin-question-bank.md),
+[test sets](../../../../../../../docs/technical/placement-admin-test-sets.md) and
+[attempt lookup](../../../../../../../docs/technical/placement-admin-attempt-api.md).
+
+## Start-session reservations
 
 `MongoPlacementAttemptRepository` acquires a session reservation in the same
 indexed insert that creates an Attempt. `start_session_key` contains the browser's

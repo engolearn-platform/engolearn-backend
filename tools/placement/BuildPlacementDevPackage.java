@@ -121,6 +121,7 @@ public class BuildPlacementDevPackage {
         Document roundTrip = new Document();
         converter.write(converter.read(PlacementTestSet.class, snapshotDocument), roundTrip);
         require(snapshotDocument.equals(roundTrip), "Snapshot Mongo round trip");
+        keepLegacyV2Shape(snapshotDocument);
 
         String sourceSha = sha(questionFile);
         var questionEnvelope = envelope("engolearn-placement-v3-questions", "Canonical M1 questions; unchanged content and order", sourceSha,
@@ -190,6 +191,12 @@ public class BuildPlacementDevPackage {
         return (name.endsWith(".importer.json") ? SAMPLES : OUTPUT).resolve(name);
     }
 
+    private static void keepLegacyV2Shape(Document snapshot) {
+        // Admin versions carry these fields. The released V2 importer retains its original shape.
+        snapshot.remove("revision");
+        snapshot.getList("items", Document.class).forEach(item -> item.remove("code"));
+    }
+
     private static void validateExports(Map<String,String> artifacts, List<Map<String,Object>> raw, Document snapshot,
                                         List<PlacementQuestion> selected, MappingMongoConverter converter) {
         Map<String,Object> questions = parseObject(artifacts.get("placement-v3-questions.importer.json"));
@@ -216,6 +223,7 @@ public class BuildPlacementDevPackage {
         var restored = converter.read(PlacementTestSet.class, Document.parse(parsedSet.toJson()));
         Document roundTrip = new Document();
         converter.write(restored, roundTrip);
+        keepLegacyV2Shape(roundTrip);
         require(roundTrip.equals(snapshot), "Exported snapshot lost fields");
     }
 

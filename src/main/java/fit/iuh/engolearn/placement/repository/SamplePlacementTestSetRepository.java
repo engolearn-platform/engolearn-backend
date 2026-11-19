@@ -6,6 +6,7 @@ import fit.iuh.engolearn.placement.model.vo.PlacementSnapshotItemVo;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -18,7 +19,7 @@ import tools.jackson.databind.ObjectMapper;
 @Repository
 @ConditionalOnProperty(prefix = "engolearn.placement.persistence", name = "mode",
         havingValue = "sample", matchIfMissing = true)
-public class SamplePlacementTestSetRepository implements PlacementTestSetRepository {
+public class SamplePlacementTestSetRepository implements PlacementTestSetRepository, PlacementAttemptTestSetRepository {
     private final PlacementTestSet sample;
 
     public SamplePlacementTestSetRepository(@Value("classpath:placement/sample-test-set.json") Resource resource,
@@ -37,6 +38,22 @@ public class SamplePlacementTestSetRepository implements PlacementTestSetReposit
     public Optional<PlacementTestSet> findVersion(String id, int version) {
         return sample.getId().equals(id) && sample.getVersion() == version
                 ? Optional.of(PlacementCopies.testSet(sample)) : Optional.empty();
+    }
+
+    @Override
+    public List<PlacementAttemptTestSetVersion> findVersionsByCode(String code, Integer version) {
+        return sample.getCode().equalsIgnoreCase(code) && (version == null || version == sample.getVersion())
+                ? List.of(summary()) : List.of();
+    }
+
+    @Override
+    public List<PlacementAttemptTestSetVersion> findVersionsById(Set<String> ids) {
+        return ids.contains(sample.getId()) ? List.of(summary()) : List.of();
+    }
+
+    private PlacementAttemptTestSetVersion summary() {
+        return new PlacementAttemptTestSetVersion(sample.getId(), sample.getVersion(),
+                sample.getCode(), sample.getItems().size());
     }
 
     private static void validate(PlacementTestSet set) {
