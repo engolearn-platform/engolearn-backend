@@ -43,7 +43,8 @@ class MediaManagementImplTest {
         storage = mock(MediaStorageProvider.class);
         currentUserProvider = mock(CurrentUserProvider.class);
         when(currentUserProvider.getCurrentUser()).thenReturn(Optional.empty());
-        media = new MediaManagementImpl(repository, storage, currentUserProvider, 1024 * 1024, Duration.ofSeconds(60));
+        media = new MediaManagementImpl(repository, storage, currentUserProvider,
+                1024 * 1024, 512 * 1024, Duration.ofSeconds(60));
     }
 
     @Test

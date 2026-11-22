@@ -15,10 +15,11 @@ Additional settings:
 
 | Environment variable | Default | Meaning |
 |---|---:|---|
-| `MEDIA_MAX_UPLOAD_SIZE_BYTES` | `26214400` | Global technical limit (25 MiB) |
+| `MEDIA_MAX_UPLOAD_SIZE_BYTES` | `26214400` | Global technical limit for audio (25 MiB) |
+| `MEDIA_MAX_IMAGE_UPLOAD_SIZE_BYTES` | `10000000` | Image limit (10 MB, Cloudinary Free plan cap) |
 | `MEDIA_PROTECTED_URL_LIFETIME` | `60s` | Protected URL lifetime; accepted range 1–60 seconds |
 
-A feature can apply a lower business-specific limit before calling Media.
+Cloudinary's [Free plan comparison](https://cloudinary.com/pricing/compare-plans) lists a 10 MB image limit and 100 MB video limit. Audio is stored as a video resource, so the app's 25 MiB global cap remains below the Free plan's video cap. A feature can apply a lower business-specific limit before calling Media.
 
 ## Upload mapping
 

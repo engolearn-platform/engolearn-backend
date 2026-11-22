@@ -6,7 +6,7 @@ This is the primary document for developers integrating Topic, Quiz or another f
 
 1. Add an upload endpoint owned by your feature. Do not add or call a generic Media REST endpoint.
 2. Validate feature-specific rules in your feature (format subset, maximum size, duration, ownership/admin permissions).
-3. Choose `purpose` and `MediaAccessPolicy` in the feature. Media stores purpose as opaque metadata and does not switch on it.
+3. Choose `purpose` and `MediaAccessPolicy` in the feature. Media stores purpose as opaque metadata and does not switch on it. Enforce the 10 MB image cap required by Cloudinary Free (audio has a 25 MiB Media-wide cap) or choose a stricter feature-specific limit.
 4. Call `MediaManagement`; never access Media repositories, Cloudinary classes or provider IDs.
 5. Persist the returned `mediaId` in your feature document.
 6. When returning content to a client, authorize access to that content first, then call `resolve(mediaId)` and include the resulting URL in your feature response.

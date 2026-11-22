@@ -95,7 +95,7 @@ The model extends `shared.BaseDocument`; persisted fields use explicit snake_cas
 
 Media currently recognizes file signatures for JPEG, PNG, WEBP, MP3 and WAV. Audio uses Cloudinary `resource_type=video`; this is Cloudinary's resource classification, not an EngoLearn media type.
 
-The global upload limit defaults to 25 MiB. A feature may enforce a smaller use-case-specific limit before calling Media.
+The global upload limit defaults to 25 MiB for audio. Images have a separate 10 MB technical cap to match the Cloudinary Free plan. A feature may enforce a smaller use-case-specific limit before calling Media.
 
 ## Access and authorization
 

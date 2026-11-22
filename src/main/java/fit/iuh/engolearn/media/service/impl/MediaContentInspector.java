@@ -19,10 +19,17 @@ final class MediaContentInspector {
     private MediaContentInspector() {
     }
 
-    static InspectedMedia inspect(InputStream source, String declaredContentType, long declaredSizeBytes, long maxSizeBytes) {
+    static InspectedMedia inspect(
+            InputStream source,
+            String declaredContentType,
+            long declaredSizeBytes,
+            long maxUploadSizeBytes,
+            long maxImageSizeBytes) {
         if (source == null) throw new MediaUploadRejectedException("Media content is required");
         if (declaredSizeBytes <= 0) throw new MediaUploadRejectedException("Media size must be positive");
-        if (declaredSizeBytes > maxSizeBytes) throw new MediaUploadRejectedException("Media exceeds the configured upload limit");
+        if (declaredSizeBytes > maxUploadSizeBytes) {
+            throw new MediaUploadRejectedException("Media exceeds the configured upload limit");
+        }
         if (declaredContentType == null || declaredContentType.isBlank()) {
             throw new MediaUploadRejectedException("Content type is required");
         }
@@ -36,7 +43,14 @@ final class MediaContentInspector {
             if (!matchesDeclaredType(declaredContentType, descriptor.contentType())) {
                 throw new MediaUploadRejectedException("Declared content type does not match the uploaded file");
             }
-            BoundedCountingInputStream counted = new BoundedCountingInputStream(replayable, maxSizeBytes);
+
+            long effectiveLimit = descriptor.resourceType() == MediaResourceType.IMAGE
+                    ? Math.min(maxUploadSizeBytes, maxImageSizeBytes)
+                    : maxUploadSizeBytes;
+            if (declaredSizeBytes > effectiveLimit) {
+                throw new MediaUploadRejectedException("Media exceeds the configured limit for this resource type");
+            }
+            BoundedCountingInputStream counted = new BoundedCountingInputStream(replayable, effectiveLimit);
             return new InspectedMedia(counted, descriptor, counted);
         } catch (IOException ex) {
             throw new MediaUploadRejectedException("Unable to inspect media content", ex);

@@ -167,7 +167,7 @@ Use embedded value conventions from `shared.EmbeddedDocument`. Add only indexes 
 
 Because `InputStream` may be one-shot, implement bounded signature inspection and actual-byte counting without reading an unbounded stream into memory. Verify the Cloudinary SDK's InputStream upload support before implementation. Treat `sizeBytes` as a claim to validate, not proof of actual payload size.
 
-A global hard upload limit must be configurable independently of each feature's stricter business limits. The initial default is a plan-review item; do not silently hardcode a large limit.
+A global hard upload limit must be configurable independently of each feature's stricter business limits. The global default is 25 MiB for audio; images have a separate 10 MB default to match the Cloudinary Free plan image cap. Feature-specific limits may be lower.
 
 If Cloudinary upload succeeds but Mongo persistence fails, attempt best-effort provider cleanup using the returned provider identifier, log a structured error if compensation also fails, and propagate a stable Media failure. This compensation is not a user-facing delete feature.
 

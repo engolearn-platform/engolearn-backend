@@ -4,7 +4,7 @@
 
 The module tests are designed not to call Cloudinary:
 
-- `MediaContentInspectorTest`: signature recognition, MIME mismatch, unsupported content and bounded stream behavior.
+- `MediaContentInspectorTest`: signature recognition, MIME mismatch, unsupported content, image-specific limit and bounded stream behavior.
 - `MediaManagementImplTest`: upload result, public/protected resolution, missing IDs and best-effort compensation.
 - `MediaAssetRepositoryIntegrationTest`: Mongo persistence and snake_case mapping using the shared singleton MongoDB Testcontainers base. Docker is required for this integration test.
 - `ArchitectureTest`: approved feature root and contract/package dependency rules.

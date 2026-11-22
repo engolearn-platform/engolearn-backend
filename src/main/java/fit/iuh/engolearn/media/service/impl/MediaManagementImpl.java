@@ -29,6 +29,7 @@ public class MediaManagementImpl implements MediaManagement {
     private final MediaStorageProvider storage;
     private final CurrentUserProvider currentUserProvider;
     private final long maxUploadSizeBytes;
+    private final long maxImageUploadSizeBytes;
     private final Duration protectedUrlLifetime;
 
     public MediaManagementImpl(
@@ -36,8 +37,12 @@ public class MediaManagementImpl implements MediaManagement {
             MediaStorageProvider storage,
             CurrentUserProvider currentUserProvider,
             @Value("${engolearn.media.max-upload-size-bytes:26214400}") long maxUploadSizeBytes,
+            @Value("${engolearn.media.max-image-upload-size-bytes:10000000}") long maxImageUploadSizeBytes,
             @Value("${engolearn.media.protected-url-lifetime:60s}") Duration protectedUrlLifetime) {
-        if (maxUploadSizeBytes <= 0) throw new IllegalArgumentException("Media max upload size must be positive");
+        if (maxUploadSizeBytes <= 0 || maxImageUploadSizeBytes <= 0
+                || maxImageUploadSizeBytes > maxUploadSizeBytes) {
+            throw new IllegalArgumentException("Media upload limits must be positive and image limit cannot exceed global limit");
+        }
         if (protectedUrlLifetime == null || protectedUrlLifetime.compareTo(Duration.ofSeconds(1)) < 0
                 || protectedUrlLifetime.compareTo(Duration.ofMinutes(1)) > 0) {
             throw new IllegalArgumentException("Protected media URL lifetime must be between 1 and 60 seconds");
@@ -46,6 +51,7 @@ public class MediaManagementImpl implements MediaManagement {
         this.storage = storage;
         this.currentUserProvider = currentUserProvider;
         this.maxUploadSizeBytes = maxUploadSizeBytes;
+        this.maxImageUploadSizeBytes = maxImageUploadSizeBytes;
         this.protectedUrlLifetime = protectedUrlLifetime;
     }
 
@@ -53,7 +59,8 @@ public class MediaManagementImpl implements MediaManagement {
     public MediaUploadResultDto upload(UploadMediaCommandDto command) {
         validateCommand(command);
         MediaContentInspector.InspectedMedia inspected = MediaContentInspector.inspect(
-                command.content(), command.contentType(), command.sizeBytes(), maxUploadSizeBytes);
+                command.content(), command.contentType(), command.sizeBytes(),
+                maxUploadSizeBytes, maxImageUploadSizeBytes);
         String createdBy = currentUserProvider.getCurrentUser().map(user -> user.id()).orElse(null);
 
         String mediaId = UUID.randomUUID().toString();
