@@ -64,6 +64,7 @@ A new dependency needs an explicit reason and approval. Keep this table in sync 
 | `subscription` | `payment.contract` for purchase/refund commands and results; conditional dev-only reset capability as described above |
 | `quota` | `subscription.contract` (effective-entitlement lookup and durable Subscription-owned facts) |
 | `payment` | None; must never depend on Subscription |
+| `media` | None; provider exposes `media.contract.MediaManagement`; consuming features declare their own dependency when they integrate it |
 | `placement` | `user.contract.UserLevelPromotion` for atomic monotonic profile promotion on owned completion/Guest claim and explicit learning activation (user-approved 2026-11-08) |
 | `speaking` | `topic` |
 

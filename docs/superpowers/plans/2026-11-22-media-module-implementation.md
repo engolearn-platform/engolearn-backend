@@ -1,6 +1,6 @@
 # Media Module Implementation Plan
 
-> **Status:** Awaiting user approval. This commit contains the plan only; no production code or runtime behavior is changed.
+**Status:** Approved by the user; implementation in progress.
 > **Target branch:** `feat/media-module`, based on `dev`.
 
 ## Goal
@@ -285,4 +285,4 @@ Mocked tests cannot prove these Cloudinary delivery properties. If the real-acco
 
 ## Approval gate
 
-This plan is the only intended change in the current review step. **Do not begin implementation until the user explicitly approves this plan.**
+The user approved this plan and the five final design decisions on 2026-11-22. Implementation is proceeding on `feat/media-module`; feature integrations remain out of scope.

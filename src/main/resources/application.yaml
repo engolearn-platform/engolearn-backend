@@ -30,6 +30,8 @@ engolearn:
     cookies:
       secure: ${AUTH_COOKIE_SECURE:false}
   media:
+    max-upload-size-bytes: ${MEDIA_MAX_UPLOAD_SIZE_BYTES:26214400}
+    protected-url-lifetime: ${MEDIA_PROTECTED_URL_LIFETIME:60s}
     cloudinary:
       url: ${CLOUDINARY_URL:}
       cloud-name: ${CLOUDINARY_CLOUD_NAME:}
