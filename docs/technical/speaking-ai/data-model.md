@@ -11,17 +11,21 @@ Speaking owns the following Mongo documents. The collection annotations and [`Sp
 | `speaking_audio_assets` / `SpeakingAudioAsset` | Session/turn association, kind and private media storage reference/metadata. Bytes are handled by shared `MediaStorage`, not stored as public content by the API. |
 | `speaking_usage_segments` / `SpeakingUsageSegment` | Learner/day usage intervals used for daily usage accounting. |
 
-Exact field names and enum values are defined in the linked model source under [`speaking/model`](../../../src/main/java/fit/iuh/engolearn/speaking/model). Do not rename collection, BSON field, DTO or enum identifiers as part of the conversation-manager refactor.
+Exact BSON field names and enum values live under [`speaking/model`](../../../src/main/java/fit/iuh/engolearn/speaking/model). Collection, BSON and enum identifiers are persistence compatibility surface.
 
 ## Ownership and lifecycle
 
-Every learner REST operation resolves the actor via `CurrentUserProvider`; repository predicates combine the actor ID with the requested session/item where needed. A session pins its content snapshot so later Topic edits do not silently rewrite in-progress context. Topic is queried through the `SpeakingItemLookup` contract to establish that an item can be opened; Speaking does not own Topic item data. Media storage is likewise behind `MediaStorage` and playback is served only after session/turn/learner ownership validation.
+Every learner REST operation resolves the actor via `CurrentUserProvider`. `SpeakingSessionService` enforces learner ownership through repository filters or explicit checks on the loaded record. Session start uses the create request ID as the session ID and pins the item/config version, goals, completion policy, context, roles and resources. Later Topic or configuration edits leave existing snapshots intact.
 
-Session start uses the create request ID as the session ID and pins the item/config version. Only one active/interrupted open session is admitted per learner by service checks plus the partial unique index. Turns persist their sequence, finalized transcript and evaluation state. In manager mode the validated draft and decision drive separate writes to the assessment, turn and session records. The current implementation has no durable transcript blob or transaction covering all these writes. The [business mapping](../../features/speaking-with-ai/README.md) records closing and recovery gaps.
+- [`SpeakingSession`](../../../src/main/java/fit/iuh/engolearn/speaking/model/SpeakingSession.java) is open in `ACTIVE` and `INTERRUPTED`. `closing_at` and `closing_reason` track shutdown within an open state. `COMPLETED` and `INCOMPLETE` are terminal and store `end_reason` separately. Service checks and the partial unique index admit one open session per learner.
+- [`SpeakingTurn`](../../../src/main/java/fit/iuh/engolearn/speaking/model/SpeakingTurn.java) starts `PENDING` with the finalized transcript and sequence. Settlement can write `SUCCEEDED`, `INVALID` or `FAILED`. At the closing deadline a remaining `PENDING` turn stays in that state. `UNRESOLVED` is part of the accepted design described in the [business mapping](../../features/speaking-with-ai/README.md).
+- Managed settlement writes the assessment, turn and session as separate records. The turn stores the transcript directly. The current implementation has no durable payload-blob path or transaction covering all these writes.
 
-Delete operations set `deleted_at` after an open session has settled. History and owner lookups exclude soft-deleted sessions; the implementation does not cascade a physical delete. A learner recording's 30-day playback deadline and the signed URL's 60-second lifetime are access limits, not Mongo or Cloudinary deletion schedules.
+## Snapshots and audio
 
-The controller ticket is an in-memory, short-lived capability bound to learner, session and epoch; it is not a persisted auth token. A newly accepted controller fences the older one. Session revision/epoch checks protect writes from stale tabs. These guards are part of the lifecycle contract even though the ticket itself is not a Mongo document.
+The session service projects [`SpeakingSessionResponse`](../../../src/main/java/fit/iuh/engolearn/speaking/dto/response/SpeakingSessionResponse.java) from the persisted session, ordered turns, assessments and audio metadata. This response supplies REST detail and a reconnect snapshot. `revision` is a Mongo optimistic version and `controllerEpoch` tracks control changes. Tickets, current sockets, uncommitted PCM and interim transcripts are held in memory. See [connection recovery](runtime-flows.md#4-connection-recovery).
+
+The opening state lives on the session. Opening audio uses a session-level `AI_OPENING` asset, while `LEARNER_RECORDING` and `AI_REPLY` assets attach to turns. Learner recording and opening playback enforce a 30-day window. The turn's AI reply playback path checks ownership and asset presence without that expiry check. All playback URLs are signed for 60 seconds. These are access limits. Delete operations set `deleted_at` after an open session settles and exclude the session from history and owner lookups. Soft deletion and playback expiry do not physically delete the Mongo documents or Cloudinary files.
 
 ## Neighbor-owned data
 

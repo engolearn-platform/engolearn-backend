@@ -1,6 +1,6 @@
 # Speaking AI REST and WebSocket contract
 
-The REST controller is [`SpeakingController`](../../../src/main/java/fit/iuh/engolearn/speaking/controller/SpeakingController.java) under `/api/v1/speaking`. It resolves the authenticated learner from the cookie session. Success is HTTP 200 with `{data, timestamp}`; `data` is nullable for the current-session read. The FE sends `X-Speaking-Contract: 0.8.3` and a matching socket query parameter; this BE does not negotiate or enforce a version from either value.
+The REST controller is [`SpeakingController`](../../../src/main/java/fit/iuh/engolearn/speaking/controller/SpeakingController.java) under `/api/v1/speaking`. `SpeakingSessionService` resolves the learner through `CurrentUserProvider` using cookie-backed authentication. Success is HTTP 200 with `{data, timestamp}`. `data` is nullable for the current-session read. The FE sends `X-Speaking-Contract: 0.8.3` and `contractVersion=0.8.3` on the socket URL. On `dev` those values have no backend version-negotiation or enforcement effect. The [shared v0.8.3 addendum](../../../../docs/system-design/speaking-demo-contract-v0.8.3-addendum.md) defines the accepted compatibility gate for unavailable payloads, which this runtime does not emit.
 
 ## REST routes
 
@@ -13,9 +13,9 @@ The REST controller is [`SpeakingController`](../../../src/main/java/fit/iuh/eng
 | `POST /sessions` | `CreateSpeakingSessionRequest`: `itemId`, `requestId` | Creates a session unless an open session already prevents it. |
 | `POST /sessions/replace` | `CreateSpeakingSessionRequest` | Creates with replacement semantics for the learner's existing open session. |
 | `POST /sessions/{id}/resume` | `SpeakingControlRequest`: `controllerEpoch`, `requestId` | Ownership is checked, supplied epoch is not used, and resume advances the epoch. Replaying the last resume request ID returns the snapshot without advancing again. |
-| `POST /sessions/{id}/end` | `SpeakingControlRequest`: `controllerEpoch`, `requestId` | Ends the session under the current controller epoch. |
-| `POST /sessions/{id}/opening/retry` | `SpeakingControlRequest`: `controllerEpoch`, `requestId` | Retries a failed opening under the current controller epoch. |
-| `GET /sessions/{id}/opening/audio` | Path `id` | Returns the opening audio playback response when available. |
+| `POST /sessions/{id}/end` | `SpeakingControlRequest`: `controllerEpoch`, `requestId` | Checks the current epoch while the session is open and waits for the terminal snapshot. Returns the existing terminal snapshot if already ended. |
+| `POST /sessions/{id}/opening/retry` | `SpeakingControlRequest`: `controllerEpoch`, `requestId` | Retries a failed opening on an active, non-closing session under the current epoch. A repeated retry request ID returns the current snapshot. |
+| `GET /sessions/{id}/opening/audio` | Path `id` | Issues a playback URL for the caller's `READY` opening when the audio exists and is within its playback window. |
 | `POST /sessions/{id}/socket-ticket` | `SpeakingControlRequest`: `controllerEpoch`, `requestId` | Issues `{ticket, expiresInSeconds: 30}` bound to learner, session and epoch. The request ID is required by the DTO but is not used as a ticket replay key. |
 | `DELETE /sessions/{id}` | Path `id` | Soft-deletes the learner-owned session; an open session is settled first. |
 | `DELETE /sessions` | None | Soft-deletes the learner's non-deleted sessions; returns the affected count. |
@@ -23,9 +23,11 @@ The REST controller is [`SpeakingController`](../../../src/main/java/fit/iuh/eng
 
 The exact Java request and response shapes are [`CreateSpeakingSessionRequest`](../../../src/main/java/fit/iuh/engolearn/speaking/dto/request/CreateSpeakingSessionRequest.java), [`SpeakingControlRequest`](../../../src/main/java/fit/iuh/engolearn/speaking/dto/request/SpeakingControlRequest.java), [`SpeakingSessionResponse`](../../../src/main/java/fit/iuh/engolearn/speaking/dto/response/SpeakingSessionResponse.java), [`SpeakingSocketTicketResponse`](../../../src/main/java/fit/iuh/engolearn/speaking/dto/response/SpeakingSocketTicketResponse.java), and the other DTOs in those folders. Their names and serialized identifiers are compatibility surface; consult the source for exact field constraints.
 
+REST and snapshot-bearing socket events use `SpeakingSessionResponse`. It carries pinned content, goal and turn results, opening state, `controllerEpoch`, `revision` and `canStartTurn`. See the [data model](data-model.md#snapshots-and-audio) for how persisted records become this response.
+
 ## Socket handshake and messages
 
-The backend registers `/ws/speaking/*` with configured allowed origins. Request a ticket from `POST /sessions/{id}/socket-ticket`, then connect to `/ws/speaking/{sessionId}?ticket={ticket}`. The ticket is single-use and binds the learner, session and epoch. A missing ticket or failed asynchronous connection setup closes the socket with policy violation. Replacing a controller fences its old connection.
+The backend registers `/ws/speaking/*` with configured allowed origins. Request a ticket from `POST /sessions/{id}/socket-ticket`, then connect to `/ws/speaking/{sessionId}?ticket={ticket}`. The ticket is single-use and binds the learner, session and epoch. The session service rejects invalid, expired and stale tickets. A missing ticket or failed asynchronous connection setup closes the socket with policy violation. Replacing a controller fences its old connection.
 
 Text messages are JSON. Supported commands are:
 
@@ -39,14 +41,14 @@ Binary frames carry mono 16 kHz signed 16-bit little-endian PCM. The backend bou
 
 | Server event | Meaning |
 | --- | --- |
-| `CONNECTED`, `OPENING_UPDATED`, `SESSION_ENDED` | Server snapshots for connection, opening changes, or terminal state. |
+| `CONNECTED`, `OPENING_UPDATED`, `SESSION_ENDED` | Server snapshots for connection, opening changes or terminal state. `CONNECTED` follows STT stream setup. |
 | `STT_READY`, `INTERIM_TRANSCRIPT`, `TURN_ACCEPTED` | Provider ready, provisional text, and committed transcript respectively. |
 | `TURN_CANCELED`, `TURN_EMPTY`, `TURN_FAILED`, `STT_ERROR` | Canceled recording, no finalized text to commit, failed turn, or recognition error. |
 | `TURN_RESULT`, `PROCESSING_ERROR` | Settled result or evaluation error with snapshot on the evaluation path. Manager decisions can add optional `demoDecision`; clients must not depend on it for lifecycle state. |
 | `AI_AUDIO_READY`, `TTS_ERROR`, `AUDIO_ERROR` | Audio becomes available after the result, synthesis fails, or recording persistence fails. Ready events carry no snapshot; refresh session detail for availability. |
 | `CONTROLLER_CHANGED`, `ERROR` | Control has moved, or the handler rejected a message. |
 
-Realtime events carry `controllerEpoch` and `revision`; `turnId` is present for turn events. Handler-level `ERROR` can contain only `type` and `message`. See [`SpeakingRealtimeService`](../../../src/main/java/fit/iuh/engolearn/speaking/service/SpeakingRealtimeService.java) and the [FE client contract](../../../../speaking-ai-baseline-frontend/docs/features/speaking-with-ai/api-contract.md).
+Realtime events carry `controllerEpoch` and `revision`, with a `turnId` for turn events. Handler-level `ERROR` can contain only `type` and `message`. See [`SpeakingRealtimeService`](../../../src/main/java/fit/iuh/engolearn/speaking/service/SpeakingRealtimeService.java), the [runtime flows](runtime-flows.md) and the [FE client contract](../../../../engolearn-frontend/docs/features/speaking-with-ai/api-contract.md).
 
 Unknown text message types produce an `ERROR` event. Parse/audio exceptions also produce `ERROR` with the exception message when present. Failure to send an event closes the connection with server error. The browser's Vite proxy is configured on the frontend and is not part of this backend contract.
 
