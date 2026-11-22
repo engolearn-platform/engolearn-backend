@@ -5,7 +5,6 @@ target/
 !**/src/test/**/target/
 
 .artifacts/
-.superpowers/
 docs/superpowers/
 ./.codegraph
 ./.codex
@@ -21,3 +20,5 @@ docs/superpowers/
 
 ### VS Code ###
 .vscode/
+
+.superpowers
