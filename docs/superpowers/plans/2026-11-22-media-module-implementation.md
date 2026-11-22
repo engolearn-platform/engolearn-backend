@@ -1,6 +1,6 @@
 # Media Module Implementation Plan
 
-**Status:** Approved by the user; implementation in progress.
+**Status:** Implementation committed; automated test execution and live Cloudinary verification remain pending.
 > **Target branch:** `feat/media-module`, based on `dev`.
 
 ## Goal
@@ -288,4 +288,4 @@ Mocked tests cannot prove these Cloudinary delivery properties. If the real-acco
 
 ## Approval gate
 
-The user approved this plan and the five final design decisions on 2026-11-22. Implementation is proceeding on `feat/media-module`; feature integrations remain out of scope.
+The user approved this plan and the five final design decisions on 2026-11-22. The Media module implementation is committed on `feat/media-module`; feature integrations remain out of scope. Run the documented automated tests and the real-account Cloudinary smoke test before treating delivery as production-verified.
