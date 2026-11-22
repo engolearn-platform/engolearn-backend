@@ -6,7 +6,6 @@ target/
 
 .artifacts/
 docs/superpowers/
-./.codegraph
 ./.codex
 
 ### ENV ###
@@ -22,3 +21,4 @@ docs/superpowers/
 .vscode/
 
 .superpowers
+.codegraph/
