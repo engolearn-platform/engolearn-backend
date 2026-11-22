@@ -7,6 +7,7 @@ EngoLearn Backend is a Spring Boot modular monolith under `fit.iuh.engolearn`.
 3. Follow the authoritative [package boundaries](docs/architecture/package-structure.md), [communication policy](docs/architecture/cross-feature-communication.md), [implementation conventions](docs/architecture/implementation-conventions.md) and [working agreement](docs/agent/working-agreement.md). These include dependency approval, behavior preservation, comments and public-contract requirements.
 4. Inspect actual implementation, callers, persistence and tests before editing code or describing status. Do not invent business rules or treat legacy inconsistencies as exceptions.
 5. Update the owning documentation when implementation changes, link instead of duplicating, and complete the applicable [Definition of Done](docs/agent/definition-of-done.md). Report actual checks, failures, unrun checks and manual steps.
+6. When creating or changing protected endpoints or role-gated service operations, developers and coding agents MUST read and follow the [security authorization rules](docs/architecture/security-authorization.md).
 
 Use the team's chosen workflow. OpenSpec is optional; when a task already uses it, read its proposal, design, applicable specs and tasks. `ArchitectureTest` enforces only a subset of policy; passing it does not replace the documents above.
 

@@ -22,3 +22,5 @@ Canonical email/session IDs require unique indexes. Inspect deployed index state
 ## Verification
 
 Compare ID/email/role before and after login and reload, then check refresh and logout through `/profile`. Inspect canonical email/password-hash presence in `users` and independent bounded sessions in `refresh_sessions` without exposing hashes or raw tokens in UI/logs. These are operator checks, not a claim that full authentication/security acceptance has been completed.
+
+For role-authorization checks, use [RBAC verification](rbac-verification.md).

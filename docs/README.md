@@ -5,6 +5,8 @@ Start with the [system overview](architecture/system-overview.md) and [module ma
 | Need | Source |
 | --- | --- |
 | Package, dependency and coding rules | [Package structure](architecture/package-structure.md), [communication](architecture/cross-feature-communication.md), [implementation conventions](architecture/implementation-conventions.md) |
+| Create or change protected endpoints or service operations | [Required security authorization rules](architecture/security-authorization.md) |
+| Integrate or verify role authorization | [RBAC integration guide](technical/security/rbac-integration.md), [RBAC verification runbook](runbooks/rbac-verification.md) |
 | Why an architecture choice exists | [ADR-0001](architecture/decisions/ADR-0001-no-outbox-for-quota-mvp.md), [ADR-0002](architecture/decisions/ADR-0002-durable-subscription-payment-quota-delivery.md) |
 | Understand behavior | [Flows](flows/README.md) |
 | Change a module or HTTP contract | [Technical documentation](technical/README.md) |
