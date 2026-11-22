@@ -20,7 +20,7 @@
         "category": "DAILY",
         "order_index": 100,
         "duration_minutes": 35,
-        "cover_url": null,
+        "cover_url": "https://images.ctfassets.net/lzny33ho1g45/4u5BXgTThmm2KJsg4RZgrr/2410f1e09b295de33a1849b1ee299867/daily-routines-00-hero.png?fm=webp&q=31&fit=thumb&w=1520&h=760",
         "tags": [
           "daily-routine",
           "workday",
@@ -152,7 +152,7 @@
               "audio_url": null
             },
             {
-              "speaker": "Bạn",
+              "speaker": "Learner",
               "text_en": "I get up at six thirty.",
               "text_vi": "Mình dậy lúc sáu giờ rưỡi.",
               "audio_url": null
@@ -164,7 +164,7 @@
               "audio_url": null
             },
             {
-              "speaker": "Bạn",
+              "speaker": "Learner",
               "text_en": "I brush my teeth. Then I get dressed.",
               "text_vi": "Mình đánh răng. Sau đó mình thay đồ.",
               "audio_url": null
@@ -176,7 +176,7 @@
               "audio_url": null
             },
             {
-              "speaker": "Bạn",
+              "speaker": "Learner",
               "text_en": "At seven fifteen. We can go together.",
               "text_vi": "Lúc bảy giờ mười lăm. Mình đi cùng nhau được đó.",
               "audio_url": null
@@ -195,9 +195,9 @@
               "phonetic": "/ɡet ʌp/",
               "describe_vi": "thức dậy, ra khỏi giường",
               "sense": "to get out of bed",
-              "audio_url": null,
-              "audio_en_url": null,
-              "audio_us_url": null
+              "audio_url": "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en-US&q=get%20up",
+              "audio_en_url": "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en-GB&q=get%20up",
+              "audio_us_url": "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en-US&q=get%20up"
             },
             "samples": [
               {
@@ -242,9 +242,9 @@
               "phonetic": "/brʌʃ maɪ tiːθ/",
               "describe_vi": "đánh răng",
               "sense": "to clean my teeth with a toothbrush",
-              "audio_url": null,
-              "audio_en_url": null,
-              "audio_us_url": null
+              "audio_url": "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en-US&q=brush%20my%20teeth",
+              "audio_en_url": "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en-GB&q=brush%20my%20teeth",
+              "audio_us_url": "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en-US&q=brush%20my%20teeth"
             },
             "samples": [
               {
@@ -274,9 +274,9 @@
               "phonetic": "/ɡet drest/",
               "describe_vi": "mặc quần áo, thay đồ",
               "sense": "to put on clothes",
-              "audio_url": null,
-              "audio_en_url": null,
-              "audio_us_url": null
+              "audio_url": "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en-US&q=get%20dressed",
+              "audio_en_url": "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en-GB&q=get%20dressed",
+              "audio_us_url": "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en-US&q=get%20dressed"
             },
             "samples": [
               {
@@ -306,9 +306,9 @@
               "phonetic": "/liːv hoʊm/",
               "describe_vi": "ra khỏi nhà",
               "sense": "to go out of the place where you live",
-              "audio_url": null,
-              "audio_en_url": null,
-              "audio_us_url": null
+              "audio_url": "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en-US&q=leave%20home",
+              "audio_en_url": "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en-GB&q=leave%20home",
+              "audio_us_url": "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en-US&q=leave%20home"
             },
             "samples": [
               {
@@ -651,7 +651,7 @@
               "audio_url": null
             },
             {
-              "speaker": "Bạn",
+              "speaker": "Learner",
               "text_en": "I take the bus.",
               "text_vi": "Mình đi xe buýt.",
               "audio_url": null
@@ -663,7 +663,7 @@
               "audio_url": null
             },
             {
-              "speaker": "Bạn",
+              "speaker": "Learner",
               "text_en": "At the bus stop near my house.",
               "text_vi": "Ở trạm xe buýt gần nhà mình.",
               "audio_url": null
@@ -675,7 +675,7 @@
               "audio_url": null
             },
             {
-              "speaker": "Bạn",
+              "speaker": "Learner",
               "text_en": "About twenty minutes.",
               "text_vi": "Khoảng hai mươi phút.",
               "audio_url": null
@@ -694,9 +694,9 @@
               "phonetic": "/teɪk ðə bʌs/",
               "describe_vi": "đi xe buýt",
               "sense": "to travel by bus",
-              "audio_url": null,
-              "audio_en_url": null,
-              "audio_us_url": null
+              "audio_url": "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en-US&q=take%20the%20bus",
+              "audio_en_url": "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en-GB&q=take%20the%20bus",
+              "audio_us_url": "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en-US&q=take%20the%20bus"
             },
             "samples": [
               {
@@ -726,9 +726,9 @@
               "phonetic": "/ˈbʌs stɑːp/",
               "describe_vi": "trạm xe buýt",
               "sense": "a place where a bus stops for people",
-              "audio_url": null,
-              "audio_en_url": null,
-              "audio_us_url": null
+              "audio_url": "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en-US&q=bus%20stop",
+              "audio_en_url": "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en-GB&q=bus%20stop",
+              "audio_us_url": "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en-US&q=bus%20stop"
             },
             "samples": [
               {
@@ -773,9 +773,9 @@
               "phonetic": "/wɔːk/",
               "describe_vi": "đi bộ",
               "sense": "to go somewhere on foot",
-              "audio_url": null,
-              "audio_en_url": null,
-              "audio_us_url": null
+              "audio_url": "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en-US&q=walk",
+              "audio_en_url": "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en-GB&q=walk",
+              "audio_us_url": "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en-US&q=walk"
             },
             "samples": [
               {
@@ -805,9 +805,9 @@
               "phonetic": "/ˈmɪnɪt/",
               "describe_vi": "phút",
               "sense": "a period of sixty seconds",
-              "audio_url": null,
-              "audio_en_url": null,
-              "audio_us_url": null
+              "audio_url": "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en-US&q=minute",
+              "audio_en_url": "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en-GB&q=minute",
+              "audio_us_url": "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en-US&q=minute"
             },
             "samples": [
               {
@@ -1158,7 +1158,7 @@
               "audio_url": null
             },
             {
-              "speaker": "Bạn",
+              "speaker": "Learner",
               "text_en": "Sure. I brought my lunch today.",
               "text_vi": "Được chứ. Hôm nay mình mang đồ ăn trưa theo.",
               "audio_url": null
@@ -1170,7 +1170,7 @@
               "audio_url": null
             },
             {
-              "speaker": "Bạn",
+              "speaker": "Learner",
               "text_en": "At twelve thirty. Can we eat in the break room?",
               "text_vi": "Lúc mười hai giờ rưỡi. Mình ăn trong phòng nghỉ được không?",
               "audio_url": null
@@ -1195,9 +1195,9 @@
               "phonetic": "/ˈlʌntʃ breɪk/",
               "describe_vi": "giờ nghỉ trưa",
               "sense": "time away from work or class to eat lunch",
-              "audio_url": null,
-              "audio_en_url": null,
-              "audio_us_url": null
+              "audio_url": "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en-US&q=lunch%20break",
+              "audio_en_url": "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en-GB&q=lunch%20break",
+              "audio_us_url": "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en-US&q=lunch%20break"
             },
             "samples": [
               {
@@ -1227,9 +1227,9 @@
               "phonetic": "/brɪŋ maɪ lʌntʃ/",
               "describe_vi": "mang đồ ăn trưa theo",
               "sense": "to take my lunch with me to work or school",
-              "audio_url": null,
-              "audio_en_url": null,
-              "audio_us_url": null
+              "audio_url": "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en-US&q=bring%20my%20lunch",
+              "audio_en_url": "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en-GB&q=bring%20my%20lunch",
+              "audio_us_url": "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en-US&q=bring%20my%20lunch"
             },
             "samples": [
               {
@@ -1259,9 +1259,9 @@
               "phonetic": "/ˈbreɪk ruːm/",
               "describe_vi": "phòng nghỉ ở chỗ làm",
               "sense": "a room at work where people can sit, eat, or take a break",
-              "audio_url": null,
-              "audio_en_url": null,
-              "audio_us_url": null
+              "audio_url": "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en-US&q=break%20room",
+              "audio_en_url": "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en-GB&q=break%20room",
+              "audio_us_url": "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en-US&q=break%20room"
             },
             "samples": [
               {
@@ -1291,9 +1291,9 @@
               "phonetic": "/təˈɡeðər/",
               "describe_vi": "cùng nhau",
               "sense": "with another person or other people",
-              "audio_url": null,
-              "audio_en_url": null,
-              "audio_us_url": null
+              "audio_url": "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en-US&q=together",
+              "audio_en_url": "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en-GB&q=together",
+              "audio_us_url": "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en-US&q=together"
             },
             "samples": [
               {
@@ -1644,7 +1644,7 @@
           "prompt": "Bạn mở đầu thế nào để nói mình có thể nấu cơm và nhờ An rửa rau?",
           "dialogue": [
             {
-              "speaker": "Bạn",
+              "speaker": "Learner",
               "text_en": "I can cook rice tonight.",
               "text_vi": "Tối nay mình có thể nấu cơm.",
               "audio_url": null
@@ -1656,7 +1656,7 @@
               "audio_url": null
             },
             {
-              "speaker": "Bạn",
+              "speaker": "Learner",
               "text_en": "At six thirty. Can you wash the vegetables?",
               "text_vi": "Lúc sáu giờ rưỡi. Bạn rửa rau giúp mình được không?",
               "audio_url": null
@@ -1668,13 +1668,13 @@
               "audio_url": null
             },
             {
-              "speaker": "Bạn",
+              "speaker": "Learner",
               "text_en": "Yes, we do. We can have eggs and rice.",
               "text_vi": "Có. Mình ăn trứng với cơm nhé.",
               "audio_url": null
             },
             {
-              "speaker": "An",
+              "speaker": "Learner",
               "text_en": "Sounds good. See you at home.",
               "text_vi": "Được đó. Gặp bạn ở nhà nhé.",
               "audio_url": null
@@ -1693,9 +1693,9 @@
               "phonetic": "/ɡet hoʊm/",
               "describe_vi": "về đến nhà",
               "sense": "to arrive at home",
-              "audio_url": null,
-              "audio_en_url": null,
-              "audio_us_url": null
+              "audio_url": "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en-US&q=get%20home",
+              "audio_en_url": "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en-GB&q=get%20home",
+              "audio_us_url": "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en-US&q=get%20home"
             },
             "samples": [
               {
@@ -1740,9 +1740,9 @@
               "phonetic": "/kʊk/",
               "describe_vi": "nấu, nấu chín",
               "sense": "to make food ready to eat with heat",
-              "audio_url": null,
-              "audio_en_url": null,
-              "audio_us_url": null
+              "audio_url": "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en-US&q=cook",
+              "audio_en_url": "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en-GB&q=cook",
+              "audio_us_url": "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en-US&q=cook"
             },
             "samples": [
               {
@@ -1772,9 +1772,9 @@
               "phonetic": "/raɪs/",
               "describe_vi": "gạo, cơm",
               "sense": "small grains that people cook and eat",
-              "audio_url": null,
-              "audio_en_url": null,
-              "audio_us_url": null
+              "audio_url": "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en-US&q=rice",
+              "audio_en_url": "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en-GB&q=rice",
+              "audio_us_url": "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en-US&q=rice"
             },
             "samples": [
               {
@@ -1804,9 +1804,9 @@
               "phonetic": "/ˈvedʒtəbəl/",
               "describe_vi": "rau, củ",
               "sense": "a plant or part of a plant that people eat as food",
-              "audio_url": null,
-              "audio_en_url": null,
-              "audio_us_url": null
+              "audio_url": "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en-US&q=vegetable",
+              "audio_en_url": "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en-GB&q=vegetable",
+              "audio_us_url": "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en-US&q=vegetable"
             },
             "samples": [
               {
@@ -2147,7 +2147,7 @@
               "audio_url": null
             },
             {
-              "speaker": "Bạn",
+              "speaker": "Learner",
               "text_en": "At ten thirty. I read a book before bed.",
               "text_vi": "Lúc mười giờ rưỡi. Mình đọc sách trước khi ngủ.",
               "audio_url": null
@@ -2159,7 +2159,7 @@
               "audio_url": null
             },
             {
-              "speaker": "Bạn",
+              "speaker": "Learner",
               "text_en": "I can set an alarm for six thirty.",
               "text_vi": "Mình có thể đặt báo thức reo lúc sáu giờ rưỡi.",
               "audio_url": null
@@ -2171,7 +2171,7 @@
               "audio_url": null
             },
             {
-              "speaker": "Bạn",
+              "speaker": "Learner",
               "text_en": "Sure. Good night!",
               "text_vi": "Được. Ngủ ngon nhé!",
               "audio_url": null
@@ -2190,9 +2190,9 @@
               "phonetic": "/ɡoʊ tə bed/",
               "describe_vi": "đi ngủ",
               "sense": "to go to the place where you sleep because it is time to sleep",
-              "audio_url": null,
-              "audio_en_url": null,
-              "audio_us_url": null
+              "audio_url": "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en-US&q=go%20to%20bed",
+              "audio_en_url": "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en-GB&q=go%20to%20bed",
+              "audio_us_url": "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en-US&q=go%20to%20bed"
             },
             "samples": [
               {
@@ -2222,9 +2222,9 @@
               "phonetic": "/bɪˈfɔːr bed/",
               "describe_vi": "trước khi đi ngủ",
               "sense": "before you go to bed",
-              "audio_url": null,
-              "audio_en_url": null,
-              "audio_us_url": null
+              "audio_url": "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en-US&q=before%20bed",
+              "audio_en_url": "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en-GB&q=before%20bed",
+              "audio_us_url": "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en-US&q=before%20bed"
             },
             "samples": [
               {
@@ -2254,9 +2254,9 @@
               "phonetic": "/set ən əˈlɑːrm/",
               "describe_vi": "đặt báo thức",
               "sense": "to choose a time when an alarm will ring",
-              "audio_url": null,
-              "audio_en_url": null,
-              "audio_us_url": null
+              "audio_url": "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en-US&q=set%20an%20alarm",
+              "audio_en_url": "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en-GB&q=set%20an%20alarm",
+              "audio_us_url": "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en-US&q=set%20an%20alarm"
             },
             "samples": [
               {
@@ -2286,9 +2286,9 @@
               "phonetic": "/tɝːn ɔːf ðə laɪt/",
               "describe_vi": "tắt đèn",
               "sense": "to make the light stop shining",
-              "audio_url": null,
-              "audio_en_url": null,
-              "audio_us_url": null
+              "audio_url": "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en-US&q=turn%20off%20the%20light",
+              "audio_en_url": "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en-GB&q=turn%20off%20the%20light",
+              "audio_us_url": "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en-US&q=turn%20off%20the%20light"
             },
             "samples": [
               {

@@ -1,0 +1,383 @@
+{
+  "metadata": {
+    "name": "subscription-development-baseline",
+    "version": 1,
+    "description": "Raw MongoDB development seed derived from the subscription publication manifest."
+  },
+  "collections": {
+    "subscription_plan_versions": [
+      {
+        "_id": "verification-free-offer-v1",
+        "created_at": {
+          "$date": "2026-10-01T00:00:00Z"
+        },
+        "updated_at": {
+          "$date": "2026-10-01T00:00:00Z"
+        },
+        "scope": "FREE",
+        "version": 1,
+        "effective_at": {
+          "$date": "2026-10-01T00:00:00Z"
+        },
+        "published": true,
+        "display_order": 0,
+        "plan": {
+          "plan_code": "FREE",
+          "display_name": "Miễn phí",
+          "description": "Bắt đầu thói quen học tiếng Anh mỗi ngày với 60 phút luyện nói cùng AI và 1 lượt đánh giá trình độ mỗi tháng. Gói miễn phí không có phí đăng ký.",
+          "benefits": [
+            {
+              "code": "SPEAKING_DURATION",
+              "title": "Luyện nói với AI mỗi ngày",
+              "description": "Duy trì thói quen giao tiếp tiếng Anh với tối đa 60 phút luyện nói cùng AI mỗi ngày. Hạn mức thời lượng được làm mới hằng ngày.",
+              "display_value": "60 phút/ngày",
+              "sort_order": 0
+            },
+            {
+              "code": "PROFICIENCY_CHECK_ATTEMPT",
+              "title": "Đánh giá trình độ tiếng Anh",
+              "description": "Sử dụng tối đa 1 lượt đánh giá trình độ tiếng Anh mỗi tháng để theo dõi việc học. Hạn mức lượt đánh giá được làm mới hằng tháng.",
+              "display_value": "1 lượt/tháng",
+              "sort_order": 1
+            }
+          ],
+          "billing_options": []
+        }
+      },
+      {
+        "_id": "dev-premium-offer-v1",
+        "created_at": {
+          "$date": "2026-10-01T00:00:00Z"
+        },
+        "updated_at": {
+          "$date": "2026-10-01T00:00:00Z"
+        },
+        "scope": "PREMIUM",
+        "version": 1,
+        "effective_at": {
+          "$date": "2026-10-01T00:00:00Z"
+        },
+        "published": true,
+        "display_order": 1,
+        "plan": {
+          "plan_code": "PREMIUM",
+          "display_name": "Premium",
+          "description": "Dành thêm thời gian cho mục tiêu tiếng Anh với 120 phút luyện nói cùng AI mỗi ngày và 5 lượt đánh giá trình độ mỗi tháng. Chọn thanh toán theo tháng hoặc theo năm phù hợp với kế hoạch học tập.",
+          "benefits": [
+            {
+              "code": "SPEAKING_DURATION",
+              "title": "Luyện nói với AI mỗi ngày",
+              "description": "Duy trì thói quen giao tiếp tiếng Anh với tối đa 120 phút luyện nói cùng AI mỗi ngày. Hạn mức thời lượng được làm mới hằng ngày.",
+              "display_value": "120 phút/ngày",
+              "sort_order": 0
+            },
+            {
+              "code": "PROFICIENCY_CHECK_ATTEMPT",
+              "title": "Đánh giá trình độ tiếng Anh",
+              "description": "Sử dụng tối đa 5 lượt đánh giá trình độ tiếng Anh mỗi tháng để theo dõi việc học. Hạn mức lượt đánh giá được làm mới hằng tháng.",
+              "display_value": "5 lượt/tháng",
+              "sort_order": 1
+            }
+          ],
+          "billing_options": [
+            {
+              "billing_period": "MONTHLY",
+              "amount": 199000,
+              "currency": "VND"
+            },
+            {
+              "billing_period": "ANNUAL",
+              "amount": 1590000,
+              "currency": "VND"
+            }
+          ]
+        }
+      }
+    ],
+    "subscription_quota_policy_versions": [
+      {
+        "_id": "verification-free-v1",
+        "created_at": {
+          "$date": "2026-10-01T00:00:00Z"
+        },
+        "updated_at": {
+          "$date": "2026-10-01T00:00:00Z"
+        },
+        "scope": "FREE",
+        "version": 1,
+        "effective_at": {
+          "$date": "2026-10-01T00:00:00Z"
+        },
+        "snapshot": {
+          "policy_snapshot_id": "verification-free-v1",
+          "policy_scope": "FREE",
+          "policy_version": 1,
+          "rules": [
+            {
+              "quota_type": "SPEAKING_DURATION",
+              "display_name": "Thời lượng luyện nói với AI",
+              "limit": 3600,
+              "unit": "SECOND",
+              "period": "DAILY",
+              "display_order": 0
+            },
+            {
+              "quota_type": "PROFICIENCY_CHECK_ATTEMPT",
+              "display_name": "Đánh giá trình độ",
+              "limit": 1,
+              "unit": "ATTEMPT",
+              "period": "MONTHLY",
+              "display_order": 1
+            }
+          ]
+        },
+        "benefits": {
+          "plan_code": "FREE",
+          "display_name": "Miễn phí",
+          "policy_snapshot_id": "verification-free-v1",
+          "benefits": [
+            {
+              "code": "SPEAKING_DURATION",
+              "title": "Luyện nói với AI mỗi ngày",
+              "description": "Duy trì thói quen giao tiếp tiếng Anh với tối đa 60 phút luyện nói cùng AI mỗi ngày. Hạn mức thời lượng được làm mới hằng ngày.",
+              "display_value": "60 phút/ngày",
+              "sort_order": 0
+            },
+            {
+              "code": "PROFICIENCY_CHECK_ATTEMPT",
+              "title": "Đánh giá trình độ tiếng Anh",
+              "description": "Sử dụng tối đa 1 lượt đánh giá trình độ tiếng Anh mỗi tháng để theo dõi việc học. Hạn mức lượt đánh giá được làm mới hằng tháng.",
+              "display_value": "1 lượt/tháng",
+              "sort_order": 1
+            }
+          ]
+        }
+      },
+      {
+        "_id": "verification-trial-v1",
+        "created_at": {
+          "$date": "2026-10-01T00:00:00Z"
+        },
+        "updated_at": {
+          "$date": "2026-10-01T00:00:00Z"
+        },
+        "scope": "TRIAL",
+        "version": 1,
+        "effective_at": {
+          "$date": "2026-10-01T00:00:00Z"
+        },
+        "snapshot": {
+          "policy_snapshot_id": "verification-trial-v1",
+          "policy_scope": "TRIAL",
+          "policy_version": 1,
+          "rules": [
+            {
+              "quota_type": "SPEAKING_DURATION",
+              "display_name": "Thời lượng luyện nói với AI",
+              "limit": 3600,
+              "unit": "SECOND",
+              "period": "DAILY",
+              "display_order": 0
+            },
+            {
+              "quota_type": "PROFICIENCY_CHECK_ATTEMPT",
+              "display_name": "Đánh giá trình độ",
+              "limit": 2,
+              "unit": "ATTEMPT",
+              "period": "MONTHLY",
+              "display_order": 1
+            }
+          ]
+        },
+        "benefits": {
+          "plan_code": "PREMIUM",
+          "display_name": "Dùng thử Premium",
+          "policy_snapshot_id": "verification-trial-v1",
+          "benefits": [
+            {
+              "code": "SPEAKING_DURATION",
+              "title": "Luyện nói với AI mỗi ngày",
+              "description": "Duy trì thói quen giao tiếp tiếng Anh với tối đa 60 phút luyện nói cùng AI mỗi ngày. Hạn mức thời lượng được làm mới hằng ngày.",
+              "display_value": "60 phút/ngày",
+              "sort_order": 0
+            },
+            {
+              "code": "PROFICIENCY_CHECK_ATTEMPT",
+              "title": "Đánh giá trình độ tiếng Anh",
+              "description": "Sử dụng tối đa 2 lượt đánh giá trình độ tiếng Anh mỗi tháng để theo dõi việc học. Hạn mức lượt đánh giá được làm mới hằng tháng.",
+              "display_value": "2 lượt/tháng",
+              "sort_order": 1
+            }
+          ]
+        }
+      },
+      {
+        "_id": "dev-premium-v1",
+        "created_at": {
+          "$date": "2026-10-01T00:00:00Z"
+        },
+        "updated_at": {
+          "$date": "2026-10-01T00:00:00Z"
+        },
+        "scope": "PREMIUM",
+        "version": 1,
+        "effective_at": {
+          "$date": "2026-10-01T00:00:00Z"
+        },
+        "snapshot": {
+          "policy_snapshot_id": "dev-premium-v1",
+          "policy_scope": "PREMIUM",
+          "policy_version": 1,
+          "rules": [
+            {
+              "quota_type": "SPEAKING_DURATION",
+              "display_name": "Thời lượng luyện nói với AI",
+              "limit": 7200,
+              "unit": "SECOND",
+              "period": "DAILY",
+              "display_order": 0
+            },
+            {
+              "quota_type": "PROFICIENCY_CHECK_ATTEMPT",
+              "display_name": "Đánh giá trình độ",
+              "limit": 5,
+              "unit": "ATTEMPT",
+              "period": "MONTHLY",
+              "display_order": 1
+            }
+          ]
+        },
+        "benefits": {
+          "plan_code": "PREMIUM",
+          "display_name": "Premium",
+          "policy_snapshot_id": "dev-premium-v1",
+          "benefits": [
+            {
+              "code": "SPEAKING_DURATION",
+              "title": "Luyện nói với AI mỗi ngày",
+              "description": "Duy trì thói quen giao tiếp tiếng Anh với tối đa 120 phút luyện nói cùng AI mỗi ngày. Hạn mức thời lượng được làm mới hằng ngày.",
+              "display_value": "120 phút/ngày",
+              "sort_order": 0
+            },
+            {
+              "code": "PROFICIENCY_CHECK_ATTEMPT",
+              "title": "Đánh giá trình độ tiếng Anh",
+              "description": "Sử dụng tối đa 5 lượt đánh giá trình độ tiếng Anh mỗi tháng để theo dõi việc học. Hạn mức lượt đánh giá được làm mới hằng tháng.",
+              "display_value": "5 lượt/tháng",
+              "sort_order": 1
+            }
+          ]
+        }
+      }
+    ],
+    "subscription_policy_state": [
+      {
+        "_id": "FREE",
+        "created_at": {
+          "$date": "2026-10-01T00:00:00Z"
+        },
+        "updated_at": {
+          "$date": "2026-10-01T00:00:00Z"
+        },
+        "active_version_id": "verification-free-v1",
+        "pending_version_id": null,
+        "pending_effective_at": null,
+        "activation_sequence": 1,
+        "revision": 0,
+        "manifest_fingerprint": null
+      },
+      {
+        "_id": "TRIAL",
+        "created_at": {
+          "$date": "2026-10-01T00:00:00Z"
+        },
+        "updated_at": {
+          "$date": "2026-10-01T00:00:00Z"
+        },
+        "active_version_id": "verification-trial-v1",
+        "pending_version_id": null,
+        "pending_effective_at": null,
+        "activation_sequence": 1,
+        "revision": 0,
+        "manifest_fingerprint": null
+      },
+      {
+        "_id": "PREMIUM",
+        "created_at": {
+          "$date": "2026-10-01T00:00:00Z"
+        },
+        "updated_at": {
+          "$date": "2026-10-01T00:00:00Z"
+        },
+        "active_version_id": "dev-premium-v1",
+        "pending_version_id": null,
+        "pending_effective_at": null,
+        "activation_sequence": 1,
+        "revision": 0,
+        "manifest_fingerprint": null
+      }
+    ],
+    "subscription_accounts": [
+      {
+        "_id": {
+          "$oid": "68f8f3a9b9e4a12345678901"
+        },
+        "created_at": {
+          "$date": "2026-10-01T00:00:00Z"
+        },
+        "updated_at": {
+          "$date": "2026-10-01T00:00:00Z"
+        },
+        "trial_used": false,
+        "entitlement_version": 0,
+        "entitlement_fingerprint": null,
+        "revision": 0,
+        "provenance": "NEW_ACCOUNT"
+      },
+      {
+        "_id": {
+          "$oid": "68f8f3a9b9e4a12345678902"
+        },
+        "created_at": {
+          "$date": "2026-10-01T00:00:00Z"
+        },
+        "updated_at": {
+          "$date": "2026-10-01T00:00:00Z"
+        },
+        "trial_used": false,
+        "entitlement_version": 0,
+        "entitlement_fingerprint": null,
+        "revision": 0,
+        "provenance": "NEW_ACCOUNT"
+      },
+      {
+        "_id": {
+          "$oid": "68f8f3a9b9e4a12345678903"
+        },
+        "created_at": {
+          "$date": "2026-10-01T00:00:00Z"
+        },
+        "updated_at": {
+          "$date": "2026-10-01T00:00:00Z"
+        },
+        "trial_used": false,
+        "entitlement_version": 0,
+        "entitlement_fingerprint": null,
+        "revision": 0,
+        "provenance": "NEW_ACCOUNT"
+      }
+    ],
+    "subscription_admin_configuration_state": [
+      {
+        "_id": "GLOBAL",
+        "created_at": {
+          "$date": "2026-10-01T00:00:00Z"
+        },
+        "updated_at": {
+          "$date": "2026-10-01T00:00:00Z"
+        },
+        "revision": 1
+      }
+    ]
+  }
+}
