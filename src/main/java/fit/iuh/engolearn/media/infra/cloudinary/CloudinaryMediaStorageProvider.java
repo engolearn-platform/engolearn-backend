@@ -5,6 +5,7 @@ import fit.iuh.engolearn.media.contract.exception.MediaStorageUnavailableExcepti
 import fit.iuh.engolearn.media.contract.exception.MediaUploadRejectedException;
 import fit.iuh.engolearn.media.model.enums.MediaDeliveryType;
 import fit.iuh.engolearn.media.model.enums.MediaProvider;
+import fit.iuh.engolearn.media.model.enums.MediaResourceType;
 import fit.iuh.engolearn.media.model.vo.MediaStorageMetadataVo;
 import fit.iuh.engolearn.media.utils.MediaFileDescriptor;
 import fit.iuh.engolearn.media.utils.MediaPayloadTooLargeIOException;
@@ -42,8 +43,7 @@ public class CloudinaryMediaStorageProvider implements MediaStorageProvider {
                     "type", deliveryType.cloudinaryValue(),
                     "public_id", publicId,
                     "overwrite", false,
-                    "format", descriptor.format(),
-                    "secure", true));
+                    "format", descriptor.format()));
             Object versionValue = result.get("version");
             Long version = versionValue instanceof Number number ? number.longValue() : null;
             Object returnedPublicId = result.get("public_id");
@@ -109,7 +109,7 @@ public class CloudinaryMediaStorageProvider implements MediaStorageProvider {
         }
     }
 
-    private void cleanupPartialUpload(String publicId, fit.iuh.engolearn.media.model.enums.MediaResourceType resourceType,
+    private void cleanupPartialUpload(String publicId, MediaResourceType resourceType,
                                       MediaDeliveryType deliveryType) {
         try {
             client.cloudinary().uploader().destroy(publicId, Map.of(

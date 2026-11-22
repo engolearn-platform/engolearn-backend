@@ -54,10 +54,12 @@ media/
 │   ├── enums/
 │   │   └── MediaAccessPolicy.java
 │   └── exception/                 # only stable caller-actionable failures
-├── service/
-│   └── MediaStorageProvider.java  # internal provider port, if needed
 ├── service/impl/
 │   └── MediaManagementImpl.java
+├── utils/
+│   ├── MediaStorageProvider.java  # internal provider port
+│   ├── MediaFileDescriptor.java
+│   └── MediaPayloadTooLargeIOException.java
 ├── model/
 │   ├── MediaAsset.java
 │   ├── enums/
@@ -249,7 +251,8 @@ Mocked tests cannot prove these Cloudinary delivery properties. If the real-acco
 - Run focused unit tests, Media Mongo integration tests (when Docker is available), `ArchitectureTest`, and the repository's agreed verification profile.
 - Run the manual Cloudinary Free-account smoke test described above and record observed playback/Range/expiry behavior.
 - Add/update the grouped docs:
-  - `docs/technical/media/README.md`: architecture, boundaries, data model, contract and integration guidance.
+  - `docs/technical/media/README.md`: architecture, boundaries, data model and contract.
+  - `docs/technical/media/integration-guide.md`: feature-owned upload/read integration steps and examples.
   - `docs/technical/media/cloudinary-integration.md`: configuration, upload mapping, public/protected delivery, expiry and known Free-plan trade-offs.
   - `docs/technical/media/testing-and-operations.md`: test approach, local setup, smoke test and troubleshooting.
 - Update `docs/architecture/package-structure.md`, `cross-feature-communication.md` and `module-map.md`.
