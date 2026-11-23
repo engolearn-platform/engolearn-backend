@@ -49,7 +49,7 @@ java -jar target/engolearn-0.0.1-SNAPSHOT.jar --spring.profiles.active=prod
 
 Production requires `MONGODB_URI`, `APP_DB` and CORS origins, and inherits secure authentication
 cookies from the shared configuration. The URI supplies managed-database credentials and
-overrides the local host/port/replica-set settings. Production does not use local media directories.
+overrides the local Mongo host/port/replica-set settings. It also binds to Render's `PORT` (defaulting to 8080 outside Render). Production does not use local media directories.
 Development seed,
 DRAFT fallback and payment reset are opt-ins. See the
 [runtime configuration contract](docs/architecture/runtime-configuration.md)

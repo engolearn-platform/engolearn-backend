@@ -11,7 +11,7 @@ before beans or startup runners execute. Do not store `spring.profiles.active` i
 | --- | --- |
 | application.yaml | Shared application configuration, local Mongo connection defaults, enabled transactions, Placement Mongo/level-sync wiring, common auth and integration properties |
 | application-dev.yaml | Development resources, HTTP cookie defaults, optional test helpers, bundled media paths and VNPay sandbox defaults |
-| application-prod.yaml | Managed MongoDB connection URI, application database, CORS and a production-appropriate server-selection timeout |
+| application-prod.yaml | Managed MongoDB connection URI, application database, Render-aware HTTP port, CORS and a production-appropriate server-selection timeout |
 
 Both environments require a replica-set-capable MongoDB deployment because business flows use
 transactions. `dev` uses the team local single-node replica set; `prod` uses a managed replica
@@ -45,6 +45,7 @@ Production may supply process environment or a deployment secret store. Existing
 | --- | --- |
 | MONGO_HOST, MONGO_PORT, MONGO_REPLICA_SET | Local `dev` Mongo address and replica set; defaults are localhost:27017 and engolearn-rs. Not used by `prod` when a URI is configured |
 | MONGODB_URI | Required in `prod`; complete managed MongoDB connection string, normally the `mongodb+srv://` URI copied from Atlas. Keep it in the deployment secret store, never in Git |
+| PORT | HTTP listener port; Render Web Services supply `10000` by default. `prod` falls back to `8080` outside Render |
 | APP_DB | Application database name in both profiles; `spring.mongodb.database` overrides any database name embedded in the URI |
 | APP_USER, APP_PASSWORD | Local `dev` application database credentials; Atlas credentials are supplied inside `MONGODB_URI` |
 | MONGO_USER, MONGO_PASS | Compose/tool root credentials, not the application identity |

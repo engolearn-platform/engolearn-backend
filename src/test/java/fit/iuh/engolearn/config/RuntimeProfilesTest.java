@@ -31,7 +31,7 @@ class RuntimeProfilesTest {
                 .withPropertyValues("spring.profiles.active=" + profile,
                         "spring.config.location=classpath:/application.yaml",
                         "MONGO_HOST=localhost", "MONGO_PORT=27017", "MONGO_REPLICA_SET=engolearn-rs",
-                        "MONGODB_URI=mongodb://localhost:27017/runtime_profile_test",
+                        "MONGODB_URI=mongodb://localhost:27017/runtime_profile_test", "PORT=10000",
                         "APP_DB=runtime_profile_test", "APP_USER=test", "APP_PASSWORD=test-only",
                         "AUTH_JWT_SECRET=test-only-signing-secret-at-least-32-bytes",
                         "CORS_ALLOWED_ORIGINS=https://frontend.example.test",
@@ -51,8 +51,10 @@ class RuntimeProfilesTest {
             assertThat(environment.getProperty("engolearn.placement.persistence.mode")).isEqualTo("mongo");
             assertThat(environment.getProperty("engolearn.mongodb.transactions.enabled", Boolean.class)).isTrue();
             if ("dev".equals(profile)) {
+                assertThat(environment.getProperty("server.port", Integer.class)).isEqualTo(8080);
                 assertThat(environment.getProperty("spring.mongodb.replica-set-name")).isEqualTo("engolearn-rs");
             } else {
+                assertThat(environment.getProperty("server.port", Integer.class)).isEqualTo(10000);
                 assertThat(environment.getProperty("spring.mongodb.uri"))
                         .isEqualTo("mongodb://localhost:27017/runtime_profile_test");
                 assertThat(environment.getProperty("spring.mongodb.database")).isEqualTo("runtime_profile_test");
