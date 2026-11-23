@@ -24,8 +24,8 @@ For a fresh import, use these public demo credentials.
 
 | Role | Email | Password |
 | --- | --- | --- |
-| `ADMIN` | `admin@example.test` | `EngoLearn-Admin-Demo-2026!` |
-| `CONTENT_MANAGER` | `content-manager@example.test` | `EngoLearn-Content-Demo-2026!` |
+| `ADMIN` | `admin@example.test` | `Admin@1234` |
+| `CONTENT_MANAGER` | `content-manager@example.test` | `Manager@1234` |
 
 Start the backend with the default profile and sign in through the frontend `/login`. Both accounts open `/admin/topics` in the management layout.
 

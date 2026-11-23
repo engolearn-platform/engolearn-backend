@@ -11,7 +11,7 @@
           "$oid": "68f8f3a9b9e4a12345678001"
         },
         "email": "admin@example.test",
-        "password_hash": "$2a$10$DPCroqap2.GbCI5hpPvyJeyFGBwKCxugm/9A6Cw5WU.dtQTrLOxdu",
+        "password_hash": "$2a$10$ptLQXjAgYZ8WWcacheAS6uP9u.Jk5i11aysAmqNyR6ej5ZoQ4RDqm",
         "role": "ADMIN",
         "locked": false,
         "created_at": {
@@ -26,7 +26,7 @@
           "$oid": "68f8f3a9b9e4a12345678002"
         },
         "email": "content-manager@example.test",
-        "password_hash": "$2a$10$O0zIsoeuyfoM2aCaNo65VufeY1JI37bioePCsWIUxYHw9M5WylzI6",
+        "password_hash": "$2a$10$fHhhWOXtCoiL.nl3mrRqqesB.n2UGkvVJxCxND13VCr9S02AcdkqS",
         "role": "CONTENT_MANAGER",
         "locked": false,
         "created_at": {
