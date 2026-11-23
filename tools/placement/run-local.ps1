@@ -7,6 +7,6 @@ if(-not (Test-Path -LiteralPath (Join-Path $repoRoot '.env'))) {
 }
 Push-Location $repoRoot
 try {
-    & .\mvnw.cmd spring-boot:run '-Dspring-boot.run.profiles=dev,placement-local' "-Dspring-boot.run.arguments=--server.port=$Port"
+    & .\mvnw.cmd spring-boot:run '-Dspring-boot.run.profiles=dev' "-Dspring-boot.run.arguments=--server.port=$Port"
     if($LASTEXITCODE -ne 0) { throw 'Backend exited unsuccessfully; inspect startup output.' }
 } finally { Pop-Location }

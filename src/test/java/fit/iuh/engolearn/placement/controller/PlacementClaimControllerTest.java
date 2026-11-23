@@ -42,7 +42,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         InMemoryPlacementAttemptRepository.class, SamplePlacementTestSetRepository.class,
         PlacementAttemptServiceImpl.class, PlacementDeadlineServiceImpl.class,
         PlacementClaimServiceImpl.class, PlacementClaimControllerTest.ClockConfig.class})
-@TestPropertySource(properties = "engolearn.security.jwt.secret=placement-cookie-auth-test-key-32-bytes")
+@TestPropertySource(properties = {"engolearn.security.jwt.secret=placement-cookie-auth-test-key-32-bytes",
+        "engolearn.placement.persistence.mode=sample"})
 class PlacementClaimControllerTest {
     @Autowired private MockMvc mvc;
     @Autowired private MutableClock clock;

@@ -10,9 +10,8 @@ import org.springframework.data.mongodb.MongoTransactionManager;
  * Registers the transaction manager that makes the progress writes of one business
  * operation atomic.
  *
- * <p>MongoDB only supports multi-document transactions on a replica set or on a sharded
- * cluster, while the project's docker setup runs a standalone mongod. The bean is therefore
- * opt-in: enabling it against a standalone server makes every transactional write fail.
+ * <p>Both runtime profiles require a replica set and enable this manager. Focused tests
+ * can still omit it when they do not exercise transactional persistence.
  */
 @Configuration
 public class MongoTransactionConfig {

@@ -16,7 +16,7 @@ import java.util.HashSet;
 import java.util.List;
 
 @Configuration
-@Profile("dev")
+@Profile("dev & !prod")
 public class SpeakingDevSeed {
     public record Seed(String topicItemId, String topicItemVersionId, List<SpeakingGoal> goals,
                        int minimumValidTurns, String context, String learnerRole, String aiRole,
