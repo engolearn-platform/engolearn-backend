@@ -1,5 +1,3 @@
-> MongoDB URI alignment23/11/2026: both profiles consume MONGODB_URI. Do not configure a second spring.mongodb.uri override in .env. Local credentials stay private; URI topology/authSource/replica-set options belong in the URI. See [alignment evidence](../technical/mongodb-uri-alignment.md).
-
 # Runtime configuration contract
 
 ## Layers and responsibilities
@@ -11,14 +9,16 @@ before beans or startup runners execute. Do not store `spring.profiles.active` i
 
 | Layer | Owns |
 | --- | --- |
-| application.yaml | Mongo URI from MONGODB_URI and database from APP_DB (default engolearn_db), enabled transactions, Placement Mongo/level-sync wiring, common auth/integration properties |
+| application.yaml | Shared application configuration, local Mongo connection defaults, enabled transactions, Placement Mongo/level-sync wiring, common auth and integration properties |
 | application-dev.yaml | Development resources, HTTP cookie defaults, optional test helpers, bundled media paths and VNPay sandbox defaults |
-| application-prod.yaml | Inherits the Mongo URI, requires APP_DB/CORS; PORT defaults to8080 and Mongo server-selection timeout is15000ms, matching the current team dev configuration |
+| application-prod.yaml | Managed MongoDB connection URI, application database, Render-aware HTTP port, CORS and a production-appropriate server-selection timeout |
 
-Both environments require a replica-set-capable Mongo deployment; local dev may use the team single-node replica set. Use different databases,
-credentials and provider resources; equal infrastructure requirements do not mean sharing
-production data. Both use real cookie/JWT authentication. Profile selection must not choose
-a subset of business modules or weaken their rules.
+Both environments require a replica-set-capable MongoDB deployment because business flows use
+transactions. `dev` uses the team local single-node replica set; `prod` uses a managed replica
+set such as MongoDB Atlas. The production URI owns the connection topology and credentials.
+Use separate databases, credentials and provider resources; never share development data with
+production. Both use real cookie/JWT authentication. Profile selection must not choose a subset
+of business modules or weaken their rules.
 
 ```powershell
 .\mvnw.cmd spring-boot:run "-Dspring-boot.run.profiles=dev"
@@ -43,11 +43,11 @@ Production may supply process environment or a deployment secret store. Existing
 
 | Environment input | Meaning / policy |
 | --- | --- |
-| MONGODB_URI | Full Mongo connection URI in both profiles, including authentication/topology options; required; keep real credentials in ignored .env or deployment secrets |
-| APP_DB | Application database; dev/base default engolearn_db; explicit nonblank value required in prod and overrides database name in URI |
-| MONGO_HOST, MONGO_PORT, MONGO_REPLICA_SET | Local Compose/setup/tool inputs where applicable; the application takes host/port/replica topology from MONGODB_URI |
-| APP_USER, APP_PASSWORD | Local account setup/importer inputs where applicable; application authentication is supplied inside MONGODB_URI |
-| PORT | Prod listener override, fallback8080; dev keeps its existing port8080 |
+| MONGO_HOST, MONGO_PORT, MONGO_REPLICA_SET | Local `dev` Mongo address and replica set; defaults are localhost:27017 and engolearn-rs. Not used by `prod` when a URI is configured |
+| MONGODB_URI | Required in `prod`; complete managed MongoDB connection string, normally the `mongodb+srv://` URI copied from Atlas. Keep it in the deployment secret store, never in Git |
+| PORT | HTTP listener port; Render Web Services supply `10000` by default. `prod` falls back to `8080` outside Render |
+| APP_DB | Application database name in both profiles; `spring.mongodb.database` overrides any database name embedded in the URI |
+| APP_USER, APP_PASSWORD | Local `dev` application database credentials; Atlas credentials are supplied inside `MONGODB_URI` |
 | MONGO_USER, MONGO_PASS | Compose/tool root credentials, not the application identity |
 | AUTH_JWT_SECRET, AUTH_JWT_ISSUER | Real JWT configuration; existing signing-key validation applies |
 | AUTH_COOKIE_SECURE | Dev HTTP/HTTPS override; prod requires secure cookies regardless of this alias |
@@ -58,10 +58,9 @@ Production may supply process environment or a deployment secret store. Existing
 | ASSEMBLYAI_API_KEY, GEMINI_API_KEY, CARTESIA_API_KEY, CARTESIA_VOICE_ID | Speaking resources; see its production gap below |
 
 Root [Compose](../../docker-compose.yaml) provisions one member in engolearn-rs. Its
-healthcheck rejects existing multi-member topology without modifying it. The standard local template uses advertised localhost:27017. A custom mapped port must
-be expressed in MONGODB_URI with appropriate topology options; this machine retains
-its verified localhost27019 connection with directConnection=true and the replica-set name.
-Use the managed provider's topology URI for deployment rather than copying local options. Do not
+healthcheck rejects existing multi-member topology without modifying it. Host clients
+must use advertised localhost:27017; the fresh-clone template now uses 27017. An existing
+`.env` using 27019 needs manual port alignment before normal replica discovery. Do not
 delete volumes or reset users to apply this change. Applications deployed in containers
 or on other hosts need a resolvable advertised member address; localhost development
 Compose is not a production deployment template.
@@ -74,16 +73,19 @@ checks dev without prod independently of YAML.
 | Environment input | Default | Capability |
 | --- | --- | --- |
 | PAYMENT_DEV_RESET_ENABLED | false | Owner-only unresolved unpaid purchase release; preserves financial/refund guards, transaction and audit |
-| DEV_TOPIC_SEED_ENABLED | false | Existing Topic sample runner, subject to its collection-empty check |
 | DEV_SPEAKING_FIXTURE_ENABLED | false | Existing fixed airport Speaking fixture |
 | SPEAKING_DEV_SEED_FILE | empty | Optional Speaking config file for existing item/version IDs |
 | PLACEMENT_ALLOW_DRAFT | false | DRAFT fallback only if no PUBLISHED test set exists |
 | DEV_LOG_LEVEL | INFO | Development application logging; do not expose credentials/tokens |
 
 Helpers never bypass identity, ownership or financial eligibility. See
-[payment reset](../runbooks/dev-purchase-reset.md). Subscription catalog publication
-remains an explicit operator command, not automatic seed. Review its target and manifest;
-never publish development fixture manifests to prod.
+[payment reset](../runbooks/dev-purchase-reset.md). Topic and Subscription development
+content is supplied through explicit Mongo JSON importer files, not an application startup
+seed or runtime flag. Use only the scoped `-File` commands in the
+[importer guide](../../tools/mongo-json-importer/README.md) after confirming a disposable
+local development target. The importer rejects system database names and names with a bounded
+`prod`/`production` token; that name check does not establish that a database is safe or
+non-production.
 
 Safe defaults (helper flags false, empty development seed path and secure cookies)
 are declared once in application.yaml. Dev overrides only its permitted conveniences;
@@ -125,8 +127,9 @@ Do not restore module-named runtime profiles.
 
 | Area | Current integration responsibility |
 | --- | --- |
-| Placement | Mongo/transaction/level-sync defaults configured. Storage-backed audio adapter and explicit replay-aware migration are implemented on this branch; see [integration evidence](../technical/placement-grammar-dev-integration.md). Deployment still requires imported Media metadata, linked snapshots and a Published test set. |
-| Subscription / Payment / Quota | Shared Mongo and transactions; deliberate catalog publication; provider/durable delivery verification |
+| Topic | Development examples are imported from explicitly selected JSON files; keep learner/authoring fixtures out of production and verify publication, list, detail and attempt flows against the target database |
+| Placement | Mongo/transaction/level-sync defaults configured. MEDIA NOT PROD-INTEGRATED: migrate local audio to Media storage and persist references in Mongo; verify current and historical playback without repository files |
+| Subscription / Payment / Quota | Shared Mongo and transactions; import development catalog only to a disposable local database; verify Admin updates, provider and durable delivery independently |
 | Speaking | NOT PROD-INTEGRATED: existing availability filter blocks prod, managed conversation wiring excludes prod. Module owner must resolve its experimental/production contract; this migration does not enable it |
 | Assessment | NOT FULLY PROD-INTEGRATED: real baseline integration and storage-backed audio are required. Filesystem playback is refused in prod; verify preparation/attempt/review after integrating Media |
 | Auth / Media / others | Verify real identity/authorization and storage integration in both profiles; no production dependency on repository samples or local media directories |
@@ -139,8 +142,9 @@ supported team runtime. Use root Compose and common environment inputs.
 ## Acceptance evidence
 
 - Both normal runtime profiles select Mongo persistence and enabled transactions.
-- Database reports exactly one member and a writable primary; disposable rollback checks
-  prove transactional behavior.
+- The local `dev` database reports one member and a writable primary; the managed `prod`
+  database reports a writable replica-set primary. Disposable rollback checks prove
+  transactional behavior without using production data.
 - With prerequisites, dev/prod start and auth, Placement, Subscription and Media smoke
   checks pass; unresolved module/provider checks are listed separately.
 - Prod has no reset or automatic dev seed runners even with helper switches supplied;

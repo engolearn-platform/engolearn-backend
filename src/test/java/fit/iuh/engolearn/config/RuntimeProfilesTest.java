@@ -30,13 +30,13 @@ class RuntimeProfilesTest {
         return new ApplicationContextRunner()
                 .withPropertyValues("spring.profiles.active=" + profile,
                         "spring.config.location=classpath:/application.yaml",
-                        "MONGODB_URI=mongodb://localhost:27017/runtime_profile_test",
                         "MONGO_HOST=localhost", "MONGO_PORT=27017", "MONGO_REPLICA_SET=engolearn-rs",
+                        "MONGODB_URI=mongodb://localhost:27017/runtime_profile_test", "PORT=10000",
                         "APP_DB=runtime_profile_test", "APP_USER=test", "APP_PASSWORD=test-only",
                         "AUTH_JWT_SECRET=test-only-signing-secret-at-least-32-bytes",
                         "CORS_ALLOWED_ORIGINS=https://frontend.example.test",
                         "AUTH_COOKIE_SECURE=false", "PLACEMENT_ALLOW_DRAFT=false",
-                        "DEV_TOPIC_SEED_ENABLED=false", "DEV_SPEAKING_FIXTURE_ENABLED=false",
+                        "DEV_SPEAKING_FIXTURE_ENABLED=false",
                         "PAYMENT_DEV_RESET_ENABLED=false", "SPEAKING_DEV_SEED_FILE=")
                 .withInitializer(new ConfigDataApplicationContextInitializer());
     }
@@ -50,9 +50,36 @@ class RuntimeProfilesTest {
             assertThat(environment.getActiveProfiles()).containsExactly(profile);
             assertThat(environment.getProperty("engolearn.placement.persistence.mode")).isEqualTo("mongo");
             assertThat(environment.getProperty("engolearn.mongodb.transactions.enabled", Boolean.class)).isTrue();
-            assertThat("mongodb://localhost:27017/runtime_profile_test".equals(environment.getProperty("spring.mongodb.uri")))
-                    .as("profile must resolve the test MONGODB_URI, without exposing connection credentials").isTrue();
+            if ("dev".equals(profile)) {
+                assertThat(environment.getProperty("server.port", Integer.class)).isEqualTo(8080);
+                assertThat(environment.getProperty("spring.mongodb.uri"))
+                        .isEqualTo("mongodb://localhost:27017/runtime_profile_test");
+            } else {
+                assertThat(environment.getProperty("server.port", Integer.class)).isEqualTo(10000);
+                assertThat(environment.getProperty("spring.mongodb.uri"))
+                        .isEqualTo("mongodb://localhost:27017/runtime_profile_test");
+                assertThat(environment.getProperty("spring.mongodb.database")).isEqualTo("runtime_profile_test");
+                assertThat(environment.getProperty("engolearn.mongodb.server-selection-timeout-ms", Integer.class))
+                        .isEqualTo(15000);
+            }
             assertThat(environment.getProperty("engolearn.payment.dev-reset.enabled", Boolean.class)).isFalse();
+        });
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"dev", "prod"})
+    void healthEndpointsStayMinimalAndAnonymousSafe(String profile) {
+        configuration(profile).run(context -> {
+            assertThat(context).hasNotFailed();
+            var environment = context.getEnvironment();
+            assertThat(environment.getProperty("management.endpoints.web.exposure.include"))
+                    .isEqualTo("health");
+            assertThat(environment.getProperty("management.endpoint.health.probes.enabled", Boolean.class))
+                    .isTrue();
+            assertThat(environment.getProperty("management.endpoint.health.show-details"))
+                    .isEqualTo("never");
+            assertThat(environment.getProperty("management.endpoint.health.show-components"))
+                    .isEqualTo("never");
         });
     }
 
@@ -60,7 +87,7 @@ class RuntimeProfilesTest {
     void documentedDevEnvironmentAliasesEnableTheHelpers() {
         configuration("dev")
                 .withPropertyValues("PAYMENT_DEV_RESET_ENABLED=true", "PLACEMENT_ALLOW_DRAFT=true",
-                        "DEV_TOPIC_SEED_ENABLED=true", "DEV_SPEAKING_FIXTURE_ENABLED=true")
+                        "DEV_SPEAKING_FIXTURE_ENABLED=true")
                 .withBean(CurrentUserProvider.class, () -> mock(CurrentUserProvider.class))
                 .withBean(DevPurchaseResetService.class, () -> mock(DevPurchaseResetService.class))
                 .withUserConfiguration(DevPurchaseResetController.class)
@@ -68,7 +95,6 @@ class RuntimeProfilesTest {
                     assertThat(context).hasNotFailed().hasSingleBean(DevPurchaseResetController.class);
                     var environment = context.getEnvironment();
                     assertThat(environment.getProperty("engolearn.placement.test-set.allow-draft", Boolean.class)).isTrue();
-                    assertThat(environment.getProperty("engolearn.development.topic-seed-enabled", Boolean.class)).isTrue();
                     assertThat(environment.getProperty("engolearn.development.speaking-fixture-enabled", Boolean.class)).isTrue();
                     assertThat(environment.getProperty("engolearn.security.cookies.secure", Boolean.class)).isFalse();
                 });
@@ -78,18 +104,17 @@ class RuntimeProfilesTest {
     void prodIgnoresDevelopmentAliasesAndHasNoResetController() {
         configuration("prod")
                 .withPropertyValues("PAYMENT_DEV_RESET_ENABLED=true", "PLACEMENT_ALLOW_DRAFT=true",
-                        "DEV_TOPIC_SEED_ENABLED=true", "DEV_SPEAKING_FIXTURE_ENABLED=true",
+                        "DEV_SPEAKING_FIXTURE_ENABLED=true",
                         "SPEAKING_DEV_SEED_FILE=must-not-run.json")
-                .withUserConfiguration(DevPurchaseResetController.class, DevTopicSeedRunner.class,
+                .withUserConfiguration(DevPurchaseResetController.class,
                         SpeakingDevFixture.class, SpeakingDevSeed.class)
                 .run(context -> {
                     assertThat(context).hasNotFailed().doesNotHaveBean(DevPurchaseResetController.class)
-                            .doesNotHaveBean(DevTopicSeedRunner.class).doesNotHaveBean(SpeakingDevFixture.class)
+                            .doesNotHaveBean(SpeakingDevFixture.class)
                             .doesNotHaveBean(SpeakingDevSeed.class);
                     var environment = context.getEnvironment();
                     assertThat(environment.getProperty("engolearn.payment.dev-reset.enabled", Boolean.class)).isFalse();
                     assertThat(environment.getProperty("engolearn.placement.test-set.allow-draft", Boolean.class)).isFalse();
-                    assertThat(environment.getProperty("engolearn.development.topic-seed-enabled", Boolean.class)).isFalse();
                     assertThat(environment.getProperty("engolearn.development.speaking-fixture-enabled", Boolean.class)).isFalse();
                     assertThat(environment.getProperty("engolearn.speaking.dev-seed-file")).isEmpty();
                     assertThat(environment.getProperty("engolearn.security.cookies.secure", Boolean.class)).isTrue();
@@ -97,10 +122,14 @@ class RuntimeProfilesTest {
     }
 
     @Test
-    void devDoesNotSeedAutomatically() {
-        configuration("dev").withUserConfiguration(DevTopicSeedRunner.class, SpeakingDevFixture.class)
-                .run(context -> assertThat(context).hasNotFailed().doesNotHaveBean(DevTopicSeedRunner.class)
-                        .doesNotHaveBean(SpeakingDevFixture.class));
+    void legacyTopicSeedAliasDoesNotConfigureStartupSeeding() {
+        configuration("dev").withPropertyValues("DEV_TOPIC_SEED_ENABLED=true")
+                .withUserConfiguration(SpeakingDevFixture.class)
+                .run(context -> {
+                    assertThat(context).hasNotFailed();
+                    assertThat(context).doesNotHaveBean(SpeakingDevFixture.class);
+                    assertThat(context.getEnvironment().getProperty("engolearn.development.topic-seed-enabled")).isNull();
+                });
     }
 
     @ParameterizedTest
@@ -125,19 +154,39 @@ class RuntimeProfilesTest {
                         assertThat(context).hasFailed().getFailure().hasMessageContaining("enabled Mongo transactions"));
     }
 
-    @ParameterizedTest
-    @ValueSource(strings = {"dev", "prod"})
-    void requiresMongoUri(String profile) {
-        configuration(profile).withPropertyValues("MONGODB_URI=")
+    @Test
+    void devRequiresMongoUri() {
+        configuration("dev").withPropertyValues("MONGODB_URI=")
                 .withInitializer(new RuntimeProfileInitializer()).run(context ->
                         assertThat(context).hasFailed().getFailure()
                                 .hasMessageContaining("Missing required runtime configuration: spring.mongodb.uri"));
     }
 
-    @ParameterizedTest
-    @ValueSource(strings = {"dev", "prod"})
-    void uriDoesNotRequireSeparateLocalConnectionFields(String profile) {
-        configuration(profile).withPropertyValues("MONGO_HOST=", "MONGO_REPLICA_SET=", "APP_USER=", "APP_PASSWORD=")
+    @Test
+    void devDoesNotRequireLocalMongoConnectionFields() {
+        configuration("dev").withPropertyValues("MONGO_HOST=", "MONGO_REPLICA_SET=", "APP_USER=", "APP_PASSWORD=")
+                .withInitializer(new RuntimeProfileInitializer()).run(context -> assertThat(context).hasNotFailed());
+    }
+
+    @Test
+    void prodRequiresMongoUri() {
+        configuration("prod").withPropertyValues("MONGODB_URI=")
+                .withInitializer(new RuntimeProfileInitializer()).run(context ->
+                        assertThat(context).hasFailed().getFailure()
+                                .hasMessageContaining("Missing required runtime configuration: spring.mongodb.uri"));
+    }
+
+    @Test
+    void prodRequiresDatabaseName() {
+        configuration("prod").withPropertyValues("APP_DB=")
+                .withInitializer(new RuntimeProfileInitializer()).run(context ->
+                        assertThat(context).hasFailed().getFailure()
+                                .hasMessageContaining("Missing required runtime configuration: spring.mongodb.database"));
+    }
+
+    @Test
+    void prodDoesNotRequireLocalMongoConnectionFields() {
+        configuration("prod").withPropertyValues("MONGO_HOST=", "MONGO_REPLICA_SET=", "APP_USER=", "APP_PASSWORD=")
                 .withInitializer(new RuntimeProfileInitializer()).run(context -> assertThat(context).hasNotFailed());
     }
 

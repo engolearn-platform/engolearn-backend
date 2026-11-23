@@ -25,7 +25,14 @@ Incomplete enabled settings fail startup. URLs require HTTPS except loopback HTT
 
 These are operator instructions, not checks executed by this migration. A payment/refund exercise requires a deliberate request; do not resume historical transactions or issue refunds just because the adapter exists.
 
-1. Start the existing configured backend on 8080 with transaction-capable MongoDB. Follow [operator setup](../../tools/subscription/README.md) for existing fixture/provisioning rules; do not reset histories or reapply an old initial manifest on every restart.
+1. Start the existing configured backend on 8080 with transaction-capable MongoDB. Use only a disposable local development database. If the development catalog is absent, follow the [importer guide](../../tools/mongo-json-importer/README.md#development-subscription-catalog):
+
+   ```powershell
+   .\tools\mongo-json-importer\import.ps1 -File .\tools\mongo-json-importer\samples\subscription-development-sample.json -DryRun
+   .\tools\mongo-json-importer\import.ps1 -File .\tools\mongo-json-importer\samples\subscription-development-sample.json
+   ```
+
+   Confirm the target and dry-run report before importing. These commands describe local fixture setup only; they do not imply production data or execution. Do not reset histories or reapply a manifest on every restart.
 2. Inspect local/public `GET /api/payment/vnpay/ipn`: disabled returns raw `RspCode=99`; enabled unsigned requests return `97`. A raw response without redirect/interstitial proves reachability only, not payment confirmation or merchant registration.
 3. For local frontend testing use `http://localhost:3000/subscription`. Dev CORS appends localhost/127.0.0.1:3000; production uses the configured `CORS_ALLOWED_ORIGINS`. Plain `403 Invalid CORS request` is an origin/configuration rejection, not a failed payment.
 4. When authorized and merchant configuration is ready, create a purchase using its [HTTP contract](../technical/subscription/api-contract.md), a fresh intent key and authenticated owner. Poll owner detail until checkout URL appears, then complete Sandbox checkout. Remote address supplies provider client IP; forwarded headers need a trusted-proxy decision before use.

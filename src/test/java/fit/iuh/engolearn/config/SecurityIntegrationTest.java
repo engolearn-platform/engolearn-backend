@@ -110,6 +110,14 @@ class SecurityIntegrationTest {
     @MockitoBean private RefreshSessionRepository refreshSessionRepository;
 
     @Test
+    void nonHealthActuatorPathsStayDenied() throws Exception {
+        mockMvc.perform(get("/actuator/env"))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(get("/actuator/metrics"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
     void topicLearningEndpointsRequireAuthentication() throws Exception {
         mockMvc.perform(get("/api/v1/topic-items/i1/content"))
                 .andExpect(status().isUnauthorized());

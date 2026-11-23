@@ -15,6 +15,8 @@ import fit.iuh.engolearn.quota.contract.dto.UsageCommandDto;
 import fit.iuh.engolearn.quota.repository.QuotaRepository;
 import fit.iuh.engolearn.shared.messaging.*;
 import fit.iuh.engolearn.shared.messaging.repository.DurableMessageRepository;
+import fit.iuh.engolearn.shared.enums.UserRole;
+import fit.iuh.engolearn.shared.security.impl.JwtTokenService;
 import fit.iuh.engolearn.subscription.contract.dto.*;
 import fit.iuh.engolearn.subscription.dto.request.*;
 import fit.iuh.engolearn.subscription.dto.request.CreatePurchaseRequest;
@@ -28,6 +30,8 @@ import fit.iuh.engolearn.subscription.repository.*;
 import fit.iuh.engolearn.subscription.repository.SubscriptionMessageRepository;
 import fit.iuh.engolearn.subscription.service.*;
 import fit.iuh.engolearn.subscription.service.SubscriptionService;
+import fit.iuh.engolearn.user.model.RefreshSession;
+import fit.iuh.engolearn.user.model.User;
 import java.time.*;
 import java.util.*;
 import java.util.concurrent.*;
@@ -39,6 +43,7 @@ import org.springframework.dao.DataAccessException;
 import org.springframework.http.*;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.TestPropertySource;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.web.client.HttpClientErrorException;
 import org.testcontainers.junit.jupiter.EnabledIfDockerAvailable;
@@ -49,6 +54,7 @@ import tools.jackson.databind.ObjectMapper;
 
 
 @EnabledIfDockerAvailable
+@ActiveProfiles("dev")
 @Import(PurchaseFlowIntegrationTest.TimeConfig.class)
 @TestPropertySource(properties={"engolearn.messaging.enabled=false","engolearn.subscription.activation-delay-ms=3600000",
         "engolearn.payment.vnpay.enabled=false","engolearn.payment.vnpay.worker-enabled=false","engolearn.payment.dev-reset.enabled=true"})
@@ -77,6 +83,7 @@ class PurchaseFlowIntegrationTest extends AbstractMongoIntegrationTest {
     @MockitoSpyBean PaymentMessageRepository paymentMessages;
     @Autowired MongoMessageTransactions messageTransactions;
     @Autowired ObjectMapper mapper;
+    @Autowired JwtTokenService tokens;
 
     @BeforeEach void fixtures(){
         clock.now=START;repositories.forEach(DurableMessageRepository::ensureStorage);quotaStore.ensureIndexes();
@@ -94,6 +101,18 @@ class PurchaseFlowIntegrationTest extends AbstractMongoIntegrationTest {
                         List.of(new PlanBenefitResponse("TEST","Test","Test benefit",null,0))));
     }
     String key(){return UUID.randomUUID().toString();}
+    void authenticate(HttpHeaders headers, String userId, UserRole role) {
+        String sessionId = "purchase-it-session-" + userId;
+        mongoTemplate.save(new User(userId, userId + "@example.test", "unused", role, false));
+        mongoTemplate.save(RefreshSession.builder()
+                .id(sessionId)
+                .sessionId(sessionId)
+                .accountId(userId)
+                .expiresAt(Instant.now().plusSeconds(3600))
+                .revoked(false)
+                .build());
+        headers.set(HttpHeaders.COOKIE, "ACCESS_TOKEN=" + tokens.create(userId, sessionId, "access", 900));
+    }
     @Test void devResetRetainsUsageAndHistoryAndLateFactsCannotActivateOrReblock(){
         subscriptions.activateTrial(USER,key());
         consumption.consume(new UsageCommandDto(USER,"TEST",1,"TEST","dev-reset-usage","r",null));
@@ -125,7 +144,7 @@ class PurchaseFlowIntegrationTest extends AbstractMongoIntegrationTest {
     @Test void devResetHttpEnforcesOwnerAndRejectsPaidFactsAndRollsBackFailure(){
         PurchaseResponse p=vnCreate();String url="http://localhost:"+port+"/api/v1/subscription/me/purchases/"+p.purchaseReference()+"/dev-reset";
         assertThatThrownBy(()->restTemplate.postForEntity(url,null,String.class)).isInstanceOfSatisfying(HttpClientErrorException.class,e->assertThat(e.getStatusCode().value()).isEqualTo(401));
-        HttpHeaders headers=new HttpHeaders();headers.set("X-Dev-User-Id","dev-cm");
+        HttpHeaders headers=new HttpHeaders();authenticate(headers,"dev-cm",UserRole.CONTENT_MANAGER);
         assertThatThrownBy(()->restTemplate.exchange(url,HttpMethod.POST,new HttpEntity<>(headers),String.class)).isInstanceOfSatisfying(HttpClientErrorException.class,e->assertThat(e.getStatusCode().value()).isEqualTo(404));
         // The purchase write failure must roll back the Payment write in the same transaction.
         doThrow(new IllegalStateException("source write failed")).when(resetStore).save(any());
@@ -180,7 +199,7 @@ class PurchaseFlowIntegrationTest extends AbstractMongoIntegrationTest {
         String url="http://localhost:"+port+"/api/v1/subscription/me/purchases";
         assertThatThrownBy(()->restTemplate.getForEntity(url,String.class)).isInstanceOfSatisfying(HttpClientErrorException.class,
                 e->assertThat(e.getStatusCode().value()).isEqualTo(401));
-        HttpHeaders headers=new HttpHeaders();headers.set("X-Dev-User-Id","dev-user");
+        HttpHeaders headers=new HttpHeaders();authenticate(headers,USER,UserRole.USER);
         var empty=restTemplate.exchange(url,HttpMethod.GET,new HttpEntity<>(headers),String.class);
         assertThat(empty.getStatusCode().value()).isEqualTo(200);assertThat(empty.getHeaders().getCacheControl()).isEqualTo("no-store");
         assertThat(mapper.readTree(empty.getBody()).path("data").path("items").size()).isZero();
@@ -247,13 +266,13 @@ class PurchaseFlowIntegrationTest extends AbstractMongoIntegrationTest {
         HttpHeaders headers=new HttpHeaders();headers.setContentType(MediaType.APPLICATION_JSON);headers.set("Idempotency-Key",key());
         assertThatThrownBy(()->restTemplate.postForEntity(url,new HttpEntity<>("{\"planCode\":\"PREMIUM\",\"billingPeriod\":\"MONTHLY\"}",headers),String.class))
                 .isInstanceOfSatisfying(HttpClientErrorException.class,e->assertThat(e.getStatusCode().value()).isEqualTo(401));
-        headers.set("X-Dev-User-Id","dev-user");
+        authenticate(headers,USER,UserRole.USER);
         assertThatThrownBy(()->restTemplate.postForEntity(url,new HttpEntity<>("{\"planCode\":\"PREMIUM\",\"billingPeriod\":\"MONTHLY\",\"amount\":1}",headers),String.class))
                 .isInstanceOfSatisfying(HttpClientErrorException.class,e->assertThat(e.getStatusCode().value()).isEqualTo(400));
         String body="{\"planCode\":\"PREMIUM\",\"billingPeriod\":\"MONTHLY\"}";
         assertThat(restTemplate.postForEntity(url,new HttpEntity<>(body,headers),String.class).getStatusCode().value()).isEqualTo(201);
         assertThat(restTemplate.postForEntity(url,new HttpEntity<>(body,headers),String.class).getStatusCode().value()).isEqualTo(200);
-        var purchase=store.findByIntent(USER,headers.getFirst("Idempotency-Key"));headers.set("X-Dev-User-Id","dev-cm");
+        var purchase=store.findByIntent(USER,headers.getFirst("Idempotency-Key"));authenticate(headers,"dev-cm",UserRole.CONTENT_MANAGER);
         assertThatThrownBy(()->restTemplate.exchange(url+"/"+purchase.getPurchaseReference(),HttpMethod.GET,new HttpEntity<>(headers),String.class))
                 .isInstanceOfSatisfying(HttpClientErrorException.class,e->assertThat(e.getStatusCode().value()).isEqualTo(404));
     }
@@ -517,11 +536,11 @@ class PurchaseFlowIntegrationTest extends AbstractMongoIntegrationTest {
         assertThatThrownBy(()->restTemplate.postForEntity(url,new HttpEntity<>(body,headers),String.class))
                 .isInstanceOfSatisfying(HttpClientErrorException.class,e->assertThat(e.getStatusCode().value()).isEqualTo(401));
         for(String user:List.of("dev-user","dev-cm")){
-            headers.set("X-Dev-User-Id",user);
+            authenticate(headers,user.equals("dev-user")?USER:"dev-cm",user.equals("dev-user")?UserRole.USER:UserRole.CONTENT_MANAGER);
             assertThatThrownBy(()->restTemplate.postForEntity(url,new HttpEntity<>(body,headers),String.class))
                     .isInstanceOfSatisfying(HttpClientErrorException.class,e->assertThat(e.getStatusCode().value()).isEqualTo(403));
         }
-        headers.set("X-Dev-User-Id","dev-admin");
+        authenticate(headers,"dev-admin",UserRole.ADMIN);
         for(String invalid:List.of("{\"reason\":\"\"}","{\"reason\":\"x\",\"amountVnd\":1}","{\"reason\":\"x\",\"userId\":\"other\"}"))
             assertThatThrownBy(()->restTemplate.postForEntity(url,new HttpEntity<>(invalid,headers),String.class))
                     .isInstanceOfSatisfying(HttpClientErrorException.class,e->assertThat(e.getStatusCode().value()).isEqualTo(400));

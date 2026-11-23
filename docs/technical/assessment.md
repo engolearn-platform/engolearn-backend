@@ -180,11 +180,11 @@ and its [WAV files](../../tools/mongo-json-importer/samples/assessment-media). T
    `skip` keeps the existing copy. Use a fresh dev database to test this exact fixture if the
    existing copy is different.
 
-2. Run the backend in profile `dev` with the media path below. If the development catalog
-   has not been published, follow the [Subscription development seed](../../tools/subscription/README.md)
-   for that same database. To combine both startup options for the initial catalog publication,
-   append ` --engolearn.subscription.publish-manifest=tools/subscription/dev-main-manifest.json`
-   inside the quoted `-Dspring-boot.run.arguments` value.
+2. If the shared development Subscription catalog is absent, import it separately using
+   the explicit [Subscription sample](../../tools/mongo-json-importer/README.md#development-subscription-catalog)
+   command against the same local database. The Assessment sample already contains the demo
+   account's initial Subscription record. Then run the backend in profile `dev` with the media
+   path below; there is no startup publication flag.
 
    ```powershell
    .\mvnw.cmd spring-boot:run '-Dspring-boot.run.profiles=dev' '-Dspring-boot.run.arguments=--engolearn.assessment.media-directory=./tools/mongo-json-importer/samples/assessment-media'
@@ -197,25 +197,10 @@ and its [WAV files](../../tools/mongo-json-importer/samples/assessment-media). T
    and preparation reports `paperAvailable: true` and `baselineValid: true`.
    Then use the sound check, start and submit a test attempt, and verify the new entry in History.
 
-The paper import does not create a login, publish Subscription policy or supply Placement results.
-For a newly registered test account in an isolated dev database, first publish the dev catalog,
-then publish a separate account-only manifest through the same Subscription startup option:
-
-```json
-{
-  "manifestId": "assessment-dev-reviewer-account-unique-id",
-  "environment": "development-only",
-  "plans": [],
-  "policies": [],
-  "accounts": [
-    { "userId": "<id from GET /api/v1/auth/me>", "trialUsed": false, "provenance": "NEW_ACCOUNT" }
-  ]
-}
-```
-
-Use a unique manifest ID and only provision an account verified as newly registered and missing
-its Subscription record. Keep this local manifest under `.artifacts/`. For a test-only baseline,
-import a separate local JSON file with
+The paper import does not create a login or supply Placement results. For a newly registered
+test account in an isolated development database, register it normally after importing the
+development catalog; normal registration creates its Subscription account. Do not use the
+retired account-only manifest. For a test-only baseline, import a separate local JSON file with
 `{"collections":{"assessment_dev_baselines":[{"_id":"<same user id>","valid":true,"level":"A2"}]}}`
 using the same dry-run workflow. Set `MONGO_IMPORT_OBJECT_ID_FIELDS=none` in the importer-local
 `.env` for that file so the baseline lookup sees a **string** key. Restore the previous importer
