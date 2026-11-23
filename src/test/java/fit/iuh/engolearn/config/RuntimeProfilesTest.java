@@ -66,6 +66,23 @@ class RuntimeProfilesTest {
         });
     }
 
+    @ParameterizedTest
+    @ValueSource(strings = {"dev", "prod"})
+    void healthEndpointsStayMinimalAndAnonymousSafe(String profile) {
+        configuration(profile).run(context -> {
+            assertThat(context).hasNotFailed();
+            var environment = context.getEnvironment();
+            assertThat(environment.getProperty("management.endpoints.web.exposure.include"))
+                    .isEqualTo("health");
+            assertThat(environment.getProperty("management.endpoint.health.probes.enabled", Boolean.class))
+                    .isTrue();
+            assertThat(environment.getProperty("management.endpoint.health.show-details"))
+                    .isEqualTo("never");
+            assertThat(environment.getProperty("management.endpoint.health.show-components"))
+                    .isEqualTo("never");
+        });
+    }
+
     @Test
     void documentedDevEnvironmentAliasesEnableTheHelpers() {
         configuration("dev")
