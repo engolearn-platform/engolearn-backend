@@ -1,13 +1,13 @@
 package fit.iuh.engolearn.grammar.controller;
 
-import fit.iuh.engolearn.grammar.dto.GrammarAdminDtos.Checklist;
-import fit.iuh.engolearn.grammar.dto.GrammarAdminDtos.CreateLessonInput;
-import fit.iuh.engolearn.grammar.dto.GrammarAdminDtos.Lesson;
-import fit.iuh.engolearn.grammar.dto.GrammarAdminDtos.LessonInput;
-import fit.iuh.engolearn.grammar.dto.GrammarAdminDtos.Topic;
-import fit.iuh.engolearn.grammar.dto.GrammarAdminDtos.TopicInput;
-import fit.iuh.engolearn.grammar.dto.GrammarAdminDtos.TopicPage;
-import fit.iuh.engolearn.grammar.dto.GrammarAdminDtos.VersionInput;
+import fit.iuh.engolearn.grammar.dto.response.GrammarChecklistResponse;
+import fit.iuh.engolearn.grammar.dto.request.CreateGrammarLessonRequest;
+import fit.iuh.engolearn.grammar.dto.response.GrammarManagementLessonResponse;
+import fit.iuh.engolearn.grammar.dto.request.GrammarLessonRequest;
+import fit.iuh.engolearn.grammar.dto.response.GrammarManagementTopicResponse;
+import fit.iuh.engolearn.grammar.dto.request.GrammarTopicRequest;
+import fit.iuh.engolearn.grammar.dto.response.GrammarTopicPageResponse;
+import fit.iuh.engolearn.grammar.dto.request.GrammarVersionRequest;
 import fit.iuh.engolearn.grammar.service.GrammarAdminService;
 import fit.iuh.engolearn.shared.web.ApiResponse;
 import jakarta.servlet.http.HttpServletResponse;
@@ -43,7 +43,7 @@ public class GrammarAdminController {
     private final GrammarAdminService service;
 
     @GetMapping
-    public ApiResponse<TopicPage> list(@RequestParam(required = false) @Size(max = 160) String search,
+    public ApiResponse<GrammarTopicPageResponse> list(@RequestParam(required = false) @Size(max = 160) String search,
             @RequestParam(required = false) @Pattern(regexp = "A1|A2|B1|B2") String level,
             @RequestParam(required = false) @Pattern(regexp = "DRAFT|IN_PROGRESS|PUBLISHED|ARCHIVED") String status,
             @RequestParam(defaultValue = "0") @PositiveOrZero int page,
@@ -53,17 +53,17 @@ public class GrammarAdminController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public ApiResponse<Topic> createTopic(@Valid @RequestBody TopicInput input) {
+    public ApiResponse<GrammarManagementTopicResponse> createTopic(@Valid @RequestBody GrammarTopicRequest input) {
         return ApiResponse.ok(service.createTopic(input));
     }
 
     @GetMapping("/{id}")
-    public ApiResponse<Topic> getTopic(@PathVariable String id) {
+    public ApiResponse<GrammarManagementTopicResponse> getTopic(@PathVariable String id) {
         return ApiResponse.ok(service.getTopic(id));
     }
 
     @PutMapping("/{id}")
-    public ApiResponse<Topic> updateTopic(@PathVariable String id, @Valid @RequestBody TopicInput input) {
+    public ApiResponse<GrammarManagementTopicResponse> updateTopic(@PathVariable String id, @Valid @RequestBody GrammarTopicRequest input) {
         return ApiResponse.ok(service.updateTopic(id, input));
     }
 
@@ -75,39 +75,39 @@ public class GrammarAdminController {
     }
 
     @GetMapping("/{id}/checklist")
-    public ApiResponse<Checklist> topicChecklist(@PathVariable String id) {
+    public ApiResponse<GrammarChecklistResponse> topicChecklist(@PathVariable String id) {
         return ApiResponse.ok(service.topicChecklist(id));
     }
 
     @PostMapping("/{id}/publish")
-    public ApiResponse<Topic> publishTopic(@PathVariable String id, @Valid @RequestBody VersionInput input) {
+    public ApiResponse<GrammarManagementTopicResponse> publishTopic(@PathVariable String id, @Valid @RequestBody GrammarVersionRequest input) {
         return ApiResponse.ok(service.publishTopic(id, input.version()));
     }
 
     @PostMapping("/{id}/archive")
-    public ApiResponse<Topic> archiveTopic(@PathVariable String id, @Valid @RequestBody VersionInput input) {
+    public ApiResponse<GrammarManagementTopicResponse> archiveTopic(@PathVariable String id, @Valid @RequestBody GrammarVersionRequest input) {
         return ApiResponse.ok(service.archiveTopic(id, input.version()));
     }
 
     @PostMapping("/{id}/restore")
-    public ApiResponse<Topic> restoreTopic(@PathVariable String id, @Valid @RequestBody VersionInput input) {
+    public ApiResponse<GrammarManagementTopicResponse> restoreTopic(@PathVariable String id, @Valid @RequestBody GrammarVersionRequest input) {
         return ApiResponse.ok(service.restoreTopic(id, input.version()));
     }
 
     @PostMapping(LESSONS)
     @ResponseStatus(HttpStatus.CREATED)
-    public ApiResponse<Lesson> createLesson(@PathVariable String id, @Valid @RequestBody CreateLessonInput input) {
+    public ApiResponse<GrammarManagementLessonResponse> createLesson(@PathVariable String id, @Valid @RequestBody CreateGrammarLessonRequest input) {
         return ApiResponse.ok(service.createLesson(id, input));
     }
 
     @GetMapping({LESSON, LESSON + "/preview"})
-    public ApiResponse<Lesson> getLesson(@PathVariable String id, @PathVariable String lessonId) {
+    public ApiResponse<GrammarManagementLessonResponse> getLesson(@PathVariable String id, @PathVariable String lessonId) {
         return ApiResponse.ok(service.getLesson(id, lessonId));
     }
 
     @PutMapping(LESSON)
-    public ApiResponse<Lesson> updateLesson(@PathVariable String id, @PathVariable String lessonId,
-            @Valid @RequestBody LessonInput input) {
+    public ApiResponse<GrammarManagementLessonResponse> updateLesson(@PathVariable String id, @PathVariable String lessonId,
+            @Valid @RequestBody GrammarLessonRequest input) {
         return ApiResponse.ok(service.updateLesson(id, lessonId, input));
     }
 
@@ -120,25 +120,25 @@ public class GrammarAdminController {
     }
 
     @GetMapping(LESSON + "/checklist")
-    public ApiResponse<Checklist> lessonChecklist(@PathVariable String id, @PathVariable String lessonId) {
+    public ApiResponse<GrammarChecklistResponse> lessonChecklist(@PathVariable String id, @PathVariable String lessonId) {
         return ApiResponse.ok(service.lessonChecklist(id, lessonId));
     }
 
     @PostMapping(LESSON + "/ready")
-    public ApiResponse<Lesson> readyLesson(@PathVariable String id, @PathVariable String lessonId,
-            @Valid @RequestBody VersionInput input) {
+    public ApiResponse<GrammarManagementLessonResponse> readyLesson(@PathVariable String id, @PathVariable String lessonId,
+            @Valid @RequestBody GrammarVersionRequest input) {
         return ApiResponse.ok(service.readyLesson(id, lessonId, input.version(), Boolean.TRUE.equals(input.confirmPublish())));
     }
 
     @PostMapping(LESSON + "/apply")
-    public ApiResponse<Lesson> applyLesson(@PathVariable String id, @PathVariable String lessonId,
-            @Valid @RequestBody VersionInput input) {
+    public ApiResponse<GrammarManagementLessonResponse> applyLesson(@PathVariable String id, @PathVariable String lessonId,
+            @Valid @RequestBody GrammarVersionRequest input) {
         return ApiResponse.ok(service.applyLesson(id, lessonId, input.version()));
     }
 
     @PostMapping(LESSON + "/discard-draft")
-    public ApiResponse<Lesson> discardLessonDraft(@PathVariable String id, @PathVariable String lessonId,
-            @Valid @RequestBody VersionInput input) {
+    public ApiResponse<GrammarManagementLessonResponse> discardLessonDraft(@PathVariable String id, @PathVariable String lessonId,
+            @Valid @RequestBody GrammarVersionRequest input) {
         return ApiResponse.ok(service.discardLessonDraft(id, lessonId, input.version()));
     }
 

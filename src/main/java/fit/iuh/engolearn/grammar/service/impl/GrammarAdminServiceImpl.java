@@ -1,14 +1,14 @@
 package fit.iuh.engolearn.grammar.service.impl;
 
-import fit.iuh.engolearn.grammar.dto.GrammarAdminDtos.Check;
-import fit.iuh.engolearn.grammar.dto.GrammarAdminDtos.Checklist;
-import fit.iuh.engolearn.grammar.dto.GrammarAdminDtos.CreateLessonInput;
-import fit.iuh.engolearn.grammar.dto.GrammarAdminDtos.Lesson;
-import fit.iuh.engolearn.grammar.dto.GrammarAdminDtos.LessonInput;
-import fit.iuh.engolearn.grammar.dto.GrammarAdminDtos.Stats;
-import fit.iuh.engolearn.grammar.dto.GrammarAdminDtos.Topic;
-import fit.iuh.engolearn.grammar.dto.GrammarAdminDtos.TopicInput;
-import fit.iuh.engolearn.grammar.dto.GrammarAdminDtos.TopicPage;
+import fit.iuh.engolearn.grammar.dto.response.GrammarCheckResponse;
+import fit.iuh.engolearn.grammar.dto.response.GrammarChecklistResponse;
+import fit.iuh.engolearn.grammar.dto.request.CreateGrammarLessonRequest;
+import fit.iuh.engolearn.grammar.dto.response.GrammarManagementLessonResponse;
+import fit.iuh.engolearn.grammar.dto.request.GrammarLessonRequest;
+import fit.iuh.engolearn.grammar.dto.response.GrammarStatsResponse;
+import fit.iuh.engolearn.grammar.dto.response.GrammarManagementTopicResponse;
+import fit.iuh.engolearn.grammar.dto.request.GrammarTopicRequest;
+import fit.iuh.engolearn.grammar.dto.response.GrammarTopicPageResponse;
 import fit.iuh.engolearn.grammar.exception.GrammarRequestException;
 import fit.iuh.engolearn.grammar.mapper.GrammarAdminMapper;
 import fit.iuh.engolearn.grammar.model.GrammarAuditEntry;
@@ -55,23 +55,23 @@ public class GrammarAdminServiceImpl implements GrammarAdminService {
     private final CurrentUserProvider currentUser;
 
     @Override
-    public TopicPage list(String search, String level, String status, int page, int size) {
+    public GrammarTopicPageResponse list(String search, String level, String status, int page, int size) {
         GrammarLevel requestedLevel = level == null ? null : GrammarLevel.valueOf(level);
         var results = repository.search(search, requestedLevel, status, page, size);
         var counts = repository.counts();
         long total = counts.published() + counts.inProgress() + counts.draft() + counts.archived();
-        Stats stats = new Stats(total, counts.published(), counts.inProgress(), counts.draft(), counts.archived());
-        return new TopicPage(results.topics().stream().map(topic -> GrammarAdminMapper.topic(topic, false))
+        GrammarStatsResponse stats = new GrammarStatsResponse(total, counts.published(), counts.inProgress(), counts.draft(), counts.archived());
+        return new GrammarTopicPageResponse(results.topics().stream().map(topic -> GrammarAdminMapper.topic(topic, false))
                 .toList(), results.total(), stats);
     }
 
     @Override
-    public Topic getTopic(String topicId) {
+    public GrammarManagementTopicResponse getTopic(String topicId) {
         return GrammarAdminMapper.topic(findTopic(topicId), true);
     }
 
     @Override
-    public Topic createTopic(TopicInput input) {
+    public GrammarManagementTopicResponse createTopic(GrammarTopicRequest input) {
         return repository.transact(() -> {
             long sequence = repository.lockTopicOrder(true);
             GrammarTopic topic = GrammarTopic.builder().id(UUID.randomUUID().toString())
@@ -85,7 +85,7 @@ public class GrammarAdminServiceImpl implements GrammarAdminService {
     }
 
     @Override
-    public Topic updateTopic(String topicId, TopicInput input) {
+    public GrammarManagementTopicResponse updateTopic(String topicId, GrammarTopicRequest input) {
         return repository.transact(() -> {
             repository.lockTopicOrder(false);
             GrammarTopic topic = findTopic(topicId);
@@ -133,12 +133,12 @@ public class GrammarAdminServiceImpl implements GrammarAdminService {
     }
 
     @Override
-    public Checklist topicChecklist(String topicId) {
+    public GrammarChecklistResponse topicChecklist(String topicId) {
         return validator.topic(findTopic(topicId));
     }
 
     @Override
-    public Topic publishTopic(String topicId, long version) {
+    public GrammarManagementTopicResponse publishTopic(String topicId, long version) {
         return repository.transact(() -> {
             GrammarTopic topic = findTopic(topicId);
             requireVersion(version, topic.getVersion());
@@ -169,7 +169,7 @@ public class GrammarAdminServiceImpl implements GrammarAdminService {
     }
 
     @Override
-    public Topic archiveTopic(String topicId, long version) {
+    public GrammarManagementTopicResponse archiveTopic(String topicId, long version) {
         return repository.transact(() -> {
             repository.lockTopicOrder(false);
             GrammarTopic topic = findTopic(topicId);
@@ -194,7 +194,7 @@ public class GrammarAdminServiceImpl implements GrammarAdminService {
     }
 
     @Override
-    public Topic restoreTopic(String topicId, long version) {
+    public GrammarManagementTopicResponse restoreTopic(String topicId, long version) {
         return repository.transact(() -> {
             repository.lockTopicOrder(false);
             GrammarTopic topic = findTopic(topicId);
@@ -233,12 +233,12 @@ public class GrammarAdminServiceImpl implements GrammarAdminService {
     }
 
     @Override
-    public Lesson getLesson(String topicId, String lessonId) {
+    public GrammarManagementLessonResponse getLesson(String topicId, String lessonId) {
         return GrammarAdminMapper.lesson(findLesson(findTopic(topicId), lessonId));
     }
 
     @Override
-    public Lesson createLesson(String topicId, CreateLessonInput input) {
+    public GrammarManagementLessonResponse createLesson(String topicId, CreateGrammarLessonRequest input) {
         return repository.transact(() -> {
             GrammarTopic topic = findTopic(topicId);
             requireVersion(input.version(), topic.getVersion());
@@ -260,7 +260,7 @@ public class GrammarAdminServiceImpl implements GrammarAdminService {
     }
 
     @Override
-    public Lesson updateLesson(String topicId, String lessonId, LessonInput input) {
+    public GrammarManagementLessonResponse updateLesson(String topicId, String lessonId, GrammarLessonRequest input) {
         return repository.transact(() -> {
             GrammarTopic topic = findTopic(topicId);
             GrammarLesson lesson = findWritableLesson(topic, lessonId, input.version());
@@ -311,13 +311,13 @@ public class GrammarAdminServiceImpl implements GrammarAdminService {
     }
 
     @Override
-    public Checklist lessonChecklist(String topicId, String lessonId) {
+    public GrammarChecklistResponse lessonChecklist(String topicId, String lessonId) {
         GrammarTopic topic = findTopic(topicId);
         return lessonChecks(topic, findLesson(topic, lessonId));
     }
 
     @Override
-    public Lesson readyLesson(String topicId, String lessonId, long version, boolean confirmPublish) {
+    public GrammarManagementLessonResponse readyLesson(String topicId, String lessonId, long version, boolean confirmPublish) {
         return repository.transact(() -> {
             GrammarTopic topic = findTopic(topicId);
             GrammarLesson lesson = findWritableLesson(topic, lessonId, version);
@@ -342,7 +342,7 @@ public class GrammarAdminServiceImpl implements GrammarAdminService {
     }
 
     @Override
-    public Lesson applyLesson(String topicId, String lessonId, long version) {
+    public GrammarManagementLessonResponse applyLesson(String topicId, String lessonId, long version) {
         return repository.transact(() -> {
             GrammarTopic topic = findTopic(topicId);
             GrammarLesson lesson = findWritableLesson(topic, lessonId, version);
@@ -358,7 +358,7 @@ public class GrammarAdminServiceImpl implements GrammarAdminService {
     }
 
     @Override
-    public Lesson discardLessonDraft(String topicId, String lessonId, long version) {
+    public GrammarManagementLessonResponse discardLessonDraft(String topicId, String lessonId, long version) {
         return repository.transact(() -> {
             GrammarTopic topic = findTopic(topicId);
             GrammarLesson lesson = findWritableLesson(topic, lessonId, version);
@@ -457,21 +457,21 @@ public class GrammarAdminServiceImpl implements GrammarAdminService {
         return requested == null ? neighborCount : Math.min(requested - 1, neighborCount);
     }
 
-    private Checklist lessonChecks(GrammarTopic topic, GrammarLesson lesson) {
-        Checklist checks = validator.lesson(GrammarAdminMapper.lessonInput(lesson));
+    private GrammarChecklistResponse lessonChecks(GrammarTopic topic, GrammarLesson lesson) {
+        GrammarChecklistResponse checks = validator.lesson(GrammarAdminMapper.lessonInput(lesson));
         List<GrammarLesson> ordered = orderedLessons(topic);
         for (int index = 0; index < ordered.size(); index++) {
             if (!Objects.equals(ordered.get(index).getOrder(), index + 1)) {
-                List<Check> amended = new ArrayList<>(checks.checks());
-                amended.set(2, new Check(amended.get(2).label(), false,
+                List<GrammarCheckResponse> amended = new ArrayList<>(checks.checks());
+                amended.set(2, new GrammarCheckResponse(amended.get(2).label(), false,
                         "Thứ tự bài học cần liên tục từ 1 và không trùng lặp."));
-                return new Checklist(List.copyOf(amended));
+                return new GrammarChecklistResponse(List.copyOf(amended));
             }
         }
         return checks;
     }
 
-    private static void writeTopicBasics(GrammarTopic topic, TopicInput input) {
+    private static void writeTopicBasics(GrammarTopic topic, GrammarTopicRequest input) {
         topic.setTitleVi(input.titleVi().strip());
         topic.setTitleEn(input.titleEn().strip());
         topic.setDescription(input.description().strip());
@@ -548,11 +548,11 @@ public class GrammarAdminServiceImpl implements GrammarAdminService {
         }
     }
 
-    private static boolean passed(Checklist checklist) {
-        return checklist.checks().stream().allMatch(Check::passed);
+    private static boolean passed(GrammarChecklistResponse checklist) {
+        return checklist.checks().stream().allMatch(GrammarCheckResponse::passed);
     }
 
-    private static void requirePassing(Checklist checklist) {
+    private static void requirePassing(GrammarChecklistResponse checklist) {
         if (!passed(checklist)) {
             throw new GrammarRequestException(HttpStatus.UNPROCESSABLE_CONTENT, "GRAMMAR_CHECKLIST_FAILED",
                     "Nội dung chưa đạt điều kiện. Vui lòng kiểm tra các mục chưa đạt.", checklist);

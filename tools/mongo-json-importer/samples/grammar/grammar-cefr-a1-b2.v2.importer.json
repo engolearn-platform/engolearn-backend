@@ -3900,7 +3900,7 @@
             {
               "question_id": "2566eb7c-052e-5e83-8230-cb0e52c8b17c",
               "type": "MULTIPLE_CHOICE",
-              "prompt": "Every morning, he ____ breakfast at seven.",
+              "prompt": "Use the present simple for an ordinary long-term habit: Every morning, he ____ breakfast at seven.",
               "explanation": "Every morning mô tả thói quen; he cần has, không phải have.",
               "options": [
                 "has",
@@ -3926,7 +3926,7 @@
             {
               "question_id": "55692a3b-5b97-53c5-aaa1-c77ce1ae29bd",
               "type": "MULTIPLE_CHOICE",
-              "prompt": "My parents ____ to work by train every weekday.",
+              "prompt": "Use the present simple for an ordinary long-term habit: My parents ____ to work by train every weekday.",
               "explanation": "Every weekday là thói quen; chủ ngữ số nhiều my parents dùng go.",
               "options": [
                 "goes",
@@ -9500,7 +9500,7 @@
             {
               "question_id": "71e9b9e6-a3c8-5057-a0b6-ce766d08a873",
               "type": "FILL_IN_BLANK",
-              "prompt": "Report the negative request: Mum said to me, 'Please do not touch the paint.' Mum asked me ____ the paint.",
+              "prompt": "Report the negative request using not to + base verb: Mum said to me, 'Please do not touch the paint.' Mum asked me ____ the paint.",
               "explanation": "Yêu cầu phủ định dùng asked me + not to + động từ nguyên mẫu touch.",
               "correct_answer": "not to touch",
               "accepted_answers": []
@@ -13161,7 +13161,7 @@
                 "to send",
                 "send",
                 "sending",
-                "to sending"
+                "to sent"
               ],
               "correct_index": 2
             },
@@ -13802,7 +13802,7 @@
             {
               "question_id": "78ee5d02-9878-51d6-8185-657f339d6e75",
               "type": "FILL_IN_BLANK",
-              "prompt": "Complete the negative purpose phrase using 'not': We lowered our voices in order ____ disturb the other group.",
+              "prompt": "Complete the negative purpose phrase with not before to: We lowered our voices in order ____ disturb the other group.",
               "explanation": "In order not to disturb nêu mục đích tránh làm phiền; not đứng trước to.",
               "correct_answer": "not to",
               "accepted_answers": []

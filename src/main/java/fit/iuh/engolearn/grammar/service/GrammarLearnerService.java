@@ -1,25 +1,25 @@
 package fit.iuh.engolearn.grammar.service;
 
-import fit.iuh.engolearn.grammar.dto.GrammarLearnerRequests.SubmitAnswerRequest;
-import fit.iuh.engolearn.grammar.dto.GrammarLearnerResponses.AnswerResponse;
-import fit.iuh.engolearn.grammar.dto.GrammarLearnerResponses.LessonResponse;
-import fit.iuh.engolearn.grammar.dto.GrammarLearnerResponses.PracticeResponse;
-import fit.iuh.engolearn.grammar.dto.GrammarLearnerResponses.RoadmapResponse;
-import fit.iuh.engolearn.grammar.dto.GrammarLearnerResponses.SeenResponse;
-import fit.iuh.engolearn.grammar.dto.GrammarLearnerResponses.TopicDetailResponse;
+import fit.iuh.engolearn.grammar.dto.request.GrammarSubmitAnswerRequest;
+import fit.iuh.engolearn.grammar.dto.response.GrammarAnswerResponse;
+import fit.iuh.engolearn.grammar.dto.response.GrammarLessonResponse;
+import fit.iuh.engolearn.grammar.dto.response.GrammarPracticeResponse;
+import fit.iuh.engolearn.grammar.dto.response.GrammarRoadmapResponse;
+import fit.iuh.engolearn.grammar.dto.response.GrammarSeenResponse;
+import fit.iuh.engolearn.grammar.dto.response.GrammarTopicDetailResponse;
 
 public interface GrammarLearnerService {
-    RoadmapResponse roadmap();
+    GrammarRoadmapResponse roadmap();
 
-    TopicDetailResponse topic(String topicId);
+    GrammarTopicDetailResponse topic(String topicId);
 
-    LessonResponse lesson(String topicId, String lessonId);
+    GrammarLessonResponse lesson(String topicId, String lessonId);
 
-    SeenResponse markSeen(String topicId, String lessonId, int contentVersion);
+    GrammarSeenResponse markSeen(String topicId, String lessonId, int contentVersion);
 
-    PracticeResponse startPractice(String topicId, String lessonId, boolean restart);
+    GrammarPracticeResponse startPractice(String topicId, String lessonId, boolean restart);
 
-    PracticeResponse practice(String sessionId);
+    GrammarPracticeResponse practice(String sessionId);
 
-    AnswerResponse submitAnswer(String sessionId, SubmitAnswerRequest request);
+    GrammarAnswerResponse submitAnswer(String sessionId, GrammarSubmitAnswerRequest request);
 }

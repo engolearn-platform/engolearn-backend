@@ -1,11 +1,11 @@
 package fit.iuh.engolearn.grammar.service;
 
-import fit.iuh.engolearn.grammar.dto.GrammarAdminDtos.Block;
-import fit.iuh.engolearn.grammar.dto.GrammarAdminDtos.Check;
-import fit.iuh.engolearn.grammar.dto.GrammarAdminDtos.Checklist;
-import fit.iuh.engolearn.grammar.dto.GrammarAdminDtos.Example;
-import fit.iuh.engolearn.grammar.dto.GrammarAdminDtos.LessonInput;
-import fit.iuh.engolearn.grammar.dto.GrammarAdminDtos.Question;
+import fit.iuh.engolearn.grammar.dto.request.GrammarContentBlockRequest;
+import fit.iuh.engolearn.grammar.dto.response.GrammarCheckResponse;
+import fit.iuh.engolearn.grammar.dto.response.GrammarChecklistResponse;
+import fit.iuh.engolearn.grammar.dto.request.GrammarContentExampleRequest;
+import fit.iuh.engolearn.grammar.dto.request.GrammarLessonRequest;
+import fit.iuh.engolearn.grammar.dto.request.GrammarContentQuestionRequest;
 import fit.iuh.engolearn.grammar.mapper.GrammarAdminMapper;
 import fit.iuh.engolearn.grammar.model.GrammarLesson;
 import fit.iuh.engolearn.grammar.model.GrammarTopic;
@@ -22,12 +22,12 @@ import java.util.stream.IntStream;
 public class GrammarChecklistValidator {
     private static final Pattern BLANK = Pattern.compile("(?<!_)____(?!_)");
 
-    public Checklist lesson(LessonInput input) {
-        List<Block> blocks = values(input.blocks());
-        List<Question> questions = values(input.questions());
-        List<Question> multiple = questions.stream().filter(q -> "MULTIPLE_CHOICE".equals(q.type())).toList();
-        List<Question> fill = questions.stream().filter(q -> "FILL_IN_BLANK".equals(q.type())).toList();
-        return new Checklist(List.of(
+    public GrammarChecklistResponse lesson(GrammarLessonRequest input) {
+        List<GrammarContentBlockRequest> blocks = values(input.blocks());
+        List<GrammarContentQuestionRequest> questions = values(input.questions());
+        List<GrammarContentQuestionRequest> multiple = questions.stream().filter(q -> "MULTIPLE_CHOICE".equals(q.type())).toList();
+        List<GrammarContentQuestionRequest> fill = questions.stream().filter(q -> "FILL_IN_BLANK".equals(q.type())).toList();
+        return new GrammarChecklistResponse(List.of(
                 check("Tên bài học song ngữ", length(input.titleVi(), 1, 150) && length(input.titleEn(), 1, 150),
                         "Nhập cả hai tên, tối đa 150 ký tự mỗi tên."),
                 check("Mục tiêu học tập", length(input.objective(), 1, 300), "Nhập mục tiêu tối đa 300 ký tự."),
@@ -37,7 +37,7 @@ public class GrammarChecklistValidator {
                         "Hoàn thiện các trường bắt buộc ở từng khối."),
                 check("Mỗi khối Ví dụ hoặc Quy tắc có 1 đến 5 mục", blocks.stream().allMatch(this::blockItemCount),
                         "Thêm hoặc bớt các mục trong khối Ví dụ hoặc Quy tắc."),
-                check("Thứ tự khối liên tục", uniqueIds(blocks.stream().map(Block::id).toList()),
+                check("Thứ tự khối liên tục", uniqueIds(blocks.stream().map(GrammarContentBlockRequest::id).toList()),
                         "Kiểm tra mã khối trùng hoặc thiếu."),
                 check("Có đúng 5 câu luyện tập", questions.size() == 5, questions.size() + "/5 câu."),
                 check("Có nội dung cho cả 5 câu", questions.size() == 5 && questions.stream().allMatch(q -> present(q.prompt())),
@@ -51,26 +51,26 @@ public class GrammarChecklistValidator {
                 check("Câu điền chỗ trống có một ô trống và đáp án", fill.stream().allMatch(this::blankAnswer),
                         "Dùng đúng một cụm ____ và nhập đáp án chính."),
                 check("Thứ tự câu và dữ liệu hợp lệ", multiple.size() + fill.size() == questions.size()
-                                && uniqueIds(questions.stream().map(Question::id).toList()),
+                                && uniqueIds(questions.stream().map(GrammarContentQuestionRequest::id).toList()),
                         "Kiểm tra mã câu trùng, dữ liệu thiếu hoặc loại câu hỏi không được hỗ trợ.")
         ));
     }
 
-    public Checklist topic(GrammarTopic topic) {
+    public GrammarChecklistResponse topic(GrammarTopic topic) {
         List<GrammarLesson> active = topic.getLessons().stream()
                 .filter(item -> item.getStatus() != GrammarStatus.ARCHIVED).toList();
-        List<LessonInput> contents = active.stream().map(GrammarAdminMapper::lessonInput).toList();
+        List<GrammarLessonRequest> contents = active.stream().map(GrammarAdminMapper::lessonInput).toList();
         boolean any = !active.isEmpty() && active.size() <= 10;
         boolean orderValid = active.stream().allMatch(lesson -> lesson.getOrder() != null)
                 && active.stream().map(GrammarLesson::getOrder).sorted().toList()
                 .equals(IntStream.rangeClosed(1, active.size()).boxed().toList());
-        return new Checklist(List.of(
+        return new GrammarChecklistResponse(List.of(
                 check("Thông tin chủ đề hợp lệ", topic.getLevel() != null && length(topic.getTitleVi(), 1, 120)
                                 && length(topic.getTitleEn(), 1, 120) && length(topic.getDescription(), 80, 250),
                         "Bổ sung tên song ngữ, trình độ và mô tả từ 80 đến 250 ký tự."),
                 check("Có ít nhất một bài học", any, "Chủ đề cần có từ một đến mười bài học."),
                 check("Mọi bài đều Sẵn sàng", any && active.stream().allMatch(GrammarLesson::isReady)
-                                && contents.stream().allMatch(input -> lesson(input).checks().stream().allMatch(Check::passed)),
+                                && contents.stream().allMatch(input -> lesson(input).checks().stream().allMatch(GrammarCheckResponse::passed)),
                         "Kiểm tra và đánh dấu Sẵn sàng cho các bài còn thiếu."),
                 check("Nội dung lý thuyết hợp lệ", any && contents.stream().allMatch(this::validTheory),
                         "Hoàn thiện từ một đến bảy khối nội dung ở mỗi bài."),
@@ -82,16 +82,16 @@ public class GrammarChecklistValidator {
         ));
     }
 
-    private boolean validTheory(LessonInput input) {
-        List<Block> blocks = values(input.blocks());
+    private boolean validTheory(GrammarLessonRequest input) {
+        List<GrammarContentBlockRequest> blocks = values(input.blocks());
         return blocks.size() >= 1 && blocks.size() <= 7
                 && blocks.stream().allMatch(block -> blockFields(block) && blockItemCount(block))
-                && uniqueIds(blocks.stream().map(Block::id).toList());
+                && uniqueIds(blocks.stream().map(GrammarContentBlockRequest::id).toList());
     }
 
-    private boolean validPractice(LessonInput input) {
-        List<Question> questions = values(input.questions());
-        return questions.size() == 5 && uniqueIds(questions.stream().map(Question::id).toList())
+    private boolean validPractice(GrammarLessonRequest input) {
+        List<GrammarContentQuestionRequest> questions = values(input.questions());
+        return questions.size() == 5 && uniqueIds(questions.stream().map(GrammarContentQuestionRequest::id).toList())
                 && questions.stream().allMatch(question -> present(question.prompt()) && present(question.explanation())
                         && switch (question.type()) {
                             case "MULTIPLE_CHOICE" -> choiceOptions(question) && choiceAnswer(question);
@@ -100,7 +100,7 @@ public class GrammarChecklistValidator {
                         });
     }
 
-    private boolean blockFields(Block block) {
+    private boolean blockFields(GrammarContentBlockRequest block) {
         return switch (block.type()) {
             case "EXPLANATION" -> present(block.text());
             case "FORMULA" -> present(block.formula());
@@ -112,7 +112,7 @@ public class GrammarChecklistValidator {
         };
     }
 
-    private boolean blockItemCount(Block block) {
+    private boolean blockItemCount(GrammarContentBlockRequest block) {
         return switch (block.type()) {
             case "RULE_QUICK_NOTE" -> itemCount(block.ruleItems());
             case "EXAMPLE" -> itemCount(block.examples());
@@ -124,22 +124,22 @@ public class GrammarChecklistValidator {
         return list != null && !list.isEmpty() && list.size() <= 5;
     }
 
-    private boolean translated(Example example) {
+    private boolean translated(GrammarContentExampleRequest example) {
         return present(example.english()) && present(example.vietnamese());
     }
 
-    private boolean choiceOptions(Question question) {
+    private boolean choiceOptions(GrammarContentQuestionRequest question) {
         List<String> options = values(question.options());
         return options.size() == 4 && options.stream().allMatch(this::present);
     }
 
-    private boolean choiceAnswer(Question question) {
+    private boolean choiceAnswer(GrammarContentQuestionRequest question) {
         return question.correctIndex() != null && question.correctIndex() >= 0
                 && question.correctIndex() < 4 && question.correctIndex() < values(question.options()).size()
                 && present(question.options().get(question.correctIndex()));
     }
 
-    private boolean blankAnswer(Question question) {
+    private boolean blankAnswer(GrammarContentQuestionRequest question) {
         return question.prompt() != null && BLANK.matcher(question.prompt()).results().count() == 1
                 && question.prompt().indexOf("_____") < 0
                 && !GrammarAnswerNormalizer.normalize(question.correctAnswer()).isEmpty();
@@ -161,7 +161,7 @@ public class GrammarChecklistValidator {
         return list == null ? List.of() : list.stream().filter(Objects::nonNull).toList();
     }
 
-    private Check check(String label, boolean passed, String detail) {
-        return new Check(label, passed, passed ? "" : detail);
+    private GrammarCheckResponse check(String label, boolean passed, String detail) {
+        return new GrammarCheckResponse(label, passed, passed ? "" : detail);
     }
 }

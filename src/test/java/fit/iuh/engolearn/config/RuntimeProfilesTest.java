@@ -30,6 +30,7 @@ class RuntimeProfilesTest {
         return new ApplicationContextRunner()
                 .withPropertyValues("spring.profiles.active=" + profile,
                         "spring.config.location=classpath:/application.yaml",
+                        "MONGODB_URI=mongodb://localhost:27017/runtime_profile_test",
                         "MONGO_HOST=localhost", "MONGO_PORT=27017", "MONGO_REPLICA_SET=engolearn-rs",
                         "APP_DB=runtime_profile_test", "APP_USER=test", "APP_PASSWORD=test-only",
                         "AUTH_JWT_SECRET=test-only-signing-secret-at-least-32-bytes",
@@ -49,7 +50,8 @@ class RuntimeProfilesTest {
             assertThat(environment.getActiveProfiles()).containsExactly(profile);
             assertThat(environment.getProperty("engolearn.placement.persistence.mode")).isEqualTo("mongo");
             assertThat(environment.getProperty("engolearn.mongodb.transactions.enabled", Boolean.class)).isTrue();
-            assertThat(environment.getProperty("spring.mongodb.replica-set-name")).isEqualTo("engolearn-rs");
+            assertThat("mongodb://localhost:27017/runtime_profile_test".equals(environment.getProperty("spring.mongodb.uri")))
+                    .as("profile must resolve the test MONGODB_URI, without exposing connection credentials").isTrue();
             assertThat(environment.getProperty("engolearn.payment.dev-reset.enabled", Boolean.class)).isFalse();
         });
     }
@@ -121,6 +123,22 @@ class RuntimeProfilesTest {
         configuration("prod").withPropertyValues("engolearn.mongodb.transactions.enabled=false")
                 .withInitializer(new RuntimeProfileInitializer()).run(context ->
                         assertThat(context).hasFailed().getFailure().hasMessageContaining("enabled Mongo transactions"));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"dev", "prod"})
+    void requiresMongoUri(String profile) {
+        configuration(profile).withPropertyValues("MONGODB_URI=")
+                .withInitializer(new RuntimeProfileInitializer()).run(context ->
+                        assertThat(context).hasFailed().getFailure()
+                                .hasMessageContaining("Missing required runtime configuration: spring.mongodb.uri"));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"dev", "prod"})
+    void uriDoesNotRequireSeparateLocalConnectionFields(String profile) {
+        configuration(profile).withPropertyValues("MONGO_HOST=", "MONGO_REPLICA_SET=", "APP_USER=", "APP_PASSWORD=")
+                .withInitializer(new RuntimeProfileInitializer()).run(context -> assertThat(context).hasNotFailed());
     }
 
     @Test

@@ -1,14 +1,14 @@
 package fit.iuh.engolearn.grammar.controller;
 
-import fit.iuh.engolearn.grammar.dto.GrammarLearnerRequests.SeenRequest;
-import fit.iuh.engolearn.grammar.dto.GrammarLearnerRequests.StartPracticeRequest;
-import fit.iuh.engolearn.grammar.dto.GrammarLearnerRequests.SubmitAnswerRequest;
-import fit.iuh.engolearn.grammar.dto.GrammarLearnerResponses.AnswerResponse;
-import fit.iuh.engolearn.grammar.dto.GrammarLearnerResponses.LessonResponse;
-import fit.iuh.engolearn.grammar.dto.GrammarLearnerResponses.PracticeResponse;
-import fit.iuh.engolearn.grammar.dto.GrammarLearnerResponses.RoadmapResponse;
-import fit.iuh.engolearn.grammar.dto.GrammarLearnerResponses.SeenResponse;
-import fit.iuh.engolearn.grammar.dto.GrammarLearnerResponses.TopicDetailResponse;
+import fit.iuh.engolearn.grammar.dto.request.GrammarSeenRequest;
+import fit.iuh.engolearn.grammar.dto.request.GrammarStartPracticeRequest;
+import fit.iuh.engolearn.grammar.dto.request.GrammarSubmitAnswerRequest;
+import fit.iuh.engolearn.grammar.dto.response.GrammarAnswerResponse;
+import fit.iuh.engolearn.grammar.dto.response.GrammarLessonResponse;
+import fit.iuh.engolearn.grammar.dto.response.GrammarPracticeResponse;
+import fit.iuh.engolearn.grammar.dto.response.GrammarRoadmapResponse;
+import fit.iuh.engolearn.grammar.dto.response.GrammarSeenResponse;
+import fit.iuh.engolearn.grammar.dto.response.GrammarTopicDetailResponse;
 import fit.iuh.engolearn.grammar.service.GrammarLearnerService;
 import fit.iuh.engolearn.shared.web.ApiResponse;
 import jakarta.validation.Valid;
@@ -32,40 +32,40 @@ public class GrammarLearnerController {
     private final GrammarLearnerService service;
 
     @GetMapping("/roadmap")
-    public ApiResponse<RoadmapResponse> roadmap() {
+    public ApiResponse<GrammarRoadmapResponse> roadmap() {
         return ApiResponse.ok(service.roadmap());
     }
 
     @GetMapping(TOPIC)
-    public ApiResponse<TopicDetailResponse> topic(@PathVariable String topicId) {
+    public ApiResponse<GrammarTopicDetailResponse> topic(@PathVariable String topicId) {
         return ApiResponse.ok(service.topic(topicId));
     }
 
     @GetMapping(LESSON)
-    public ApiResponse<LessonResponse> lesson(@PathVariable String topicId, @PathVariable String lessonId) {
+    public ApiResponse<GrammarLessonResponse> lesson(@PathVariable String topicId, @PathVariable String lessonId) {
         return ApiResponse.ok(service.lesson(topicId, lessonId));
     }
 
     @PostMapping(LESSON + "/seen")
-    public ApiResponse<SeenResponse> markSeen(@PathVariable String topicId, @PathVariable String lessonId,
-                                               @Valid @RequestBody SeenRequest request) {
+    public ApiResponse<GrammarSeenResponse> markSeen(@PathVariable String topicId, @PathVariable String lessonId,
+                                               @Valid @RequestBody GrammarSeenRequest request) {
         return ApiResponse.ok(service.markSeen(topicId, lessonId, request.contentVersion()));
     }
 
     @PostMapping(LESSON + "/practice")
-    public ApiResponse<PracticeResponse> startPractice(@PathVariable String topicId, @PathVariable String lessonId,
-                                                         @Valid @RequestBody(required = false) StartPracticeRequest request) {
+    public ApiResponse<GrammarPracticeResponse> startPractice(@PathVariable String topicId, @PathVariable String lessonId,
+                                                         @Valid @RequestBody(required = false) GrammarStartPracticeRequest request) {
         return ApiResponse.ok(service.startPractice(topicId, lessonId, request != null && Boolean.TRUE.equals(request.restart())));
     }
 
     @GetMapping(PRACTICE)
-    public ApiResponse<PracticeResponse> practice(@PathVariable String sessionId) {
+    public ApiResponse<GrammarPracticeResponse> practice(@PathVariable String sessionId) {
         return ApiResponse.ok(service.practice(sessionId));
     }
 
     @PostMapping(PRACTICE + "/answers")
-    public ApiResponse<AnswerResponse> submitAnswer(@PathVariable String sessionId,
-                                                    @Valid @RequestBody SubmitAnswerRequest request) {
+    public ApiResponse<GrammarAnswerResponse> submitAnswer(@PathVariable String sessionId,
+                                                    @Valid @RequestBody GrammarSubmitAnswerRequest request) {
         return ApiResponse.ok(service.submitAnswer(sessionId, request));
     }
 }

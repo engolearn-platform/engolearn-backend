@@ -1,45 +1,45 @@
 package fit.iuh.engolearn.grammar.service;
 
-import fit.iuh.engolearn.grammar.dto.GrammarAdminDtos.Checklist;
-import fit.iuh.engolearn.grammar.dto.GrammarAdminDtos.CreateLessonInput;
-import fit.iuh.engolearn.grammar.dto.GrammarAdminDtos.Lesson;
-import fit.iuh.engolearn.grammar.dto.GrammarAdminDtos.LessonInput;
-import fit.iuh.engolearn.grammar.dto.GrammarAdminDtos.Topic;
-import fit.iuh.engolearn.grammar.dto.GrammarAdminDtos.TopicInput;
-import fit.iuh.engolearn.grammar.dto.GrammarAdminDtos.TopicPage;
+import fit.iuh.engolearn.grammar.dto.response.GrammarChecklistResponse;
+import fit.iuh.engolearn.grammar.dto.request.CreateGrammarLessonRequest;
+import fit.iuh.engolearn.grammar.dto.response.GrammarManagementLessonResponse;
+import fit.iuh.engolearn.grammar.dto.request.GrammarLessonRequest;
+import fit.iuh.engolearn.grammar.dto.response.GrammarManagementTopicResponse;
+import fit.iuh.engolearn.grammar.dto.request.GrammarTopicRequest;
+import fit.iuh.engolearn.grammar.dto.response.GrammarTopicPageResponse;
 
 public interface GrammarAdminService {
-    TopicPage list(String search, String level, String status, int page, int size);
+    GrammarTopicPageResponse list(String search, String level, String status, int page, int size);
 
-    Topic getTopic(String topicId);
+    GrammarManagementTopicResponse getTopic(String topicId);
 
-    Topic createTopic(TopicInput input);
+    GrammarManagementTopicResponse createTopic(GrammarTopicRequest input);
 
-    Topic updateTopic(String topicId, TopicInput input);
+    GrammarManagementTopicResponse updateTopic(String topicId, GrammarTopicRequest input);
 
     void deleteTopic(String topicId, long version);
 
-    Checklist topicChecklist(String topicId);
+    GrammarChecklistResponse topicChecklist(String topicId);
 
-    Topic publishTopic(String topicId, long version);
+    GrammarManagementTopicResponse publishTopic(String topicId, long version);
 
-    Topic archiveTopic(String topicId, long version);
+    GrammarManagementTopicResponse archiveTopic(String topicId, long version);
 
-    Topic restoreTopic(String topicId, long version);
+    GrammarManagementTopicResponse restoreTopic(String topicId, long version);
 
-    Lesson getLesson(String topicId, String lessonId);
+    GrammarManagementLessonResponse getLesson(String topicId, String lessonId);
 
-    Lesson createLesson(String topicId, CreateLessonInput input);
+    GrammarManagementLessonResponse createLesson(String topicId, CreateGrammarLessonRequest input);
 
-    Lesson updateLesson(String topicId, String lessonId, LessonInput input);
+    GrammarManagementLessonResponse updateLesson(String topicId, String lessonId, GrammarLessonRequest input);
 
     void deleteLesson(String topicId, String lessonId, long version);
 
-    Checklist lessonChecklist(String topicId, String lessonId);
+    GrammarChecklistResponse lessonChecklist(String topicId, String lessonId);
 
-    Lesson readyLesson(String topicId, String lessonId, long version, boolean confirmPublish);
+    GrammarManagementLessonResponse readyLesson(String topicId, String lessonId, long version, boolean confirmPublish);
 
-    Lesson applyLesson(String topicId, String lessonId, long version);
+    GrammarManagementLessonResponse applyLesson(String topicId, String lessonId, long version);
 
-    Lesson discardLessonDraft(String topicId, String lessonId, long version);
+    GrammarManagementLessonResponse discardLessonDraft(String topicId, String lessonId, long version);
 }

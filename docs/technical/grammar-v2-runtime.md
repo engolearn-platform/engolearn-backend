@@ -1,3 +1,7 @@
+> Quy tắc mở cấp cập nhật 23/11/2026: hoàn thành tối thiểu70% chủ đề đủ điều kiện của cấp trước, làm tròn lên bằng số nguyên. Chủ đề phải hoàn thành đủ tất cả bài Published; mỗi bài vẫn3/5. Giữ mọi unlock đã lưu và quyền từ profile; không tự nâng level User. Xem [thiết kế và kiểm chứng](grammar-unlock-70-review.md).
+
+> Cập nhật tích hợp level 23/11/2026: Grammar đọc UserLevelLookup, mở cấp đến level hồ sơ (C1/C2 giới hạn B2), không tự hoàn thành bài hoặc nâng level User. MVP dùng cefr_level chỉ tăng; hai trường latest/max riêng vẫn hoãn. Ghi chú mặc định A1/hoãn toàn bộ tích hợp bên dưới là lịch sử. Xem tài liệu grammar-placement-level-integration.md ở BE và 06-placement-level-integration.md ở FE.
+
 > Số liệu hiện hành sau bổ sung23/11/2026: xem [kết quả coverage](grammar-coverage-result.md); các số liệu của đợt triển khai bên dưới là hồ sơ lịch sử.
 
 # Grammar V2 — persistence và chuyển đổi
@@ -39,3 +43,11 @@ DB đang dùng của chủ dự án chưa được migrate/import. Không push/m
 ## Team dev integration — 23/11/2026
 
 Current authorization, dev/prod runtime, Cloudinary migration, local port handling and actual verification are maintained in [Placement/Grammar integration](placement-grammar-dev-integration.md). This supersedes older module-profile commands and the historical exact-USER-only learning activation restriction.
+
+## Structure standardization — 23/11/2026
+
+Grammar stays inside the existing feature. FE components/views use `learning/` and `management/`; hooks/services/types remain feature-owned. Management route exports are `GrammarManagementRoutes`; browser URLs and API URLs retain `/admin/grammar` and `/api/v1/grammar/admin/topics`. Reusable content types live in `types/grammar-content.types.ts`.
+
+BE web records are individual files in `grammar/dto/request` and `grammar/dto/response`, with Request/Response suffixes. Management content requests and responses are mapped explicitly in GrammarAdminMapper. The consolidated GrammarAdminDtos/GrammarLearnerRequests/GrammarLearnerResponses classes were removed; the seed validator imports the replacement records. JSON fields, validation, roles and business rules are preserved. No persistence model, collection, ID, seed content or learner progress is migrated by this change.
+
+Chi tiết thay đổi cấu trúc và kết quả kiểm chứng: [báo cáo chuẩn hóa](grammar-structure-standardization.md).

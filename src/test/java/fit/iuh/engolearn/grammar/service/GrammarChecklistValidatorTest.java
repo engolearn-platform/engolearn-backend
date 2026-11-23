@@ -1,9 +1,9 @@
 package fit.iuh.engolearn.grammar.service;
 
-import fit.iuh.engolearn.grammar.dto.GrammarAdminDtos.Block;
-import fit.iuh.engolearn.grammar.dto.GrammarAdminDtos.Check;
-import fit.iuh.engolearn.grammar.dto.GrammarAdminDtos.LessonInput;
-import fit.iuh.engolearn.grammar.dto.GrammarAdminDtos.Question;
+import fit.iuh.engolearn.grammar.dto.request.GrammarContentBlockRequest;
+import fit.iuh.engolearn.grammar.dto.response.GrammarCheckResponse;
+import fit.iuh.engolearn.grammar.dto.request.GrammarLessonRequest;
+import fit.iuh.engolearn.grammar.dto.request.GrammarContentQuestionRequest;
 import fit.iuh.engolearn.grammar.model.GrammarTopic;
 import fit.iuh.engolearn.grammar.model.enums.GrammarLevel;
 import org.junit.jupiter.api.Test;
@@ -19,7 +19,7 @@ class GrammarChecklistValidatorTest {
     @Test
     void readyMeansAValidLessonMeetsAllFourteenRules() {
         var checklist = validator.lesson(lesson("She ____ to school.", "walks"));
-        assertThat(checklist.checks()).hasSize(14).allMatch(Check::passed);
+        assertThat(checklist.checks()).hasSize(14).allMatch(GrammarCheckResponse::passed);
     }
 
     @Test
@@ -40,13 +40,13 @@ class GrammarChecklistValidatorTest {
         assertThat(checks.get(1).passed()).isFalse();
     }
 
-    private LessonInput lesson(String prompt, String answer) {
-        var explanation = new Block("b", "EXPLANATION", "Hiện tại đơn", "Diễn tả thói quen.", null,
+    private GrammarLessonRequest lesson(String prompt, String answer) {
+        var explanation = new GrammarContentBlockRequest("b", "EXPLANATION", "Hiện tại đơn", "Diễn tả thói quen.", null,
                 List.of(), List.of(), null, null, null);
-        List<Question> questions = IntStream.range(0, 5).mapToObj(index ->
-                new Question("q" + index, "FILL_IN_BLANK", prompt, "She là ngôi thứ ba số ít.",
+        List<GrammarContentQuestionRequest> questions = IntStream.range(0, 5).mapToObj(index ->
+                new GrammarContentQuestionRequest("q" + index, "FILL_IN_BLANK", prompt, "She là ngôi thứ ba số ít.",
                         List.of(), null, answer, List.of())).toList();
-        return new LessonInput(0L, 1, "Thói quen", "Habits", "Dùng đúng hiện tại đơn.",
+        return new GrammarLessonRequest(0L, 1, "Thói quen", "Habits", "Dùng đúng hiện tại đơn.",
                 List.of(), List.of(explanation), questions);
     }
 }

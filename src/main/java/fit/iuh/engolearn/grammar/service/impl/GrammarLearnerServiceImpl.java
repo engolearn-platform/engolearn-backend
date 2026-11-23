@@ -1,17 +1,17 @@
 package fit.iuh.engolearn.grammar.service.impl;
 
-import fit.iuh.engolearn.grammar.dto.GrammarLearnerRequests.SubmitAnswerRequest;
-import fit.iuh.engolearn.grammar.dto.GrammarLearnerResponses.AnswerResponse;
-import fit.iuh.engolearn.grammar.dto.GrammarLearnerResponses.BlockResponse;
-import fit.iuh.engolearn.grammar.dto.GrammarLearnerResponses.ExampleResponse;
-import fit.iuh.engolearn.grammar.dto.GrammarLearnerResponses.LessonResponse;
-import fit.iuh.engolearn.grammar.dto.GrammarLearnerResponses.LessonSummaryResponse;
-import fit.iuh.engolearn.grammar.dto.GrammarLearnerResponses.LevelResponse;
-import fit.iuh.engolearn.grammar.dto.GrammarLearnerResponses.PracticeResponse;
-import fit.iuh.engolearn.grammar.dto.GrammarLearnerResponses.RoadmapResponse;
-import fit.iuh.engolearn.grammar.dto.GrammarLearnerResponses.SeenResponse;
-import fit.iuh.engolearn.grammar.dto.GrammarLearnerResponses.TopicDetailResponse;
-import fit.iuh.engolearn.grammar.dto.GrammarLearnerResponses.TopicResponse;
+import fit.iuh.engolearn.grammar.dto.request.GrammarSubmitAnswerRequest;
+import fit.iuh.engolearn.grammar.dto.response.GrammarAnswerResponse;
+import fit.iuh.engolearn.grammar.dto.response.GrammarBlockResponse;
+import fit.iuh.engolearn.grammar.dto.response.GrammarExampleResponse;
+import fit.iuh.engolearn.grammar.dto.response.GrammarLessonResponse;
+import fit.iuh.engolearn.grammar.dto.response.GrammarLessonSummaryResponse;
+import fit.iuh.engolearn.grammar.dto.response.GrammarLevelResponse;
+import fit.iuh.engolearn.grammar.dto.response.GrammarPracticeResponse;
+import fit.iuh.engolearn.grammar.dto.response.GrammarRoadmapResponse;
+import fit.iuh.engolearn.grammar.dto.response.GrammarSeenResponse;
+import fit.iuh.engolearn.grammar.dto.response.GrammarTopicDetailResponse;
+import fit.iuh.engolearn.grammar.dto.response.GrammarTopicResponse;
 import fit.iuh.engolearn.grammar.exception.GrammarRequestException;
 import fit.iuh.engolearn.grammar.mapper.GrammarPracticeMapper;
 import fit.iuh.engolearn.grammar.model.GrammarLesson;
@@ -32,6 +32,7 @@ import fit.iuh.engolearn.grammar.model.vo.GrammarPracticeResultVo;
 import fit.iuh.engolearn.grammar.repository.GrammarLearnerRepository;
 import fit.iuh.engolearn.grammar.service.GrammarLearnerService;
 import fit.iuh.engolearn.shared.security.CurrentUserProvider;
+import fit.iuh.engolearn.user.contract.UserLevelLookup;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -59,45 +60,47 @@ public class GrammarLearnerServiceImpl implements GrammarLearnerService {
     private static final Duration PRACTICE_TIMEOUT = Duration.ofMinutes(30);
     private static final int PRACTICE_QUESTION_COUNT = 5;
     private static final int PASSING_SCORE = 3;
+    private static final long UNLOCK_TOPIC_PERCENT = 70;
     private final GrammarLearnerRepository repository;
     private final CurrentUserProvider currentUser;
+    private final UserLevelLookup userLevels;
 
     @Override
-    public RoadmapResponse roadmap() {
+    public GrammarRoadmapResponse roadmap() {
         String userId = currentUser.requireCurrentUserId();
         return repository.transactForLearner(userId, () -> {
             var catalog = catalog(userId);
             Set<GrammarLevel> unlocked = storedUnlocks(userId);
             List<GrammarLevel> newlyUnlocked = evaluateUnlocks(userId, catalog, unlocked,
                     GrammarUnlockReason.ROADMAP_REEVALUATION, Instant.now());
-            List<LevelResponse> levels = Arrays.stream(GrammarLevel.values())
+            List<GrammarLevelResponse> levels = Arrays.stream(GrammarLevel.values())
                     .map(level -> levelResponse(level, catalog, unlocked)).toList();
-            return new RoadmapResponse(DEFAULT_LEVEL, newlyUnlocked, levels);
+            return new GrammarRoadmapResponse(profileLevel(userId), newlyUnlocked, levels);
         });
     }
 
     @Override
-    public TopicDetailResponse topic(String topicId) {
+    public GrammarTopicDetailResponse topic(String topicId) {
         String userId = currentUser.requireCurrentUserId();
         var topic = accessibleTopic(userId, topicId);
         List<LessonSlot> lessons = lessonSlots(topic, topicProgress(userId, topicId));
-        List<LessonSummaryResponse> summaries = lessons.stream().map(this::lessonSummary).toList();
-        return new TopicDetailResponse(topicResponse(new TopicProgress(topic, lessons), false), summaries);
+        List<GrammarLessonSummaryResponse> summaries = lessons.stream().map(this::lessonSummary).toList();
+        return new GrammarTopicDetailResponse(topicResponse(new TopicProgress(topic, lessons), false), summaries);
     }
 
     @Override
-    public LessonResponse lesson(String topicId, String lessonId) {
+    public GrammarLessonResponse lesson(String topicId, String lessonId) {
         String userId = currentUser.requireCurrentUserId();
         LessonSlot slot = accessibleLesson(userId, topicId, lessonId);
         GrammarLesson lesson = slot.lesson();
         GrammarLessonContentVo content = lesson.getPublished();
-        return new LessonResponse(topicId, lessonId, slot.number(), content.getTitleVi(), content.getTitleEn(),
+        return new GrammarLessonResponse(topicId, lessonId, slot.number(), content.getTitleVi(), content.getTitleEn(),
                 content.getObjective(), slot.status(), lesson.getContentVersion(),
                 content.getBlocks().stream().map(GrammarLearnerServiceImpl::blockResponse).toList());
     }
 
     @Override
-    public SeenResponse markSeen(String topicId, String lessonId, int contentVersion) {
+    public GrammarSeenResponse markSeen(String topicId, String lessonId, int contentVersion) {
         String userId = currentUser.requireCurrentUserId();
         return repository.transactForLearner(userId, () -> {
             LessonSlot slot = accessibleLesson(userId, topicId, lessonId);
@@ -116,12 +119,12 @@ public class GrammarLearnerServiceImpl implements GrammarLearnerService {
             progress.setLastSeenContentVersion(seenVersion);
             progress.setLastStudiedAt(Instant.now());
             repository.saveProgress(progress);
-            return new SeenResponse(seenVersion);
+            return new GrammarSeenResponse(seenVersion);
         });
     }
 
     @Override
-    public PracticeResponse startPractice(String topicId, String lessonId, boolean restart) {
+    public GrammarPracticeResponse startPractice(String topicId, String lessonId, boolean restart) {
         String userId = currentUser.requireCurrentUserId();
         return repository.transactForLearner(userId, () -> {
             Instant now = Instant.now();
@@ -148,9 +151,9 @@ public class GrammarLearnerServiceImpl implements GrammarLearnerService {
     }
 
     @Override
-    public PracticeResponse practice(String sessionId) {
+    public GrammarPracticeResponse practice(String sessionId) {
         String userId = currentUser.requireCurrentUserId();
-        PracticeResponse response = repository.transactForLearner(userId, () -> {
+        GrammarPracticeResponse response = repository.transactForLearner(userId, () -> {
             var session = ownedSession(userId, sessionId);
             Instant now = Instant.now();
             if (expireIfNeeded(session, now)) {
@@ -163,9 +166,9 @@ public class GrammarLearnerServiceImpl implements GrammarLearnerService {
     }
 
     @Override
-    public AnswerResponse submitAnswer(String sessionId, SubmitAnswerRequest request) {
+    public GrammarAnswerResponse submitAnswer(String sessionId, GrammarSubmitAnswerRequest request) {
         String userId = currentUser.requireCurrentUserId();
-        AnswerResponse response = repository.transactForLearner(userId, () -> {
+        GrammarAnswerResponse response = repository.transactForLearner(userId, () -> {
             var session = ownedSession(userId, sessionId);
             Instant now = Instant.now();
             if (expireIfNeeded(session, now)) {
@@ -270,7 +273,17 @@ public class GrammarLearnerServiceImpl implements GrammarLearnerService {
     }
 
     private boolean isLevelUnlocked(String userId, GrammarLevel level) {
-        return level == DEFAULT_LEVEL || storedUnlocks(userId).contains(level);
+        return level.ordinal() <= profileLevel(userId).ordinal() || storedUnlocks(userId).contains(level);
+    }
+
+    private GrammarLevel profileLevel(String userId) {
+        // User owns the monotonic profile; advanced CEFR levels share Grammar's highest available tier.
+        return userLevels.findLevel(userId).map(level -> switch (level) {
+            case A1 -> GrammarLevel.A1;
+            case A2 -> GrammarLevel.A2;
+            case B1 -> GrammarLevel.B1;
+            case B2, C1, C2 -> GrammarLevel.B2;
+        }).orElse(DEFAULT_LEVEL);
     }
 
     private GrammarTopic publishedTopic(String topicId) {
@@ -359,6 +372,13 @@ public class GrammarLearnerServiceImpl implements GrammarLearnerService {
         }
         List<GrammarLevel> granted = new ArrayList<>();
         GrammarLevel[] levels = GrammarLevel.values();
+        GrammarLevel profile = profileLevel(userId);
+        for (GrammarLevel level : levels) {
+            if (level.ordinal() <= profile.ordinal() && unlocked.add(level)) {
+                insertUnlock(userId, level, GrammarUnlockReason.PLACEMENT, now);
+                granted.add(level);
+            }
+        }
         for (int index = 1; index < levels.length; index++) {
             GrammarLevel previous = levels[index - 1];
             GrammarLevel next = levels[index];
@@ -377,14 +397,14 @@ public class GrammarLearnerServiceImpl implements GrammarLearnerService {
                 .userId(userId).level(level).unlockedAt(now).reason(reason).build());
     }
 
-    private static LevelResponse levelResponse(GrammarLevel level, Map<GrammarLevel, LevelProgress> catalog,
+    private static GrammarLevelResponse levelResponse(GrammarLevel level, Map<GrammarLevel, LevelProgress> catalog,
                                                Set<GrammarLevel> unlocked) {
         LevelProgress progress = catalog.get(level);
         boolean isUnlocked = unlocked.contains(level);
         var topics = progress.topics().stream().map(topic -> topicResponse(topic, !isUnlocked)).toList();
         long completed = progress.completed();
         long total = progress.total();
-        return new LevelResponse(level, isUnlocked, completed, total, percent(completed, total),
+        return new GrammarLevelResponse(level, isUnlocked, completed, total, percent(completed, total),
                 isUnlocked ? null : lockHint(level, catalog, unlocked), topics);
     }
 
@@ -402,11 +422,12 @@ public class GrammarLearnerServiceImpl implements GrammarLearnerService {
             return "Cấp độ " + previous + " chưa có nội dung để mở khóa cấp độ này.";
         }
         long remaining = threshold(progress.total()) - progress.completed();
-        return "Hoàn thành thêm " + remaining + " chủ đề ở cấp độ " + previous + " để mở khóa.";
+        return "Hoàn thành thêm " + remaining + " chủ đề ở cấp độ " + previous
+                + " để mở khóa (hoàn thành ít nhất " + UNLOCK_TOPIC_PERCENT + "% chủ đề).";
     }
 
     private static long threshold(long total) {
-        return (total + 1) / 2;
+        return (total * UNLOCK_TOPIC_PERCENT + 99) / 100;
     }
 
     private static int percent(long completed, long total) {
@@ -426,32 +447,32 @@ public class GrammarLearnerServiceImpl implements GrammarLearnerService {
                 .status(GrammarLearningStatus.IN_PROGRESS).build();
     }
 
-    private static TopicResponse topicResponse(TopicProgress progress, boolean locked) {
+    private static GrammarTopicResponse topicResponse(TopicProgress progress, boolean locked) {
         int completed = progress.completedLessons();
         int total = progress.lessons().size();
         var topic = progress.topic();
         String status = locked ? "LOCKED" : progress.status().name();
-        return new TopicResponse(topic.getId(), topic.getTitleVi(), topic.getTitleEn(), topic.getDescription(),
+        return new GrammarTopicResponse(topic.getId(), topic.getTitleVi(), topic.getTitleEn(), topic.getDescription(),
                 topic.getLevel(), status, completed, total, percent(completed, total));
     }
 
-    private LessonSummaryResponse lessonSummary(LessonSlot slot) {
+    private GrammarLessonSummaryResponse lessonSummary(LessonSlot slot) {
         var lesson = slot.lesson();
         var content = lesson.getPublished();
         var progress = slot.progress();
         Integer seen = progress == null ? null : progress.getLastSeenContentVersion();
         Integer bestScore = progress == null ? null : progress.getBestScore();
-        return new LessonSummaryResponse(lesson.getId(), slot.number(), content.getTitleVi(), content.getTitleEn(),
+        return new GrammarLessonSummaryResponse(lesson.getId(), slot.number(), content.getTitleVi(), content.getTitleEn(),
                 content.getObjective(), slot.status(), slot.unlocked(), bestScore,
                 seen != null && seen < lesson.getContentVersion());
     }
 
-    private static BlockResponse blockResponse(GrammarBlockVo block) {
-        List<ExampleResponse> examples = block.getExamples() == null ? List.of() : block.getExamples().stream()
-                .map(example -> new ExampleResponse(example.getEnglish(), example.getVietnamese(), example.getAnalysis()))
+    private static GrammarBlockResponse blockResponse(GrammarBlockVo block) {
+        List<GrammarExampleResponse> examples = block.getExamples() == null ? List.of() : block.getExamples().stream()
+                .map(example -> new GrammarExampleResponse(example.getEnglish(), example.getVietnamese(), example.getAnalysis()))
                 .toList();
         List<String> rules = block.getRuleItems() == null ? List.of() : List.copyOf(block.getRuleItems());
-        return new BlockResponse(block.getId(), block.getType(), block.getTitle(), block.getText(), block.getFormula(),
+        return new GrammarBlockResponse(block.getId(), block.getType(), block.getTitle(), block.getText(), block.getFormula(),
                 examples, rules, block.getIncorrect(), block.getCorrect(), block.getExplanation());
     }
 
@@ -470,7 +491,7 @@ public class GrammarLearnerServiceImpl implements GrammarLearnerService {
         return publishedRevision(session.getTopicId(), session.getLessonId(), session.getContentVersion());
     }
 
-    private PracticeResponse resume(GrammarPracticeSession session, Instant now) {
+    private GrammarPracticeResponse resume(GrammarPracticeSession session, Instant now) {
         session.setLastActivityAt(now);
         repository.saveSession(session);
         return practiceResponse(session);
@@ -480,16 +501,16 @@ public class GrammarLearnerServiceImpl implements GrammarLearnerService {
         return GrammarPracticeMapper.questionId(session.getId(), session.getQuestionOrder().get(index).getQuestionIndex());
     }
 
-    private AnswerResponse answerResponse(GrammarPracticeSession session, GrammarLessonContentVo content, int index) {
-        return new AnswerResponse(GrammarPracticeMapper.feedback(session, content, index),
+    private GrammarAnswerResponse answerResponse(GrammarPracticeSession session, GrammarLessonContentVo content, int index) {
+        return new GrammarAnswerResponse(GrammarPracticeMapper.feedback(session, content, index),
                 practiceResponse(session, content));
     }
 
-    private PracticeResponse practiceResponse(GrammarPracticeSession session) {
+    private GrammarPracticeResponse practiceResponse(GrammarPracticeSession session) {
         return practiceResponse(session, sessionRevision(session));
     }
 
-    private PracticeResponse practiceResponse(GrammarPracticeSession session, GrammarLessonContentVo content) {
+    private GrammarPracticeResponse practiceResponse(GrammarPracticeSession session, GrammarLessonContentVo content) {
         var result = session.getResult();
         String successor = result == null || result.isArchived() ? null : currentSuccessor(session);
         return GrammarPracticeMapper.session(session, content, expiresAt(session), successor);

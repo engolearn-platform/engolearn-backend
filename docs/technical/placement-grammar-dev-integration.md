@@ -1,3 +1,5 @@
+> Cập nhật bàn giao cuối23/11/2026: cấu hình hiện dùng MONGODB_URI ở cả dev/prod, không dùng override spring.mongodb.uri trong .env. Placement dùng [gói16 đề/320 câu](../../tools/mongo-json-importer/samples/placement/README.md) thay cho việc nhập chồng các gói cũ;7 Published/9 Draft. Grammar local39 chủ đề/99 bài Published,4 chủ đề/7 bài Nháp; seed Grammar vẫn toàn Nháp. Các số liệu và lệnh migration phía dưới là hồ sơ đợt tích hợp trước, không chạy lại thay cho hướng dẫn gói hiện hành.
+
 # Placement + Grammar: tích hợp dev của nhóm — 23/11/2026
 
 ## Nguồn chuẩn và phạm vi
@@ -168,3 +170,11 @@ Kiểm thử thật tạo 4 tài khoản riêng có tiền tố module-smoke, 4 
 Phát hiện target còn hai YAML profile cũ từ trước merge dù source đã xóa. Đã lưu báo cáo test rồi clean package lại; JAR cuối chỉ chứa application.yaml, application-dev.yaml và application-prod.yaml. Đây là dọn đầu ra build, không thêm profile hay chỉnh code của module khác.
 
 Đã chạy trực tiếp class EngolearnApplication với dev như cách IDE dùng, và JAR sạch ngoài repo với prod/HTTPS: cả hai login Admin đạt, đọc 43 chủ đề Grammar, bộ Placement Published 20 câu và audio Cloudinary trả Range206. Đã dừng cả hai ngay sau xác nhận. Ba DB/tài khoản DB kiểm thử riêng do đợt này tạo đã được dọn; DB nghiệp vụ, Mongo Docker/Windows và backup riêng tư giữ nguyên.
+
+## Sự cố Run IntelliJ sau bàn giao — 23/11/2026
+
+Log IDE 16:17:04 báo RuntimeProfileInitializer từ chối lựa chọn profile. Run configuration EngolearnApplication vẫn giữ ACTIVE_PROFILES=dev,placement-local; profile placement-local đã bị nhóm loại bỏ. Đã sửa đúng cấu hình Run local bằng IntelliJ thành dev, lưu và Run trực tiếp trong IDE. Console xác nhận Tomcat8080/Started EngolearnApplication; API thật đăng nhập Admin đạt, đọc 43 Grammar Topic, 5 Placement TestSet (1 Published) và catalog96 audio. Không nới initializer hoặc sửa code nghiệp vụ; .idea/workspace.xml bị Git ignore. BE lần này được giữ chạy trong IDE để chủ dự án test.
+
+Phạm vi dùng chung cần leader review: BE SecurityConfig thêm matcher riêng hai namespace, ArchitectureTest đăng ký Grammar; application.yaml cuối khớp origin/dev. FE nhánh hiện tại còn khác dev ở LearningTopBar, ManagementSidebar, ManagementTopBar và managementNav do tích hợp menu/quản trị/responsive từ các đợt trước. Không nên mô tả toàn bộ nhánh là chỉ sửa file trong hai feature. Auth nền tảng/User/shared backend không có diff với origin/dev trong lần đối chiếu này.
+
+Dữ liệu nghiệp vụ vẫn ở Mongo Docker local, file seed/metadata nằm trong các commit local; riêng96 WAV đã ở Cloudinary. Merge code không tự sao chép database hoặc kết quả/tiến độ cá nhân. Thành viên phải nhận bản code/seed mới, nhập đúng gói vào DB của họ, cấu hình .env và xuất bản nội dung cần demo. Bản tích hợp mới chưa push nên chưa thể khẳng định các thành viên đã nhận được.

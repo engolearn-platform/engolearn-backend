@@ -65,6 +65,7 @@ A new dependency needs an explicit reason and approval. Keep this table in sync 
 | `quota` | `subscription.contract` (effective-entitlement lookup and durable Subscription-owned facts) |
 | `payment` | None; must never depend on Subscription |
 | `media` | None; provider exposes `media.contract.MediaManagement`; consuming features declare their own dependency when they integrate it |
+| `grammar` | `user.contract.UserLevelLookup` for read-only profile-based roadmap and access; Grammar persists its own permanent unlocks only (owner-approved 2026-11-23). See [integration design](../technical/grammar-placement-level-integration.md). |
 | `placement` | `media.contract.MediaManagement` for Placement-owned audio upload and response delivery (user-approved 2026-11-23); `user.contract.UserLevelPromotion` for atomic monotonic profile promotion on owned completion/Guest claim and explicit learning activation (user-approved 2026-11-08) |
 | `speaking` | `topic` |
 

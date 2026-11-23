@@ -1,3 +1,5 @@
+> MongoDB URI alignment23/11/2026: both profiles consume MONGODB_URI. Do not configure a second spring.mongodb.uri override in .env. Local credentials stay private; URI topology/authSource/replica-set options belong in the URI. See [alignment evidence](../technical/mongodb-uri-alignment.md).
+
 # Runtime configuration contract
 
 ## Layers and responsibilities
@@ -9,11 +11,11 @@ before beans or startup runners execute. Do not store `spring.profiles.active` i
 
 | Layer | Owns |
 | --- | --- |
-| application.yaml | Real Mongo persistence, enabled transactions, Placement Mongo/level-sync wiring, common auth and integration property definitions |
+| application.yaml | Mongo URI from MONGODB_URI and database from APP_DB (default engolearn_db), enabled transactions, Placement Mongo/level-sync wiring, common auth/integration properties |
 | application-dev.yaml | Development resources, HTTP cookie defaults, optional test helpers, bundled media paths and VNPay sandbox defaults |
-| application-prod.yaml | Only mandatory deployment overrides: Mongo credentials and CORS; safe defaults are inherited from the shared layer |
+| application-prod.yaml | Inherits the Mongo URI, requires APP_DB/CORS; PORT defaults to8080 and Mongo server-selection timeout is15000ms, matching the current team dev configuration |
 
-Both environments require a single-node Mongo replica set. Use different databases,
+Both environments require a replica-set-capable Mongo deployment; local dev may use the team single-node replica set. Use different databases,
 credentials and provider resources; equal infrastructure requirements do not mean sharing
 production data. Both use real cookie/JWT authentication. Profile selection must not choose
 a subset of business modules or weaken their rules.
@@ -41,9 +43,11 @@ Production may supply process environment or a deployment secret store. Existing
 
 | Environment input | Meaning / policy |
 | --- | --- |
-| MONGO_HOST, MONGO_PORT | Mongo address; dev defaults localhost:27017, prod requires host |
-| MONGO_REPLICA_SET | Expected replica set, default engolearn-rs; server must match |
-| APP_DB, APP_USER, APP_PASSWORD | App database credentials; explicit nonblank values required in prod |
+| MONGODB_URI | Full Mongo connection URI in both profiles, including authentication/topology options; required; keep real credentials in ignored .env or deployment secrets |
+| APP_DB | Application database; dev/base default engolearn_db; explicit nonblank value required in prod and overrides database name in URI |
+| MONGO_HOST, MONGO_PORT, MONGO_REPLICA_SET | Local Compose/setup/tool inputs where applicable; the application takes host/port/replica topology from MONGODB_URI |
+| APP_USER, APP_PASSWORD | Local account setup/importer inputs where applicable; application authentication is supplied inside MONGODB_URI |
+| PORT | Prod listener override, fallback8080; dev keeps its existing port8080 |
 | MONGO_USER, MONGO_PASS | Compose/tool root credentials, not the application identity |
 | AUTH_JWT_SECRET, AUTH_JWT_ISSUER | Real JWT configuration; existing signing-key validation applies |
 | AUTH_COOKIE_SECURE | Dev HTTP/HTTPS override; prod requires secure cookies regardless of this alias |
@@ -54,9 +58,10 @@ Production may supply process environment or a deployment secret store. Existing
 | ASSEMBLYAI_API_KEY, GEMINI_API_KEY, CARTESIA_API_KEY, CARTESIA_VOICE_ID | Speaking resources; see its production gap below |
 
 Root [Compose](../../docker-compose.yaml) provisions one member in engolearn-rs. Its
-healthcheck rejects existing multi-member topology without modifying it. Host clients
-must use advertised localhost:27017; the fresh-clone template now uses 27017. An existing
-`.env` using 27019 needs manual port alignment before normal replica discovery. Do not
+healthcheck rejects existing multi-member topology without modifying it. The standard local template uses advertised localhost:27017. A custom mapped port must
+be expressed in MONGODB_URI with appropriate topology options; this machine retains
+its verified localhost27019 connection with directConnection=true and the replica-set name.
+Use the managed provider's topology URI for deployment rather than copying local options. Do not
 delete volumes or reset users to apply this change. Applications deployed in containers
 or on other hosts need a resolvable advertised member address; localhost development
 Compose is not a production deployment template.

@@ -1,6 +1,6 @@
 package fit.iuh.engolearn.grammar.service.impl;
 
-import fit.iuh.engolearn.grammar.dto.GrammarLearnerRequests.SubmitAnswerRequest;
+import fit.iuh.engolearn.grammar.dto.request.GrammarSubmitAnswerRequest;
 import fit.iuh.engolearn.grammar.exception.GrammarRequestException;
 import fit.iuh.engolearn.grammar.mapper.GrammarPracticeMapper;
 import fit.iuh.engolearn.grammar.model.GrammarPracticeSession;
@@ -34,7 +34,7 @@ final class GrammarPracticeQuiz {
     }
 
     static GrammarPracticeAnswerVo grade(GrammarPracticeSession session, GrammarPracticeOrderVo order,
-                                         GrammarLessonContentVo content, SubmitAnswerRequest request) {
+                                         GrammarLessonContentVo content, GrammarSubmitAnswerRequest request) {
         int questionIndex = order.getQuestionIndex();
         var question = content.getQuestions().get(questionIndex);
         var answer = GrammarPracticeAnswerVo.builder().requestId(request.requestId());

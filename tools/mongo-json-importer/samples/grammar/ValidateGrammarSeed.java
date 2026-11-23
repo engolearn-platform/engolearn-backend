@@ -1,4 +1,5 @@
-import fit.iuh.engolearn.grammar.dto.GrammarAdminDtos;
+import fit.iuh.engolearn.grammar.dto.response.GrammarCheckResponse;
+import fit.iuh.engolearn.grammar.dto.request.GrammarTopicRequest;
 import fit.iuh.engolearn.grammar.mapper.GrammarAdminMapper;
 import fit.iuh.engolearn.grammar.model.GrammarCounter;
 import fit.iuh.engolearn.grammar.model.GrammarTopic;
@@ -47,7 +48,7 @@ public class ValidateGrammarSeed {
         require(identifiers.add(topic.getId()) && codes.add(topic.getCode()), "Duplicate topic identity");
         try (var factory = Validation.buildDefaultValidatorFactory()) {
             var bean = factory.getValidator();
-            var topicInput = new GrammarAdminDtos.TopicInput(topic.getVersion(), topic.getOrder(), topic.getTitleVi(),
+            var topicInput = new GrammarTopicRequest(topic.getVersion(), topic.getOrder(), topic.getTitleVi(),
                     topic.getTitleEn(), topic.getDescription(), topic.getLevel().name());
             require(bean.validate(topicInput).isEmpty(), "Invalid TopicInput");
             require(topic.getLessons().size() == 3, "Three lessons required");
@@ -61,7 +62,7 @@ public class ValidateGrammarSeed {
                 var input = GrammarAdminMapper.lessonInput(lesson);
                 require(bean.validate(input).isEmpty(), "Invalid LessonInput: " + lesson.getCode());
                 var checks = checklist.lesson(input).checks();
-                require(checks.size() == 14 && checks.stream().allMatch(GrammarAdminDtos.Check::passed),
+                require(checks.size() == 14 && checks.stream().allMatch(GrammarCheckResponse::passed),
                         "Lesson checklist failed: " + lesson.getCode() + " " + checks);
                 for (var block : input.blocks()) require(identifiers.add(block.id()), "Duplicate block ID");
                 for (var question : input.questions()) {
@@ -84,10 +85,10 @@ public class ValidateGrammarSeed {
                 System.out.println(lesson.getCode() + ": DTO valid, checklist 14/14");
             }
         }
-        require(checklist.topic(topic).checks().stream().filter(GrammarAdminDtos.Check::passed).count() == 6,
+        require(checklist.topic(topic).checks().stream().filter(GrammarCheckResponse::passed).count() == 6,
                 "Draft topic should wait only for real readiness approval");
         topic.getLessons().forEach(lesson -> lesson.setReady(true));
-        require(checklist.topic(topic).checks().stream().allMatch(GrammarAdminDtos.Check::passed), "Topic checklist failed");
+        require(checklist.topic(topic).checks().stream().allMatch(GrammarCheckResponse::passed), "Topic checklist failed");
         topic.getLessons().forEach(lesson -> lesson.setReady(false));
         require(blocks == 15 && questions == 15 && fills == 6, "Unexpected content counts");
         System.out.println("PASS: 1 topic, 3 lessons, 15 blocks, 15 questions; topic 6/7 as draft, 7/7 after in-memory readiness simulation. No DB access or writes.");

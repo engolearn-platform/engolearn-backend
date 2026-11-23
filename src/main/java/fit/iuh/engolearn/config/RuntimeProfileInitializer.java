@@ -19,10 +19,12 @@ public class RuntimeProfileInitializer implements ApplicationContextInitializer<
                 || !environment.getProperty("engolearn.mongodb.transactions.enabled", Boolean.class, false)) {
             throw new IllegalStateException("Both runtime profiles require Placement Mongo persistence and enabled Mongo transactions.");
         }
-        require(environment, "spring.mongodb.replica-set-name");
+        // Both runtime profiles use the same MongoDB connection URI. Replica-set
+        // discovery and options are supplied by the URI, not separate host properties.
+        require(environment, "spring.mongodb.uri");
         if ("prod".equals(profiles[0])) {
-            for (String key : new String[]{"spring.mongodb.host", "spring.mongodb.database", "spring.mongodb.username",
-                    "spring.mongodb.password", "engolearn.cors.allowed-origins"}) {
+            for (String key : new String[]{"spring.mongodb.database",
+                    "engolearn.cors.allowed-origins"}) {
                 require(environment, key);
             }
             if (!environment.getProperty("engolearn.security.cookies.secure", Boolean.class, false)) {
