@@ -22,7 +22,6 @@ spring:
 
 engolearn:
   development:
-    topic-seed-enabled: false
     speaking-fixture-enabled: false
   placement:
     persistence:

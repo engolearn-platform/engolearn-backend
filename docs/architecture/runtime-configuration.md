@@ -69,16 +69,19 @@ checks dev without prod independently of YAML.
 | Environment input | Default | Capability |
 | --- | --- | --- |
 | PAYMENT_DEV_RESET_ENABLED | false | Owner-only unresolved unpaid purchase release; preserves financial/refund guards, transaction and audit |
-| DEV_TOPIC_SEED_ENABLED | false | Existing Topic sample runner, subject to its collection-empty check |
 | DEV_SPEAKING_FIXTURE_ENABLED | false | Existing fixed airport Speaking fixture |
 | SPEAKING_DEV_SEED_FILE | empty | Optional Speaking config file for existing item/version IDs |
 | PLACEMENT_ALLOW_DRAFT | false | DRAFT fallback only if no PUBLISHED test set exists |
 | DEV_LOG_LEVEL | INFO | Development application logging; do not expose credentials/tokens |
 
 Helpers never bypass identity, ownership or financial eligibility. See
-[payment reset](../runbooks/dev-purchase-reset.md). Subscription catalog publication
-remains an explicit operator command, not automatic seed. Review its target and manifest;
-never publish development fixture manifests to prod.
+[payment reset](../runbooks/dev-purchase-reset.md). Topic and Subscription development
+content is supplied through explicit Mongo JSON importer files, not an application startup
+seed or runtime flag. Use only the scoped `-File` commands in the
+[importer guide](../../tools/mongo-json-importer/README.md) after confirming a disposable
+local development target. The importer rejects system database names and names with a bounded
+`prod`/`production` token; that name check does not establish that a database is safe or
+non-production.
 
 Safe defaults (helper flags false, empty development seed path and secure cookies)
 are declared once in application.yaml. Dev overrides only its permitted conveniences;
@@ -120,8 +123,9 @@ Do not restore module-named runtime profiles.
 
 | Area | Current integration responsibility |
 | --- | --- |
+| Topic | Development examples are imported from explicitly selected JSON files; keep learner/authoring fixtures out of production and verify publication, list, detail and attempt flows against the target database |
 | Placement | Mongo/transaction/level-sync defaults configured. MEDIA NOT PROD-INTEGRATED: migrate local audio to Media storage and persist references in Mongo; verify current and historical playback without repository files |
-| Subscription / Payment / Quota | Shared Mongo and transactions; deliberate catalog publication; provider/durable delivery verification |
+| Subscription / Payment / Quota | Shared Mongo and transactions; import development catalog only to a disposable local database; verify Admin updates, provider and durable delivery independently |
 | Speaking | NOT PROD-INTEGRATED: existing availability filter blocks prod, managed conversation wiring excludes prod. Module owner must resolve its experimental/production contract; this migration does not enable it |
 | Assessment | NOT FULLY PROD-INTEGRATED: real baseline integration and storage-backed audio are required. Filesystem playback is refused in prod; verify preparation/attempt/review after integrating Media |
 | Auth / Media / others | Verify real identity/authorization and storage integration in both profiles; no production dependency on repository samples or local media directories |
