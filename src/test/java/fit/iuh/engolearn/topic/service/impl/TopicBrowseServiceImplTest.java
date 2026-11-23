@@ -18,7 +18,10 @@ import fit.iuh.engolearn.topic.model.vo.ExpressionBlockVo;
 import fit.iuh.engolearn.topic.model.vo.ExpressionExampleVo;
 import fit.iuh.engolearn.topic.model.vo.ExpressionPurposeVo;
 import fit.iuh.engolearn.topic.model.vo.ItemWordVo;
+import fit.iuh.engolearn.topic.model.enums.QuizType;
 import fit.iuh.engolearn.topic.model.vo.QuizModuleVo;
+import fit.iuh.engolearn.topic.model.vo.QuizOptionVo;
+import fit.iuh.engolearn.topic.model.vo.QuizQuestionVo;
 import fit.iuh.engolearn.topic.repository.TopicItemVersionRepository;
 import fit.iuh.engolearn.topic.repository.TopicRepository;
 import fit.iuh.engolearn.topic.repository.TopicVersionRepository;
@@ -617,8 +620,25 @@ class TopicBrowseServiceImplTest {
     }
 
     private static List<QuizModuleVo> quizModules(int count) {
-        return IntStream.rangeClosed(1, count).mapToObj(i -> QuizModuleVo.builder().quizId("q" + i).build())
+        if (count == 0) {
+            return List.of();
+        }
+        List<QuizQuestionVo> questions = IntStream.rangeClosed(1, count)
+                .mapToObj(i -> QuizQuestionVo.builder()
+                        .prompt("Which reply gives directions in situation " + i + "?")
+                        .explanation("The direct reply describes where to go.")
+                        .options(List.of(
+                                QuizOptionVo.builder().textEn("Go straight ahead.").isCorrect(true).build(),
+                                QuizOptionVo.builder().textEn("I bought a ticket.").build(),
+                                QuizOptionVo.builder().textEn("It is six o'clock.").build(),
+                                QuizOptionVo.builder().textEn("I have a suitcase.").build()))
+                        .build())
                 .toList();
+        return List.of(QuizModuleVo.builder().quizId("directions")
+                .quizType(QuizType.SITUATIONAL_CHOICE)
+                .title("Giving directions")
+                .questions(questions)
+                .build());
     }
 
     private static ExpressionBlockVo block(int groups, int samplesPerGroup) {
