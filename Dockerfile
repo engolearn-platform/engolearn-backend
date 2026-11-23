@@ -3,10 +3,11 @@ FROM maven:3.9.9-eclipse-temurin-21 AS build
 WORKDIR /workspace
 
 COPY pom.xml ./
-RUN mvn -B -ntp dependency:go-offline
+COPY .mvn/render-settings.xml /tmp/render-settings.xml
+RUN mvn -B -ntp -s /tmp/render-settings.xml dependency:go-offline
 
 COPY src ./src
-RUN mvn -B -ntp -DskipTests package
+RUN mvn -B -ntp -s /tmp/render-settings.xml -DskipTests package
 
 # Run with a slim JRE image; Render supplies PORT at runtime.
 FROM eclipse-temurin:21-jre-jammy
