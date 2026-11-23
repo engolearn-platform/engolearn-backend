@@ -51,7 +51,8 @@ cookies from the shared configuration. It does not use local media directories. 
 DRAFT fallback and payment reset are opt-ins. See the
 [runtime configuration contract](docs/architecture/runtime-configuration.md)
 for variables, module integration gaps and verification responsibilities.
-CI migration is separate; the workflow is unchanged in this step.
+CI defaults to `prod` with test-only inputs and Testcontainers connection overrides.
+See [CI verification](docs/runbooks/ci-verification.md) for requirements, reports and test-profile limitations.
 
 ## Endpoints
 

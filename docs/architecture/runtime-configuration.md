@@ -27,8 +27,9 @@ java -jar target/engolearn-0.0.1-SNAPSHOT.jar --spring.profiles.active=prod
 The entry-point initializer enforces profile selection, Placement Mongo mode and enabled
 transactions; prod additionally requires deployment inputs and secure cookies. Focused
 unit/slice tests may construct small contexts and explicit sample adapters; they do not
-certify application runtime readiness. CI is unchanged in this step. Its intended later
-baseline is prod with disposable infrastructure/test-only secrets, not production resources.
+certify application runtime readiness. CI defaults to prod with disposable infrastructure
+and test-only inputs, not production resources. Tests that explicitly select profiles or
+override properties retain their current behavior; see [CI verification](../runbooks/ci-verification.md).
 Maven profiles `dev-verification` and `full-integration` remain separate build/test selectors.
 
 ## Environment inputs
@@ -141,4 +142,5 @@ supported team runtime. Use root Compose and common environment inputs.
   DRAFT fallback is unavailable.
 - Prod starts without directory variables and cannot serve local Placement/Assessment media;
   module readiness requires storage-backed playback, not simply successful startup.
-- No active command selects retired runtime profiles. CI changes remain a later step.
+- No active command selects retired runtime profiles. CI defaults to prod; module owners
+  must still make their integration suites prod-compatible and supply runtime evidence.
