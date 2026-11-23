@@ -24,8 +24,9 @@ import java.io.InputStream;
 /**
  * Temporary HTTP adapter for manually verifying the complete Media upload and delivery flow.
  *
- * <p>Disabled by default. Enable only in a local development environment and keep the
- * matching SecurityConfig rule restricted to ADMIN.</p>
+ * <p>Disabled by default. For the current local smoke-test phase, the routes are temporarily
+ * public. Never enable this controller outside a local development environment; restore
+ * ADMIN authorization or remove this controller before opening the PR.</p>
  */
 @RestController
 @RequestMapping("/api/v1/media/smoke")

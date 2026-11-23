@@ -8,8 +8,8 @@ The `MediaSmokeTestController` is a temporary development adapter, not a product
 
 - It is disabled by default.
 - It is enabled only with `MEDIA_SMOKE_TEST_ENABLED=true`.
-- Both routes require an authenticated user with the `ADMIN` role.
-- Do not enable it in production or expose it publicly.
+- Both routes are temporarily public on the smoke-test branch so the team can test without a seeded ADMIN account.
+- This is intentionally unsafe for shared or deployed environments: enable only on localhost, never expose it publicly, and restore ADMIN authorization or remove the controller before opening the PR.
 - Uploads create real Cloudinary assets and MongoDB metadata. There is no smoke-test delete endpoint; remove test assets from the Cloudinary console after testing.
 
 ## Enable locally
@@ -44,7 +44,7 @@ In Postman:
 
 - Method: `POST`
 - URL: `http://localhost:8080/api/v1/media/smoke/uploads`
-- Authorization: use the authenticated ADMIN session/cookie.
+- Authorization: **No authentication required during this temporary local testing phase.**
 - Body: `form-data`
   - `file`: select a small PNG/JPEG/WEBP file (File type).
   - `accessPolicy`: `PUBLIC` (Text type; optional, defaults to PUBLIC).
@@ -120,8 +120,7 @@ or remove the variable, since the default is false. Restart the backend. The con
 ## Troubleshooting
 
 - `404` on the smoke routes: confirm `MEDIA_SMOKE_TEST_ENABLED=true` and restart.
-- `401`: authenticate through the existing login flow.
-- `403`: the authenticated account must have the ADMIN role.
+- Authentication is intentionally bypassed for these temporary smoke routes. Do not carry this exception into the PR.
 - `413` or multipart size exception: check the configured multipart request/file limits and the Media-specific image/audio limits.
 - Storage failure: check Cloudinary credentials, account configuration and backend logs. Never paste API secrets or protected delivery URLs into logs/issues.
 - `404` resolving a media ID: verify the upload completed and the returned ID is used exactly.
