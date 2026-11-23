@@ -3,7 +3,6 @@ package fit.iuh.engolearn.speaking.utils;
 import fit.iuh.engolearn.speaking.model.SpeakingContentSnapshot;
 import fit.iuh.engolearn.speaking.utils.port.SpeakingOpeningGenerator;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
@@ -20,28 +19,28 @@ import java.util.Objects;
 
 @Component
 public class GeminiSpeakingOpeningGenerator implements SpeakingOpeningGenerator {
-    private static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(10);
-
     private final ObjectMapper mapper;
     private final String apiKey;
     private final String model;
     private final String endpoint;
+    private final Duration timeout;
     private final Transport transport;
 
     @Autowired
-    public GeminiSpeakingOpeningGenerator(ObjectMapper mapper,
-            @Value("${engolearn.speaking.gemini.api-key:}") String apiKey,
-            @Value("${engolearn.speaking.gemini.model:gemini-3.5-flash-lite}") String model,
-            @Value("${engolearn.speaking.gemini.endpoint:https://generativelanguage.googleapis.com/v1beta/models}") String endpoint) {
-        this(mapper, apiKey, model, endpoint, new JdkTransport());
+    public GeminiSpeakingOpeningGenerator(ObjectMapper mapper, SpeakingProviderProperties properties) {
+        this(mapper, properties.getGemini().getApiKey(), properties.getGemini().getModel(),
+                properties.getGemini().getEndpoint(), properties.getGemini().getOpeningTimeout(),
+                new JdkTransport(properties.getGemini().getOpeningTimeout()));
     }
 
     GeminiSpeakingOpeningGenerator(ObjectMapper mapper, String apiKey, String model, String endpoint,
-            Transport transport) {
+            Duration timeout, Transport transport) {
         this.mapper = Objects.requireNonNull(mapper, "mapper");
-        this.apiKey = Objects.requireNonNull(apiKey, "apiKey");
+        this.apiKey = apiKey == null ? "" : apiKey;
         this.model = Objects.requireNonNull(model, "model");
         this.endpoint = Objects.requireNonNull(endpoint, "endpoint");
+        this.timeout = Objects.requireNonNull(timeout, "timeout");
+        if (timeout.isZero() || timeout.isNegative()) throw new IllegalArgumentException("timeout must be positive");
         this.transport = Objects.requireNonNull(transport, "transport");
     }
 
@@ -56,7 +55,7 @@ public class GeminiSpeakingOpeningGenerator implements SpeakingOpeningGenerator 
                     "generationConfig", Map.of("responseMimeType", "application/json")));
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create(endpoint + "/" + model + ":generateContent"))
-                    .timeout(REQUEST_TIMEOUT)
+                    .timeout(timeout)
                     .header("Content-Type", "application/json")
                     .header("x-goog-api-key", apiKey)
                     .POST(HttpRequest.BodyPublishers.ofString(body)).build();
@@ -115,7 +114,11 @@ public class GeminiSpeakingOpeningGenerator implements SpeakingOpeningGenerator 
     }
 
     private static final class JdkTransport implements Transport {
-        private final HttpClient client = HttpClient.newHttpClient();
+        private final HttpClient client;
+
+        private JdkTransport(Duration connectTimeout) {
+            this.client = HttpClient.newBuilder().connectTimeout(connectTimeout).build();
+        }
 
         @Override
         public HttpResponse<String> send(HttpRequest request) throws IOException, InterruptedException {

@@ -1,7 +1,7 @@
 package fit.iuh.engolearn.speaking.utils;
 
 import fit.iuh.engolearn.speaking.utils.port.SpeechStreamPort;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
@@ -10,6 +10,7 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.WebSocket;
 import java.nio.ByteBuffer;
+import java.time.Duration;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
@@ -24,6 +25,8 @@ public class AssemblyAiSpeechStream implements SpeechStreamPort {
     private final String apiKey;
     private final String endpoint;
     private final String model;
+    private final Duration connectTimeout;
+    private final Duration finalizationTimeout;
     private final Map<String, Stream> streams = new ConcurrentHashMap<>();
 
     private static final class Stream {
@@ -40,14 +43,23 @@ public class AssemblyAiSpeechStream implements SpeechStreamPort {
         private Stream(Listener listener) { this.listener = listener; }
     }
 
-    public AssemblyAiSpeechStream(ObjectMapper mapper,
-            @Value("${engolearn.speaking.assemblyai.api-key:}") String apiKey,
-            @Value("${engolearn.speaking.assemblyai.endpoint:wss://streaming.assemblyai.com/v3/ws}") String endpoint,
-            @Value("${engolearn.speaking.assemblyai.model:universal-3-6-pro}") String model) {
+    @Autowired
+    public AssemblyAiSpeechStream(ObjectMapper mapper, SpeakingProviderProperties properties) {
+        this(mapper, properties.getAssemblyai().getApiKey(), properties.getAssemblyai().getEndpoint(),
+                properties.getAssemblyai().getModel(), properties.getAssemblyai().getConnectTimeout(),
+                properties.getAssemblyai().getFinalizationTimeout());
+    }
+
+    AssemblyAiSpeechStream(ObjectMapper mapper, String apiKey, String endpoint, String model,
+            Duration connectTimeout, Duration finalizationTimeout) {
         this.mapper = mapper;
-        this.apiKey = apiKey;
+        this.apiKey = apiKey == null ? "" : apiKey;
         this.endpoint = endpoint;
         this.model = model;
+        this.connectTimeout = connectTimeout;
+        this.finalizationTimeout = finalizationTimeout;
+        requirePositive(connectTimeout, "AssemblyAI connect timeout");
+        requirePositive(finalizationTimeout, "AssemblyAI finalization timeout");
     }
 
     @Override
@@ -177,7 +189,7 @@ public class AssemblyAiSpeechStream implements SpeechStreamPort {
             state.outbound.whenComplete((ignored, error) -> {
                 if (error != null) fail(state, "STT endpoint request failed");
             });
-            return state.ending.orTimeout(6, TimeUnit.SECONDS).whenComplete((text, error) -> {
+            return state.ending.orTimeout(finalizationTimeout.toMillis(), TimeUnit.MILLISECONDS).whenComplete((text, error) -> {
                 synchronized (state) {
                     state.active = false;
                     state.ending = null;
@@ -215,10 +227,16 @@ public class AssemblyAiSpeechStream implements SpeechStreamPort {
         HttpClient current = client;
         if (current == null) {
             synchronized (this) {
-                if (client == null) client = HttpClient.newHttpClient();
+                if (client == null) client = HttpClient.newBuilder().connectTimeout(connectTimeout).build();
                 current = client;
             }
         }
         return current;
+    }
+
+    private static void requirePositive(Duration timeout, String name) {
+        if (timeout == null || timeout.isZero() || timeout.isNegative()) {
+            throw new IllegalArgumentException(name + " must be positive");
+        }
     }
 }

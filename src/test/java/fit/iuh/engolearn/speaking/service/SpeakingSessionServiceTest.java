@@ -7,7 +7,6 @@ import fit.iuh.engolearn.speaking.model.*;
 import fit.iuh.engolearn.speaking.repository.*;
 import fit.iuh.engolearn.topic.contract.SpeakingItemLookup;
 import fit.iuh.engolearn.topic.contract.dto.SpeakingItemDto;
-import fit.iuh.engolearn.speaking.utils.port.ConversationEvaluator;
 import fit.iuh.engolearn.speaking.utils.port.SpeakingOpeningGenerator;
 import org.junit.jupiter.api.Test;
 import org.springframework.context.ApplicationEventPublisher;
@@ -16,7 +15,6 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 import java.net.URI;
 import java.lang.reflect.Proxy;
-import java.lang.reflect.Method;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.*;
@@ -190,6 +188,21 @@ class SpeakingSessionServiceTest {
         assertEquals(0, fixture.sessionWrites);
     }
 
+    @Test void missingPublishedConfigFailsExplicitlyWithoutCreatingSession() {
+        Fixture fixture = new Fixture();
+        fixture.item = new SpeakingItemDto("item", "version", "Cafe", "Order", List.of(), List.of());
+
+        SpeakingException createError = assertThrows(SpeakingException.class,
+                () -> fixture.service().create("item", "new", false));
+        SpeakingException configError = assertThrows(SpeakingException.class,
+                () -> fixture.service().config("item"));
+
+        assertEquals("CONFIG_MISSING", createError.code());
+        assertEquals("CONFIG_MISSING", configError.code());
+        assertEquals(0, fixture.sessionWrites);
+        assertNull(fixture.savedSession);
+    }
+
     @Test void openingAudioIsAvailableToOwnerUntilExpiryOrSoftDeletion() {
         Fixture fixture = openingFixture();
         SpeakingSessionService service = fixture.service();
@@ -311,8 +324,10 @@ class SpeakingSessionServiceTest {
         assertTrue(service.get("session").completionEligible());
         assertEquals(SpeakingSession.Status.ACTIVE, service.get("session").status());
 
-        fixture.turns.add(pendingTurn("turn-3", 3));
-        service.assessed("session", "turn-3", validResult("optional"));
+        fixture.turns.add(pendingTurn("turn-4", 4));
+        fixture.savedSession.setCommittedTurnCount(4);
+        assertTrue(service.settleConversationTurn("session", "turn-4", 1,
+                assessment(fixture, validProposal("optional"))));
         assertEquals(SpeakingSession.Status.COMPLETED, fixture.savedSession.getStatus());
         assertEquals(SpeakingSession.EndReason.GOALS_REACHED, fixture.savedSession.getEndReason());
     }
@@ -330,36 +345,28 @@ class SpeakingSessionServiceTest {
         assertEquals(SpeakingSession.Status.COMPLETED, fixture.service().end("session", 1).status());
     }
 
-    @Test void finalizedInvalidAndEvaluationFailureHaveDistinctCounters() {
-        Fixture fixture = activeFixture("REQUIRED_GOALS_V2", null, 3);
-        var service = fixture.service();
-        fixture.turns.add(pendingTurn("invalid", 1));
-        fixture.savedSession.setCommittedTurnCount(1);
-        service.assessed("session", "invalid", new ConversationEvaluator.Result(false, null,
-                List.of(), List.of(), List.of(), null, List.of()));
-        assertEquals(SpeakingTurn.EvaluationState.INVALID, fixture.turns.get(0).getEvaluationState());
-        assertEquals(1, fixture.savedSession.getCommittedTurnCount());
-        assertEquals(0, fixture.savedSession.getValidTurnCount());
-        assertEquals(0, fixture.savedSession.getConsecutiveEvaluationFailures());
+    @Test void readsStoredAssessmentWithOriginalFeedbackAndNoStructuredHintFields() {
+        Fixture fixture = activeFixture(null, 66, 3);
+        var turn = pendingTurn("historical-turn", 1);
+        turn.setValid(true);
+        turn.setEvaluationState(SpeakingTurn.EvaluationState.SUCCEEDED);
+        fixture.turns.add(turn);
+        fixture.assessmentRecords.put(turn.getId(), SpeakingAssessmentRecord.builder().id(turn.getId())
+                .sessionId("session").learnerId("learner").transcript("Hello").criteriaVersion("speaking-v1")
+                .goalEvidence(List.of(new SpeakingAssessmentRecord.GoalEvidence("required-1", "Hello")))
+                .hint("Try greeting the waiter").feedback(List.of("Clear greeting")).build());
 
-        fixture.turns.add(pendingTurn("failed", 2));
-        fixture.savedSession.setCommittedTurnCount(2);
-        service.assessmentFailed("session", "failed", 1);
-        assertEquals(SpeakingTurn.EvaluationState.FAILED, fixture.turns.get(1).getEvaluationState());
-        assertEquals(2, fixture.savedSession.getCommittedTurnCount());
-        assertEquals(0, fixture.savedSession.getValidTurnCount());
-        assertEquals(1, fixture.savedSession.getConsecutiveEvaluationFailures());
-
-        fixture.turns.add(pendingTurn("valid", 3));
-        fixture.savedSession.setCommittedTurnCount(3);
-        service.assessed("session", "valid", validResult());
-        assertEquals(3, fixture.savedSession.getCommittedTurnCount());
-        assertEquals(1, fixture.savedSession.getValidTurnCount());
-        assertEquals(0, fixture.savedSession.getConsecutiveEvaluationFailures());
-        assertEquals(3, service.get("session").turns().size());
+        var response = fixture.service().get("session");
+        var assessment = response.turns().getFirst().assessment();
+        assertEquals("speaking-v1", assessment.criteriaVersion());
+        assertEquals("Hello", assessment.goalEvidence().getFirst().quote());
+        assertEquals("Try greeting the waiter", assessment.hint());
+        assertEquals(List.of("Clear greeting"), assessment.feedback());
+        assertNull(assessment.hintExampleEn());
+        assertEquals(0, fixture.sessionWrites);
     }
 
-    @Test void staleControllerEpochCannotRecordDemoAssessmentFailure() {
+    @Test void staleControllerEpochCannotRecordManagedAssessmentFailure() {
         Fixture fixture = activeFixture("REQUIRED_GOALS_V2", null, 3);
         fixture.turns.add(pendingTurn("stale-failure", 1));
         fixture.savedSession.setCommittedTurnCount(1);
@@ -371,14 +378,45 @@ class SpeakingSessionServiceTest {
         assertEquals(SpeakingSession.Status.ACTIVE, fixture.savedSession.getStatus());
     }
 
-    @Test void demoRecoveryReleasesPendingTurnWithoutChangingFailureSemantics() {
+    @Test void finalizedInvalidAndEvaluationFailureHaveDistinctCounters() {
+        Fixture fixture = activeFixture("REQUIRED_GOALS_V2", null, 3);
+        SpeakingSessionService service = fixture.service();
+        fixture.turns.add(pendingTurn("invalid", 1));
+        fixture.savedSession.setCommittedTurnCount(1);
+        assertTrue(service.settleConversationTurn("session", "invalid", 1,
+                assessment(fixture, ValidatedTurnProposal.invalid())));
+        assertEquals(SpeakingTurn.EvaluationState.INVALID, fixture.turns.get(0).getEvaluationState());
+        assertEquals(1, fixture.savedSession.getCommittedTurnCount());
+        assertEquals(0, fixture.savedSession.getValidTurnCount());
+        assertEquals(0, fixture.savedSession.getConsecutiveEvaluationFailures());
+
+        fixture.turns.add(pendingTurn("failed", 2));
+        fixture.savedSession.setCommittedTurnCount(2);
+        assertTrue(service.settleConversationTurn("session", "failed", 1,
+                assessment(fixture, ValidatedTurnProposal.evaluationFailed())));
+        assertEquals(SpeakingTurn.EvaluationState.FAILED, fixture.turns.get(1).getEvaluationState());
+        assertEquals(2, fixture.savedSession.getCommittedTurnCount());
+        assertEquals(0, fixture.savedSession.getValidTurnCount());
+        assertEquals(1, fixture.savedSession.getConsecutiveEvaluationFailures());
+
+        fixture.turns.add(pendingTurn("valid", 3));
+        fixture.savedSession.setCommittedTurnCount(3);
+        assertTrue(service.settleConversationTurn("session", "valid", 1,
+                assessment(fixture, validProposal("required-1"))));
+        assertEquals(3, fixture.savedSession.getCommittedTurnCount());
+        assertEquals(1, fixture.savedSession.getValidTurnCount());
+        assertEquals(0, fixture.savedSession.getConsecutiveEvaluationFailures());
+        assertEquals(3, service.get("session").turns().size());
+    }
+
+    @Test void replacedConnectionRecoveryReleasesPendingTurnWithoutChangingFailureSemantics() {
         Fixture fixture = activeFixture("REQUIRED_GOALS_V2", null, 3);
         fixture.savedSession.setConsecutiveEvaluationFailures(2);
         fixture.turns.add(pendingTurn("replaced", 1));
         fixture.savedSession.setCommittedTurnCount(1);
         SpeakingSessionService service = fixture.service();
 
-        assertTrue(invokeDemoRecovery(service, "session", "replaced", 1));
+        assertTrue(service.recoverPendingConversationTurn("session", "replaced", 1));
 
         assertEquals(SpeakingTurn.EvaluationState.FAILED, fixture.turns.get(0).getEvaluationState());
         assertEquals(2, fixture.savedSession.getConsecutiveEvaluationFailures());
@@ -400,7 +438,8 @@ class SpeakingSessionServiceTest {
         assertEquals(SpeakingSession.Status.ACTIVE, fixture.savedSession.getStatus());
         assertFalse(service.get("session").canStartTurn());
 
-        service.assessed("session", "turn-30", validResult("required-2"));
+        assertTrue(service.settleConversationTurn("session", "turn-30", 1,
+                assessment(fixture, validProposal("required-2"))));
         assertEquals(3, fixture.savedSession.getValidTurnCount());
         assertEquals(SpeakingSession.Status.COMPLETED, fixture.savedSession.getStatus());
         assertEquals(SpeakingSession.EndReason.TURN_LIMIT, fixture.savedSession.getEndReason());
@@ -427,21 +466,15 @@ class SpeakingSessionServiceTest {
                 .evaluationState(SpeakingTurn.EvaluationState.PENDING).build();
     }
 
-    private static ConversationEvaluator.Result validResult(String... goalIds) {
-        return new ConversationEvaluator.Result(true, null,
-                Arrays.stream(goalIds).map(id -> new SpeakingAssessmentRecord.GoalEvidence(id, "Hello")).toList(),
-                List.of(), List.of(), null, List.of());
+    private static ValidatedTurnProposal validProposal(String goalId) {
+        return ValidatedTurnProposal.valid(SpeakingAiDraftResponseV1.UserIntent.STATEMENT, List.of(goalId), null);
     }
 
-    private static boolean invokeDemoRecovery(SpeakingSessionService service, String sessionId, String turnId,
-            long controllerEpoch) {
-        try {
-            Method method = SpeakingSessionService.class.getMethod("recoverPendingConversationTurn",
-                    String.class, String.class, long.class);
-            return (boolean) method.invoke(service, sessionId, turnId, controllerEpoch);
-        } catch (ReflectiveOperationException exception) {
-            throw new AssertionError("demo recovery API is missing", exception);
-        }
+    private static SpeakingConversationAssessment assessment(Fixture fixture, ValidatedTurnProposal proposal) {
+        SpeakingSession session = fixture.savedSession;
+        var decision = new ConversationManager().decide(proposal, ConversationStateView.from(session),
+                session.getContent(), ConversationManager.SystemTrigger.NONE);
+        return new SpeakingConversationAssessment(proposal, decision);
     }
 
     private static final class Fixture {

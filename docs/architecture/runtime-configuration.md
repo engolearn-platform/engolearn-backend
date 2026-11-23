@@ -55,7 +55,7 @@ Production may supply process environment or a deployment secret store. Existing
 | PLACEMENT_MEDIA_DIRECTORY, ASSESSMENT_MEDIA_DIRECTORY | Dev-only bundled-media overrides; not production inputs |
 | CLOUDINARY_URL or CLOUDINARY_* | Shared Media provider credentials as required by the module |
 | VNPAY_ENABLED, VNPAY_* | Optional provider activation/settings; enabled provider needs valid merchant settings; prod has no implicit sandbox URLs |
-| ASSEMBLYAI_API_KEY, GEMINI_API_KEY, CARTESIA_API_KEY, CARTESIA_VOICE_ID | Speaking resources; see its production gap below |
+| ASSEMBLYAI_API_KEY, GEMINI_API_KEY, CARTESIA_API_KEY, CARTESIA_VOICE_ID | Speaking provider credentials and voice; optional SPEAKING_ASSEMBLYAI_*, SPEAKING_GEMINI_* and SPEAKING_CARTESIA_* inputs override shared endpoints, models, API version and adapter timeouts |
 
 Root [Compose](../../docker-compose.yaml) provisions one member in engolearn-rs. Its
 healthcheck rejects existing multi-member topology without modifying it. Host clients
@@ -73,8 +73,6 @@ checks dev without prod independently of YAML.
 | Environment input | Default | Capability |
 | --- | --- | --- |
 | PAYMENT_DEV_RESET_ENABLED | false | Owner-only unresolved unpaid purchase release; preserves financial/refund guards, transaction and audit |
-| DEV_SPEAKING_FIXTURE_ENABLED | false | Existing fixed airport Speaking fixture |
-| SPEAKING_DEV_SEED_FILE | empty | Optional Speaking config file for existing item/version IDs |
 | PLACEMENT_ALLOW_DRAFT | false | DRAFT fallback only if no PUBLISHED test set exists |
 | DEV_LOG_LEVEL | INFO | Development application logging; do not expose credentials/tokens |
 
@@ -87,7 +85,7 @@ local development target. The importer rejects system database names and names w
 `prod`/`production` token; that name check does not establish that a database is safe or
 non-production.
 
-Safe defaults (helper flags false, empty development seed path and secure cookies)
+Safe defaults (helper flags false and secure cookies)
 are declared once in application.yaml. Dev overrides only its permitted conveniences;
 prod does not repeat those declarations. Profile guards still exclude dev beans in prod.
 
@@ -130,9 +128,12 @@ Do not restore module-named runtime profiles.
 | Topic | Development examples are imported from explicitly selected JSON files; keep learner/authoring fixtures out of production and verify publication, list, detail and attempt flows against the target database |
 | Placement | Mongo/transaction/level-sync defaults configured. MEDIA NOT PROD-INTEGRATED: migrate local audio to Media storage and persist references in Mongo; verify current and historical playback without repository files |
 | Subscription / Payment / Quota | Shared Mongo and transactions; import development catalog only to a disposable local database; verify Admin updates, provider and durable delivery independently |
-| Speaking | NOT PROD-INTEGRATED: existing availability filter blocks prod, managed conversation wiring excludes prod. Module owner must resolve its experimental/production contract; this migration does not enable it |
+| Speaking | Managed-only conversation and module wiring are active in both `dev` and `prod`. Provider credentials are supplied per capability and failures remain explicit. Production readiness is still unverified: provider-backed E2E, MediaManagement media-ID integration, multi-instance recovery/state coordination and load/latency evidence remain open |
 | Assessment | NOT FULLY PROD-INTEGRATED: real baseline integration and storage-backed audio are required. Filesystem playback is refused in prod; verify preparation/attempt/review after integrating Media |
 | Auth / Media / others | Verify real identity/authorization and storage integration in both profiles; no production dependency on repository samples or local media directories |
+
+The [Speaking module contract](../technical/speaking-ai/module-contract.md#runtime-configuration)
+owns the provider settings, environment mappings, defaults and verification commands for both profiles.
 
 These gaps do not establish production readiness. Retired module-specific application
 files must not be restored; scripts select dev. The old

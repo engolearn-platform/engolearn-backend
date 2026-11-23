@@ -69,7 +69,8 @@ public sealed interface GatewayOutcome
         TRANSPORT,
         TIMEOUT,
         INTERRUPTED,
-        MISSING_METADATA
+        MISSING_METADATA,
+        MISSING_CREDENTIALS
     }
 
     record ProviderFailure(
