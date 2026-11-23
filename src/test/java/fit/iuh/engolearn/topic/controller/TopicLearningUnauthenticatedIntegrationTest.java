@@ -12,19 +12,26 @@ import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
+import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.web.client.RestClientResponseException;
+import org.springframework.web.client.RestTemplate;
 import org.testcontainers.junit.jupiter.EnabledIfDockerAvailable;
+
+import java.util.List;
 
 import static fit.iuh.engolearn.topic.support.TopicLearningFixture.seedPublishedItem;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.catchThrowableOfType;
 
 /**
- * Pins the unauthenticated contract of the four learning endpoints: every one of them requires
- * a user id before touching the database, so all answer 401 and no progress document is written.
+ * Learner endpoints reject anonymous requests before creating attempts or progress.
  */
 @EnabledIfDockerAvailable
 class TopicLearningUnauthenticatedIntegrationTest extends AbstractMongoIntegrationTest {
+
+    TopicLearningUnauthenticatedIntegrationTest() {
+        restTemplate = new RestTemplate(new JdkClientHttpRequestFactory());
+    }
 
     @Autowired
     private TopicRepository topicRepository;
@@ -45,41 +52,55 @@ class TopicLearningUnauthenticatedIntegrationTest extends AbstractMongoIntegrati
 
         String itemUrl = "http://localhost:" + port + "/api/v1/topic-items/" + published.item().getId();
         String topicUrl = "http://localhost:" + port + "/api/v1/topics/" + published.topic().getId();
+        String attemptUrl = "http://localhost:" + port + "/api/v1/topic-attempts/" + published.item().getId();
 
-        assertSignInRequired401(itemUrl + "/content", HttpMethod.GET, null);
-        assertSignInRequired401(itemUrl + "/position", HttpMethod.GET, null);
-        assertSignInRequired401(itemUrl + "/position", HttpMethod.PUT, jsonEntity());
+        assertSignInRequired401(itemUrl + "/attempts", HttpMethod.POST, jsonEntity("{\"mode\":\"LEARN\"}"));
+        assertSignInRequired401(attemptUrl, HttpMethod.GET, null);
+        assertSignInRequired401(attemptUrl + "/content", HttpMethod.GET, null);
+        assertSignInRequired401(attemptUrl + "/advance", HttpMethod.POST,
+                jsonEntity("{\"revision\":0,\"stage\":\"CONTEXT\",\"itemIndex\":0}"));
         assertSignInRequired401(topicUrl + "/progress", HttpMethod.GET, null);
 
         assertNoProgressDocuments();
     }
 
     @Test
-    void guestPositionWriteIsRejectedBeforeBodyProcessing() {
+    void guestAttemptStartIsRejectedBeforeBodyProcessing() {
         PublishedItem published = seedPublishedItem(
                 topicRepository, topicItemRepository, topicVersionRepository, topicItemVersionRepository);
 
-        String positionUrl = "http://localhost:" + port + "/api/v1/topic-items/"
-                + published.item().getId() + "/position";
+        String startUrl = "http://localhost:" + port + "/api/v1/topic-items/"
+                + published.item().getId() + "/attempts";
 
-        assertSignInRequired401(positionUrl, HttpMethod.PUT, jsonEntity());
+        assertSignInRequired401(startUrl, HttpMethod.POST, jsonEntity("{"));
 
         assertNoProgressDocuments();
     }
 
-    private static HttpEntity<String> jsonEntity() {
+    private static HttpEntity<String> jsonEntity(String body) {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
-        return new HttpEntity<>("{\"stage\":\"VOCAB\",\"itemIndex\":0}", headers);
+        headers.setAccept(List.of(MediaType.APPLICATION_PROBLEM_JSON));
+        headers.set("Idempotency-Key", "guest-request");
+        return new HttpEntity<>(body, headers);
     }
 
     private void assertSignInRequired401(String url, HttpMethod method, HttpEntity<String> entity) {
+        HttpEntity<String> request = entity == null ? problemEntity() : entity;
         RestClientResponseException exception = catchThrowableOfType(
-                () -> restTemplate.exchange(url, method, entity, String.class),
+                () -> restTemplate.exchange(url, method, request, String.class),
                 RestClientResponseException.class);
         assertThat(exception.getStatusCode().value()).isEqualTo(401);
+        assertThat(exception.getResponseHeaders().getContentType())
+                .matches(MediaType.APPLICATION_PROBLEM_JSON::isCompatibleWith);
         assertThat(exception.getResponseBodyAsString())
                 .contains("\"status\":401");
+    }
+
+    private static HttpEntity<String> problemEntity() {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setAccept(List.of(MediaType.APPLICATION_PROBLEM_JSON));
+        return new HttpEntity<>(headers);
     }
 
     private void assertNoProgressDocuments() {

@@ -1,19 +1,26 @@
 package fit.iuh.engolearn.topic.controller;
 
 import fit.iuh.engolearn.config.AbstractMongoIntegrationTest;
+import fit.iuh.engolearn.shared.security.impl.JwtTokenService;
 import fit.iuh.engolearn.topic.model.Topic;
-import fit.iuh.engolearn.topic.model.TopicItem;
 import fit.iuh.engolearn.topic.model.TopicItemVersion;
 import fit.iuh.engolearn.topic.model.TopicVersion;
-import fit.iuh.engolearn.topic.model.UserTopicItemProgress;
+import fit.iuh.engolearn.topic.model.UserTopicItemAttempt;
+import fit.iuh.engolearn.topic.model.enums.AttemptStatus;
+import fit.iuh.engolearn.topic.model.enums.AttemptType;
 import fit.iuh.engolearn.topic.model.enums.ContentStatus;
-import fit.iuh.engolearn.topic.model.enums.ItemProgressStatus;
+import fit.iuh.engolearn.topic.model.vo.CompletionResultVo;
 import fit.iuh.engolearn.topic.repository.TopicItemRepository;
 import fit.iuh.engolearn.topic.repository.TopicItemVersionRepository;
 import fit.iuh.engolearn.topic.repository.TopicRepository;
 import fit.iuh.engolearn.topic.repository.TopicVersionRepository;
-import fit.iuh.engolearn.topic.repository.UserTopicItemProgressRepository;
+import fit.iuh.engolearn.topic.repository.UserTopicItemAttemptRepository;
 import fit.iuh.engolearn.topic.support.TopicLearningFixture.PublishedItem;
+import fit.iuh.engolearn.topic.support.TopicTestAuthentication;
+import fit.iuh.engolearn.user.repository.RefreshSessionRepository;
+import fit.iuh.engolearn.user.repository.UserProfileRepository;
+import fit.iuh.engolearn.user.repository.UserRepository;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpEntity;
@@ -28,20 +35,14 @@ import tools.jackson.databind.json.JsonMapper;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.UUID;
 
 import static fit.iuh.engolearn.topic.support.TopicLearningFixture.seedItemVersion;
 import static fit.iuh.engolearn.topic.support.TopicLearningFixture.seedMajorItemVersionUpdate;
 import static fit.iuh.engolearn.topic.support.TopicLearningFixture.seedPublishedItem;
 import static org.assertj.core.api.Assertions.assertThat;
 
-/**
- * Representative API integration test for UC03 (learn topic_item).
- *
- * <p>Runs against a real MongoDB replica set via Testcontainers. Verifies the full
- * HTTP -> Spring Boot -> MongoDB flow for {@code GET /topic-items/{itemId}/content},
- * the {@code PUT|GET /topic-items/{itemId}/position} round trip, including the
- * progress documents the round trip writes, and {@code GET /topics/{topicId}/progress}.
- */
+/** Exercises the learner attempt and Topic progress endpoints against a real MongoDB replica set. */
 @EnabledIfDockerAvailable
 class TopicLearningControllerIntegrationTest extends AbstractMongoIntegrationTest {
 
@@ -58,18 +59,36 @@ class TopicLearningControllerIntegrationTest extends AbstractMongoIntegrationTes
     private TopicItemVersionRepository topicItemVersionRepository;
 
     @Autowired
-    private UserTopicItemProgressRepository userTopicItemProgressRepository;
+    private UserTopicItemAttemptRepository attempts;
+
+    @Autowired
+    private UserRepository userRepository;
+
+    @Autowired
+    private UserProfileRepository userProfileRepository;
+
+    @Autowired
+    private RefreshSessionRepository refreshSessionRepository;
+
+    @Autowired
+    private JwtTokenService jwtTokenService;
+
+    private String accessToken;
+
+    @BeforeEach
+    void signInLearner() {
+        accessToken = TopicTestAuthentication.persistedAccessToken(
+                userRepository, userProfileRepository, refreshSessionRepository, jwtTokenService);
+    }
 
     @Test
     void getContentReturnsFullItemContentFromRealMongo() {
         PublishedItem published = seedPublishedItem(
                 topicRepository, topicItemRepository, topicVersionRepository, topicItemVersionRepository);
-        TopicItem item = published.item();
         TopicItemVersion itemVersion = published.itemVersion();
+        String attemptId = startAttempt(published.item().getId()).get("attemptId").asString();
 
-        ResponseEntity<String> response = restTemplate.getForEntity(
-                "http://localhost:" + port + "/api/v1/topic-items/" + item.getId() + "/content",
-                String.class);
+        ResponseEntity<String> response = authenticatedGet(attemptUrl(attemptId) + "/content");
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody())
@@ -108,36 +127,28 @@ class TopicLearningControllerIntegrationTest extends AbstractMongoIntegrationTes
     }
 
     @Test
-    void putPositionCommitsOneDocumentPerProgressCollectionAndGetPositionEchoesIt() {
+    void advancePersistsFrontierAndRevisionOnTheOwnedAttempt() {
         PublishedItem published = seedPublishedItem(
                 topicRepository, topicItemRepository, topicVersionRepository, topicItemVersionRepository);
-        String positionUrl = "http://localhost:" + port + "/api/v1/topic-items/"
-                + published.item().getId() + "/position";
-        String versionJson = "\"topicItemVersionId\":\"" + published.itemVersion().getId() + "\"";
+        JsonNode started = startAttempt(published.item().getId());
+        assertThat(started.get("position").get("stage").asString()).isEqualTo("CONTEXT");
 
-        HttpHeaders jsonHeaders = new HttpHeaders();
-        jsonHeaders.setContentType(MediaType.APPLICATION_JSON);
-        ResponseEntity<String> putResponse = restTemplate.exchange(positionUrl, HttpMethod.PUT,
-                new HttpEntity<>("{\"stage\":\"VOCAB\",\"itemIndex\":0}", jsonHeaders), String.class);
+        JsonNode advanced = advance(started);
 
-        assertThat(putResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(putResponse.getBody())
-                .contains(versionJson)
-                .contains("\"stage\":\"VOCAB\"")
-                .contains("\"itemIndex\":0");
-
-        ResponseEntity<String> getResponse = restTemplate.getForEntity(positionUrl, String.class);
-
-        assertThat(getResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(getResponse.getBody())
-                .contains(versionJson)
-                .contains("\"stage\":\"VOCAB\"")
-                .contains("\"itemIndex\":0");
-
-        assertThat(documentCount("user_topic_attempts")).isEqualTo(1);
+        assertThat(advanced.get("topicItemVersionId").asString()).isEqualTo(published.itemVersion().getId());
+        assertThat(advanced.get("position").get("stage").asString()).isEqualTo("VOCAB");
+        assertThat(advanced.get("position").get("itemIndex").asInt()).isZero();
+        assertThat(advanced.get("revision").asLong()).isEqualTo(started.get("revision").asLong() + 1);
+        String attemptId = started.get("attemptId").asString();
+        assertThat(data(authenticatedGet(attemptUrl(attemptId)))).isEqualTo(advanced);
+        var stored = attempts.findById(attemptId).orElseThrow();
+        assertThat(stored.getVersion()).isEqualTo(advanced.get("revision").asLong());
+        assertThat(stored.getFurthestReached().getStage().name()).isEqualTo("VOCAB");
+        assertThat(stored.getMutationReceipts()).hasSize(1);
         assertThat(documentCount("user_topic_item_attempts")).isEqualTo(1);
-        assertThat(documentCount("user_topic_item_progress")).isEqualTo(1);
-        assertThat(documentCount("user_topic_progress")).isEqualTo(1);
+        assertThat(documentCount("user_topic_attempts")).isZero();
+        assertThat(documentCount("user_topic_item_progress")).isZero();
+        assertThat(documentCount("user_topic_progress")).isZero();
     }
 
     @Test
@@ -145,19 +156,9 @@ class TopicLearningControllerIntegrationTest extends AbstractMongoIntegrationTes
         PublishedItem published = seedPublishedItem(
                 topicRepository, topicItemRepository, topicVersionRepository, topicItemVersionRepository);
         TopicItemVersion pinned = published.itemVersion();
-        String positionUrl = "http://localhost:" + port + "/api/v1/topic-items/"
-                + published.item().getId() + "/position";
-        String contentUrl = "http://localhost:" + port + "/api/v1/topic-items/"
-                + published.item().getId() + "/content";
-        String versionJson = "\"topicItemVersionId\":\"" + pinned.getId() + "\"";
-
-        HttpHeaders jsonHeaders = new HttpHeaders();
-        jsonHeaders.setContentType(MediaType.APPLICATION_JSON);
-        ResponseEntity<String> startResponse = restTemplate.exchange(positionUrl, HttpMethod.PUT,
-                new HttpEntity<>("{\"stage\":\"VOCAB\",\"itemIndex\":0}", jsonHeaders), String.class);
-
-        assertThat(startResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(startResponse.getBody()).contains(versionJson);
+        JsonNode started = startAttempt(published.item().getId());
+        assertThat(started.get("topicItemVersionId").asString()).isEqualTo(pinned.getId());
+        String url = attemptUrl(started.get("attemptId").asString());
 
         TopicItemVersion major = seedMajorItemVersionUpdate(published,
                 topicRepository, topicVersionRepository, topicItemVersionRepository,
@@ -173,7 +174,7 @@ class TopicLearningControllerIntegrationTest extends AbstractMongoIntegrationTes
                 .containsExactly(major.getId())
                 .doesNotContain(pinned.getId());
 
-        ResponseEntity<String> contentResponse = restTemplate.getForEntity(contentUrl, String.class);
+        ResponseEntity<String> contentResponse = authenticatedGet(url + "/content");
 
         assertThat(contentResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
         JsonNode data = JsonMapper.builder().build().readTree(contentResponse.getBody()).get("data");
@@ -183,15 +184,10 @@ class TopicLearningControllerIntegrationTest extends AbstractMongoIntegrationTes
                 .contains("Asking for directions at the airport")
                 .doesNotContain("Asking for directions at the train station");
 
-        ResponseEntity<String> resumeResponse = restTemplate.exchange(positionUrl, HttpMethod.PUT,
-                new HttpEntity<>("{\"stage\":\"VOCAB\",\"itemIndex\":1}", jsonHeaders), String.class);
-
-        assertThat(resumeResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(resumeResponse.getBody())
-                .contains(versionJson)
-                .contains("\"stage\":\"VOCAB\"")
-                .contains("\"itemIndex\":1")
-                .doesNotContain(major.getId());
+        JsonNode advanced = advance(started);
+        assertThat(advanced.get("topicItemVersionId").asString()).isEqualTo(pinned.getId());
+        assertThat(advanced.get("position").get("stage").asString()).isEqualTo("VOCAB");
+        assertThat(advanced.get("position").get("itemIndex").asInt()).isZero();
     }
 
     @Test
@@ -210,32 +206,12 @@ class TopicLearningControllerIntegrationTest extends AbstractMongoIntegrationTes
                 "Hidden draft", 4, ContentStatus.HIDDEN);
 
         Instant completedAt = Instant.parse("2020-01-01T00:00:00Z");
-        userTopicItemProgressRepository.save(UserTopicItemProgress.builder()
-                .userId("user-mock-001")
-                .topicId(published.topic().getId())
-                .topicItemId(completedVersion.getTopicItemId())
-                .completedTopicItemVersionId(completedVersion.getId())
-                .status(ItemProgressStatus.COMPLETED)
-                .firstTryCorrectCount(3)
-                .totalQuizCount(4)
-                .completedAt(completedAt)
-                .lastAccessedAt(completedAt)
-                .build());
+        saveCompletedAttempt(completedVersion, completedAt, 3, 4);
+        startAttempt(inProgressVersion.getTopicItemId());
 
-        HttpHeaders jsonHeaders = new HttpHeaders();
-        jsonHeaders.setContentType(MediaType.APPLICATION_JSON);
-        ResponseEntity<String> putResponse = restTemplate.exchange(
-                "http://localhost:" + port + "/api/v1/topic-items/"
-                        + inProgressVersion.getTopicItemId() + "/position",
-                HttpMethod.PUT,
-                new HttpEntity<>("{\"stage\":\"VOCAB\",\"itemIndex\":0}", jsonHeaders),
-                String.class);
-        assertThat(putResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
-
-        ResponseEntity<String> response = restTemplate.getForEntity(
+        ResponseEntity<String> response = authenticatedGet(
                 "http://localhost:" + port + "/api/v1/topics/"
-                        + published.topic().getId() + "/progress",
-                String.class);
+                        + published.topic().getId() + "/progress");
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         JsonNode body = JsonMapper.builder().build().readTree(response.getBody());
@@ -288,10 +264,9 @@ class TopicLearningControllerIntegrationTest extends AbstractMongoIntegrationTes
         assertThat(storedRelease.getItemVersionIds()).containsExactly(storedHidden.getId());
         assertThat(storedHidden.getStatus()).isEqualTo(ContentStatus.HIDDEN);
 
-        ResponseEntity<String> response = restTemplate.getForEntity(
+        ResponseEntity<String> response = authenticatedGet(
                 "http://localhost:" + port + "/api/v1/topics/"
-                        + published.topic().getId() + "/progress",
-                String.class);
+                        + published.topic().getId() + "/progress");
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         JsonNode data = JsonMapper.builder().build().readTree(response.getBody()).get("data");
@@ -314,10 +289,8 @@ class TopicLearningControllerIntegrationTest extends AbstractMongoIntegrationTes
                 topicItemRepository, topicVersionRepository, topicItemVersionRepository,
                 "Checking in at the hotel", 3, ContentStatus.PUBLISHED);
 
-        ResponseEntity<String> response = restTemplate.getForEntity(
-                "http://localhost:" + port + "/api/v1/topics/"
-                        + published.topic().getId() + "/progress",
-                String.class);
+        ResponseEntity<String> response = authenticatedGet(
+                "http://localhost:" + port + "/api/v1/topics/" + published.topic().getId() + "/progress");
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         JsonNode data = JsonMapper.builder().build().readTree(response.getBody()).get("data");
@@ -350,23 +323,12 @@ class TopicLearningControllerIntegrationTest extends AbstractMongoIntegrationTes
 
         Instant completedAt = Instant.parse("2020-01-01T00:00:00Z");
         for (TopicItemVersion version : List.of(firstVersion, secondVersion)) {
-            userTopicItemProgressRepository.save(UserTopicItemProgress.builder()
-                    .userId("user-mock-001")
-                    .topicId(published.topic().getId())
-                    .topicItemId(version.getTopicItemId())
-                    .completedTopicItemVersionId(version.getId())
-                    .status(ItemProgressStatus.COMPLETED)
-                    .firstTryCorrectCount(2)
-                    .totalQuizCount(2)
-                    .completedAt(completedAt)
-                    .lastAccessedAt(completedAt)
-                    .build());
+            saveCompletedAttempt(version, completedAt, 2, 2);
         }
 
-        ResponseEntity<String> response = restTemplate.getForEntity(
+        ResponseEntity<String> response = authenticatedGet(
                 "http://localhost:" + port + "/api/v1/topics/"
-                        + published.topic().getId() + "/progress",
-                String.class);
+                        + published.topic().getId() + "/progress");
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         JsonNode data = JsonMapper.builder().build().readTree(response.getBody()).get("data");
@@ -386,5 +348,69 @@ class TopicLearningControllerIntegrationTest extends AbstractMongoIntegrationTes
 
     private long documentCount(String collection) {
         return mongoTemplate.getCollection(collection).countDocuments();
+    }
+
+    private ResponseEntity<String> authenticatedGet(String url) {
+        return restTemplate.exchange(url, HttpMethod.GET, authenticatedEntity(), String.class);
+    }
+
+    private JsonNode startAttempt(String itemId) {
+        return post("http://localhost:" + port + "/api/v1/topic-items/" + itemId + "/attempts",
+                "{\"mode\":\"LEARN\"}");
+    }
+
+    private JsonNode advance(JsonNode attempt) {
+        JsonNode position = attempt.get("position");
+        String body = """
+                {"revision":%d,"stage":"%s","itemIndex":%d}
+                """.formatted(attempt.get("revision").asLong(), position.get("stage").asString(),
+                position.get("itemIndex").asInt());
+        return post(attemptUrl(attempt.get("attemptId").asString()) + "/advance", body);
+    }
+
+    private JsonNode post(String url, String body) {
+        HttpHeaders headers = authenticatedHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.set("Idempotency-Key", UUID.randomUUID().toString());
+        return data(restTemplate.exchange(url, HttpMethod.POST, new HttpEntity<>(body, headers), String.class));
+    }
+
+    private JsonNode data(ResponseEntity<String> response) {
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        return JsonMapper.builder().build().readTree(response.getBody()).get("data");
+    }
+
+    private String attemptUrl(String attemptId) {
+        return "http://localhost:" + port + "/api/v1/topic-attempts/" + attemptId;
+    }
+
+    private void saveCompletedAttempt(TopicItemVersion version, Instant completedAt, int correct, int total) {
+        attempts.insert(UserTopicItemAttempt.builder()
+                .userId(TopicTestAuthentication.USER_ID)
+                .topicId(version.getTopicId())
+                .topicItemId(version.getTopicItemId())
+                .topicItemVersionId(version.getId())
+                .attemptType(AttemptType.LEARNING)
+                .status(AttemptStatus.COMPLETED)
+                .startedAt(completedAt.minusSeconds(60))
+                .completedAt(completedAt)
+                .lastAccessedAt(completedAt)
+                .completionResult(CompletionResultVo.builder()
+                        .title(version.getTitle())
+                        .firstTryCorrectCount(correct)
+                        .totalQuizCount(total)
+                        .build())
+                .build());
+    }
+
+    private HttpEntity<Void> authenticatedEntity() {
+        return new HttpEntity<>(authenticatedHeaders());
+    }
+
+    private HttpHeaders authenticatedHeaders() {
+        HttpHeaders headers = new HttpHeaders();
+        headers.set(HttpHeaders.COOKIE, "ACCESS_TOKEN=" + accessToken);
+        headers.setAccept(List.of(MediaType.APPLICATION_JSON));
+        return headers;
     }
 }
