@@ -8,6 +8,7 @@ import fit.iuh.engolearn.assessment.model.*;
 import fit.iuh.engolearn.assessment.repository.AssessmentDraftRepository;
 import fit.iuh.engolearn.assessment.service.AssessmentDraftService;
 import fit.iuh.engolearn.assessment.service.AssessmentCloudAudio;
+import fit.iuh.engolearn.assessment.service.AssessmentTransactions;
 import java.util.*;
 import java.util.stream.IntStream;
 import org.springframework.dao.DuplicateKeyException;
@@ -21,6 +22,7 @@ import lombok.RequiredArgsConstructor;
 public class AssessmentDraftServiceImpl implements AssessmentDraftService {
     private final AssessmentDraftRepository drafts;
     private final AssessmentCloudAudio audio;
+    private final AssessmentTransactions transactions;
 
     private AssessmentDraft requireDraft(String series) {
         var draft = drafts.bySeries(series);
@@ -34,6 +36,10 @@ public class AssessmentDraftServiceImpl implements AssessmentDraftService {
     }
 
     public AssessmentDraftResponse create(CreateDraftRequest input) {
+        return transactions.execute("paper:" + input.series(), () -> createDraft(input));
+    }
+
+    private AssessmentDraftResponse createDraft(CreateDraftRequest input) {
         var paper = drafts.latestPaper(input.series());
         var draft = AssessmentDraft.builder().id("draft:" + input.series()).series(input.series()).name(input.name())
                 .version(paper == null ? 1 : paper.getVersion() + 1).revision(UUID.randomUUID().toString())
