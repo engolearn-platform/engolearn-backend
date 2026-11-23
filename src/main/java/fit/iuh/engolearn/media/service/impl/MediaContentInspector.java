@@ -70,11 +70,22 @@ final class MediaContentInspector {
         if (bytes.length >= 12 && ascii(bytes, 0, "RIFF") && ascii(bytes, 8, "WAVE")) {
             return new MediaFileDescriptor("audio/wav", "wav", MediaResourceType.VIDEO);
         }
-        if (bytes.length >= 2 && (ascii(bytes, 0, "ID3")
-                || ((bytes[0] & 0xFF) == 0xFF && (bytes[1] & 0xE0) == 0xE0))) {
+        if (ascii(bytes, 0, "ID3") || hasMp3FrameHeader(bytes)) {
             return new MediaFileDescriptor("audio/mpeg", "mp3", MediaResourceType.VIDEO);
         }
         return null;
+    }
+
+    private static boolean hasMp3FrameHeader(byte[] bytes) {
+        if (bytes.length < 4 || (bytes[0] & 0xFF) != 0xFF || (bytes[1] & 0xE0) != 0xE0) {
+            return false;
+        }
+        // AAC ADTS shares the sync bits, so require MPEG Layer III and valid header fields.
+        int version = (bytes[1] >> 3) & 0x03;
+        int layer = (bytes[1] >> 1) & 0x03;
+        int bitrateIndex = (bytes[2] >> 4) & 0x0F;
+        int sampleRateIndex = (bytes[2] >> 2) & 0x03;
+        return version != 1 && layer == 1 && bitrateIndex != 15 && sampleRateIndex != 3;
     }
 
     private static boolean matchesDeclaredType(String declared, String detected) {

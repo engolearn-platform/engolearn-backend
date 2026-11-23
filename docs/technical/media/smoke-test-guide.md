@@ -36,7 +36,7 @@ The multipart request limit is configured for a single upload up to the Media mo
 | `POST` | `/api/v1/media/smoke/uploads` | Upload one file |
 | `GET` | `/api/v1/media/smoke/{mediaId}/delivery` | Resolve a delivery URL |
 
-Both routes require ADMIN authentication. Log in through the existing auth flow first and let Postman retain the authentication cookie.
+Both routes accept anonymous requests while the local smoke test is enabled.
 
 ### 1. Upload a public image
 
@@ -122,6 +122,7 @@ or remove the variable, since the default is false. Restart the backend. The con
 - `404` on the smoke routes: confirm `MEDIA_SMOKE_TEST_ENABLED=true` and restart.
 - Authentication is intentionally bypassed for these temporary smoke routes. Do not carry this exception into the PR.
 - `413` or multipart size exception: check the configured multipart request/file limits and the Media-specific image/audio limits.
+- `400` with `Media size is outside the allowed range`: check that the multipart `file` part contains a nonempty file and that the running application loaded the intended `MEDIA_MAX_UPLOAD_SIZE_BYTES`. Check for environment or IDE overrides and restart after changing them. `MEDIA_MAX_MULTIPART_REQUEST_SIZE_BYTES` controls the whole request separately.
 - Storage failure: check Cloudinary credentials, account configuration and backend logs. Never paste API secrets or protected delivery URLs into logs/issues.
 - `404` resolving a media ID: verify the upload completed and the returned ID is used exactly.
 

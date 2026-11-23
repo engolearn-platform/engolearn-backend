@@ -3,8 +3,11 @@ package fit.iuh.engolearn.media.service.impl;
 import fit.iuh.engolearn.media.contract.exception.MediaUploadRejectedException;
 import fit.iuh.engolearn.media.utils.MediaPayloadTooLargeIOException;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.io.ByteArrayInputStream;
+import java.util.HexFormat;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -30,6 +33,27 @@ class MediaContentInspectorTest {
         assertThat(inspected.descriptor().contentType()).isEqualTo("audio/wav");
         assertThat(inspected.descriptor().format()).isEqualTo("wav");
         assertThat(inspected.descriptor().resourceType().cloudinaryValue()).isEqualTo("video");
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"fff1508001bffc", "fffd9064", "ffeb9064", "fffbf064", "fffb9c64", "fffb"})
+    void rejectsNonMp3AndInvalidMpegFrameHeaders(String hex) {
+        byte[] content = HexFormat.of().parseHex(hex);
+
+        assertThatThrownBy(() -> MediaContentInspector.inspect(
+                new ByteArrayInputStream(content), "application/octet-stream", content.length, 1024, 512))
+                .isInstanceOf(MediaUploadRejectedException.class)
+                .hasMessage("Unsupported or unrecognized media content");
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"fffb9064", "fff38064", "ffe38064", "49443304000000000000"})
+    void recognizesMp3FrameHeadersAndId3Tags(String hex) {
+        byte[] content = HexFormat.of().parseHex(hex);
+        var inspected = MediaContentInspector.inspect(
+                new ByteArrayInputStream(content), "audio/mpeg", content.length, 1024, 512);
+
+        assertThat(inspected.descriptor().contentType()).isEqualTo("audio/mpeg");
     }
 
     @Test
