@@ -20,6 +20,10 @@ Suggested commands from the repository root:
 
 Use `mvnw.cmd` instead of `./mvnw` in Windows PowerShell if the wrapper script is not executable.
 
+## Manual HTTP end-to-end smoke test
+
+For a complete request path through Spring MVC, MediaManagement, Cloudinary, MongoDB and back to Cloudinary delivery, use the temporary [HTTP smoke-test guide](smoke-test-guide.md). The controller is disabled by default and requires ADMIN authentication when enabled.
+
 ## Manual Cloudinary Free-account smoke test
 
 Use a non-sensitive test asset and the team's configured account:

@@ -2,7 +2,7 @@
 
 ## Purpose
 
-The Media feature owns uploaded media metadata and storage-provider integration. It exposes an in-process contract; it does **not** expose a generic REST upload endpoint.
+The Media feature owns uploaded media metadata and storage-provider integration. Its production integration surface is an in-process contract; it does **not** expose a generic REST upload endpoint. A temporary, disabled-by-default HTTP smoke-test controller is available for manual end-to-end verification before feature integration.
 
 Each consuming feature owns its upload HTTP endpoint, business validation, access decision and authorization. Features store the returned `mediaId` and resolve a delivery URL when building their own API response.
 
@@ -104,4 +104,4 @@ The global upload limit defaults to 25 MiB for audio. Images have a separate 10 
 - Media's `resolve` method does not authorize a user. The caller must authorize access to the owning content before resolving a protected asset.
 - A `mediaId` is an identifier, not an authorization token.
 
-See [integration guide](integration-guide.md), [Cloudinary integration](cloudinary-integration.md) and [testing and operations](testing-and-operations.md).
+See [integration guide](integration-guide.md), [Cloudinary integration](cloudinary-integration.md), [testing and operations](testing-and-operations.md) and the [temporary HTTP smoke-test guide](smoke-test-guide.md).
