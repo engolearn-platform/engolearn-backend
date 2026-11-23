@@ -19,7 +19,7 @@ permissions:
 jobs:
   changes:
     name: Detect relevant changes
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-22.04
     outputs:
       backend: ${{ steps.filter.outputs.backend }}
     steps:
@@ -70,7 +70,7 @@ jobs:
     name: Build, test, and SonarCloud
     needs: changes
     if: needs.changes.outputs.backend == 'true'
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-22.04
     steps:
       - name: Checkout source
         uses: actions/checkout@v6
@@ -83,6 +83,12 @@ jobs:
           distribution: temurin
           java-version: "21"
           cache: maven
+
+      - name: Inspect CI kernel and Docker environment
+        run: |
+          uname -r
+          docker version
+          docker info
 
       - name: Run full Maven verification
         run: ./mvnw -B -ntp clean verify
@@ -126,7 +132,7 @@ jobs:
     needs:
       - changes
       - verify
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-22.04
     steps:
       - name: Evaluate required CI result
         env:
