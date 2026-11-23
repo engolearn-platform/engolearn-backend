@@ -60,6 +60,8 @@ class GeminiSpeakingAiGatewayTest {
         assertTrue(sent[0].body().contains("I want the large coffee."));
         assertTrue(sent[0].body().contains("LEARNER"));
         assertTrue(sent[0].body().contains("PARTNER"));
+        assertEquals("https://provider.invalid/models/gemini-test:generateContent", sent[0].uri().toString());
+        assertEquals(Duration.ofSeconds(1), sent[0].timeout());
     }
 
     @Test
@@ -125,6 +127,22 @@ class GeminiSpeakingAiGatewayTest {
 
         assertEquals(GatewayOutcome.FailureCode.TIMEOUT,
                 assertInstanceOf(GatewayOutcome.Timeout.class, outcome).failure().code());
+    }
+
+    @Test
+    void missingCredentialsFailAtInvocationWithoutCallingTransport() {
+        var calls = new AtomicInteger();
+        var gateway = new GeminiSpeakingAiGateway(mapper, new PromptV2Builder(mapper),
+                "https://provider.invalid/models", "gemini-test", "", Duration.ofSeconds(1), request -> {
+                    calls.incrementAndGet();
+                    return response(200, wrapper("{}"), metadata(200));
+                });
+
+        var outcome = gateway.assess(request("hello"));
+
+        assertEquals(GatewayOutcome.FailureCode.MISSING_CREDENTIALS,
+                assertInstanceOf(GatewayOutcome.TransportFailure.class, outcome).failure().code());
+        assertEquals(0, calls.get());
     }
 
     @Test

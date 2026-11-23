@@ -23,7 +23,6 @@ spring:
 engolearn:
   development:
     topic-seed-enabled: false
-    speaking-fixture-enabled: false
   placement:
     persistence:
       mode: mongo
@@ -51,17 +50,29 @@ engolearn:
       api-key: ${CLOUDINARY_API_KEY:}
       api-secret: ${CLOUDINARY_API_SECRET:}
   speaking:
-    enabled: ${engolearn.speaking.demo.enabled:true}
-    manager:
-      enabled: ${engolearn.speaking.demo.manager.enabled:true}
     assemblyai:
       api-key: ${ASSEMBLYAI_API_KEY:}
+      endpoint: ${SPEAKING_ASSEMBLYAI_ENDPOINT:wss://streaming.assemblyai.com/v3/ws}
+      model: ${SPEAKING_ASSEMBLYAI_MODEL:universal-3-6-pro}
+      connect-timeout: ${SPEAKING_ASSEMBLYAI_CONNECT_TIMEOUT:10s}
+      finalization-timeout: ${SPEAKING_ASSEMBLYAI_FINALIZATION_TIMEOUT:6s}
     gemini:
       api-key: ${GEMINI_API_KEY:}
+      endpoint: ${SPEAKING_GEMINI_ENDPOINT:https://generativelanguage.googleapis.com/v1beta/models}
+      model: ${SPEAKING_GEMINI_MODEL:gemini-3.5-flash-lite}
+      conversation-timeout: ${SPEAKING_GEMINI_CONVERSATION_TIMEOUT:12s}
+      opening-timeout: ${SPEAKING_GEMINI_OPENING_TIMEOUT:10s}
     cartesia:
       api-key: ${CARTESIA_API_KEY:}
       voice: ${CARTESIA_VOICE_ID:db6b0ed5-d5d3-463d-ae85-518a07d3c2b4}
-    dev-seed-file: ""
+      model: ${SPEAKING_CARTESIA_MODEL:sonic-3.6}
+      endpoint: ${SPEAKING_CARTESIA_ENDPOINT:https://api.cartesia.ai/tts/bytes}
+      api-version: ${SPEAKING_CARTESIA_API_VERSION:2026-08-14}
+      timeout: ${SPEAKING_CARTESIA_TIMEOUT:20s}
+    indexes:
+      enabled: true
+    recovery:
+      enabled: true
 
   payment:
     dev-reset:

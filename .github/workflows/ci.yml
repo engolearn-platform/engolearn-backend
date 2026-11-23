@@ -81,8 +81,6 @@ jobs:
       APP_USER: ci_test
       APP_PASSWORD: ci-only-placeholder
       CORS_ALLOWED_ORIGINS: http://localhost:3000
-      # Legacy tests explicitly selecting dev need this for bean construction only.
-      GEMINI_API_KEY: ci-dummy-not-a-real-provider-key
       # Test-only signing key supplied through GitHub Actions Variables.
       # Never use a production JWT secret in CI.
       AUTH_JWT_SECRET: ${{ vars.CI_AUTH_JWT_SECRET }}
