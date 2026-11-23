@@ -37,8 +37,6 @@ engolearn:
     max-upload-size-bytes: ${MEDIA_MAX_UPLOAD_SIZE_BYTES:26214400}
     max-image-upload-size-bytes: ${MEDIA_MAX_IMAGE_UPLOAD_SIZE_BYTES:10000000}
     protected-url-lifetime: ${MEDIA_PROTECTED_URL_LIFETIME:60s}
-    smoke-test:
-      enabled: ${MEDIA_SMOKE_TEST_ENABLED:false}
     cloudinary:
       url: ${CLOUDINARY_URL:}
       cloud-name: ${CLOUDINARY_CLOUD_NAME:}

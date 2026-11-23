@@ -51,7 +51,7 @@ The feature's HTTP controller owns the multipart boundary and stream lifecycle:
 public ApiResponse<MediaUploadResultDto> upload(@RequestParam("file") MultipartFile file)
         throws IOException {
     try (InputStream content = file.getInputStream()) {
-        return ApiResponse.success(topicMediaService.uploadTopicImage(
+        return ApiResponse.ok(topicMediaService.uploadTopicImage(
                 file.getOriginalFilename(),
                 file.getContentType(),
                 file.getSize(),

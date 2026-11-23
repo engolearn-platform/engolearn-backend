@@ -20,13 +20,9 @@ Suggested commands from the repository root:
 
 Use `mvnw.cmd` instead of `./mvnw` in Windows PowerShell if the wrapper script is not executable.
 
-## Manual HTTP end-to-end smoke test
-
-For a complete request path through Spring MVC, MediaManagement, Cloudinary, MongoDB and back to Cloudinary delivery, use the temporary [HTTP smoke-test guide](smoke-test-guide.md). The controller is disabled by default and requires ADMIN authentication when enabled.
-
 ## Manual Cloudinary Free-account smoke test
 
-Use a non-sensitive test asset and the team's configured account:
+Use the owning feature's HTTP endpoints in a local or test environment, with a non-sensitive test asset and the team's configured Cloudinary account. See the [integration guide](integration-guide.md) for the feature's upload and delivery responsibilities.
 
 1. Upload a small public PNG and confirm the returned public URL loads in a browser.
 2. Upload a small protected WAV/MP3 and confirm Cloudinary reports an authenticated asset.
