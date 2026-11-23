@@ -3,7 +3,6 @@ engolearn:
     cookies:
       secure: ${AUTH_COOKIE_SECURE:false}
   development:
-    topic-seed-enabled: ${DEV_TOPIC_SEED_ENABLED:false}
     speaking-fixture-enabled: ${DEV_SPEAKING_FIXTURE_ENABLED:false}
   placement:
     test-set:

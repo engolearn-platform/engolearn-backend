@@ -92,6 +92,7 @@ replace is destructive. Use -DryRun first and inspect the report.
 
 - -DryRun always performs read-only preflight and never writes.
 - The tool refuses system databases and database names that look like production.
+- The name check rejects `admin`, `config`, `local` and names with a `prod` or `production` token bounded by the start/end of the name or `_`/`-`. This is only a guard against obvious targets: it does not prove that a database is disposable or non-production. Confirm the configured target before every dry-run or write, and use these sample datasets only with a local development database.
 - All input files are preflighted before writes. A fail conflict therefore prevents all writes.
 - MongoDB writes are batched, not transactional. If a later batch fails, earlier successful batches remain.
 - MONGO_IMPORT_CONTINUE_ON_ERROR=true attempts later batches after a failed batch; it does not roll back successful writes.
@@ -111,13 +112,56 @@ replace is destructive. Use -DryRun first and inspect the report.
 
 `samples/management-accounts.importer.json` adds demo `ADMIN` and `CONTENT_MANAGER` accounts, each with a profile and initial subscription record. It is included in the all-samples import. Use it only with a disposable local database and the default `skip` policy. See the [auth runbook](../../docs/runbooks/user-auth.md#seed-the-first-management-accounts) for login credentials.
 
+## Development Topic samples
+
+The Topic examples are development content fixtures. Select each file explicitly so unrelated
+samples are not included. Their identifiers and references are BSON strings, so set
+`MONGO_IMPORT_OBJECT_ID_FIELDS=none` in the importer-local `.env` before both dry-run and import.
+This overrides the generic 24-hex ObjectId conversion for `_id` and `*_id` fields. If you use
+`none` for the mixed Assessment/Learning Path datasets as well, preserve that setting; restore
+the prior value only when switching to a dataset that depends on automatic ObjectId conversion.
+
+```powershell
+.\tools\mongo-json-importer\import.ps1 -File .\tools\mongo-json-importer\samples\a1-shopping-deep-v3.json -DryRun
+.\tools\mongo-json-importer\import.ps1 -File .\tools\mongo-json-importer\samples\a1-shopping-deep-v3.json
+.\tools\mongo-json-importer\import.ps1 -File .\tools\mongo-json-importer\samples\all-cefr-topic-samples-v2.json -DryRun
+.\tools\mongo-json-importer\import.ps1 -File .\tools\mongo-json-importer\samples\all-cefr-topic-samples-v2.json
+.\tools\mongo-json-importer\import.ps1 -File .\tools\mongo-json-importer\samples\daily-routine-a1-v1.json -DryRun
+.\tools\mongo-json-importer\import.ps1 -File .\tools\mongo-json-importer\samples\daily-routine-a1-v1.json
+.\tools\mongo-json-importer\import.ps1 -File .\tools\mongo-json-importer\samples\self-introduction-a1-v1.json -DryRun
+.\tools\mongo-json-importer\import.ps1 -File .\tools\mongo-json-importer\samples\self-introduction-a1-v1.json
+```
+
+Review each preflight report and confirm the local database target before importing. The
+examples do not establish that any production database contains these records or that an
+import has been run. Use the application in `dev` to verify the resulting content.
+
+## Development Subscription catalog
+
+`samples/subscription-development-sample.json` contains demonstration Free and Premium plan
+versions, Free/Trial/Premium policy versions, their policy-state pointers and three development
+account records. It
+replaces the former runtime manifest workflow. Import only this file to a disposable local
+development database with the default `skip` policy:
+
+```powershell
+.\tools\mongo-json-importer\import.ps1 -File .\tools\mongo-json-importer\samples\subscription-development-sample.json -DryRun
+.\tools\mongo-json-importer\import.ps1 -File .\tools\mongo-json-importer\samples\subscription-development-sample.json
+```
+
+Inspect the dry-run report and target database before confirming the import. This sample is
+not a production catalog or evidence of production data. Admin catalog changes continue to
+use the Subscription Admin API and preserve its validation and audit behavior.
+
 ## Shared Assessment / Learning Path demo
 
-The two datasets use account `pfc-demo-learner-v2`:
+The two datasets use account `pfc-demo-learner-v2`. The Assessment file also includes that
+account's initial Subscription record, so it does not need a separate account-publication
+manifest. The broader development catalog remains a separate explicit import described above:
 
 | File in samples/ | Collections / documents |
 | --- | --- |
-| `assessment-demo.json` | 8 / 11: demo account/profile, baseline/gate, version-2 paper, four historical attempts and Assessment profile |
+| `assessment-demo.json` | 9 / 12: demo account/profile and Subscription account, baseline/gate, version-2 paper, four historical attempts and Assessment profile |
 | `learning-path-demo.json` | 4 / 766: 6 paths, 390 referenced question snapshots, 360 pool questions and 10 passages |
 
 The Assessment file replaces `assessment-paper-v2.json`; keeping the old file alongside it
@@ -143,20 +187,18 @@ Inspect the reports and enter IMPORT when prompted. Skip preserves existing IDs,
 practice progress; reimporting does not reset dates, quota, cooldown, grants or ownership of
 existing documents. Do not use replace against an existing learner database to force a replay.
 
-Initialize the shared Subscription catalog on a fresh database using its
-[existing seed](../subscription/README.md), then initialize only this demo account with
-[the account-only manifest](../subscription/assessment-learningpath-demo-account.json).
-The manifest is published through the backend, never passed to this importer. Existing
-catalogs must not be republished or overwritten to add this account.
+Import the shared catalog only if the target database does not already have it. The Assessment
+file initializes the demo account without republishing or overwriting the catalog. Existing
+documents are skipped by default; importing does not replace current policy or learner state.
 
 Run the backend with `dev` active, `prod` absent, and the existing Assessment audio directory:
 
 ```powershell
-.\mvnw.cmd spring-boot:run '-Dspring-boot.run.arguments=--spring.profiles.active=dev --engolearn.assessment.media-directory=./tools/mongo-json-importer/samples/assessment-media --engolearn.subscription.publish-manifest=tools/subscription/assessment-learningpath-demo-account.json'
+.\mvnw.cmd spring-boot:run '-Dspring-boot.run.profiles=dev' '-Dspring-boot.run.arguments=--engolearn.assessment.media-directory=./tools/mongo-json-importer/samples/assessment-media'
 ```
 
-After the account publication succeeds, omit the publish-manifest argument on normal restarts;
-keep the profile and media directory. All 13 Assessment WAV files are already committed.
+Keep the profile and media directory on normal restarts. All 13 Assessment WAV files are
+already committed. No Subscription publication flag is required at startup.
 
 ### Demo account and flows
 

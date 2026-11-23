@@ -248,6 +248,7 @@ class TopicQuizReadTest {
                 Optional.of(attempt(AttemptStatus.COMPLETED, null)));
         when(versions.findById("iv1")).thenReturn(Optional.of(itemVersion(
                 fillBlankModule(0), situationalModule(1))));
+        visibleItemInLatestRelease();
 
         CurrentQuizResponse response = service.getCurrentQuiz(USER_ID, ATTEMPT_ID);
 
@@ -256,7 +257,7 @@ class TopicQuizReadTest {
         assertThat(response.attempt().position()).isNull();
         assertThat(response.quiz()).isNull();
         verify(quizMapper, never()).sequence(any());
-        verifyNoInteractions(topics, releases, mongo, catalog, learning, topicItems);
+        verifyNoInteractions(mongo, catalog, learning, topicItems);
     }
 
     @Test
@@ -507,15 +508,17 @@ class TopicQuizReadTest {
     }
 
     @Test
-    void completedAttemptWithHiddenPinnedVersionStillReturnsNullQuiz() {
+    void completedAttemptWithHiddenPinnedVersionReturnsGoneWithoutReadingQuizSequence() {
         when(attempts.findById(ATTEMPT_ID)).thenReturn(Optional.of(attempt(AttemptStatus.COMPLETED, null)));
         when(versions.findById("iv1")).thenReturn(Optional.of(pinnedVersion(ContentStatus.HIDDEN, fillBlankModule(0))));
 
-        CurrentQuizResponse response = service.getCurrentQuiz(USER_ID, ATTEMPT_ID);
+        TopicRequestException error = catchThrowableOfType(
+                () -> service.getCurrentQuiz(USER_ID, ATTEMPT_ID), TopicRequestException.class);
 
-        assertThat(response.quiz()).isNull();
-        assertThat(response.attempt().status()).isEqualTo("COMPLETED");
-        verifyNoInteractions(topics, releases);
+        assertThat(error.getStatus()).isEqualTo(410);
+        assertThat(error.getCode()).isEqualTo("ITEM_HIDDEN");
+        verify(quizMapper, never()).sequence(any());
+        verifyNoInteractions(topics, releases, mongo, catalog, learning, topicItems);
     }
 
     @Test

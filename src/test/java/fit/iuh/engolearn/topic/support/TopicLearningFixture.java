@@ -63,7 +63,7 @@ public final class TopicLearningFixture {
                 .build());
 
         // No explicit id: the item attempt stores this id as ObjectId, so only a generated
-        // hex id (the shape DevTopicSeedRunner produces) survives the position write.
+        // hex id survives the position write.
         TopicItemVersion itemVersion = topicItemVersionRepository.save(TopicItemVersion.builder()
                 .topicItemId(item.getId())
                 .topicId(topic.getId())

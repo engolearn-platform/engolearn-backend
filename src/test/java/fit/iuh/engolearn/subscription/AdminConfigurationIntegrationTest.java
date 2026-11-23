@@ -10,6 +10,10 @@ import fit.iuh.engolearn.subscription.mapper.SubscriptionModelMapper;
 import fit.iuh.engolearn.subscription.repository.SubscriptionRepository;
 import fit.iuh.engolearn.subscription.service.*;
 import fit.iuh.engolearn.subscription.infra.scheduling.SubscriptionActivationScheduler;
+import fit.iuh.engolearn.shared.enums.UserRole;
+import fit.iuh.engolearn.shared.security.impl.JwtTokenService;
+import fit.iuh.engolearn.user.model.RefreshSession;
+import fit.iuh.engolearn.user.model.User;
 import java.time.*;
 import java.util.*;
 import java.util.concurrent.*;
@@ -29,7 +33,7 @@ import static org.mockito.Mockito.*;
 
 @EnabledIfDockerAvailable
 @Import(AdminConfigurationIntegrationTest.TimeConfig.class)
-@TestPropertySource(properties={"engolearn.security.dev-auth.enabled=true","engolearn.subscription.activation-delay-ms=3600000"})
+@TestPropertySource(properties={"engolearn.subscription.activation-delay-ms=3600000"})
 class AdminConfigurationIntegrationTest extends AbstractMongoIntegrationTest {
     static final Instant START=Instant.parse("2026-10-29T12:00:00.123Z");
     static class MutableClock extends Clock {
@@ -45,6 +49,7 @@ class AdminConfigurationIntegrationTest extends AbstractMongoIntegrationTest {
     @Autowired SubscriptionActivationScheduler scheduler;
     @Autowired MutableClock clock;
     @Autowired ObjectMapper mapper;
+    @Autowired JwtTokenService tokens;
     @MockitoSpyBean SubscriptionRepository store;
     @MockitoSpyBean SubscriptionTransactions transactions;
     @BeforeEach void setup(){
@@ -142,7 +147,35 @@ class AdminConfigurationIntegrationTest extends AbstractMongoIntegrationTest {
         String loserScope=loser==f?"FREE":"TRIAL";
         assertThatThrownBy(()->admin.preview(loserScope,new AdminPublicationRequest(admin.catalog().revision(),loser.effect(),loser.content()))).hasMessageContaining("unit and period");
     }
-    ResponseEntity<String> http(String path,HttpMethod method,String fixture,String body){HttpHeaders headers=new HttpHeaders();headers.setContentType(MediaType.APPLICATION_JSON);if(fixture!=null)headers.set("X-Dev-User-Id",fixture);headers.set("Idempotency-Key",key());return restTemplate.exchange("http://localhost:"+port+"/api/v1/subscription/admin"+path,method,new HttpEntity<>(body,headers),String.class);}
+    ResponseEntity<String> http(String path, HttpMethod method, String fixture, String body) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        if (fixture != null) {
+            UserRole role = switch (fixture) {
+                case "dev-user" -> UserRole.USER;
+                case "dev-cm" -> UserRole.CONTENT_MANAGER;
+                case "dev-admin" -> UserRole.ADMIN;
+                default -> throw new IllegalArgumentException("Unknown auth fixture");
+            };
+            headers.set(HttpHeaders.COOKIE, accessCookie(fixture, role));
+        }
+        headers.set("Idempotency-Key", key());
+        return restTemplate.exchange("http://localhost:" + port + "/api/v1/subscription/admin" + path,
+                method, new HttpEntity<>(body, headers), String.class);
+    }
+
+    String accessCookie(String userId, UserRole role) {
+        String sessionId = "admin-it-session-" + userId;
+        mongoTemplate.save(new User(userId, userId + "@example.test", "unused", role, false));
+        mongoTemplate.save(RefreshSession.builder()
+                .id(sessionId)
+                .sessionId(sessionId)
+                .accountId(userId)
+                .expiresAt(Instant.now().plusSeconds(3600))
+                .revoked(false)
+                .build());
+        return "ACCESS_TOKEN=" + tokens.create(userId, sessionId, "access", 900);
+    }
     @Test void allHttpMethodsEnforceAdminBeforeReadingDataAndRejectForgedFieldsAndFractionalNumbers()throws Exception{
         Map<String,HttpMethod> paths=new LinkedHashMap<>();paths.put("/catalog",HttpMethod.GET);paths.put("/configurations/FREE",HttpMethod.GET);paths.put("/configurations/FREE/versions",HttpMethod.GET);paths.put("/configurations/FREE/versions/1",HttpMethod.GET);paths.put("/configurations/FREE/preview",HttpMethod.POST);paths.put("/configurations/FREE/publications",HttpMethod.POST);
         String body=mapper.writeValueAsString(input("FREE","NEXT_LOCAL_MIDNIGHT"));
