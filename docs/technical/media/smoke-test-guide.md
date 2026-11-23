@@ -128,3 +128,16 @@ or remove the variable, since the default is false. Restart the backend. The con
 ## Cleanup
 
 The smoke routes intentionally do not expose delete. Remove test assets from Cloudinary Media Library after the verification run. The corresponding MongoDB metadata can be cleaned manually in the local development database if required.
+
+
+## Diagnose an HTTP 503
+
+The smoke controller deliberately returns the generic response `MEDIA_STORAGE_UNAVAILABLE`,
+so the HTTP response does not reveal provider internals. After reproducing the failure,
+inspect **backend console logs**, not the Postman response:
+
+- `Cloudinary upload failed: publicId=...` followed by a stack trace indicates a provider/SDK failure.
+- `Media metadata persistence failed after Cloudinary upload: mediaId=...` indicates a MongoDB persistence failure after the Cloudinary upload succeeded.
+- `Cloudinary media storage is not configured` means no usable Cloudinary credentials were loaded. Check the working directory for `.env` and restart the backend.
+
+Remove credentials, signed URLs, tokens and other secrets before sharing logs. No full provider error is returned to HTTP clients.

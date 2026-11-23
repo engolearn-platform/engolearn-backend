@@ -88,6 +88,8 @@ public class MediaManagementImpl implements MediaManagement {
         try {
             repository.save(asset);
         } catch (RuntimeException persistenceFailure) {
+            log.error("Media metadata persistence failed after Cloudinary upload: mediaId={}",
+                    mediaId, persistenceFailure);
             compensate(storageMetadata, mediaId);
             throw new MediaStorageUnavailableException("Media metadata could not be persisted", persistenceFailure);
         }

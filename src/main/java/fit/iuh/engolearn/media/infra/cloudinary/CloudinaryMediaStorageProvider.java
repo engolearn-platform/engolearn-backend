@@ -58,10 +58,15 @@ public class CloudinaryMediaStorageProvider implements MediaStorageProvider {
                     .version(version)
                     .build();
         } catch (Exception ex) {
-            cleanupPartialUpload(publicId, descriptor.resourceType(), deliveryType);
             if (hasCause(ex, MediaPayloadTooLargeIOException.class)) {
+                log.warn("Cloudinary upload rejected because media exceeded its size limit: publicId={}, resourceType={}",
+                        publicId, descriptor.resourceType());
+                cleanupPartialUpload(publicId, descriptor.resourceType(), deliveryType);
                 throw new MediaUploadRejectedException("Media exceeds the configured upload limit", ex);
             }
+            log.error("Cloudinary upload failed: publicId={}, resourceType={}, deliveryType={}",
+                    publicId, descriptor.resourceType(), deliveryType, ex);
+            cleanupPartialUpload(publicId, descriptor.resourceType(), deliveryType);
             throw new MediaStorageUnavailableException("Cloudinary media upload failed", ex);
         }
     }
