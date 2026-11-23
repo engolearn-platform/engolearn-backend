@@ -52,7 +52,8 @@ class RuntimeProfilesTest {
             assertThat(environment.getProperty("engolearn.mongodb.transactions.enabled", Boolean.class)).isTrue();
             if ("dev".equals(profile)) {
                 assertThat(environment.getProperty("server.port", Integer.class)).isEqualTo(8080);
-                assertThat(environment.getProperty("spring.mongodb.replica-set-name")).isEqualTo("engolearn-rs");
+                assertThat(environment.getProperty("spring.mongodb.uri"))
+                        .isEqualTo("mongodb://localhost:27017/runtime_profile_test");
             } else {
                 assertThat(environment.getProperty("server.port", Integer.class)).isEqualTo(10000);
                 assertThat(environment.getProperty("spring.mongodb.uri"))
@@ -134,6 +135,20 @@ class RuntimeProfilesTest {
         configuration("prod").withPropertyValues("engolearn.mongodb.transactions.enabled=false")
                 .withInitializer(new RuntimeProfileInitializer()).run(context ->
                         assertThat(context).hasFailed().getFailure().hasMessageContaining("enabled Mongo transactions"));
+    }
+
+    @Test
+    void devRequiresMongoUri() {
+        configuration("dev").withPropertyValues("MONGODB_URI=")
+                .withInitializer(new RuntimeProfileInitializer()).run(context ->
+                        assertThat(context).hasFailed().getFailure()
+                                .hasMessageContaining("Missing required runtime configuration: spring.mongodb.uri"));
+    }
+
+    @Test
+    void devDoesNotRequireLocalMongoConnectionFields() {
+        configuration("dev").withPropertyValues("MONGO_HOST=", "MONGO_REPLICA_SET=", "APP_USER=", "APP_PASSWORD=")
+                .withInitializer(new RuntimeProfileInitializer()).run(context -> assertThat(context).hasNotFailed());
     }
 
     @Test
