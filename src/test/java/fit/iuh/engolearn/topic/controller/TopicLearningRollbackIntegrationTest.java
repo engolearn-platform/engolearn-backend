@@ -1,39 +1,37 @@
 package fit.iuh.engolearn.topic.controller;
 
 import fit.iuh.engolearn.config.AbstractMongoIntegrationTest;
-import fit.iuh.engolearn.topic.model.UserTopicItemProgress;
+import fit.iuh.engolearn.shared.security.impl.JwtTokenService;
 import fit.iuh.engolearn.topic.repository.TopicItemRepository;
 import fit.iuh.engolearn.topic.repository.TopicItemVersionRepository;
 import fit.iuh.engolearn.topic.repository.TopicRepository;
 import fit.iuh.engolearn.topic.repository.TopicVersionRepository;
-import fit.iuh.engolearn.topic.repository.UserTopicItemProgressRepository;
 import fit.iuh.engolearn.topic.support.TopicLearningFixture.PublishedItem;
+import fit.iuh.engolearn.topic.support.TopicTestAuthentication;
+import fit.iuh.engolearn.user.repository.RefreshSessionRepository;
+import fit.iuh.engolearn.user.repository.UserProfileRepository;
+import fit.iuh.engolearn.user.repository.UserRepository;
+import org.bson.Document;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
-import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.web.client.RestClientResponseException;
 import org.testcontainers.junit.jupiter.EnabledIfDockerAvailable;
+import tools.jackson.databind.json.JsonMapper;
+
+import java.util.UUID;
 
 import static fit.iuh.engolearn.topic.support.TopicLearningFixture.seedPublishedItem;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.catchThrowableOfType;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.verify;
 
 /**
- * Proves the position write is one transaction: a failure on the third of the four writes
- * leaves none of the progress collections with a document.
+ * MongoDB must reject the entire attempt update if it cannot persist the new revision.
  */
 @EnabledIfDockerAvailable
 class TopicLearningRollbackIntegrationTest extends AbstractMongoIntegrationTest {
-
-    @MockitoSpyBean
-    private UserTopicItemProgressRepository userTopicItemProgressRepository;
 
     @Autowired
     private TopicRepository topicRepository;
@@ -47,32 +45,56 @@ class TopicLearningRollbackIntegrationTest extends AbstractMongoIntegrationTest 
     @Autowired
     private TopicItemVersionRepository topicItemVersionRepository;
 
+    @Autowired
+    private UserRepository userRepository;
+
+    @Autowired
+    private UserProfileRepository userProfileRepository;
+
+    @Autowired
+    private RefreshSessionRepository refreshSessionRepository;
+
+    @Autowired
+    private JwtTokenService jwtTokenService;
+
     @Test
-    void failureWhileSavingItemProgressRollsBackTheWholePositionWrite() {
+    void rejectedAdvanceLeavesTheSavedAttemptAndProgressUnchanged() {
         PublishedItem published = seedPublishedItem(
                 topicRepository, topicItemRepository, topicVersionRepository, topicItemVersionRepository);
 
-        // No doCallRealMethod: the spy is a JDK proxy of the interface, so real-method chaining
-        // is impossible; the verify below pins the single save call this flow makes.
-        doThrow(new RuntimeException("injected item-progress write failure"))
-                .when(userTopicItemProgressRepository).save(any(UserTopicItemProgress.class));
-
         HttpHeaders jsonHeaders = new HttpHeaders();
         jsonHeaders.setContentType(MediaType.APPLICATION_JSON);
-        String positionUrl = "http://localhost:" + port + "/api/v1/topic-items/"
-                + published.item().getId() + "/position";
+        jsonHeaders.set(HttpHeaders.COOKIE, "ACCESS_TOKEN=" + TopicTestAuthentication.persistedAccessToken(
+                userRepository, userProfileRepository, refreshSessionRepository, jwtTokenService));
+        jsonHeaders.set("Idempotency-Key", UUID.randomUUID().toString());
+        String api = "http://localhost:" + port + "/api/v1";
+        var started = restTemplate.postForEntity(api + "/topic-items/" + published.item().getId() + "/attempts",
+                new HttpEntity<>("{\"mode\":\"LEARN\"}", jsonHeaders), String.class);
+        assertThat(started.getStatusCode().value()).isEqualTo(200);
+        var attempt = JsonMapper.builder().build().readTree(started.getBody()).get("data");
+        long revision = attempt.get("revision").asLong();
+        var storedAttempts = mongoTemplate.getCollection("user_topic_item_attempts");
+        Document before = storedAttempts.find().first();
+        assertThat(before).isNotNull();
+
+        // Allow the saved attempt but reject any write that increments its revision.
+        mongoTemplate.getDb().runCommand(new Document("collMod", storedAttempts.getNamespace().getCollectionName())
+                .append("validator", new Document("version", new Document("$lte", revision))));
+        jsonHeaders.set("Idempotency-Key", UUID.randomUUID().toString());
+        String advanceBody = """
+                {"revision":%d,"stage":"CONTEXT","itemIndex":0}
+                """.formatted(revision);
 
         RestClientResponseException exception = catchThrowableOfType(
-                () -> restTemplate.exchange(positionUrl, HttpMethod.PUT,
-                        new HttpEntity<>("{\"stage\":\"VOCAB\",\"itemIndex\":0}", jsonHeaders),
-                        String.class),
+                () -> restTemplate.postForEntity(api + "/topic-attempts/" + attempt.get("attemptId").asString() + "/advance",
+                        new HttpEntity<>(advanceBody, jsonHeaders), String.class),
                 RestClientResponseException.class);
 
         assertThat(exception.getStatusCode().is5xxServerError()).isTrue();
-        verify(userTopicItemProgressRepository).save(any(UserTopicItemProgress.class));
+        assertThat(storedAttempts.countDocuments()).isEqualTo(1);
+        assertThat(storedAttempts.find().first()).isEqualTo(before);
 
         assertThat(documentCount("user_topic_attempts")).isZero();
-        assertThat(documentCount("user_topic_item_attempts")).isZero();
         assertThat(documentCount("user_topic_item_progress")).isZero();
         assertThat(documentCount("user_topic_progress")).isZero();
     }

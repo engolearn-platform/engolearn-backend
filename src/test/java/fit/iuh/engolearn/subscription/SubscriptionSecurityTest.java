@@ -1,8 +1,12 @@
 package fit.iuh.engolearn.subscription;
 import fit.iuh.engolearn.config.SecurityConfig;
+import fit.iuh.engolearn.shared.security.impl.JwtTokenService;
 import fit.iuh.engolearn.shared.security.impl.SecurityContextCurrentUserProvider;
 import fit.iuh.engolearn.subscription.controller.SubscriptionController;
+import fit.iuh.engolearn.subscription.service.PurchaseService;
 import fit.iuh.engolearn.subscription.service.SubscriptionService;
+import fit.iuh.engolearn.user.repository.RefreshSessionRepository;
+import fit.iuh.engolearn.user.repository.UserRepository;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,10 +18,13 @@ import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 @WebMvcTest(SubscriptionController.class)
-@Import({SecurityConfig.class,SecurityContextCurrentUserProvider.class})
+@Import({SecurityConfig.class,SecurityContextCurrentUserProvider.class,JwtTokenService.class})
 class SubscriptionSecurityTest {
     @Autowired MockMvc mvc;
     @MockitoBean SubscriptionService service;
+    @MockitoBean PurchaseService purchases;
+    @MockitoBean UserRepository users;
+    @MockitoBean RefreshSessionRepository sessions;
     @Test void publicCatalogAndPrivateGuestRoutesHaveStableSecurityContract() throws Exception {
         when(service.plans()).thenReturn(List.of());
         mvc.perform(get("/api/v1/subscription/plans")).andExpect(status().isOk()).andExpect(header().string("Cache-Control","no-store"));

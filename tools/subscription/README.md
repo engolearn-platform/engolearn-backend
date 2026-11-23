@@ -1,49 +1,27 @@
-# Subscription development seed
+# Subscription development data (legacy entry)
 
-`dev-main-manifest.json` is the single development seed for Free, Trial and
-Premium. It includes Vietnamese plan/benefit descriptions and the three existing
-development fixture accounts. Free and Trial each allow 3600 speaking seconds
-daily, with 1 and 2 proficiency checks monthly. Premium allows 7200 speaking
-seconds daily and 5 proficiency checks monthly, priced at 199000 VND monthly or
-1590000 VND annually. It creates no paid period or quota usage.
+The former startup manifest flow has been retired. Development catalog examples now live in
+[`subscription-development-sample.json`](../mongo-json-importer/samples/subscription-development-sample.json)
+and are loaded with the generic Mongo JSON importer. The importer guide documents its safety
+checks and target requirements.
 
-With the shared development replica database available, select `dev` explicitly in
-the command; do not configure the active profile in `.env`:
+Run from the repository root, after configuring both importer environment files and confirming
+that the configured target is a disposable local development database:
 
 ```powershell
-.\mvnw.cmd spring-boot:run '-Dspring-boot.run.profiles=dev' '-Dspring-boot.run.arguments=--engolearn.subscription.publish-manifest=tools/subscription/dev-main-manifest.json'
+.\tools\mongo-json-importer\import.ps1 -File .\tools\mongo-json-importer\samples\subscription-development-sample.json -DryRun
+.\tools\mongo-json-importer\import.ps1 -File .\tools\mongo-json-importer\samples\subscription-development-sample.json
 ```
 
-This publishes the complete catalog atomically on a new or explicitly reset
-development database. Omit the publication argument on normal restarts. The
-separate catalog patch script was removed; no second seed step is needed.
+Review the dry-run report before confirming the import. The sample is demonstration data; it
+does not establish production data or a completed import. Do not use it to replace an existing
+catalog or learner history. The old `dev-main-manifest.json` remains a fixture for
+`AssessmentMongoIntegrationTest`, not a supported runtime seed. The former account-only
+manifest is retired; the shared Assessment demo account is included in `assessment-demo.json`.
 
-Use root Compose and shared Mongo environment inputs. The old `compose.replica.yaml`
-is a legacy isolated fixture utility, not the team runtime. See the
-[runtime configuration contract](../../docs/architecture/runtime-configuration.md).
-
-Existing databases are not updated in place by this seed. An earlier receipt for
-the same manifest ID with different content causes a fingerprint conflict;
-existing policy versions/account histories can also prevent publication. Do not
-delete receipts alone or rewrite histories to force a replay. Any migration or
-targeted reset/reseed requires a separate decision. Existing camelCase data needs an explicit compatibility decision against the
-[current storage contract](../../docs/technical/subscription/data-model.md) before running
-the refactored backend. No reset or seed execution is performed
-by editing these files.
-
-## Optional shared Assessment / Learning Path account
-
-After the catalog exists, `assessment-learningpath-demo-account.json` initializes only
-`pfc-demo-learner-v2`. Its plan and policy arrays are empty: it reuses the current catalog
-and does not change prices, quotas, current periods or other account histories.
-Import the demo User/Assessment records first; see the
-[dataset instructions](../mongo-json-importer/README.md#shared-assessment--learning-path-demo).
-
-```powershell
-.\mvnw.cmd spring-boot:run '-Dspring-boot.run.arguments=--spring.profiles.active=dev --engolearn.assessment.media-directory=./tools/mongo-json-importer/samples/assessment-media --engolearn.subscription.publish-manifest=tools/subscription/assessment-learningpath-demo-account.json'
-```
-
-Publish this account manifest once and omit the flag on normal restarts. An unchanged
-manifest receipt is idempotent. If the same account already has Subscription history but
-this receipt is absent, publication refuses to replace that history. Inspect the existing
-state instead of deleting it. This manifest must not be sent to the Mongo JSON importer.
+Admin catalog updates continue through the Subscription Admin API. The old
+`compose.replica.yaml` is a legacy isolated fixture utility, not the supported team runtime;
+use root Compose and the [runtime configuration contract](../../docs/architecture/runtime-configuration.md).
+Existing camelCase data still needs an explicit compatibility decision against the
+[current storage contract](../../docs/technical/subscription/data-model.md) before running a
+refactored backend.
