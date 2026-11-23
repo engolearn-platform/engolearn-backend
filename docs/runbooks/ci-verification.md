@@ -10,8 +10,10 @@ There is no third Spring runtime profile and no developer `.env` in the CI check
 | Input | Source and purpose |
 | --- | --- |
 | SPRING_PROFILES_ACTIVE | prod; default Spring test/application configuration |
-| MONGO_HOST / MONGO_PORT | 127.0.0.1 / 27017; test-only binding defaults, not a production connection |
-| APP_DB / APP_USER / APP_PASSWORD | engolearn_ci / ci_test / ci-only-placeholder; satisfy required prod property binding |
+| MONGODB_URI | mongodb://127.0.0.1:27017/engolearn_ci; syntactically valid test-only URI required by prod configuration validation, not a provisioned database |
+| APP_DB | engolearn_ci; test-only database binding required by prod configuration validation |
+| MONGO_HOST / MONGO_PORT | 127.0.0.1 / 27017; retained for tests that explicitly select dev and use discrete local Mongo properties |
+| APP_USER / APP_PASSWORD | ci_test / ci-only-placeholder; retained for explicit dev-profile test binding, not used by prod when URI is set |
 | CORS_ALLOWED_ORIGINS | http://localhost:3000; loopback frontend origin for tests |
 | AUTH_JWT_SECRET | Existing GitHub Actions variable CI_AUTH_JWT_SECRET; test-only signing key, at least 32 bytes |
 | GEMINI_API_KEY | Deliberately invalid dummy value; permits bean construction in legacy tests explicitly selecting dev |
@@ -29,8 +31,10 @@ database with higher priority than YAML/environment defaults. The container URI 
 connection/authentication settings; the workflow's placeholder credentials do not create a
 user in those containers and are not required to match unauthenticated container fixtures.
 
-The workflow does not provision a fallback Mongo server at localhost:27017. A test that
-needs persistence must provision/inject its test database or supply its own isolated fixture.
+The workflow does not provision a fallback Mongo server at localhost:27017 and never connects
+to Atlas. `MONGODB_URI` is only a test binding value; a test that needs persistence must
+provision/inject its own isolated database. Suites based on AbstractMongoIntegrationTest replace
+the placeholder URI with their disposable replica-set container through DynamicPropertySource.
 Tests with explicit connection properties keep those properties; setting prod is not a
 replacement for missing test infrastructure. CI never needs a developer's local database.
 

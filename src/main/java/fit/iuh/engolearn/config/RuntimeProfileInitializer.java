@@ -19,10 +19,12 @@ public class RuntimeProfileInitializer implements ApplicationContextInitializer<
                 || !environment.getProperty("engolearn.mongodb.transactions.enabled", Boolean.class, false)) {
             throw new IllegalStateException("Both runtime profiles require Placement Mongo persistence and enabled Mongo transactions.");
         }
-        require(environment, "spring.mongodb.replica-set-name");
+        if ("dev".equals(profiles[0])) {
+            require(environment, "spring.mongodb.replica-set-name");
+        }
         if ("prod".equals(profiles[0])) {
-            for (String key : new String[]{"spring.mongodb.host", "spring.mongodb.database", "spring.mongodb.username",
-                    "spring.mongodb.password", "engolearn.cors.allowed-origins"}) {
+            for (String key : new String[]{"spring.mongodb.uri", "spring.mongodb.database",
+                    "engolearn.cors.allowed-origins"}) {
                 require(environment, key);
             }
             if (!environment.getProperty("engolearn.security.cookies.secure", Boolean.class, false)) {
