@@ -108,11 +108,17 @@ class SecurityIntegrationTest {
     @MockitoBean private UserRepository userRepository;
     @MockitoBean private RefreshSessionRepository refreshSessionRepository;
 
-    @Test
-    void nonHealthActuatorPathsStayDenied() throws Exception {
-        mockMvc.perform(get("/actuator/env"))
-                .andExpect(status().isForbidden());
-        mockMvc.perform(get("/actuator/metrics"))
+    @ParameterizedTest
+    @ValueSource(strings = {"/actuator/env", "/actuator/metrics"})
+    void nonHealthActuatorPathsRejectAnonymousRequests(String path) throws Exception {
+        mockMvc.perform(get(path))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"/actuator/env", "/actuator/metrics"})
+    void nonHealthActuatorPathsRejectAuthenticatedAdmins(String path) throws Exception {
+        mockMvc.perform(get(path).cookie(accessCookie(UserRole.ADMIN)))
                 .andExpect(status().isForbidden());
     }
 

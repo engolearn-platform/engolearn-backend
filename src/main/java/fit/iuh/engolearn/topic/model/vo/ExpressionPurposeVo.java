@@ -1,6 +1,7 @@
 package fit.iuh.engolearn.topic.model.vo;
 
 import fit.iuh.engolearn.shared.EmbeddedDocument;
+import fit.iuh.engolearn.topic.model.enums.ExpressionGroupType;
 import lombok.*;
 import org.springframework.data.mongodb.core.mapping.Field;
 
@@ -20,6 +21,9 @@ public class ExpressionPurposeVo implements EmbeddedDocument {
 
     @Field("order_index")
     private Integer orderIndex;
+
+    @Field("group_type")
+    private ExpressionGroupType groupType;
 
     @Field("examples")
     private List<ExpressionExampleVo> examples;

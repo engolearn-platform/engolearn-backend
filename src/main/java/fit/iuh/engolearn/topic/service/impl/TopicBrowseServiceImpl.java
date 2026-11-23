@@ -24,6 +24,7 @@ import fit.iuh.engolearn.topic.model.vo.ExpressionPurposeVo;
 import fit.iuh.engolearn.topic.repository.TopicItemVersionRepository;
 import fit.iuh.engolearn.topic.repository.TopicRepository;
 import fit.iuh.engolearn.topic.repository.TopicVersionRepository;
+import fit.iuh.engolearn.topic.service.TopicMediaService;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -47,6 +48,7 @@ public class TopicBrowseServiceImpl implements TopicBrowseService {
     private final TopicRepository topicRepository;
     private final TopicVersionRepository topicVersionRepository;
     private final TopicItemVersionRepository topicItemVersionRepository;
+    private final TopicMediaService topicMedia;
 
     @Override
     public TopicPageResponse getAvailableTopics(GetAvailableTopicRequest request) {
@@ -136,7 +138,7 @@ public class TopicBrowseServiceImpl implements TopicBrowseService {
                 .titleVi(topic.getTitleVi())
                 .cefrLevel(topic.getCefrLevel())
                 .description(topic.getDescription())
-                .coverUrl(topic.getCoverUrl())
+                .coverUrl(topicMedia.resolveCover(topic))
                 .durationMinutes(items.stream().mapToInt(TopicItemSummaryResponse::getDurationMinutes).sum())
                 .vocabularyCount(items.stream().mapToInt(TopicItemSummaryResponse::getVocabularyCount).sum())
                 .expressionCount(items.stream().mapToInt(TopicItemSummaryResponse::getExpressionCount).sum())
@@ -225,7 +227,7 @@ public class TopicBrowseServiceImpl implements TopicBrowseService {
     private TopicSummaryResponse toSummary(Topic topic, Counts counts) {
         return TopicSummaryResponse.builder()
                 .topicId(topic.getId())
-                .coverUrl(topic.getCoverUrl())
+                .coverUrl(topicMedia.resolveCover(topic))
                 .titleEn(topic.getTitleEn())
                 .titleVi(topic.getTitleVi())
                 .cefrLevel(topic.getCefrLevel())
