@@ -70,3 +70,16 @@ engolearn:
       server-ip: ${VNPAY_SERVER_IP:}
       pay-url: ${VNPAY_PAY_URL:}
       api-url: ${VNPAY_API_URL:}
+
+# Keep the operational HTTP surface minimal; readiness excludes external services by default.
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
+      show-components: never
+      probes:
+        enabled: true
