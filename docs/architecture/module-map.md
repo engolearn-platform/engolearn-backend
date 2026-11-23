@@ -11,6 +11,7 @@
 | `quota` | Availability, atomic consumption, actual usage ledger/counters, quota windows and selective policy reset | Uses Subscription entitlement contract; exposes `quota.contract`; [boundary reference](../technical/subscription/module-contract.md#quota-owned-capabilities) |
 | `assessment` | Learner periodic assessment F01/F02, paper snapshots, timing, grading, immutable review | Uses Subscription/Quota public contracts; [technical reference](../technical/assessment.md) |
 | `placement` | Guest/User entry assessment, attempts, claim, results and review | Uses shared cookie identity; [integration verification](../technical/placement-merge-verification.md) |
+| `media` | Media asset metadata, public contract and storage-provider integration | Features own upload APIs, business policy, authorization and media references; [integration guide](../technical/media/integration-guide.md) |
 | `shared` | Base document types, web/security primitives and domain-neutral durable messaging | No feature business policy |
 | `config` | Application wiring and infrastructure configuration | Follow [package policy](package-structure.md) |
 
