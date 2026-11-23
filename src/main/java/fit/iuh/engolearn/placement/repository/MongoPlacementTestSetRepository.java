@@ -31,7 +31,7 @@ public class MongoPlacementTestSetRepository implements PlacementTestSetReposito
     @Override
     public Optional<PlacementTestSet> findPublished() {
         Optional<PlacementTestSet> published = select(PlacementTestSetStatus.PUBLISHED);
-        if (published.isPresent() || !allowDraft || !environment.acceptsProfiles(Profiles.of("dev"))) {
+        if (published.isPresent() || !allowDraft || !environment.acceptsProfiles(Profiles.of("dev & !prod"))) {
             return published;
         }
         return select(PlacementTestSetStatus.DRAFT);

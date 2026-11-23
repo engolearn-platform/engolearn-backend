@@ -1,5 +1,8 @@
 # Portable Placement verification — 2026-11-08
 
+Historical evidence below retains the profiles used at that time. For current `dev`
+startup and helper switches, use the [runtime configuration contract](../architecture/runtime-configuration.md).
+
 ## Scope and source
 
 Integration branch: merge/placement-guest-user-main, built on f1ef1cb. The user

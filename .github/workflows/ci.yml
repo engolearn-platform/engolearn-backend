@@ -72,6 +72,17 @@ jobs:
     if: needs.changes.outputs.backend == 'true'
     runs-on: ubuntu-22.04
     env:
+      SPRING_PROFILES_ACTIVE: prod
+      # Test-only binding defaults. Integration tests inject their container URI/database.
+      # These values neither provision Mongo nor authenticate to production resources.
+      MONGO_HOST: 127.0.0.1
+      MONGO_PORT: "27017"
+      APP_DB: engolearn_ci
+      APP_USER: ci_test
+      APP_PASSWORD: ci-only-placeholder
+      CORS_ALLOWED_ORIGINS: http://localhost:3000
+      # Legacy tests explicitly selecting dev need this for bean construction only.
+      GEMINI_API_KEY: ci-dummy-not-a-real-provider-key
       # Test-only signing key supplied through GitHub Actions Variables.
       # Never use a production JWT secret in CI.
       AUTH_JWT_SECRET: ${{ vars.CI_AUTH_JWT_SECRET }}
@@ -94,10 +105,20 @@ jobs:
           docker version
           docker info
 
-      - name: Validate CI JWT configuration
+      - name: Validate CI runtime configuration
         shell: bash
         run: |
           set -euo pipefail
+          if [[ "$SPRING_PROFILES_ACTIVE" != "prod" ]]; then
+            echo "::error::CI must default to the prod Spring runtime profile."
+            exit 1
+          fi
+
+          if [[ -e .env ]]; then
+            echo "::error::CI must use test-only environment inputs, not a local .env file."
+            exit 1
+          fi
+
           if [[ -z "${AUTH_JWT_SECRET:-}" ]]; then
             echo "::error::Missing GitHub Actions variable CI_AUTH_JWT_SECRET. Set a test-only JWT signing key (at least 32 bytes) in Settings > Secrets and variables > Actions > Variables."
             exit 1
@@ -112,6 +133,18 @@ jobs:
 
       - name: Run full Maven verification
         run: ./mvnw -B -ntp clean verify
+
+      - name: Upload verification reports
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: backend-verification-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            target/surefire-reports/
+            target/failsafe-reports/
+            target/site/jacoco/
+          if-no-files-found: warn
+          retention-days: 7
 
       # Secrets are not available to workflows triggered by forked pull requests.
       # Tests still run for forks; Sonar analysis runs for pushes and same-repository PRs.

@@ -17,6 +17,7 @@ import fit.iuh.engolearn.topic.repository.TopicRepository;
 import fit.iuh.engolearn.topic.repository.TopicVersionRepository;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Profile;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
@@ -25,7 +26,8 @@ import java.time.Instant;
 import java.util.List;
 
 @Component
-@Profile("dev")
+@Profile("dev & !prod")
+@ConditionalOnProperty(name = "engolearn.development.speaking-fixture-enabled", havingValue = "true")
 @Order(1)
 public class SpeakingDevFixture implements ApplicationRunner {
     public static final String ITEM_ID = "690000000000000000000002";
