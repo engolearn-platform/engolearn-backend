@@ -55,10 +55,13 @@ Example response data:
 
 ```json
 {
-  "mediaId": "internal-media-id",
-  "contentType": "image/png",
-  "sizeBytes": 12345,
-  "accessPolicy": "PUBLIC"
+  "data": {
+    "mediaId": "internal-media-id",
+    "contentType": "image/png",
+    "sizeBytes": 12345,
+    "accessPolicy": "PUBLIC"
+  },
+  "timestamp": "2026-11-23T08:00:00Z"
 }
 ```
 
@@ -76,9 +79,12 @@ Expected response data:
 
 ```json
 {
-  "url": "https://res.cloudinary.com/...",
-  "expiresAt": null,
-  "contentType": "image/png"
+  "data": {
+    "url": "https://res.cloudinary.com/...",
+    "expiresAt": null,
+    "contentType": "image/png"
+  },
+  "timestamp": "2026-11-23T08:00:00Z"
 }
 ```
 
