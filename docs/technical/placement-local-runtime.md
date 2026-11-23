@@ -21,7 +21,9 @@ From `engolearn-backend`:
 
 If .env is absent, setup creates it from .env.example and generates a JWT secret.
 Existing .env values are kept. Check host port, APP_DB and credentials before apply.
-The default host MongoDB port is 27019; inside Docker it is mongodb:27017. Existing
+The fresh-clone host MongoDB port is 27017, matching the advertised replica member;
+inside Docker it is mongodb:27017. Older .env files using 27019 need manual port
+alignment; setup does not overwrite them. Existing
 Docker volumes retain their original users/passwords; this setup never resets them.
 The root .env is ignored by Git and must not be shared with credentials filled in.
 
@@ -44,12 +46,16 @@ dev-only starts use V3 if no published set is available. For production or an
 existing published set, use normal Admin versioning and publication to release the
 updated explanations. Each attempt reviews the explanation stored in its own snapshot.
 
-The backend listens on 8080. run-local explicitly activates `dev,placement-local`:
-Mongo Placement persistence, dev-only DRAFT access, media directory and registration
-transactions live in application-placement-local.yaml. Do not put global
-spring.profiles.active or Placement repository switches in .env: tests also read it.
-Default tests therefore keep their original sample/slice settings. Real cookie
-authentication remains enabled in the local profile; no fake user is supplied.
+The backend listens on 8080. run-local explicitly activates `dev`. Both profiles use
+Mongo Placement persistence and transactions from application.yaml. For the imported
+DRAFT package set PLACEMENT_ALLOW_DRAFT=true in the ignored local .env before starting;
+the default is false. Dev supplies the bundled media directory. Do not put
+spring.profiles.active in .env. Real cookie authentication is used; no fake user is
+supplied. See the [runtime configuration contract](../architecture/runtime-configuration.md).
+
+The filesystem media route is development-only and is not registered in prod. Production
+requires Placement integration with shared Media storage and durable Mongo references;
+passing a local directory is not a supported production workaround.
 
 ## Frontend
 

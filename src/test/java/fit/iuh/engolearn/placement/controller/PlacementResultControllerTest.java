@@ -43,7 +43,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         PlacementAttemptServiceImpl.class, PlacementDeadlineServiceImpl.class,
         PlacementClaimServiceImpl.class, PlacementResultServiceImpl.class,
         PlacementResultControllerTest.ClockConfig.class})
-@TestPropertySource(properties = "engolearn.security.jwt.secret=placement-cookie-auth-test-key-32-bytes")
+@TestPropertySource(properties = {"engolearn.security.jwt.secret=placement-cookie-auth-test-key-32-bytes",
+        "engolearn.placement.persistence.mode=sample"})
 class PlacementResultControllerTest {
     private static final String ROOT = "/api/v1/placement/attempts";
 

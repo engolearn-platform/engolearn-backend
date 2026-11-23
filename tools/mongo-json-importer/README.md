@@ -107,6 +107,10 @@ replace is destructive. Use -DryRun first and inspect the report.
 - Invalid JSON, missing collections, or missing _id: fix the input file before retrying.
 - Import error: inspect the report. Earlier successful batches are not rolled back.
 
+## Local management accounts
+
+`samples/management-accounts.importer.json` adds demo `ADMIN` and `CONTENT_MANAGER` accounts, each with a profile and initial subscription record. It is included in the all-samples import. Use it only with a disposable local database and the default `skip` policy. See the [auth runbook](../../docs/runbooks/user-auth.md#seed-the-first-management-accounts) for login credentials.
+
 ## Shared Assessment / Learning Path demo
 
 The two datasets use account `pfc-demo-learner-v2`:

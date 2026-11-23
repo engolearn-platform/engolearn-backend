@@ -5,6 +5,8 @@ target/
 !**/src/test/**/target/
 
 .artifacts/
+docs/superpowers/
+./.codex
 
 ### ENV ###
 .env
@@ -17,3 +19,6 @@ target/
 
 ### VS Code ###
 .vscode/
+
+.superpowers
+.codegraph/

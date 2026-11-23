@@ -38,5 +38,6 @@ The user approved delivery on the existing feature branches only, with baseline
 failures disclosed; no main merge/push is authorized. Source and destination data
 paths must be staged together to preserve the move when handing off.
 
-Startup remains Run EngolearnApplication (`dev,placement-local`) + npm run dev,
-with Docker Mongo running. No reimport is required for this file relocation.
+Current startup uses Run EngolearnApplication (`dev`) + npm run dev, with Docker
+Mongo running. See [runtime configuration](../architecture/runtime-configuration.md)
+for the explicit DRAFT opt-in. No reimport is required for this file relocation.

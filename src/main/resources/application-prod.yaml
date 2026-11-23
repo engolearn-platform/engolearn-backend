@@ -1,0 +1,10 @@
+spring:
+  mongodb:
+    host: ${MONGO_HOST}
+    database: ${APP_DB}
+    username: ${APP_USER}
+    password: ${APP_PASSWORD}
+
+engolearn:
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS}

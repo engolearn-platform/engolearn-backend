@@ -4,11 +4,13 @@ import java.nio.file.Path;
 import java.time.Duration;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
 import org.springframework.http.CacheControl;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 @Configuration
+@Profile("!prod")
 public class PlacementMediaWebConfig implements WebMvcConfigurer {
     private final Path directory;
     public PlacementMediaWebConfig(@Value("${engolearn.placement.media-directory:./tools/mongo-json-importer/samples/placement-media}") String directory) {

@@ -7,16 +7,20 @@ daily, with 1 and 2 proficiency checks monthly. Premium allows 7200 speaking
 seconds daily and 5 proficiency checks monthly, priced at 199000 VND monthly or
 1590000 VND annually. It creates no paid period or quota usage.
 
-With the existing development replica database available and the `dev` profile
-configured in `.env`, run from the backend directory:
+With the shared development replica database available, select `dev` explicitly in
+the command; do not configure the active profile in `.env`:
 
 ```powershell
-.\mvnw.cmd spring-boot:run '-Dspring-boot.run.arguments=--engolearn.subscription.publish-manifest=tools/subscription/dev-main-manifest.json'
+.\mvnw.cmd spring-boot:run '-Dspring-boot.run.profiles=dev' '-Dspring-boot.run.arguments=--engolearn.subscription.publish-manifest=tools/subscription/dev-main-manifest.json'
 ```
 
 This publishes the complete catalog atomically on a new or explicitly reset
 development database. Omit the publication argument on normal restarts. The
 separate catalog patch script was removed; no second seed step is needed.
+
+Use root Compose and shared Mongo environment inputs. The old `compose.replica.yaml`
+is a legacy isolated fixture utility, not the team runtime. See the
+[runtime configuration contract](../../docs/architecture/runtime-configuration.md).
 
 Existing databases are not updated in place by this seed. An earlier receipt for
 the same manifest ID with different content causes a fingerprint conflict;

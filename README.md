@@ -26,13 +26,33 @@ docker-compose up -d
 
 Linux / macOS:
 ```bash
-./mvnw spring-boot:run
+./mvnw spring-boot:run -Dspring-boot.run.profiles=dev
 ```
 
 Windows:
 ```bash
-mvnw.cmd spring-boot:run
+.\mvnw.cmd spring-boot:run "-Dspring-boot.run.profiles=dev"
 ```
+
+## Runtime profiles
+
+Select exactly one runtime profile: `dev` for team development or `prod` for deployment.
+`application.yaml` is the common layer, not a third profile. Both use real Mongo
+persistence and transactions on a single-node replica set, with separate resources
+and credentials supplied by their respective environments.
+
+```powershell
+.\mvnw.cmd verify
+java -jar target/engolearn-0.0.1-SNAPSHOT.jar --spring.profiles.active=prod
+```
+
+Production requires Mongo credentials and CORS origins, and inherits secure authentication
+cookies from the shared configuration. It does not use local media directories. Development seed,
+DRAFT fallback and payment reset are opt-ins. See the
+[runtime configuration contract](docs/architecture/runtime-configuration.md)
+for variables, module integration gaps and verification responsibilities.
+CI defaults to `prod` with test-only inputs and Testcontainers connection overrides.
+See [CI verification](docs/runbooks/ci-verification.md) for requirements, reports and test-profile limitations.
 
 ## Endpoints
 
@@ -48,4 +68,4 @@ See the [F01/F02 contract](docs/technical/assessment.md). The Windows and Atlas 
 
 ## Placement local development
 
-See [fresh-clone Placement setup](docs/technical/placement-local-runtime.md) for shared data, bundled Listening media, safe import and explicit local profile startup.
+See [fresh-clone Placement setup](docs/technical/placement-local-runtime.md) for shared data, bundled Listening media, safe import and explicit `dev` startup.

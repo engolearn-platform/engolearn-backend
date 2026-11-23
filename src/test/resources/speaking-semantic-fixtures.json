@@ -1,0 +1,10 @@
+{
+  "description": "Focused Slice 1 semantic cases; the reviewed contract fixtures remain unchanged.",
+  "cases": [
+    {"id":"NEGATED_GOAL","transcript":"I do not want coffee.","quote":"I do not want coffee","expected":"OMIT"},
+    {"id":"QUOTED_QUESTION","transcript":"Did you say 'I want tea'?","quote":"I want tea","expected":"OMIT"},
+    {"id":"MULTI_CONDITION_INCOMPLETE","transcript":"I want coffee.","quote":"I want coffee","conditions":["coffee","large"],"expected":"OMIT"},
+    {"id":"WRONG_RESOURCE_CONTEXT","transcript":"I want tea.","resourceId":"coffee","resourceText":"coffee","quote":"tea","expected":"OMIT"},
+    {"id":"MEANING_BREAKING_CORRECTION","transcript":"I do not like tea.","original":"I do not like tea","suggestedEnglish":"I like tea","expected":"OMIT"}
+  ]
+}

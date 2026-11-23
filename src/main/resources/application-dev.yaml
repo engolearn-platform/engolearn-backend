@@ -1,14 +1,25 @@
-spring:
-  data:
-    mongodb:
-      auto-index-creation: true
-
 engolearn:
+  security:
+    cookies:
+      secure: ${AUTH_COOKIE_SECURE:false}
+  development:
+    topic-seed-enabled: ${DEV_TOPIC_SEED_ENABLED:false}
+    speaking-fixture-enabled: ${DEV_SPEAKING_FIXTURE_ENABLED:false}
+  placement:
+    test-set:
+      allow-draft: ${PLACEMENT_ALLOW_DRAFT:false}
+    media-directory: ${PLACEMENT_MEDIA_DIRECTORY:./tools/mongo-json-importer/samples/placement-media}
+  assessment:
+    media-directory: ${ASSESSMENT_MEDIA_DIRECTORY:./tools/mongo-json-importer/samples/assessment-media}
+  speaking:
+    dev-seed-file: ${SPEAKING_DEV_SEED_FILE:}
   payment:
     dev-reset:
       enabled: ${PAYMENT_DEV_RESET_ENABLED:false}
-  cors:
-    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000},http://localhost:3000,http://127.0.0.1:3000
-  mongodb:
-    transactions:
-      enabled: true
+    vnpay:
+      pay-url: ${VNPAY_PAY_URL:https://sandbox.vnpayment.vn/paymentv2/vpcpay.html}
+      api-url: ${VNPAY_API_URL:https://sandbox.vnpayment.vn/merchant_webapi/api/transaction}
+
+logging:
+  level:
+    fit.iuh.engolearn: ${DEV_LOG_LEVEL:INFO}
