@@ -1,0 +1,27 @@
+{
+  "metadata": {
+    "name": "engolearn-grammar-v2-counter-bootstrap",
+    "version": 1,
+    "description": "Technical counter for a fresh Grammar namespace only. Never replace an existing counter."
+  },
+  "collections": {
+    "grammar_counters": [
+      {
+        "_id": "topic-order-and-code",
+        "topic_sequence": {
+          "$numberLong": "1"
+        },
+        "ordering_revision": {
+          "$numberLong": "0"
+        },
+        "created_at": {
+          "$date": "2026-11-20T00:00:00.000Z"
+        },
+        "updated_at": {
+          "$date": "2026-11-20T00:00:00.000Z"
+        },
+        "_class": "fit.iuh.engolearn.grammar.model.GrammarCounter"
+      }
+    ]
+  }
+}
