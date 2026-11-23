@@ -9,14 +9,16 @@ before beans or startup runners execute. Do not store `spring.profiles.active` i
 
 | Layer | Owns |
 | --- | --- |
-| application.yaml | Real Mongo persistence, enabled transactions, Placement Mongo/level-sync wiring, common auth and integration property definitions |
+| application.yaml | Shared application configuration, local Mongo connection defaults, enabled transactions, Placement Mongo/level-sync wiring, common auth and integration properties |
 | application-dev.yaml | Development resources, HTTP cookie defaults, optional test helpers, bundled media paths and VNPay sandbox defaults |
-| application-prod.yaml | Only mandatory deployment overrides: Mongo credentials and CORS; safe defaults are inherited from the shared layer |
+| application-prod.yaml | Managed MongoDB connection URI, application database, CORS and a production-appropriate server-selection timeout |
 
-Both environments require a single-node Mongo replica set. Use different databases,
-credentials and provider resources; equal infrastructure requirements do not mean sharing
-production data. Both use real cookie/JWT authentication. Profile selection must not choose
-a subset of business modules or weaken their rules.
+Both environments require a replica-set-capable MongoDB deployment because business flows use
+transactions. `dev` uses the team local single-node replica set; `prod` uses a managed replica
+set such as MongoDB Atlas. The production URI owns the connection topology and credentials.
+Use separate databases, credentials and provider resources; never share development data with
+production. Both use real cookie/JWT authentication. Profile selection must not choose a subset
+of business modules or weaken their rules.
 
 ```powershell
 .\mvnw.cmd spring-boot:run "-Dspring-boot.run.profiles=dev"
@@ -41,9 +43,10 @@ Production may supply process environment or a deployment secret store. Existing
 
 | Environment input | Meaning / policy |
 | --- | --- |
-| MONGO_HOST, MONGO_PORT | Mongo address; dev defaults localhost:27017, prod requires host |
-| MONGO_REPLICA_SET | Expected replica set, default engolearn-rs; server must match |
-| APP_DB, APP_USER, APP_PASSWORD | App database credentials; explicit nonblank values required in prod |
+| MONGO_HOST, MONGO_PORT, MONGO_REPLICA_SET | Local `dev` Mongo address and replica set; defaults are localhost:27017 and engolearn-rs. Not used by `prod` when a URI is configured |
+| MONGODB_URI | Required in `prod`; complete managed MongoDB connection string, normally the `mongodb+srv://` URI copied from Atlas. Keep it in the deployment secret store, never in Git |
+| APP_DB | Application database name in both profiles; `spring.mongodb.database` overrides any database name embedded in the URI |
+| APP_USER, APP_PASSWORD | Local `dev` application database credentials; Atlas credentials are supplied inside `MONGODB_URI` |
 | MONGO_USER, MONGO_PASS | Compose/tool root credentials, not the application identity |
 | AUTH_JWT_SECRET, AUTH_JWT_ISSUER | Real JWT configuration; existing signing-key validation applies |
 | AUTH_COOKIE_SECURE | Dev HTTP/HTTPS override; prod requires secure cookies regardless of this alias |
@@ -134,8 +137,9 @@ supported team runtime. Use root Compose and common environment inputs.
 ## Acceptance evidence
 
 - Both normal runtime profiles select Mongo persistence and enabled transactions.
-- Database reports exactly one member and a writable primary; disposable rollback checks
-  prove transactional behavior.
+- The local `dev` database reports one member and a writable primary; the managed `prod`
+  database reports a writable replica-set primary. Disposable rollback checks prove
+  transactional behavior without using production data.
 - With prerequisites, dev/prod start and auth, Placement, Subscription and Media smoke
   checks pass; unresolved module/provider checks are listed separately.
 - Prod has no reset or automatic dev seed runners even with helper switches supplied;

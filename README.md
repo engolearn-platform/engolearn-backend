@@ -38,20 +38,23 @@ Windows:
 
 Select exactly one runtime profile: `dev` for team development or `prod` for deployment.
 `application.yaml` is the common layer, not a third profile. Both use real Mongo
-persistence and transactions on a single-node replica set, with separate resources
-and credentials supplied by their respective environments.
+persistence and transactions. `dev` uses the local single-node replica set from Docker
+Compose; `prod` connects to a managed replica set through `MONGODB_URI` (for example,
+MongoDB Atlas), with a separate application database.
 
 ```powershell
 .\mvnw.cmd verify
 java -jar target/engolearn-0.0.1-SNAPSHOT.jar --spring.profiles.active=prod
 ```
 
-Production requires Mongo credentials and CORS origins, and inherits secure authentication
-cookies from the shared configuration. It does not use local media directories. Development seed,
+Production requires `MONGODB_URI`, `APP_DB` and CORS origins, and inherits secure authentication
+cookies from the shared configuration. The URI supplies managed-database credentials and
+overrides the local host/port/replica-set settings. Production does not use local media directories.
+Development seed,
 DRAFT fallback and payment reset are opt-ins. See the
 [runtime configuration contract](docs/architecture/runtime-configuration.md)
 for variables, module integration gaps and verification responsibilities.
-CI defaults to `prod` with test-only inputs and Testcontainers connection overrides.
+CI defaults to `prod` with a test-only Mongo URI binding and Testcontainers connection overrides.
 See [CI verification](docs/runbooks/ci-verification.md) for requirements, reports and test-profile limitations.
 
 ## Endpoints
