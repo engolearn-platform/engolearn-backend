@@ -53,17 +53,21 @@ module/dependency has been added. Root documents extend `BaseDocument`; embedded
 implement `EmbeddedDocument`; owned persisted fields have explicit snake_case mappings.
 
 Collections: `assessment_papers`, `assessment_attempts`, `assessment_profiles`,
-`assessment_gates`, `assessment_grant_revocations`. The attempt embeds a copied
+`assessment_gates`, `assessment_grant_revocations`, `assessment_paper_drafts`,
+and `assessment_audio_assets`. The attempt embeds a copied
 `AssessmentPaperSnapshotVo`, not an indexed paper root. History paginates/project rows
 without loading question snapshots. Indexes belong to models and feature configuration.
 The per-user gate serializes actions in real Mongo replica-set transactions. Consumption
 joins the start transaction; failed profile/attempt writes roll back consumption. Retries
 are bounded. Request/command IDs and answer sequences protect replays and stale writes.
 
-Assessment calls Subscription/Quota only through their public contracts and does not read
-their collections. It does not write User or Learning Path state. The result-provider contract is described below. A real Placement integration must supply
-`AssessmentBaselineSource`; absent baseline blocks starting. The dev baseline adapter is
-active only in `dev & !prod`. Demonstration papers/attempts are excluded outside development.
+Assessment gets an owned, completed baseline through `PlacementBaselineLookup`.
+When there is no valid baseline or prior result, an eligible new attempt is blocked.
+The test-only baseline adapter can fill a missing Placement baseline in `dev & !prod`.
+Demonstration papers and attempts are excluded elsewhere. The internal current level
+tracks the latest valid periodic result and can decrease. For an official paper,
+`UserLevelPromotion` advances the level used by Topic monotonically in the result transaction.
+The Learning Path contract exposes native results without writing plans.
 
 ## Learning Path result contract
 
@@ -128,31 +132,36 @@ running until expiry. There is no pause, resume or clock-bypass endpoint.
 
 ## Media, analysis access and release boundaries
 
-Local filesystem audio is a development fixture adapter. In `dev`,
-`engolearn.assessment.media-directory` defaults to the bundled Assessment sample directory.
-Production has no media-directory input and refuses local-file reads with 503
-`MEDIA_UNAVAILABLE` until Assessment integrates the shared Media storage contract and
-persists durable references in Mongo. This integration is required before production
-Listening can be marked ready; see the [module checklist](../architecture/runtime-configuration.md#required-production-data-and-media-integration).
-For the local development adapter, immutable PCM WAV
-files are SHA-256 checked and at most 4 MB. Version-2 single audio is at most 28s; legacy
-single audio at most 50s; passage audio at most 120s. Twelve distinct official paths plus
-`sound-check.wav` are required. Validate all resources before consumption. Normal official
-playback has no replay/seek/rate controls; review may replay. Audio-failure observations do
-not extend deadlines, issue attempts or refund quota. Browser playback cannot provide DRM.
+In `dev`, the development fixture reads PCM WAV from `ASSESSMENT_MEDIA_DIRECTORY`,
+defaulting to the bundled sample folder. Uploaded draft files use Media in both profiles.
+In `prod`, playback resolves protected URLs through `MediaManagement` after binding,
+phase or review authorization. The same issue ID may retry issuance while the unit is
+open. New papers and snapshots store `audio_media_id` where available. A migrated legacy
+snapshot resolves its original SHA-256 through `assessment_audio_assets`, preserving its
+content and timestamps. Setup of the separate sound-check reference is explicit.
+Missing media reports a service failure. Tests and scripts are described in the
+[production handoff](../../tools/assessment/README.md).
+
+The Assessment limits are 4,000,000 bytes per WAV, 28 seconds for a new single, 50 seconds
+for a legacy single or sound check, and 120 seconds for a group. Check the original
+audio and transcript before release. Producer preflight validates content before quota
+consumption. Taking keeps its existing lack of replay, seek and rate controls. Review
+allows seeking and replay, with fresh authorization on a delivery retry. Audio failures
+do not extend deadlines, issue attempts or refund quota. Signed URLs remain usable on
+the provider until their short expiry, regardless of the browser controls.
 
 Premium assessment count is provider-configured. The isolated demo uses Free 1, Trial 2,
 Premium 2 and consistent displayed benefits; this is not a global hardcoded entitlement.
 Already issued Subscription snapshots are preserved. Full-analysis grants survive ordinary
 expiry. A verified refund must call `AssessmentGrantRevocation` with the exact correlated
-source (`scope:snapshotId:effectiveAt`), preserving other grants and scores. Current main
-includes Payment/Subscription durable messaging, but an Assessment refund consumer has not
-been added in this change. Entitlement expiry must not be treated as a refund.
+source (`scope:snapshotId:effectiveAt`), preserving other grants and scores. The
+Subscription outbox publishes only after accepting the correlated full refund. Assessment
+consumes the fact idempotently; ordinary entitlement expiry emits no revocation.
+Historical refunds already processed before this change need a separately reviewed backfill.
 
-Before public release: integrate real Placement/baseline and exact refund delivery,
-professionally review questions/audio, configure HTTPS/secure cookies and private secrets,
-validate Mongo transaction permissions and backup/restore, retain historical assets, and run
-full CI plus real-browser acceptance on staging. Per-second state polling currently writes
+Before public release, review questions and WAVs, configure HTTPS and private secrets,
+validate Mongo transaction permissions and backup/restore, register historical audio, and
+run full CI plus browser acceptance on staging. Per-second state polling currently writes
 serialized state; measure concurrency before making capacity/availability claims.
 
 ## Running and verification
@@ -238,8 +247,21 @@ account initialization and current demo limits, follow the
 [importer guide](../../tools/mongo-json-importer/README.md#shared-assessment--learning-path-demo).
 Learning Path Listening audio placeholders do not affect the 13 supplied Assessment WAV files.
 
-## F03 — quản trị đề nháp
+## F03 — quản trị và xuất bản đề
 
 `CONTENT_MANAGER` và `ADMIN` có quyền dùng `/api/v1/assessment/admin/drafts`. GET trả danh sách tóm tắt theo trang (tham số `page` từ 0, 25 mục). POST nhận `series` và `name`. Nếu series đã có đề, sao chép phiên bản lớn nhất sang nháp kế tiếp. Nếu chưa có, tạo bản 1 rỗng. GET và PUT tại `/{series}` mở và lưu nội dung. PUT nhận tên, kỹ năng, phần/câu và revision lấy từ lần đọc gần nhất. Cho phép lưu thiếu nội dung và đáp án. Giao diện dùng null cho đáp án chưa chọn và 0–3 cho A–D.
 
-Nháp ở collection `assessment_paper_drafts`, khóa duy nhất theo series. Tạo trùng trả 409 DRAFT_EXISTS. Ghi theo khóa và revision trong một cập nhật MongoDB. Ghi cũ trả 409 STALE_DRAFT. Máy chủ giữ tham chiếu WAV theo vị trí unit trong đề nguồn. Lượt thi vẫn chọn từ `assessment_papers`. Phạm vi checkpoint này kết thúc ở lưu nháp.
+Nháp ở collection `assessment_paper_drafts`, khóa duy nhất theo series. Tạo trùng trả 409 DRAFT_EXISTS. Ghi theo khóa và revision trong một cập nhật MongoDB. Ghi cũ trả 409 STALE_DRAFT. Máy chủ giữ audio được sao từ đề nguồn theo vị trí hoặc gắn WAV mới bằng SHA-256
+đã đăng ký. Các thao tác quản trị đều qua kiểm quyền ở service.
+
+- POST `/{series}/preview` với revision để kiểm ma trận và xem nội dung. GET
+  `/{series}/preview/audio/{unit}?revision=...` cấp audio xem thử. Không tạo lượt hay trừ quota.
+- POST `/{series}/review` xác nhận revision đang xem. PUT lưu mới xóa xác nhận cũ.
+- POST `/{series}/publish` yêu cầu revision đã duyệt. Việc tạo bản xuất bản,
+  ngừng cấp phiên bản trước và bỏ nháp nằm trong một giao dịch MongoDB.
+  Gửi lại revision đã xuất bản trả về đúng phiên bản đó.
+- DELETE `/{series}?revision=...` chỉ xóa nháp khớp revision. GET
+  `/api/v1/assessment/admin/papers` liệt kê phiên bản. POST
+  `/api/v1/assessment/admin/papers/{series}/{version}/archive` ngừng cấp đúng phiên bản đó.
+  Đề đã phát hành, lịch sử và WAV còn dùng được giữ nguyên. Media phase 1 chưa có xóa file
+  công khai, nên việc dọn asset không còn tham chiếu phải qua quy trình vận hành riêng.

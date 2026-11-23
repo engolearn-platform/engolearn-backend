@@ -2,6 +2,9 @@ package fit.iuh.engolearn.assessment.service.impl;
 import fit.iuh.engolearn.assessment.utils.*;
 
 import fit.iuh.engolearn.assessment.service.*;
+import fit.iuh.engolearn.assessment.model.vo.AssessmentUnitVo;
+import fit.iuh.engolearn.shared.enums.CefrLevel;
+import fit.iuh.engolearn.user.contract.UserLevelPromotion;
 import fit.iuh.engolearn.assessment.model.enums.*;
 
 import fit.iuh.engolearn.assessment.contract.AssessmentBaselineSource;
@@ -35,6 +38,7 @@ public class AssessmentServiceImpl implements AssessmentService {
     private final QuotaConsumption consumption;
     private final AssessmentAccess access;
     private final AssessmentMedia media;
+    private final UserLevelPromotion userLevels;
     private final Clock clock;
     private final Environment environment;
     private boolean development() {var p=List.of(environment.getActiveProfiles());return p.contains("dev")&&!p.contains("prod");}
@@ -79,7 +83,9 @@ public class AssessmentServiceImpl implements AssessmentService {
             selection.validate(paper);
             var a=new AssessmentAttempt();
             a.setId(UUID.randomUUID().toString());a.setUserId(user);a.setRequestId(command.requestId());
-            a.setBindingHash(hash(command.binding()));a.setStartedAt(now);a.setPaper(AssessmentMapper.snapshot(paper));open(a,0,now);
+            a.setBindingHash(hash(command.binding()));a.setStartedAt(now);a.setPaper(AssessmentMapper.snapshot(paper));
+            for (var unit : a.getPaper().getUnits()) unit.setAudioMediaId(media.durableReference(unit));
+            open(a,0,now);
             access.currentGrant(user).ifPresent(a.getAnalysisGrants()::add);
             var consumed=consumption.consume(new UsageCommandDto(user,QUOTA,1,"assessment",
                     "pfc:"+command.requestId(),a.getId(),now));
@@ -166,9 +172,9 @@ public class AssessmentServiceImpl implements AssessmentService {
             String key=""+a.getUnitIndex();
             String issued=a.getAudioIssues().get(key);
             if(issued!=null&&!issued.equals(command.issueId())) fail(409,"AUDIO_ALREADY_ISSUED","Âm thanh đã được cấp một lần.");
-            byte[] bytes=media.read(u.getAudioPath(),u.getAudioSha256(),u.getKind().name().endsWith("SINGLE")?50:120);
+            var delivery = media.delivery(u, audioLimit(a, u));
             a.getAudioIssues().put(key,command.issueId());
-            return media.encode(bytes);
+            return delivery;
         });
     }
     public AssessmentMediaResponse reviewAudio(String user,String id,int index) {
@@ -176,9 +182,14 @@ public class AssessmentServiceImpl implements AssessmentService {
         if(!AssessmentStatus.READY.equals(a.getStatus())) fail(409,"REVIEW_UNAVAILABLE","Bài này không có nội dung xem lại.");
         if(index<0||index>=a.getPaper().getUnits().size()) fail(404,"AUDIO_NOT_FOUND","Không có âm thanh.");
         var u=a.getPaper().getUnits().get(index);
-        if(u.getAudioPath()==null) fail(404,"AUDIO_NOT_FOUND","Không có âm thanh.");
-        return media.encode(media.read(u.getAudioPath(),u.getAudioSha256(),u.getKind().name().endsWith("SINGLE")?50:120));
+        if (!u.hasAudio()) fail(404,"AUDIO_NOT_FOUND","Không có âm thanh.");
+        return media.delivery(u, audioLimit(a, u));
     }
+    private int audioLimit(AssessmentAttempt attempt, AssessmentUnitVo unit) {
+        if (unit.getKind() != AssessmentUnitKind.LISTENING_SINGLE) return 120;
+        return modern(attempt) ? AssessmentTimeline.listeningSingleAudioLimitSeconds() : 50;
+    }
+
     public List<AssessmentHistoryItemResponse> history(String user,int page,int size) {
         tickUser(user);
         return store.history(user,page,size,development()).stream().map(AssessmentMapper::history).toList();
@@ -247,6 +258,9 @@ public class AssessmentServiceImpl implements AssessmentService {
                 p.setCurrentLevel(a.getLevel());p.setLatestValidAt(at);p.setLatestValidAttemptId(a.getId());
             }
             store.saveProfile(p);
+            if (!a.getPaper().isDemonstration()) {
+                userLevels.promote(a.getUserId(), CefrLevel.valueOf(p.getHighestLevel()));
+            }
         }
     }
     private static String hash(String value) {

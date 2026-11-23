@@ -15,7 +15,8 @@ public record DraftContentRequest(
                         @Size(max=1000) String example, AssessmentSection section) {}
     public record Unit(AssessmentUnitKind kind, @Size(max=12000) String passage,
                        @Min(0) Integer sourceAudioUnit,
-                       @NotNull @Size(max=8) List<@NotNull @Valid Question> questions) {}
+                       @NotNull @Size(max=8) List<@NotNull @Valid Question> questions,
+                       @Pattern(regexp="[0-9a-f]{64}") String audioSha256) {}
     public record Question(@Pattern(regexp="A1|A2|B1|B2|") String level,
                            @Size(max=32) String skillCode, @Size(max=2000) String prompt,
                            @NotNull @Size(max=4) List<@NotNull @Size(max=600) String> options,

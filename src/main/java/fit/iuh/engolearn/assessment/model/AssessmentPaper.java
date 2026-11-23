@@ -11,6 +11,8 @@ import fit.iuh.engolearn.assessment.model.vo.*;
 @CompoundIndex(name="assessment_paper_version", def="{'series':1,'version':1}", unique=true)
 public class AssessmentPaper extends fit.iuh.engolearn.shared.BaseDocument {
     @Field("series") private String series;
+    @Field("name") private String name;
+    @Field("published_draft_revision") private String publishedDraftRevision;
     @Field("version") private int version;
     @Field("rules_version") private int rulesVersion;
     @Field("published") private boolean published;

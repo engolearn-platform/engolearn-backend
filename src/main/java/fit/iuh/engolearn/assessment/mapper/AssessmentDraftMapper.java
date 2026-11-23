@@ -20,13 +20,16 @@ public final class AssessmentDraftMapper {
             var questions = sourceQuestions.stream().map(q -> new Question(q.getLevel(), q.getSkillCode(),
                     q.getPrompt(), q.getOptions() == null ? List.of() : q.getOptions(), q.getCorrectOption() < 0 ? null : q.getCorrectOption(),
                     q.getExplanation(), q.getTranscript())).toList();
-            return new Unit(u.getKind(), u.getPassage(), draft.getSourceAudioUnits().get(i), questions);
+            String digest = u.getAudioMediaId() == null || draft.getSourceAudioUnits().get(i) != null
+                    ? null : u.getAudioSha256();
+            return new Unit(u.getKind(), u.getPassage(), draft.getSourceAudioUnits().get(i), questions, digest);
         }).toList();
         return new AssessmentDraftResponse(draft.getSeries(), draft.getName(), draft.getVersion(),
                 draft.getRevision(), skills, units);
     }
 
-    public static void applyContent(AssessmentDraft draft, DraftContentRequest input, AssessmentPaper source) {
+    public static void applyContent(AssessmentDraft draft, DraftContentRequest input, AssessmentPaper source,
+                                    Map<String, AssessmentAudioAsset> uploaded) {
         draft.setName(input.name());
         draft.setSkills(input.skills().stream()
                 .map(s -> new AssessmentSkillVo(s.code(), s.name(), s.example(), s.section())).toList());
@@ -39,8 +42,10 @@ public final class AssessmentDraftMapper {
                 questions.add(new AssessmentQuestionVo(++number, q.level(), q.skillCode(), q.prompt(), q.options(),
                         q.correctOption() == null ? -1 : q.correctOption(), q.explanation(), q.transcript()));
             }
+            var asset = uploaded.get(unit.audioSha256());
             units.add(new AssessmentUnitVo(unit.kind(), unit.passage(), audio == null ? null : audio.getAudioPath(),
-                    audio == null ? null : audio.getAudioSha256(), questions));
+                    asset == null ? (audio == null ? null : audio.getAudioSha256()) : asset.getId(),
+                    questions, asset == null ? (audio == null ? null : audio.getAudioMediaId()) : asset.getMediaId()));
         }
         draft.setUnits(units);
         draft.setSourceAudioUnits(input.units().stream().map(Unit::sourceAudioUnit).toList());

@@ -94,10 +94,10 @@ Features persist mediaId, then authorize and resolve delivery through MediaManag
 Do not persist expiring delivery URLs. See the [Media integration guide](../technical/media/integration-guide.md).
 
 Production no longer accepts media-directory inputs as a deployment requirement.
-The legacy Placement filesystem route is not registered in prod. The existing
-Assessment filesystem reader refuses prod access with 503 MEDIA_UNAVAILABLE until
-its owner integrates storage. This is an explicit incomplete integration, not a
-replacement implementation or a claim of working production playback.
+The legacy Placement filesystem route is not registered in prod. Assessment
+disables local reads in prod and resolves stored Media references, including
+registered legacy WAV digests. Missing mappings or storage failures still
+return 503 MEDIA_UNAVAILABLE. Verify playback on the configured demo account.
 
 Each module owner MUST complete this checklist before marking the module VERIFIED:
 
@@ -123,7 +123,7 @@ Do not restore module-named runtime profiles.
 | Placement | Mongo/transaction/level-sync defaults configured. MEDIA NOT PROD-INTEGRATED: migrate local audio to Media storage and persist references in Mongo; verify current and historical playback without repository files |
 | Subscription / Payment / Quota | Shared Mongo and transactions; deliberate catalog publication; provider/durable delivery verification |
 | Speaking | NOT PROD-INTEGRATED: existing availability filter blocks prod, managed conversation wiring excludes prod. Module owner must resolve its experimental/production contract; this migration does not enable it |
-| Assessment | NOT FULLY PROD-INTEGRATED: real baseline integration and storage-backed audio are required. Filesystem playback is refused in prod; verify preparation/attempt/review after integrating Media |
+| Assessment | Owned Placement baseline and Media delivery are wired. Register historical files and sound check, then verify preparation, attempt and review on the production-profile demo environment |
 | Auth / Media / others | Verify real identity/authorization and storage integration in both profiles; no production dependency on repository samples or local media directories |
 
 These gaps do not establish production readiness. Retired module-specific application

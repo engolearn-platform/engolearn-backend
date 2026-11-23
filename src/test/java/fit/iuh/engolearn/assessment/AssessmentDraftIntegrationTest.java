@@ -1,25 +1,76 @@
 package fit.iuh.engolearn.assessment;
 
-import fit.iuh.engolearn.config.AbstractMongoIntegrationTest;
 import java.net.URI;
 import java.net.http.*;
 import java.nio.file.*;
 import java.util.*;
 import java.util.concurrent.*;
 import org.bson.Document;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.testcontainers.mongodb.MongoDBContainer;
+import org.testcontainers.utility.DockerImageName;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.TestPropertySource;
-import org.testcontainers.junit.jupiter.EnabledIfDockerAvailable;
+import org.junit.jupiter.api.condition.EnabledIf;
+import org.testcontainers.DockerClientFactory;
 import tools.jackson.databind.ObjectMapper;
 import static org.assertj.core.api.Assertions.assertThat;
 
-@EnabledIfDockerAvailable
+@EnabledIf("mongoAvailable")
+@ActiveProfiles("dev")
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @TestPropertySource(properties = {
         "engolearn.security.jwt.secret=isolated-assessment-draft-integration-tests-key",
         "engolearn.security.cookies.secure=false", "engolearn.messaging.enabled=false",
         "spring.mongodb.username=", "spring.mongodb.password="
 })
-class AssessmentDraftIntegrationTest extends AbstractMongoIntegrationTest {
+class AssessmentDraftIntegrationTest {
+    private static final String DATABASE = "engolearn_assessment_draft_it";
+    private static MongoDBContainer container;
+    @Autowired private MongoTemplate mongoTemplate;
+    @LocalServerPort private int port;
+    private static final String DISPOSABLE_MONGO = System.getenv("ASSESSMENT_DRAFT_TEST_MONGO_URI");
+
+    static boolean mongoAvailable() {
+        return DISPOSABLE_MONGO != null && !DISPOSABLE_MONGO.isBlank() || DockerClientFactory.instance().isDockerAvailable();
+    }
+
+    @DynamicPropertySource
+    static void optionalReplicaSet(DynamicPropertyRegistry registry) {
+        registry.add("spring.mongodb.uri", AssessmentDraftIntegrationTest::mongoUri);
+        registry.add("spring.mongodb.database", () -> DATABASE);
+    }
+
+    private static synchronized String mongoUri() {
+        if (DISPOSABLE_MONGO != null && !DISPOSABLE_MONGO.isBlank()) return DISPOSABLE_MONGO;
+        if (container == null) {
+            container = new MongoDBContainer(DockerImageName.parse("mongo:8.0.29-noble")).withReplicaSet();
+            container.start();
+        }
+        return container.getReplicaSetUrl(DATABASE);
+    }
+
+    @AfterAll
+    static void stopContainer() {
+        if (container != null) container.stop();
+    }
+
+    @BeforeEach
+    void clearFixtures() {
+        assertThat(mongoTemplate.getDb().getName()).isEqualTo(DATABASE);
+        for (String name : mongoTemplate.getCollectionNames()) {
+            mongoTemplate.getCollection(name).deleteMany(new Document());
+        }
+    }
+
     private static final String DRAFTS = "/api/v1/assessment/admin/drafts";
     private final HttpClient http = HttpClient.newHttpClient();
     private final ObjectMapper json = new ObjectMapper();
@@ -102,5 +153,45 @@ class AssessmentDraftIntegrationTest extends AbstractMongoIntegrationTest {
         assertThat(persisted.getList("units", Document.class).getFirst().getString("audio_sha256"))
                 .isNotBlank().isEqualTo(paper.getList("units", Document.class).getFirst().getString("audio_sha256"));
         assertThat(published.find().first()).isEqualTo(before);
+    }
+
+    @Test
+    void aReviewedRevisionPublishesOnlyOnceAndCanBeArchived() throws Exception {
+        var fixture = Document.parse(Files.readString(Path.of("tools/mongo-json-importer/samples/assessment-demo.json")));
+        var source = fixture.get("collections", Document.class).getList("assessment_papers", Document.class).getFirst();
+        mongoTemplate.getCollection("assessment_papers").insertOne(source);
+        String series = source.getString("series");
+        String path = DRAFTS + "/" + series;
+        String cookie = login("CONTENT_MANAGER");
+        var created = call("POST", DRAFTS, json.writeValueAsString(Map.of("series", series, "name", "Phiên bản mới")), cookie);
+        assertThat(created.statusCode()).as(created.body()).isEqualTo(201);
+        String revision = json.readTree(created.body()).at("/data/revision").asString();
+        String request = json.writeValueAsString(Map.of("revision", revision));
+
+        assertThat(call("POST", path + "/publish", request, cookie).statusCode()).isEqualTo(409);
+        var preview = call("POST", path + "/preview", request, cookie);
+        assertThat(preview.statusCode()).as(preview.body()).isEqualTo(200);
+        var audio = call("GET", path + "/preview/audio/0?revision=" + revision, null, cookie);
+        assertThat(audio.statusCode()).as(audio.body()).isEqualTo(200);
+        assertThat(json.readTree(audio.body()).at("/data/base64").asString()).isNotBlank();
+        var reviewed = call("POST", path + "/review", request, cookie);
+        assertThat(reviewed.statusCode()).as(reviewed.body()).isEqualTo(204);
+        var released = call("POST", path + "/publish", request, cookie);
+        assertThat(released.statusCode()).as(released.body()).isEqualTo(200);
+        var data = json.readTree(released.body()).path("data");
+        var replay = call("POST", path + "/publish", request, cookie);
+        assertThat(replay.statusCode()).as(replay.body()).isEqualTo(200);
+        assertThat(json.readTree(replay.body()).path("data")).isEqualTo(data);
+        var papers = mongoTemplate.getCollection("assessment_papers");
+        assertThat(papers.countDocuments(new Document("series", series))).isEqualTo(2);
+        assertThat(papers.countDocuments(new Document("series", series).append("published", true))).isEqualTo(1);
+        assertThat(mongoTemplate.getCollection("assessment_attempts").countDocuments()).isZero();
+
+        String archivePath = "/api/v1/assessment/admin/papers/" + series + "/" + data.path("version").asInt() + "/archive";
+        assertThat(call("POST", archivePath, "{}", login("USER")).statusCode()).isEqualTo(403);
+        assertThat(call("POST", archivePath, "{}", cookie).statusCode()).isEqualTo(200);
+        assertThat(call("POST", archivePath, "{}", cookie).statusCode()).isEqualTo(200);
+        assertThat(papers.countDocuments(new Document("series", series).append("published", true))).isZero();
+        assertThat(papers.countDocuments(new Document("series", series))).isEqualTo(2);
     }
 }

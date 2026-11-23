@@ -18,7 +18,7 @@ public class AssessmentAccessImpl implements AssessmentAccess {
         var e=provider.resolveEffectiveEntitlement(user,at);
         if(!("PREMIUM".equals(e.policyScope())||"TRIAL".equals(e.policyScope()))
                 ||e.effectiveAt().isAfter(at)||e.validUntil()!=null&&!at.isBefore(e.validUntil())) return Optional.empty();
-        String source=e.policyScope()+":"+e.policySnapshotId()+":"+e.effectiveAt();
+        String source=AssessmentAccess.sourceKey(e.policyScope(), e.policySnapshotId(), e.effectiveAt());
         return store.revoked(user,source)?Optional.empty():Optional.of(source);
     }
 }

@@ -3,6 +3,7 @@ package fit.iuh.engolearn.config;
 import fit.iuh.engolearn.placement.model.PlacementTestSet;
 import fit.iuh.engolearn.placement.infra.PlacementMediaWebConfig;
 import fit.iuh.engolearn.assessment.service.impl.AssessmentMediaImpl;
+import fit.iuh.engolearn.assessment.service.AssessmentCloudAudio;
 import fit.iuh.engolearn.placement.repository.MongoPlacementTestSetRepository;
 import fit.iuh.engolearn.shared.security.CurrentUserProvider;
 import fit.iuh.engolearn.subscription.controller.DevPurchaseResetController;
@@ -127,6 +128,8 @@ class RuntimeProfilesTest {
     void prodStartsWithoutDirectoryConfigurationAndDoesNotRegisterLocalPlacementMedia() {
         configuration("prod").withInitializer(new RuntimeProfileInitializer())
                 .withUserConfiguration(PlacementMediaWebConfig.class, AssessmentMediaImpl.class)
+                .withBean(AssessmentCloudAudio.class,
+                        () -> org.mockito.Mockito.mock(AssessmentCloudAudio.class))
                 .run(context -> {
                     assertThat(context).hasNotFailed().doesNotHaveBean(PlacementMediaWebConfig.class)
                             .hasSingleBean(AssessmentMediaImpl.class);

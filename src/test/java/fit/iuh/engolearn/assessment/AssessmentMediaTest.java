@@ -1,6 +1,20 @@
 package fit.iuh.engolearn.assessment;
 
 import fit.iuh.engolearn.assessment.service.impl.AssessmentMediaImpl;
+import fit.iuh.engolearn.assessment.service.impl.AssessmentCloudAudioService;
+import fit.iuh.engolearn.assessment.model.AssessmentAudioAsset;
+import fit.iuh.engolearn.assessment.model.vo.AssessmentUnitVo;
+import fit.iuh.engolearn.assessment.repository.AssessmentAudioRepository;
+import fit.iuh.engolearn.media.contract.MediaManagement;
+import fit.iuh.engolearn.media.contract.dto.MediaDeliveryDto;
+import fit.iuh.engolearn.media.contract.dto.MediaUploadResultDto;
+import fit.iuh.engolearn.media.contract.dto.UploadMediaCommandDto;
+import fit.iuh.engolearn.media.contract.enums.MediaAccessPolicy;
+import java.net.URI;
+import java.time.Clock;
+import java.time.Instant;
+import org.mockito.ArgumentCaptor;
+import static org.mockito.Mockito.*;
 import fit.iuh.engolearn.assessment.exception.AssessmentException;
 import java.io.ByteArrayInputStream;
 import java.nio.file.*;
@@ -15,7 +29,7 @@ import static org.assertj.core.api.Assertions.*;
 class AssessmentMediaTest {
     @TempDir Path directory;
     private AssessmentMediaImpl localMedia() {
-        return new AssessmentMediaImpl(directory.toString(), new MockEnvironment());
+        return new AssessmentMediaImpl(directory.toString(), new MockEnvironment(), null);
     }
     private String wave(String file,int seconds) throws Exception {
         Path path=directory.resolve(file);var format=new AudioFormat(16000,16,1,true,false);
@@ -41,11 +55,65 @@ class AssessmentMediaTest {
     @Test void productionRejectsLocalMediaEvenWhenDirectoryIsProvided() throws Exception {
         var digest=wave("audio.wav",1);
         var environment=new MockEnvironment();environment.setActiveProfiles("prod");
-        var media=new AssessmentMediaImpl(directory.toString(),environment);
+        var media=new AssessmentMediaImpl(directory.toString(),environment,null);
         assertThatThrownBy(()->media.read("audio.wav",digest,50))
                 .isInstanceOfSatisfying(AssessmentException.class,error->{
                     assertThat(error.status()).isEqualTo(503);
                     assertThat(error.code()).isEqualTo("MEDIA_UNAVAILABLE");
                 });
+    }
+
+    @Test
+    void productionResolvesStoredAndLegacyReferencesWithoutFiles() {
+        var environment = new MockEnvironment();
+        environment.setActiveProfiles("prod");
+        var assetRepo = mock(AssessmentAudioRepository.class);
+        var cloud = mock(MediaManagement.class);
+        var provider = new AssessmentCloudAudioService(assetRepo, cloud, Clock.systemUTC());
+        var media = new AssessmentMediaImpl(directory.toString(), environment, provider);
+        var hash = "a".repeat(64);
+        var legacy = AssessmentUnitVo.builder().audioPath("missing.wav").audioSha256(hash).build();
+        var asset = new AssessmentAudioAsset(hash, "media-id", 27);
+        var expiresAt = Instant.parse("2026-11-23T00:00:00Z");
+        var url = URI.create("https://media.example.test/private.wav");
+        when(assetRepo.find(hash)).thenReturn(asset);
+        when(cloud.resolve("media-id")).thenReturn(new MediaDeliveryDto(url, expiresAt, "audio/wav"));
+        assertThat(media.delivery(legacy, 28).url()).isEqualTo(url);
+        assertThat(media.delivery(legacy, 28).expiresAt()).isEqualTo(expiresAt);
+        assertThat(media.durableReference(legacy)).isEqualTo("media-id");
+        legacy.setAudioMediaId("media-id");
+        assertThat(media.delivery(legacy, 28).base64()).isNull();
+        legacy.setAudioMediaId("other");
+        assertThatThrownBy(() -> media.delivery(legacy, 28)).isInstanceOf(AssessmentException.class);
+        legacy.setAudioMediaId("media-id");
+        assertThatThrownBy(() -> media.delivery(legacy, 26)).isInstanceOf(AssessmentException.class);
+    }
+
+    @Test
+    void uploadChecksDigestAndBindsProtectedWavOnce() throws Exception {
+        var digest = wave("cloud.wav", 1);
+        var assetRepo = mock(AssessmentAudioRepository.class);
+        var cloud = mock(MediaManagement.class);
+        var provider = new AssessmentCloudAudioService(assetRepo, cloud, Clock.systemUTC());
+        var path = directory.resolve("cloud.wav");
+        try (var input = Files.newInputStream(path)) {
+            assertThatThrownBy(() -> provider.upload(input, "0".repeat(64), false)).isInstanceOf(AssessmentException.class);
+        }
+        verifyNoInteractions(assetRepo, cloud);
+        when(assetRepo.reserve(eq(digest), any(), any(), any())).thenReturn(true);
+        when(assetRepo.complete(any(), any())).thenReturn(true);
+        when(cloud.upload(any())).thenReturn(new MediaUploadResultDto("media-id", "audio/wav", Files.size(path),
+                MediaAccessPolicy.PROTECTED));
+        try (var input = Files.newInputStream(path)) {
+            assertThat(provider.upload(input, digest, false)).isEqualTo(digest);
+        }
+        when(assetRepo.find(digest)).thenReturn(new AssessmentAudioAsset(digest, "media-id", 1));
+        try (var input = Files.newInputStream(path)) {
+            assertThat(provider.upload(input, digest, false)).isEqualTo(digest);
+        }
+        var command = ArgumentCaptor.forClass(UploadMediaCommandDto.class);
+        verify(cloud).upload(command.capture());
+        assertThat(command.getValue().accessPolicy()).isEqualTo(MediaAccessPolicy.PROTECTED);
+        assertThat(command.getValue().sizeBytes()).isEqualTo(Files.size(path));
     }
 }

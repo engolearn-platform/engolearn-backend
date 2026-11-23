@@ -3,6 +3,9 @@ import fit.iuh.engolearn.assessment.service.*;
 
 import fit.iuh.engolearn.assessment.exception.AssessmentException;
 import fit.iuh.engolearn.assessment.dto.response.AssessmentMediaResponse;
+import fit.iuh.engolearn.assessment.model.AssessmentAudioAsset;
+import fit.iuh.engolearn.assessment.model.vo.AssessmentUnitVo;
+import fit.iuh.engolearn.assessment.service.AssessmentCloudAudio;
 import java.nio.file.*;
 import java.security.*;
 import java.util.*;
@@ -15,8 +18,10 @@ import org.springframework.stereotype.Service;
 @Service
 public class AssessmentMediaImpl implements AssessmentMedia {
     private final Path directory;
+    private final AssessmentCloudAudio cloud;
     public AssessmentMediaImpl(@Value("${engolearn.assessment.media-directory:}") String directory,
-                               Environment environment) {
+                               Environment environment, AssessmentCloudAudio cloud) {
+        this.cloud = cloud;
         this.directory=environment.acceptsProfiles(Profiles.of("prod")) || directory.isBlank()
                 ? null : Path.of(directory).toAbsolutePath().normalize();
     }
@@ -39,5 +44,32 @@ public class AssessmentMediaImpl implements AssessmentMedia {
         }
     }
     public AssessmentMediaResponse encode(byte[] bytes) {return new AssessmentMediaResponse("audio/wav",Base64.getEncoder().encodeToString(bytes));}
-    public AssessmentMediaResponse sample() {return encode(read("sound-check.wav",null,50));}
+    public AssessmentMediaResponse sample() {
+        if (directory != null) return encode(read("sound-check.wav", null, 50));
+        return cloud.resolve(cloud.find(AssessmentCloudAudio.SOUND_CHECK), 50);
+    }
+
+    @Override
+    public String durableReference(AssessmentUnitVo unit) {
+        if (!unit.hasAudio()) return null;
+        if (unit.getAudioMediaId() == null && directory != null) return null;
+        var asset = matchingAsset(unit);
+        return asset == null ? null : asset.getMediaId();
+    }
+
+    @Override
+    public AssessmentMediaResponse delivery(AssessmentUnitVo unit, int maxSeconds) {
+        if (unit.getAudioMediaId() == null && directory != null) {
+            return encode(read(unit.getAudioPath(), unit.getAudioSha256(), maxSeconds));
+        }
+        return cloud.resolve(matchingAsset(unit), maxSeconds);
+    }
+
+    private AssessmentAudioAsset matchingAsset(AssessmentUnitVo unit) {
+        var asset = cloud.find(unit.getAudioSha256());
+        if (asset != null && unit.getAudioMediaId() != null && !unit.getAudioMediaId().equals(asset.getMediaId())) {
+            throw new AssessmentException(503, "MEDIA_UNAVAILABLE", "Tham chiếu âm thanh không khớp.");
+        }
+        return asset;
+    }
 }

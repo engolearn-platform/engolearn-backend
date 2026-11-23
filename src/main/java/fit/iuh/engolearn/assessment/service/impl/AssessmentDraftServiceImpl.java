@@ -7,15 +7,20 @@ import fit.iuh.engolearn.assessment.mapper.AssessmentDraftMapper;
 import fit.iuh.engolearn.assessment.model.*;
 import fit.iuh.engolearn.assessment.repository.AssessmentDraftRepository;
 import fit.iuh.engolearn.assessment.service.AssessmentDraftService;
+import fit.iuh.engolearn.assessment.service.AssessmentCloudAudio;
 import java.util.*;
 import java.util.stream.IntStream;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
+import org.springframework.security.access.prepost.PreAuthorize;
+import lombok.RequiredArgsConstructor;
 
 @Service
+@RequiredArgsConstructor
+@PreAuthorize("hasRole('CONTENT_MANAGER')")
 public class AssessmentDraftServiceImpl implements AssessmentDraftService {
     private final AssessmentDraftRepository drafts;
-    public AssessmentDraftServiceImpl(AssessmentDraftRepository drafts) { this.drafts = drafts; }
+    private final AssessmentCloudAudio audio;
 
     private AssessmentDraft requireDraft(String series) {
         var draft = drafts.bySeries(series);
@@ -45,7 +50,7 @@ public class AssessmentDraftServiceImpl implements AssessmentDraftService {
             draft.setSkills(paper.getSkills() == null ? List.of() : paper.getSkills());
             draft.setUnits(paper.getUnits() == null ? List.of() : paper.getUnits());
             draft.setSourceAudioUnits(IntStream.range(0, draft.getUnits().size()).boxed()
-                    .map(i -> draft.getUnits().get(i).getAudioPath() == null ? null : i).toList());
+                    .map(i -> draft.getUnits().get(i).hasAudio() ? i : null).toList());
         }
         try { drafts.insert(draft); }
         catch (DuplicateKeyException e) {
@@ -58,14 +63,23 @@ public class AssessmentDraftServiceImpl implements AssessmentDraftService {
         var draft = requireDraft(series);
         if (!draft.getRevision().equals(input.revision())) throw stale();
         AssessmentPaper source = draft.getSourcePaperId() == null ? null : drafts.sourcePaper(draft.getSourcePaperId());
+        Map<String, AssessmentAudioAsset> uploaded = new HashMap<>();
         for (var unit : input.units()) {
+            if (unit.audioSha256() != null) {
+                var asset = audio.find(unit.audioSha256());
+                if (unit.sourceAudioUnit() != null || unit.kind() == null
+                        || !unit.kind().name().startsWith("LISTENING") || asset == null) {
+                    throw new AssessmentException(422, "INVALID_ASSESSMENT_AUDIO", "Tham chiếu audio chưa hợp lệ.");
+                }
+                uploaded.put(unit.audioSha256(), asset);
+            }
             var index = unit.sourceAudioUnit();
             if (index != null && (source == null || source.getUnits() == null || index < 0 || index >= source.getUnits().size()
-                    || source.getUnits().get(index).getAudioPath() == null)) {
+                    || !source.getUnits().get(index).hasAudio())) {
                 throw new AssessmentException(400, "INVALID_SOURCE_AUDIO", "Tham chiếu audio nằm ngoài đề nguồn.");
             }
         }
-        AssessmentDraftMapper.applyContent(draft, input, source);
+        AssessmentDraftMapper.applyContent(draft, input, source, uploaded);
         draft.setRevision(UUID.randomUUID().toString());
         if (!drafts.replace(input.revision(), draft)) throw stale();
         return AssessmentDraftMapper.response(draft);

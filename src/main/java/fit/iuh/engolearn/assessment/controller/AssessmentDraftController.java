@@ -4,6 +4,7 @@ import fit.iuh.engolearn.assessment.dto.request.*;
 import fit.iuh.engolearn.assessment.dto.response.*;
 import fit.iuh.engolearn.assessment.service.AssessmentDraftService;
 import fit.iuh.engolearn.shared.web.ApiResponse;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import java.util.List;
@@ -15,6 +16,11 @@ import org.springframework.web.bind.annotation.*;
 public class AssessmentDraftController {
     private final AssessmentDraftService drafts;
     public AssessmentDraftController(AssessmentDraftService drafts) { this.drafts = drafts; }
+
+    @ModelAttribute
+    void noCache(HttpServletResponse response) {
+        response.setHeader("Cache-Control", "no-store");
+    }
 
     @GetMapping
     public ApiResponse<List<DraftSummaryResponse>> list(@RequestParam(defaultValue="0") @Min(0) int page) {

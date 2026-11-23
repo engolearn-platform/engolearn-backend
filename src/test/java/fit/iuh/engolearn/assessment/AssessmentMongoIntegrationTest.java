@@ -84,8 +84,8 @@ class AssessmentMongoIntegrationTest {
                 .andExpect(status().isCreated()).andReturn().getResponse();
         otherCookie = other.getCookie("ACCESS_TOKEN");
         var manifest = mapper.readValue(Files.readString(Path.of("tools/subscription/dev-main-manifest.json")),PublicationManifestRequest.class);
-        publications.publish(new PublicationManifestRequest(manifest.manifestId(), manifest.environment(), manifest.plans(), manifest.policies(),
-                List.of(new PublicationManifestRequest.AccountHistoryRequest(USER, false, "NEW_ACCOUNT"))));
+        // Registration now creates Subscription history. Publish only the catalog for this registered fixture.
+        publications.publish(new PublicationManifestRequest(manifest.manifestId(), manifest.environment(), manifest.plans(), manifest.policies(), List.of()));
         Files.createDirectories(MEDIA);
         var format=new AudioFormat(16000,16,1,true,false);
         Path audio=MEDIA.resolve("sound-check.wav");
@@ -111,6 +111,37 @@ class AssessmentMongoIntegrationTest {
     AssessmentAnswerRequest answer(int q,long sequence,Integer choice){return new AssessmentAnswerRequest(q,sequence,choice,UUID.randomUUID().toString());}
     AssessmentStateResponse save(AssessmentStateResponse a,int q,long sequence,Integer choice){return service.answer(USER,a.id(),binding,answer(q,sequence,choice),false);}
     long remaining(){return quota.checkAvailability(USER,"PROFICIENCY_CHECK_ATTEMPT").remaining();}
+    @Test
+    void aRealOwnedPlacementResultEnablesAssessmentWithoutDevelopmentBaseline() {
+        mongo.getCollection("assessment_dev_baselines").deleteOne(new Document("_id", USER));
+        assertThat(service.preparation(USER).baselineValid()).isFalse();
+        var result = new Document("_id", UUID.randomUUID().toString()).append("user_id", "another-learner")
+                .append("status", "SUBMITTED").append("correct_count", 18)
+                .append("placement_level", "B2").append("started_at", Date.from(START.minusSeconds(90)));
+        mongo.getCollection("placement_attempts").insertOne(result);
+        assertThat(service.preparation(USER).baselineValid()).isFalse();
+        result.put("_id", UUID.randomUUID().toString());
+        result.put("user_id", USER);
+        mongo.getCollection("placement_attempts").insertOne(result);
+        assertThat(service.preparation(USER).baselineValid()).isTrue();
+        assertThat(service.start(USER, command()).status()).isEqualTo("ACTIVE");
+        assertThat(service.preparation(USER).initialLevel()).isEqualTo("B2");
+    }
+
+    @Test
+    void verifiedRefundDeliveryIsIdempotentAndOnlyRevokesItsCorrelatedGrant() {
+        var consumer = new fit.iuh.engolearn.assessment.infra.event.AssessmentRefundConsumer(revocations, mapper);
+        var refunded = new fit.iuh.engolearn.subscription.contract.event.PremiumPeriodRefundedEvent(USER, "snapshot-1", START);
+        var message = new fit.iuh.engolearn.shared.messaging.MessageEnvelopeDto(
+                UUID.randomUUID().toString(), "PREMIUM_PERIOD_REFUNDED", 1, USER, consumer.recipient(), START,
+                mapper.writeValueAsString(refunded));
+        consumer.consume(message);
+        consumer.consume(message);
+        assertThat(store.revoked(USER, "PREMIUM:snapshot-1:" + START)).isTrue();
+        assertThat(store.revoked(USER, "PREMIUM:snapshot-2:" + START)).isFalse();
+        assertThat(store.revoked(USER, "TRIAL:snapshot-1:" + START)).isFalse();
+    }
+
     @Test void identicalConcurrentStartsCreateOneAttemptAndOneUsage() throws Exception {
         var command=command();var pool=Executors.newFixedThreadPool(2);var go=new CountDownLatch(1);
         try {

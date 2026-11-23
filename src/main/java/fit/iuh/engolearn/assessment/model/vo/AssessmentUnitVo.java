@@ -13,4 +13,14 @@ public class AssessmentUnitVo implements fit.iuh.engolearn.shared.EmbeddedDocume
     @Field("audio_path") private String audioPath;
     @Field("audio_sha256") private String audioSha256;
     @Field("questions") private List<AssessmentQuestionVo> questions;
+    @Field("audio_media_id") private String audioMediaId;
+
+    public AssessmentUnitVo(AssessmentUnitKind kind, String passage, String audioPath,
+                            String audioSha256, List<AssessmentQuestionVo> questions) {
+        this(kind, passage, audioPath, audioSha256, questions, null);
+    }
+
+    public boolean hasAudio() {
+        return audioMediaId != null || audioPath != null;
+    }
 }
