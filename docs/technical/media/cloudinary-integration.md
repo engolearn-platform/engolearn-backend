@@ -34,6 +34,8 @@ Cloudinary classifies audio under `resource_type=video`. The feature contract do
 
 Media generates its own Cloudinary public ID under `engolearn/media/`; the original filename is not used as a storage identifier. Upload uses `overwrite=false`.
 
+**Java SDK transport:** `cloudinary-http5:2.5.0` supports `InputStream` through `uploader().uploadLarge(...)`, not `uploader().upload(...)`. The adapter intentionally uses `uploadLarge(InputStream, options)` to preserve bounded streaming without converting whole files to byte arrays. The adapter sets a trusted `filename` such as `media.png` because the SDK otherwise attempts to insert a filename into the options map. The SDK processes the stream in chunks and closes the wrapper at the end; the caller still owns the original stream lifecycle.
+
 ## Delivery
 
 ### Public

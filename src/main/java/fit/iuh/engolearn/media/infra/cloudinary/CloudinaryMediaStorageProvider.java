@@ -38,12 +38,16 @@ public class CloudinaryMediaStorageProvider implements MediaStorageProvider {
         requireConfigured();
         MediaDeliveryType deliveryType = deliveryType(accessPolicy);
         try {
-            Map<?, ?> result = client.cloudinary().uploader().upload(content, Map.of(
+            // cloudinary-http5 2.5.0 upload(Object, Map) does not accept InputStream.
+            // uploadLarge accepts streams and sends bounded chunks without buffering the entire file.
+            // Explicit filename also avoids the SDK mutating our immutable options map.
+            Map<?, ?> result = client.cloudinary().uploader().uploadLarge(content, Map.of(
                     "resource_type", descriptor.resourceType().cloudinaryValue(),
                     "type", deliveryType.cloudinaryValue(),
                     "public_id", publicId,
                     "overwrite", false,
-                    "format", descriptor.format()));
+                    "format", descriptor.format(),
+                    "filename", "media." + descriptor.format()));
             Object versionValue = result.get("version");
             Long version = versionValue instanceof Number number ? number.longValue() : null;
             Object returnedPublicId = result.get("public_id");
