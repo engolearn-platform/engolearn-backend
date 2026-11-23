@@ -128,7 +128,13 @@ running until expiry. There is no pause, resume or clock-bypass endpoint.
 
 ## Media, analysis access and release boundaries
 
-`engolearn.assessment.media-directory` defaults to `./assessment-media`. Immutable PCM WAV
+Local filesystem audio is a development fixture adapter. In `dev`,
+`engolearn.assessment.media-directory` defaults to the bundled Assessment sample directory.
+Production has no media-directory input and refuses local-file reads with 503
+`MEDIA_UNAVAILABLE` until Assessment integrates the shared Media storage contract and
+persists durable references in Mongo. This integration is required before production
+Listening can be marked ready; see the [module checklist](../architecture/runtime-configuration.md#required-production-data-and-media-integration).
+For the local development adapter, immutable PCM WAV
 files are SHA-256 checked and at most 4 MB. Version-2 single audio is at most 28s; legacy
 single audio at most 50s; passage audio at most 120s. Twelve distinct official paths plus
 `sound-check.wav` are required. Validate all resources before consumption. Normal official
@@ -181,7 +187,7 @@ and its [WAV files](../../tools/mongo-json-importer/samples/assessment-media). T
    inside the quoted `-Dspring-boot.run.arguments` value.
 
    ```powershell
-   .\mvnw.cmd spring-boot:run '-Dspring-boot.run.arguments=--engolearn.assessment.media-directory=./tools/mongo-json-importer/samples/assessment-media'
+   .\mvnw.cmd spring-boot:run '-Dspring-boot.run.profiles=dev' '-Dspring-boot.run.arguments=--engolearn.assessment.media-directory=./tools/mongo-json-importer/samples/assessment-media'
    ```
 
 3. Run the frontend from `feat/proficiency-check` and open `/assessment` as an authenticated

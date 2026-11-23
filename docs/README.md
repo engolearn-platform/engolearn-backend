@@ -11,6 +11,7 @@ Start with the [system overview](architecture/system-overview.md) and [module ma
 | Understand behavior | [Flows](flows/README.md) |
 | Change a module or HTTP contract | [Technical documentation](technical/README.md) |
 | Configure or troubleshoot VNPay | [VNPay runbook](runbooks/vnpay.md) |
+| Configure dev/prod and integrate a module | [Runtime configuration contract](architecture/runtime-configuration.md) |
 | Temporary development purchase release | [DEV-PAYMENT-RESET-01](runbooks/dev-purchase-reset.md) |
 | Task process and completion | [Working agreement](agent/working-agreement.md), [Definition of Done](agent/definition-of-done.md) |
 
