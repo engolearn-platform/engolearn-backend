@@ -71,6 +71,10 @@ jobs:
     needs: changes
     if: needs.changes.outputs.backend == 'true'
     runs-on: ubuntu-22.04
+    env:
+      # Test-only signing key supplied through GitHub Actions Variables.
+      # Never use a production JWT secret in CI.
+      AUTH_JWT_SECRET: ${{ vars.CI_AUTH_JWT_SECRET }}
     steps:
       - name: Checkout source
         uses: actions/checkout@v6
@@ -89,6 +93,22 @@ jobs:
           uname -r
           docker version
           docker info
+
+      - name: Validate CI JWT configuration
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -z "${AUTH_JWT_SECRET:-}" ]]; then
+            echo "::error::Missing GitHub Actions variable CI_AUTH_JWT_SECRET. Set a test-only JWT signing key (at least 32 bytes) in Settings > Secrets and variables > Actions > Variables."
+            exit 1
+          fi
+
+          secret_length="$(printf '%s' "$AUTH_JWT_SECRET" | wc -c)"
+          if (( secret_length < 32 )); then
+            echo "::error::CI_AUTH_JWT_SECRET must be at least 32 bytes."
+            exit 1
+          fi
+          echo "CI JWT configuration is present and has an acceptable length."
 
       - name: Run full Maven verification
         run: ./mvnw -B -ntp clean verify
