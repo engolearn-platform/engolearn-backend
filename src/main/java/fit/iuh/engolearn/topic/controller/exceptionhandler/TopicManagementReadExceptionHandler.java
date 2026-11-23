@@ -1,6 +1,7 @@
 package fit.iuh.engolearn.topic.controller.exceptionhandler;
 
 import fit.iuh.engolearn.topic.controller.TopicManagementReadController;
+import fit.iuh.engolearn.topic.controller.TopicPublishReadinessController;
 import fit.iuh.engolearn.topic.exception.TopicItemNotFoundException;
 import fit.iuh.engolearn.topic.exception.TopicNotFoundException;
 import jakarta.validation.ConstraintViolation;
@@ -15,7 +16,7 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 import java.util.List;
 import java.util.Map;
 
-@RestControllerAdvice(assignableTypes = TopicManagementReadController.class)
+@RestControllerAdvice(assignableTypes = {TopicManagementReadController.class, TopicPublishReadinessController.class})
 public class TopicManagementReadExceptionHandler {
     @ExceptionHandler({TopicNotFoundException.class, TopicItemNotFoundException.class})
     public ProblemDetail notFound(RuntimeException exception) {

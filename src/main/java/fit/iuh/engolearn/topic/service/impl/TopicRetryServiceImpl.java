@@ -11,6 +11,7 @@ import fit.iuh.engolearn.topic.mapper.TopicAttemptContentMapper;
 import fit.iuh.engolearn.topic.mapper.TopicAttemptMapper;
 import fit.iuh.engolearn.topic.mapper.TopicRetrySessionMapper;
 import fit.iuh.engolearn.topic.mapper.TopicQuizMapper;
+import fit.iuh.engolearn.topic.mapper.TopicLearnerMediaMapper;
 import fit.iuh.engolearn.topic.model.*;
 import fit.iuh.engolearn.topic.model.enums.*;
 import fit.iuh.engolearn.topic.model.vo.*;
@@ -33,6 +34,7 @@ public class TopicRetryServiceImpl implements TopicRetryService {
     private final TopicVersionRepository releases;
     private final TopicRetryPersistenceRepository persistence;
     private final TopicQuizMapper quiz;
+    private final TopicLearnerMediaMapper learnerMedia;
     private final TopicAttemptMapper attemptMapper;
     private final TopicGenerationService generations;
     private final TopicQuizProgressService quizProgress;
@@ -165,7 +167,7 @@ public class TopicRetryServiceImpl implements TopicRetryService {
         var question=quiz.find(sequence,quizId).orElseThrow(()->problem(404,"CONTENT_UNAVAILABLE","Quiz not found"));
         if(replay!=null) {
             boolean correct=body.optionId().equals(quiz.correctOptionId(question));
-            return new QuizAnswerResponse(quizId,correct,correct?quiz.feedback(question):null,receiptDto(attempt,replay));
+            return new QuizAnswerResponse(quizId,correct,correct?learnerMedia.feedback(attempt.getTopicId(), quiz.feedback(question)):null,receiptDto(attempt,replay));
         }
         requireRunning(state,attempt,body.revision());
         if(attempt.getFurthestReached().getStage()!=LearningStage.FILL_BLANK && attempt.getFurthestReached().getStage()!=LearningStage.SITUATIONAL_CHOICE) throw stateChanged();
@@ -175,7 +177,7 @@ public class TopicRetryServiceImpl implements TopicRetryService {
         for(int i=0;i<question.question().getOptions().size();i++) if((prefix+i).equals(body.optionId())) valid=true;
         if(!valid) throw problem(400,"INVALID_REQUEST","Option does not belong to this quiz");
         boolean correct=body.optionId().equals(quiz.correctOptionId(question));
-        QuizFeedbackResponse feedback=correct?quiz.feedback(question):null;
+        QuizFeedbackResponse feedback=correct?learnerMedia.feedback(attempt.getTopicId(), quiz.feedback(question)):null;
         Long before=state.getVersion();Instant now=now();
         if(attempt.getQuizProgress()==null) attempt.setQuizProgress(new ArrayList<>());
         QuizProgressVo progress=attempt.getQuizProgress().stream().filter(p->p.getQuizId().equals(quizId)).findFirst().orElse(null);

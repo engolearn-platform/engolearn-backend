@@ -16,4 +16,6 @@ public interface TopicItemVersionRepository extends MongoRepository<TopicItemVer
     List<TopicItemVersion> findManagementMetadataForItem(String topicId, String itemId);
 
     Optional<TopicItemVersion> findByIdAndTopicIdAndTopicItemId(String id, String topicId, String itemId);
+
+    List<TopicItemVersion> findAllByTopicIdAndTopicItemId(String topicId, String itemId);
 }

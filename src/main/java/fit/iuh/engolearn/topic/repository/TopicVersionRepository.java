@@ -9,4 +9,7 @@ import org.springframework.data.mongodb.repository.MongoRepository;
  * {@code findAllById}.
  */
 public interface TopicVersionRepository extends MongoRepository<TopicVersion, String> {
+    java.util.List<TopicVersion> findAllByTopicId(String topicId);
+
+    boolean existsByItemVersionIdsContaining(String itemVersionId);
 }

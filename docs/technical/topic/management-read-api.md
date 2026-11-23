@@ -9,7 +9,7 @@ The API serves management content from MongoDB. Both the HTTP boundary and the s
 | Method and path | Response `data` |
 | --- | --- |
 | `GET /api/management/topics` | `{ items, page, size, totalElements, totalPages, counters }`. Each row carries `id`, `titleEn`, `titleVi`, `cefr`, `category`, `status`, `itemCount`, and `updatedAt`. |
-| `GET /api/management/topics/{topicId}` | Topic identity and metadata, including bilingual titles, CEFR, category, description, cover URL, tags, order, dates, computed duration and Item count, stored publication pointers, and referenced release metadata when available. |
+| `GET /api/management/topics/{topicId}` | Topic identity and metadata, including bilingual titles, CEFR, category, description, cover URL, tags, order, dates, computed duration and Item count, stored publication pointers, referenced release metadata, and the `revision` for authoring. |
 | `GET /api/management/topics/{topicId}/items` | Array of ordered Item summaries. Empty Topics return `[]`. |
 | `GET /api/management/topics/{topicId}/items/{itemId}` | Item summary fields plus `context`, `vocabularies`, `expressions`, and `quizzes`. `itemId` is the stable `TopicItem` identity. |
 
@@ -25,6 +25,6 @@ The list accepts `search` (literal case-insensitive substring over both titles, 
 
 ## Scope
 
-The four management endpoints perform reads and use dedicated HTTP DTOs. Learner endpoints retain their own release resolution and resource mapping. Import, editing, saving drafts, publishing, and unpublishing are outside this read API.
+The four management endpoints perform reads and use dedicated HTTP DTOs. Learner endpoints retain their own release resolution and resource mapping. See the [authoring API](management-authoring-api.md) for mutations.
 
 See the [coverage and verification report](management-read-verification.md) for the change baseline and test evidence.

@@ -3,6 +3,8 @@ package fit.iuh.engolearn.topic.dto.response;
 import fit.iuh.engolearn.topic.model.enums.ChangeType;
 import fit.iuh.engolearn.topic.model.enums.ContentStatus;
 import fit.iuh.engolearn.topic.model.enums.ExpressionType;
+import fit.iuh.engolearn.topic.model.enums.ExpressionGroupType;
+import fit.iuh.engolearn.topic.model.enums.ExpressionLabel;
 import fit.iuh.engolearn.topic.model.enums.QuizType;
 
 import java.time.Instant;
@@ -62,11 +64,12 @@ public record TopicManagementItemDetail(
     }
 
     public record ExpressionPurpose(String purposeEn, String purposeVi, Integer orderIndex,
+                                    ExpressionGroupType groupType,
                                     List<ExpressionExample> examples) {
     }
 
     public record ExpressionExample(ExpressionType type, String textEn, String textVi, String usageNote,
-                                    String audioUrl, List<String> linkedVocabIds) {
+                                    String audioUrl, List<String> linkedVocabIds, ExpressionLabel label) {
     }
 
     public record QuizModule(String quizId, QuizType quizType, String title, String instructions,

@@ -10,6 +10,7 @@ import fit.iuh.engolearn.topic.mapper.TopicAttemptContentMapper;
 import fit.iuh.engolearn.topic.mapper.TopicAttemptMapper;
 import fit.iuh.engolearn.topic.mapper.TopicRetrySessionMapper;
 import fit.iuh.engolearn.topic.mapper.TopicQuizMapper;
+import fit.iuh.engolearn.topic.mapper.TopicLearnerMediaMapper;
 import fit.iuh.engolearn.topic.model.*;
 import fit.iuh.engolearn.topic.model.enums.*;
 import fit.iuh.engolearn.topic.model.vo.*;
@@ -38,6 +39,7 @@ public class TopicAttemptServiceImpl implements TopicAttemptService {
     private final TopicAttemptMapper attemptMapper;
     private final TopicQuizProgressService quizProgress;
     private final TopicRetrySessionMapper retrySessionMapper;
+    private final TopicLearnerMediaMapper learnerMedia;
 
     @Override
     public TopicAttemptResponse start(String userId, String itemId, StartTopicAttemptRequest body, String key) {
@@ -93,7 +95,7 @@ public class TopicAttemptServiceImpl implements TopicAttemptService {
         TopicItemVersion pinned = version(attempt);
         requireItemVisible(attempt, pinned);
         if (attempt.getStatus() != AttemptStatus.IN_PROGRESS) throw problem(409, "STATE_CHANGED", "Completed content is available through review");
-        return TopicAttemptContentMapper.content(pinned);
+        return learnerMedia.content(attempt.getTopicId(), TopicAttemptContentMapper.content(pinned));
     }
 
     @Override
@@ -106,7 +108,7 @@ public class TopicAttemptServiceImpl implements TopicAttemptService {
         requireQuizFrontier(attempt);
         List<TopicQuizMapper.QuizEntry> sequence = quizMapper.sequence(pinned);
         Optional<TopicQuizMapper.QuizEntry> current = quizProgress.firstUnanswered(sequence, attempt.getQuizProgress());
-        return new CurrentQuizResponse(describe(attempt), current.map(quizMapper::toDto).orElse(null));
+        return new CurrentQuizResponse(describe(attempt), current.map(entry -> learnerMedia.quiz(attempt.getTopicId(), quizMapper.toDto(entry))).orElse(null));
     }
 
     @Override
@@ -127,8 +129,8 @@ public class TopicAttemptServiceImpl implements TopicAttemptService {
             boolean selected = entry.quizId().equals(current);
             entries.add(new QuizNavigationResponse.Entry(entry.quizId(), entry.type(), entry.indexInType(),
                     completed ? "COMPLETED" : selected ? "CURRENT" : "LOCKED",
-                    completed || selected ? quizMapper.toDto(entry) : null,
-                    completed ? quizMapper.feedback(entry) : null,
+                    completed || selected ? learnerMedia.quiz(attempt.getTopicId(), quizMapper.toDto(entry)) : null,
+                    completed ? learnerMedia.feedback(attempt.getTopicId(), quizMapper.feedback(entry)) : null,
                     completed ? Boolean.TRUE.equals(progress.getSubmissions().get(0).getIsCorrect()) : null));
         }
         return new QuizNavigationResponse(describe(attempt), entries);
@@ -201,7 +203,7 @@ public class TopicAttemptServiceImpl implements TopicAttemptService {
         if (!Objects.equals(revision(attempt), body.revision())) throw problem(409, "STATE_CHANGED", "Reload before answering");
         requireOptionOf(entry, body.optionId());
         boolean correct = body.optionId().equals(quizMapper.correctOptionId(entry));
-        QuizFeedbackResponse feedback = correct ? quizMapper.feedback(entry) : null;
+        QuizFeedbackResponse feedback = correct ? learnerMedia.feedback(attempt.getTopicId(), quizMapper.feedback(entry)) : null;
         Instant now = Instant.now().truncatedTo(java.time.temporal.ChronoUnit.MILLIS);
         long newRevision = revision(attempt) + 1;
         List<QuizProgressVo> progress = answeredQuizProgress(attempt.getQuizProgress(), quizId, body.optionId(), correct, now);
@@ -332,10 +334,11 @@ public class TopicAttemptServiceImpl implements TopicAttemptService {
                     .filter(value -> value != null && entry.quizId().equals(value.getQuizId())).findFirst().orElse(null);
             if (saved == null || saved.getSubmissions() == null || saved.getSubmissions().isEmpty())
                 throw problem(404, "CONTENT_UNAVAILABLE", "Stored quiz history is unavailable for review");
-            reviewed.add(new TopicItemReviewResponse.ReviewedQuiz(quizMapper.toDto(entry), quizMapper.feedback(entry),
+            reviewed.add(new TopicItemReviewResponse.ReviewedQuiz(learnerMedia.quiz(attempt.getTopicId(), quizMapper.toDto(entry)),
+                    learnerMedia.feedback(attempt.getTopicId(), quizMapper.feedback(entry)),
                     Boolean.TRUE.equals(saved.getSubmissions().get(0).getIsCorrect())));
         }
-        return new TopicItemReviewResponse(describe(attempt), TopicAttemptContentMapper.content(pinned), reviewed);
+        return new TopicItemReviewResponse(describe(attempt), learnerMedia.content(attempt.getTopicId(), TopicAttemptContentMapper.content(pinned)), reviewed);
     }
 
     @Override
@@ -400,7 +403,13 @@ public class TopicAttemptServiceImpl implements TopicAttemptService {
         if (matched == null) throw problem(409, "STATE_CHANGED", "Reload the saved position before answering");
         boolean correct = Boolean.TRUE.equals(matched.getIsCorrect());
         TopicAttemptResponse attemptDto = describeReceipt(attempt, replay);
-        return new QuizAnswerResponse(quizId, correct, correct ? quizMapper.feedback(entry) : null, attemptDto);
+        QuizFeedbackResponse feedback = correct ? quizMapper.feedback(entry) : null;
+        // Reissuing a protected delivery URL requires the current visibility check.
+        if (feedback != null && feedback.audioUrl() != null && feedback.audioUrl().startsWith("topic-media:")) {
+            requireItemVisible(attempt, pinned);
+            feedback = learnerMedia.feedback(attempt.getTopicId(), feedback);
+        }
+        return new QuizAnswerResponse(quizId, correct, feedback, attemptDto);
     }
 
     private void requireOptionOf(TopicQuizMapper.QuizEntry entry, String optionId) {

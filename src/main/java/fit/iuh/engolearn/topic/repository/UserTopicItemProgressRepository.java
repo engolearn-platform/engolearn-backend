@@ -12,4 +12,6 @@ public interface UserTopicItemProgressRepository extends MongoRepository<UserTop
     Optional<UserTopicItemProgress> findByUserIdAndTopicItemId(String userId, String topicItemId);
 
     List<UserTopicItemProgress> findByUserIdAndTopicId(String userId, String topicId);
+
+    boolean existsByTopicItemId(String topicItemId);
 }

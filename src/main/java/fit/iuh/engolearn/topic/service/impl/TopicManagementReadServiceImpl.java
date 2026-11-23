@@ -79,7 +79,8 @@ public class TopicManagementReadServiceImpl implements TopicManagementReadServic
         return new TopicManagementResponse(topic.getId(), topic.getTitleEn(), topic.getTitleVi(), topic.getCefrLevel(),
                 topic.getCategory(), topic.getDescription(), topic.getCoverUrl(), publicationLabel(topic), stats.duration(),
                 stats.count(), topic.getCreatedAt(), topic.getUpdatedAt(), topic.getTags(), topic.getOrderIndex(),
-                topic.getLatestPublishedVersion(), topic.getLatestBetaVersion(), publication);
+                topic.getLatestPublishedVersion(), topic.getLatestBetaVersion(), publication,
+                topic.getRevision() == null ? 0 : topic.getRevision());
     }
 
     @Override

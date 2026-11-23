@@ -12,7 +12,14 @@ public record TopicManagementResponse(String id, String titleEn, String titleVi,
                                       String status, long durationMinutes, long itemCount,
                                       Instant createdAt, Instant updatedAt, List<String> tags,
                                       Integer orderIndex, String latestPublishedVersion,
-                                      Integer latestBetaVersion, PublicationVersion publicationVersion) {
+                                      Integer latestBetaVersion, PublicationVersion publicationVersion,
+                                      long revision) {
     public record PublicationVersion(String id, Integer version, ContentStatus status,
                                      String previousVersionId, Instant publishedAt) {}
+
+    public TopicManagementResponse withRevision(long value) {
+        return new TopicManagementResponse(id, titleEn, titleVi, cefr, category, description, coverUrl, status,
+                durationMinutes, itemCount, createdAt, updatedAt, tags, orderIndex, latestPublishedVersion,
+                latestBetaVersion, publicationVersion, value);
+    }
 }

@@ -116,14 +116,14 @@ public class TopicManagementItemMapper {
 
     private TopicManagementItemDetail.ExpressionPurpose map(ExpressionPurposeVo purpose) {
         return new TopicManagementItemDetail.ExpressionPurpose(
-                purpose.getPurposeEn(), purpose.getPurposeVi(), purpose.getOrderIndex(),
+                purpose.getPurposeEn(), purpose.getPurposeVi(), purpose.getOrderIndex(), purpose.getGroupType(),
                 map(purpose.getExamples(), this::map));
     }
 
     private TopicManagementItemDetail.ExpressionExample map(ExpressionExampleVo example) {
         return new TopicManagementItemDetail.ExpressionExample(
                 example.getType(), example.getTextEn(), example.getTextVi(), example.getUsageNote(),
-                example.getAudioUrl(), example.getLinkedVocabIds());
+                example.getAudioUrl(), example.getLinkedVocabIds(), example.getLabel());
     }
 
     private TopicManagementItemDetail.QuizModule map(QuizModuleVo module) {
