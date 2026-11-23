@@ -6,6 +6,7 @@ on:
       - "**"
   pull_request:
     branches:
+      - dev
       - main
     types:
       - opened
@@ -18,7 +19,7 @@ permissions:
 jobs:
   changes:
     name: Detect relevant changes
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     outputs:
       backend: ${{ steps.filter.outputs.backend }}
     steps:
@@ -69,7 +70,7 @@ jobs:
     name: Build, test, and SonarCloud
     needs: changes
     if: needs.changes.outputs.backend == 'true'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout source
         uses: actions/checkout@v6
@@ -125,7 +126,7 @@ jobs:
     needs:
       - changes
       - verify
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Evaluate required CI result
         env:
