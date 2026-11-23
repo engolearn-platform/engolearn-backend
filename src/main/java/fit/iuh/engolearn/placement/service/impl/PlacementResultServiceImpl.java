@@ -23,14 +23,19 @@ import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import fit.iuh.engolearn.placement.service.PlacementAudioDelivery;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 @Service
+@PreAuthorize("hasRole('USER')")
 @RequiredArgsConstructor
 public class PlacementResultServiceImpl implements PlacementResultService {
     private final PlacementAttemptRepository attempts;
     private final PlacementTestSetRepository testSets;
     private final PlacementDeadlineService deadlines;
     private final Clock placementClock;
+
+    private final PlacementAudioDelivery audioDelivery;
 
     @Override
     public PlacementResultResponse getResult(String attemptId, String currentUserId) {
@@ -63,7 +68,7 @@ public class PlacementResultServiceImpl implements PlacementResultService {
         PlacementTestSet set = testSets.findVersion(attempt.getTestSetId(), attempt.getTestSetVersion())
                 .orElseThrow(() -> new PlacementRequestException(HttpStatus.CONFLICT,
                         "PLACEMENT_TEST_SET_UNAVAILABLE", "Assigned Placement test set version is unavailable"));
-        List<PlacementSnapshotItemVo> items = orderedSnapshot(set);
+        List<PlacementSnapshotItemVo> items = orderedSnapshot(audioDelivery.prepare(set));
         Map<String, String> answers = currentAnswers(attempt, items);
         int total = items.size();
         int score = attempt.getCorrectCount();

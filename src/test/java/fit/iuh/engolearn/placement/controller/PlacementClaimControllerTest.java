@@ -161,6 +161,7 @@ class PlacementClaimControllerTest {
 
     @TestConfiguration
     static class ClockConfig {
+        @Bean fit.iuh.engolearn.placement.service.PlacementAudioDelivery sampleAudioDelivery() { return source -> source; }
         @Bean MutableClock placementTestClock() { return new MutableClock(); }
     }
 

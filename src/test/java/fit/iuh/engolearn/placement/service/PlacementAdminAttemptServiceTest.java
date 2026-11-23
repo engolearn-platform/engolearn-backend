@@ -37,7 +37,7 @@ class PlacementAdminAttemptServiceTest {
     private final InMemoryPlacementAttemptRepository attempts = new InMemoryPlacementAttemptRepository();
     private final ArchivedTestSets testSets = new ArchivedTestSets();
     private final PlacementAdminAttemptService service =
-            new PlacementAdminAttemptServiceImpl(attempts, testSets, testSets, Clock.fixed(NOW, ZoneOffset.UTC));
+            new PlacementAdminAttemptServiceImpl(attempts, testSets, testSets, Clock.fixed(NOW, ZoneOffset.UTC), source -> source);
 
     @Test
     void inProgressAndExpiredKeepAnswersWithoutKeysOrScoresAndDoNotResolveTheDeadline() {

@@ -493,7 +493,7 @@ class PlacementMongoPersistenceTest {
         var transactions = new MongoPlacementTransactionExecutor(new TransactionTemplate(
                 new MongoTransactionManager(mongo.getMongoDatabaseFactory())));
         return new PlacementAdminTestSetServiceImpl(new MongoPlacementAdminTestSetRepository(mongo),
-                new MongoPlacementQuestionRepository(mongo), media, transactions, Clock.fixed(NOW, ZoneOffset.UTC));
+                new MongoPlacementQuestionRepository(mongo), media, transactions, Clock.fixed(NOW, ZoneOffset.UTC), source -> source);
     }
 
     private static PlacementAdminQuestionMedia testAudio() {

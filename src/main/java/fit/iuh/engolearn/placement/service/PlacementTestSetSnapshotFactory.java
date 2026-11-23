@@ -94,7 +94,7 @@ public final class PlacementTestSetSnapshotFactory {
                 .map(option -> new PlacementOptionVo(option.getId(), option.getLabel(), option.getText()))
                 .toList();
         PlacementAudioVo audio = requiredSkill == PlacementSkill.LISTENING
-                ? new PlacementAudioVo(question.getAudioUrl(), audioDuration(question))
+                ? new PlacementAudioVo(question.getAudioMediaId() == null ? question.getAudioUrl() : null, audioDuration(question), question.getAudioMediaId())
                 : null;
         String label = question.getProvenance() == null ? null : question.getProvenance().getTitle();
         return PlacementSnapshotItemVo.builder().id(question.getId()).code(question.getCode()).order(order)

@@ -36,8 +36,11 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import fit.iuh.engolearn.placement.service.PlacementAudioDelivery;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 @Service
+@PreAuthorize("hasRole('ADMIN')")
 @RequiredArgsConstructor
 @ConditionalOnProperty(prefix = "engolearn.placement.persistence", name = "mode", havingValue = "mongo")
 public class PlacementAdminTestSetServiceImpl implements PlacementAdminTestSetService {
@@ -46,6 +49,8 @@ public class PlacementAdminTestSetServiceImpl implements PlacementAdminTestSetSe
     private final PlacementAdminQuestionMedia media;
     private final PlacementTransactionExecutor transactions;
     private final Clock placementClock;
+
+    private final PlacementAudioDelivery audioDelivery;
 
     @Override
     public PlacementAdminTestSetPageResponse list(String search, PlacementTestSetStatus status, int page, int size) {
@@ -103,7 +108,7 @@ public class PlacementAdminTestSetServiceImpl implements PlacementAdminTestSetSe
                     if (audioUrl == null || audioUrl.isBlank()) {
                         throw invalid("Question " + question.getCode() + " has no playable audio");
                     }
-                    question.setAudioUrl(audioUrl);
+                    if (question.getAudioMediaId() == null) question.setAudioUrl(audioUrl);
                 }
             }
             PlacementTestSet assembled = assemble(draft, request.name().strip(), ordered);
@@ -221,10 +226,10 @@ public class PlacementAdminTestSetServiceImpl implements PlacementAdminTestSetSe
         }
     }
 
-    private static PlacementAdminTestSetResponse snapshot(PlacementTestSet set) {
+    private PlacementAdminTestSetResponse snapshot(PlacementTestSet set) {
         PlacementQuestionStatus status = set.getStatus() == PlacementTestSetStatus.DRAFT
                 ? PlacementQuestionStatus.DRAFT : PlacementQuestionStatus.ACTIVE;
-        return PlacementAdminTestSetMapper.toResponse(set, set.orderedItems().stream()
+        return PlacementAdminTestSetMapper.toResponse(set, audioDelivery.prepare(set).orderedItems().stream()
                 .map(item -> PlacementAdminTestSetMapper.snapshotQuestion(item, status)).toList());
     }
 

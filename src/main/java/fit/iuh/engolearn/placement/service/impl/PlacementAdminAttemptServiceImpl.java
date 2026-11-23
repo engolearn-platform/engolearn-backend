@@ -30,9 +30,12 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import fit.iuh.engolearn.placement.service.PlacementAudioDelivery;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.util.StringUtils;
 
 @Service
+@PreAuthorize("hasRole('ADMIN')")
 @RequiredArgsConstructor
 public class PlacementAdminAttemptServiceImpl implements PlacementAdminAttemptService {
     private static final ZoneId SEARCH_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
@@ -41,6 +44,8 @@ public class PlacementAdminAttemptServiceImpl implements PlacementAdminAttemptSe
     private final PlacementTestSetRepository testSets;
     private final PlacementAttemptTestSetRepository testSetHistory;
     private final Clock placementClock;
+
+    private final PlacementAudioDelivery audioDelivery;
 
     @Override
     public PlacementAdminAttemptPageResponse search(PlacementAdminAttemptSearchRequest request) {
@@ -85,7 +90,7 @@ public class PlacementAdminAttemptServiceImpl implements PlacementAdminAttemptSe
         PlacementTestSet testSet = testSets.findVersion(attempt.getTestSetId(), attempt.getTestSetVersion())
                 .orElse(null);
         boolean hasResult = hasResult(attempt);
-        return PlacementAdminAttemptMapper.toDetail(attempt, testSet, hasResult,
+        return PlacementAdminAttemptMapper.toDetail(attempt, testSet == null ? null : audioDelivery.prepare(testSet), hasResult,
                 claimStatus(attempt, placementClock.instant(), hasResult));
     }
 

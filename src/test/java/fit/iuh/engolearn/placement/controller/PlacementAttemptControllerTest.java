@@ -36,7 +36,7 @@ class PlacementAttemptControllerTest {
                 new ObjectMapper());
         Clock clock = Clock.fixed(Instant.parse("2026-01-01T00:00:00Z"), ZoneOffset.UTC);
         var deadlines = new PlacementDeadlineServiceImpl(attempts, sets);
-        var service = new PlacementAttemptServiceImpl(attempts, sets, clock, deadlines);
+        var service = new PlacementAttemptServiceImpl(attempts, sets, clock, deadlines, source -> source);
         var claimService = new PlacementClaimServiceImpl(attempts, deadlines, clock);
         CurrentUserProvider users = mock(CurrentUserProvider.class);
         when(users.getCurrentUser()).thenReturn(Optional.empty());

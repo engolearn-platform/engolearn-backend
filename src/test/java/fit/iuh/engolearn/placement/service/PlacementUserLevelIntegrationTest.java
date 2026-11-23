@@ -46,7 +46,7 @@ import static org.assertj.core.api.Assertions.*;
 @EnabledIfDockerAvailable
 @ActiveProfiles("dev")
 @TestPropertySource(properties = {
-        "engolearn.placement.persistence.mode=mongo",
+        "engolearn.placement.persistence.mode=mongo", "engolearn.speaking.enabled=false", "engolearn.speaking.manager.enabled=false",
         "engolearn.placement.test-set.allow-draft=true",
         "engolearn.security.dev-auth.enabled=false",
         "engolearn.security.jwt.secret=placement-level-real-http-integration-secret-32-bytes",
@@ -62,6 +62,8 @@ class PlacementUserLevelIntegrationTest extends AbstractMongoIntegrationTest {
     @Autowired private PlacementAttemptService attempts;
     @Autowired private PlacementDeadlineService deadlines;
     @Autowired @Qualifier("mongoTransactionManager") private PlatformTransactionManager manager;
+    @Autowired private fit.iuh.engolearn.grammar.service.GrammarAdminService grammarAdmin;
+    @Autowired private fit.iuh.engolearn.placement.service.PlacementAdminQuestionService placementAdmin;
     private Map<String, String> canonicalAnswers;
 
     @BeforeEach
@@ -153,6 +155,44 @@ class PlacementUserLevelIntegrationTest extends AbstractMongoIntegrationTest {
         request(user.client(), "POST", API + "/" + id + "/submit", null, 422);
         assertThat(mongoTemplate.findById(id, PlacementAttempt.class).getStatus().name()).isEqualTo("IN_PROGRESS");
         assertThat(viewer(user.client())).isEqualTo("A1");
+    }
+
+    @Test
+    void realCookieRolesProtectPlacementAndGrammarWithInheritedAuthorities() throws Exception {
+        var guest = HttpClient.newHttpClient();
+        request(guest, "GET", "/api/v1/grammar/admin/topics", null, 401);
+        request(guest, "GET", "/api/v1/placement/admin/questions", null, 401);
+        Browser user = register();
+        request(user.client(), "GET", "/api/v1/grammar/admin/topics", null, 403);
+        request(user.client(), "GET", "/api/v1/placement/admin/questions", null, 403);
+        var account = mongoTemplate.findById(user.id(), User.class);
+        account.setRole(fit.iuh.engolearn.shared.enums.UserRole.CONTENT_MANAGER);
+        mongoTemplate.save(account);
+        request(user.client(), "GET", "/api/v1/grammar/admin/topics", null, 200);
+        request(user.client(), "GET", "/api/v1/grammar/roadmap", null, 200);
+        request(user.client(), "POST", API + "/not-an-attempt/learning", null, 404);
+        request(user.client(), "GET", "/api/v1/placement/admin/questions", null, 403);
+        account.setRole(fit.iuh.engolearn.shared.enums.UserRole.ADMIN);
+        mongoTemplate.save(account);
+        request(user.client(), "GET", "/api/v1/placement/admin/questions", null, 200);
+        request(user.client(), "GET", "/api/v1/grammar/admin/topics", null, 200);
+        request(user.client(), "GET", "/api/v1/grammar/roadmap", null, 200);
+        request(user.client(), "POST", API + "/not-an-attempt/learning", null, 404);
+        request(user.client(), "GET", "/api/v1/placement/admin/questions/media/preflight", null, 200);
+        account.setRole(fit.iuh.engolearn.shared.enums.UserRole.USER);
+        mongoTemplate.save(account);
+        request(user.client(), "GET", "/api/v1/grammar/admin/topics", null, 403);
+        request(user.client(), "GET", "/api/v1/placement/admin/questions/media/preflight", null, 403);
+    }
+
+    @Test
+    void springServiceProxiesRejectMissingAuthenticationBeforeReadingContent() {
+        assertThat(org.springframework.aop.support.AopUtils.isAopProxy(grammarAdmin)).isTrue();
+        assertThat(org.springframework.aop.support.AopUtils.isAopProxy(placementAdmin)).isTrue();
+        assertThatThrownBy(() -> grammarAdmin.list(null, null, null, 0, 20))
+                .isInstanceOf(org.springframework.security.authentication.AuthenticationCredentialsNotFoundException.class);
+        assertThatThrownBy(() -> placementAdmin.search("", "", "", "", 0, 20))
+                .isInstanceOf(org.springframework.security.authentication.AuthenticationCredentialsNotFoundException.class);
     }
 
     private Callable<CefrLevel> competing(String userId, CefrLevel target, CyclicBarrier barrier, AtomicInteger calls) {

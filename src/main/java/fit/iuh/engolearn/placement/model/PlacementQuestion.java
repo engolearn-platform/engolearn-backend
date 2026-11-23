@@ -31,6 +31,7 @@ public class PlacementQuestion extends BaseDocument {
     @Field("correct_option_id") private String correctOptionId;
     @Field("explanation") private String explanation;
     @Field("audio_url") private String audioUrl;
+    @Field("audio_media_id") private String audioMediaId;
     @Field("audio_duration_seconds") private Double audioDurationSeconds;
     @Field("admin_audio_override") private boolean adminAudioOverride;
     @Field("transcript") private String transcript;

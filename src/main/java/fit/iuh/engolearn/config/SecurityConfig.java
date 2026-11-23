@@ -64,6 +64,10 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/v1/auth/register", "/api/v1/auth/login", "/api/v1/auth/refresh", "/api/v1/auth/logout").permitAll()
                         .requestMatchers("/api/v1/subscription/admin", "/api/v1/subscription/admin/**").hasRole("ADMIN")
                         .requestMatchers("/api/v1/placement/admin", "/api/v1/placement/admin/**").hasRole("ADMIN")
+                        .requestMatchers("/api/v1/grammar/admin", "/api/v1/grammar/admin/**").hasRole("CONTENT_MANAGER")
+                        .requestMatchers("/api/v1/grammar", "/api/v1/grammar/**").hasRole("USER")
+                        .requestMatchers("/api/v1/placement/attempts/*/result", "/api/v1/placement/attempts/*/review",
+                                "/api/v1/placement/attempts/*/learning").hasRole("USER")
                         .requestMatchers("/api/v1/subscription/me", "/api/v1/subscription/me/**", "/api/v1/quota/me/**").authenticated()
                         .requestMatchers("/api/v1/speaking/**").authenticated()
                         .requestMatchers("/api/learning-paths", "/api/learning-paths/**").authenticated()
@@ -73,6 +77,7 @@ public class SecurityConfig {
                                 "/api/v1/topic-attempts", "/api/v1/topic-attempts/**", "/api/v1/topic-retry-sessions", "/api/v1/topic-retry-sessions/**",
                                 "/api/v1/topic-learning", "/api/v1/topic-learning/**").hasAnyRole("USER", "CONTENT_MANAGER", "ADMIN")
                         .requestMatchers("/api/v1/assessment", "/api/v1/assessment/**").authenticated()
+                        .requestMatchers("/api/v1/placement", "/api/v1/placement/**").permitAll()
                         .anyRequest().permitAll()
                 );
 
@@ -118,7 +123,8 @@ public class SecurityConfig {
         if (path.startsWith("/api/v1/assessment/")
                 || path.startsWith("/api/v1/subscription/") || path.startsWith("/api/v1/quota/")
                 || path.startsWith("/api/v1/auth/") || path.startsWith("/api/v1/speaking/") || path.equals("/api/learning-paths")
-                || path.equals("/api/v1/placement/admin") || path.startsWith("/api/v1/placement/admin/")
+                || path.startsWith("/api/v1/grammar/")
+                || path.startsWith("/api/v1/placement/")
                 || path.startsWith("/api/learning-paths/")) {
             problemDetail.setDetail(status == HttpStatus.UNAUTHORIZED ? "Authentication is required" : "Access is denied");
             problemDetail.setInstance(URI.create(path));

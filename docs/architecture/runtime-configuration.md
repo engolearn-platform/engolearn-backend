@@ -120,7 +120,7 @@ Do not restore module-named runtime profiles.
 
 | Area | Current integration responsibility |
 | --- | --- |
-| Placement | Mongo/transaction/level-sync defaults configured. MEDIA NOT PROD-INTEGRATED: migrate local audio to Media storage and persist references in Mongo; verify current and historical playback without repository files |
+| Placement | Mongo/transaction/level-sync defaults configured. Storage-backed audio adapter and explicit replay-aware migration are implemented on this branch; see [integration evidence](../technical/placement-grammar-dev-integration.md). Deployment still requires imported Media metadata, linked snapshots and a Published test set. |
 | Subscription / Payment / Quota | Shared Mongo and transactions; deliberate catalog publication; provider/durable delivery verification |
 | Speaking | NOT PROD-INTEGRATED: existing availability filter blocks prod, managed conversation wiring excludes prod. Module owner must resolve its experimental/production contract; this migration does not enable it |
 | Assessment | NOT FULLY PROD-INTEGRATED: real baseline integration and storage-backed audio are required. Filesystem playback is refused in prod; verify preparation/attempt/review after integrating Media |

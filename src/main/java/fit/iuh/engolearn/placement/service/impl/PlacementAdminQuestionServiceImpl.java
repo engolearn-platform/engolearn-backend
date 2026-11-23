@@ -35,8 +35,10 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 @Service
+@PreAuthorize("hasRole('ADMIN')")
 @RequiredArgsConstructor
 @ConditionalOnProperty(prefix = "engolearn.placement.persistence", name = "mode", havingValue = "mongo")
 public class PlacementAdminQuestionServiceImpl implements PlacementAdminQuestionService {
@@ -168,11 +170,13 @@ public class PlacementAdminQuestionServiceImpl implements PlacementAdminQuestion
         if (url.equals(clean(media.resolve(question)))) return;
         question.setAdminAudioOverride(true);
         if (url.isEmpty()) {
+            question.setAudioMediaId(null);
             question.setAudioUrl(null);
             question.setAudioDurationSeconds(null);
         } else {
             var selection = media.requireSelection(url);
-            question.setAudioUrl(selection.audioUrl());
+            question.setAudioMediaId(selection.mediaId());
+            question.setAudioUrl(selection.mediaId() == null ? selection.audioUrl() : null);
             question.setAudioDurationSeconds(selection.durationSeconds());
         }
     }
@@ -213,7 +217,7 @@ public class PlacementAdminQuestionServiceImpl implements PlacementAdminQuestion
             media.requirePlayable(question);
             String audioUrl = media.resolve(question);
             if (audioUrl == null) throw invalid("audioUrl", "Select a verified Placement WAV.");
-            question.setAudioUrl(audioUrl);
+            if (question.getAudioMediaId() == null) question.setAudioUrl(audioUrl);
         }
     }
 

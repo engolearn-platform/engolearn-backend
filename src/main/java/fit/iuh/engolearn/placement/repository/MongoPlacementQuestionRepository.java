@@ -108,6 +108,7 @@ public class MongoPlacementQuestionRepository implements PlacementQuestionReposi
                 .set("correct_option_id", question.getCorrectOptionId())
                 .set("explanation", question.getExplanation())
                 .set("transcript", question.getTranscript())
+                .set("audio_media_id", question.getAudioMediaId())
                 .set("audio_url", question.getAudioUrl())
                 .set("audio_duration_seconds", question.getAudioDurationSeconds())
                 .set("admin_audio_override", question.isAdminAudioOverride());
@@ -118,7 +119,8 @@ public class MongoPlacementQuestionRepository implements PlacementQuestionReposi
     public Optional<PlacementQuestion> updateStatusIfCurrent(PlacementQuestion question, long revision) {
         Update update = new Update().set("status", question.getStatus());
         if (question.getStatus() == PlacementQuestionStatus.ACTIVE && question.getSkill() == PlacementSkill.LISTENING) {
-            update.set("audio_url", question.getAudioUrl());
+            update.set("audio_media_id", question.getAudioMediaId())
+                .set("audio_url", question.getAudioUrl());
         }
         return updateIfCurrent(question.getId(), revision, update);
     }

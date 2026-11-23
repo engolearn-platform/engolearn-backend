@@ -7,7 +7,7 @@ import fit.iuh.engolearn.placement.exception.PlacementRequestException;
 import fit.iuh.engolearn.placement.model.PlacementQuestion;
 import fit.iuh.engolearn.placement.model.enums.PlacementSkill;
 import fit.iuh.engolearn.placement.model.vo.PlacementQuestionProvenanceVo;
-import fit.iuh.engolearn.placement.service.PlacementAdminQuestionMedia;
+import fit.iuh.engolearn.placement.service.PlacementDevelopmentAudio;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
@@ -29,8 +29,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 
 @Component
+@org.springframework.context.annotation.Profile("dev & !prod")
 @ConditionalOnProperty(prefix = "engolearn.placement.persistence", name = "mode", havingValue = "mongo")
-public class PlacementWavMedia implements PlacementAdminQuestionMedia {
+public class PlacementWavMedia implements PlacementDevelopmentAudio {
     private static final String ROUTE = "/api/v1/placement/media/";
     private static final Pattern FILE_NAME = Pattern.compile("([a-f0-9]{64})\\.wav");
     private static final double SEED_DURATION_TOLERANCE = 0.001;

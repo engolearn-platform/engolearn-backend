@@ -13,8 +13,10 @@ import fit.iuh.engolearn.user.contract.UserLevelPromotion;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 @Service
+@PreAuthorize("hasRole('USER')")
 @RequiredArgsConstructor
 @ConditionalOnProperty(prefix = "engolearn.placement.persistence", name = "mode", havingValue = "mongo")
 public class PlacementLearningServiceImpl implements PlacementLearningService {

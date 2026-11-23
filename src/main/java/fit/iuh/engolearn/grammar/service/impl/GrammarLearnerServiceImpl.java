@@ -35,6 +35,7 @@ import fit.iuh.engolearn.shared.security.CurrentUserProvider;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -51,6 +52,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service
+@PreAuthorize("hasRole('USER')")
 @RequiredArgsConstructor
 public class GrammarLearnerServiceImpl implements GrammarLearnerService {
     private static final GrammarLevel DEFAULT_LEVEL = GrammarLevel.A1;

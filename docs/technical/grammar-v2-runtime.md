@@ -35,3 +35,7 @@ Kiểm thử dùng chính bundle A1 V2 và bundle legacy đã chuẩn bị, trê
 
 DB đang dùng của chủ dự án chưa được migrate/import. Không push/merge main.
 
+
+## Team dev integration — 23/11/2026
+
+Current authorization, dev/prod runtime, Cloudinary migration, local port handling and actual verification are maintained in [Placement/Grammar integration](placement-grammar-dev-integration.md). This supersedes older module-profile commands and the historical exact-USER-only learning activation restriction.

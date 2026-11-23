@@ -29,6 +29,7 @@ class PlacementMediaWebConfigTest {
         Files.writeString(directory.resolve("private.txt"),"not media");
         url="/api/v1/placement/media/"+name;
         context=new AnnotationConfigWebApplicationContext();
+        context.getEnvironment().setActiveProfiles("dev");
         context.setServletContext(new MockServletContext());
         TestPropertySourceUtils.addInlinedPropertiesToEnvironment(context,
                 "engolearn.placement.media-directory="+directory.toString().replace('\\','/'));

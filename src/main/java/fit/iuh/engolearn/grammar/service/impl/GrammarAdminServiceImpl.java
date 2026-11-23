@@ -30,6 +30,7 @@ import fit.iuh.engolearn.shared.security.CurrentUserProvider;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -44,6 +45,7 @@ import static fit.iuh.engolearn.grammar.model.enums.GrammarAuditAction.*;
 import static fit.iuh.engolearn.grammar.model.enums.GrammarStatus.*;
 
 @Service
+@PreAuthorize("hasRole('CONTENT_MANAGER')")
 @RequiredArgsConstructor
 public class GrammarAdminServiceImpl implements GrammarAdminService {
     private static final int MAX_ACTIVE_LESSONS = 10;

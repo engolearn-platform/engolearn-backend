@@ -116,3 +116,7 @@ content. Parent `data/bank-320/` references in provenance remain historical exte
 authoring paths and are only needed by the optional authoring-source audit.
 
 Verification and handoff details: [data relocation](placement-data-relocation.md).
+
+## Team dev integration — 23/11/2026
+
+Current authorization, dev/prod runtime, Cloudinary migration, local port handling and actual verification are maintained in [Placement/Grammar integration](placement-grammar-dev-integration.md). This supersedes older module-profile commands and the historical exact-USER-only learning activation restriction.

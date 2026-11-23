@@ -75,3 +75,7 @@ and revalidates the new answer set before any finalization/profile update. This
 also applies to transaction retries. A real HTTP/Mongo regression clears all
 answers after capturing the validated attempt; stale submit must return null,
 normal submit then rejects empty answers and the user remains A1/in progress.
+
+## Team dev integration — 23/11/2026
+
+Current authorization, dev/prod runtime, Cloudinary migration, local port handling and actual verification are maintained in [Placement/Grammar integration](placement-grammar-dev-integration.md). This supersedes older module-profile commands and the historical exact-USER-only learning activation restriction.
