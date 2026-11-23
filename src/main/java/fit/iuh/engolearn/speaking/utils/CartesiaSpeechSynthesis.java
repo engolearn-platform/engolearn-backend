@@ -1,7 +1,6 @@
 package fit.iuh.engolearn.speaking.utils;
 
 import fit.iuh.engolearn.speaking.utils.port.SpeechSynthesisPort;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import tools.jackson.databind.ObjectMapper;
@@ -22,38 +21,41 @@ public class CartesiaSpeechSynthesis implements SpeechSynthesisPort {
     private final String model;
     private final String endpoint;
     private final String apiVersion;
+    private final Duration timeout;
 
     @Autowired
-    public CartesiaSpeechSynthesis(ObjectMapper mapper,
-            @Value("${engolearn.speaking.cartesia.api-key:}") String apiKey,
-            @Value("${engolearn.speaking.cartesia.voice:db6b0ed5-d5d3-463d-ae85-518a07d3c2b4}") String voice,
-            @Value("${engolearn.speaking.cartesia.model:sonic-3.6}") String model,
-            @Value("${engolearn.speaking.cartesia.endpoint:https://api.cartesia.ai/tts/bytes}") String endpoint,
-            @Value("${engolearn.speaking.cartesia.api-version:2026-08-14}") String apiVersion) {
-        this(mapper, apiKey, voice, model, endpoint, apiVersion, null);
+    public CartesiaSpeechSynthesis(ObjectMapper mapper, SpeakingProviderProperties properties) {
+        this(mapper, properties.getCartesia().getApiKey(), properties.getCartesia().getVoice(),
+                properties.getCartesia().getModel(), properties.getCartesia().getEndpoint(),
+                properties.getCartesia().getApiVersion(), properties.getCartesia().getTimeout(), null);
     }
 
     CartesiaSpeechSynthesis(ObjectMapper mapper, String apiKey, String voice, String model,
-            String endpoint, String apiVersion, HttpClient client) {
+            String endpoint, String apiVersion, Duration timeout, HttpClient client) {
         this.mapper = mapper;
-        this.apiKey = apiKey;
+        this.apiKey = apiKey == null ? "" : apiKey;
         this.voice = voice;
         this.model = model;
         this.endpoint = endpoint;
         this.apiVersion = apiVersion;
+        this.timeout = timeout;
         this.client = client;
+        if (timeout == null || timeout.isZero() || timeout.isNegative()) {
+            throw new IllegalArgumentException("Cartesia timeout must be positive");
+        }
     }
 
     @Override
     public byte[] synthesize(String text) {
         if (text == null || text.isBlank()) return new byte[0];
         if (apiKey.isBlank()) throw new IllegalStateException("Cartesia API key is not configured");
+        if (voice == null || voice.isBlank()) throw new IllegalStateException("Cartesia voice ID is not configured");
         try {
             String body = mapper.writeValueAsString(Map.of("model_id", model, "transcript", text,
                     "voice", voice, "language", "en", "output_format",
                     Map.of("container", "mp3", "sample_rate", 24000, "bit_rate", 128000)));
             HttpRequest request = HttpRequest.newBuilder().uri(URI.create(endpoint))
-                    .timeout(Duration.ofSeconds(20)).header("Cartesia-Version", apiVersion)
+                    .timeout(timeout).header("Cartesia-Version", apiVersion)
                     .header("Authorization", "Bearer " + apiKey)
                     .header("Content-Type", "application/json")
                     .POST(HttpRequest.BodyPublishers.ofString(body)).build();

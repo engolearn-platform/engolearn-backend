@@ -58,7 +58,8 @@ class GeminiSpeakingOpeningGeneratorTest {
     @Test
     void failsWithoutCallingProviderWhenApiKeyIsMissing() {
         var calls = new int[1];
-        var generator = new GeminiSpeakingOpeningGenerator(mapper, "", "model", "https://example.test", request -> {
+        var generator = new GeminiSpeakingOpeningGenerator(mapper, "", "model", "https://example.test",
+                Duration.ofSeconds(4), request -> {
             calls[0]++;
             return response(200, "{}");
         });
@@ -68,7 +69,7 @@ class GeminiSpeakingOpeningGeneratorTest {
 
     private GeminiSpeakingOpeningGenerator generator(GeminiSpeakingOpeningGenerator.Transport transport) {
         return new GeminiSpeakingOpeningGenerator(mapper, "secret", "gemini-test",
-                "https://example.test/v1beta/models", transport);
+                "https://example.test/v1beta/models", Duration.ofSeconds(10), transport);
     }
 
     private SpeakingContentSnapshot content() {

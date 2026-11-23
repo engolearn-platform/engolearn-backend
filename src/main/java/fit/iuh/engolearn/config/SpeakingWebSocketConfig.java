@@ -18,7 +18,7 @@ public class SpeakingWebSocketConfig implements WebSocketConfigurer {
     private final String allowedOrigins;
 
     public SpeakingWebSocketConfig(SpeakingSocketHandler handler,
-            @Value("${engolearn.cors.allowed-origins:http://localhost:3000}") String allowedOrigins) {
+            @Value("${engolearn.cors.allowed-origins}") String allowedOrigins) {
         this.handler = handler;
         this.allowedOrigins = allowedOrigins;
     }

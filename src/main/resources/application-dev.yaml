@@ -2,16 +2,12 @@ engolearn:
   security:
     cookies:
       secure: ${AUTH_COOKIE_SECURE:false}
-  development:
-    speaking-fixture-enabled: ${DEV_SPEAKING_FIXTURE_ENABLED:false}
   placement:
     test-set:
       allow-draft: ${PLACEMENT_ALLOW_DRAFT:false}
     media-directory: ${PLACEMENT_MEDIA_DIRECTORY:./tools/mongo-json-importer/samples/placement-media}
   assessment:
     media-directory: ${ASSESSMENT_MEDIA_DIRECTORY:./tools/mongo-json-importer/samples/assessment-media}
-  speaking:
-    dev-seed-file: ${SPEAKING_DEV_SEED_FILE:}
   payment:
     dev-reset:
       enabled: ${PAYMENT_DEV_RESET_ENABLED:false}

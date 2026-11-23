@@ -5,7 +5,6 @@ import fit.iuh.engolearn.shared.security.CurrentUserProvider;
 import fit.iuh.engolearn.speaking.dto.response.SpeakingSessionResponse;
 import fit.iuh.engolearn.speaking.model.*;
 import fit.iuh.engolearn.speaking.repository.*;
-import fit.iuh.engolearn.speaking.utils.port.ConversationEvaluator;
 import fit.iuh.engolearn.speaking.utils.port.SpeakingAiGateway;
 import fit.iuh.engolearn.speaking.utils.port.SpeechStreamPort;
 import fit.iuh.engolearn.speaking.utils.port.SpeechSynthesisPort;
@@ -34,7 +33,7 @@ class SpeakingConversationRuntimeTest {
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     @Test
-    void demoSettlementPersistsAcceptedEvidenceAndCountersOnlyOnce() {
+    void managedSettlementPersistsAcceptedEvidenceAndCountersOnlyOnce() {
         SettlementFixture fixture = SettlementFixture.active();
         fixture.turns.add(fixture.pendingTurn("turn-1", 1));
         fixture.session.setCommittedTurnCount(1);
@@ -138,7 +137,7 @@ class SpeakingConversationRuntimeTest {
     }
 
     @Test
-    void explicitEndKeepsCommittedPendingDemoAssessmentEligibleDuringClosingWindow() throws Exception {
+    void explicitEndKeepsCommittedPendingAssessmentEligibleDuringClosingWindow() throws Exception {
         SettlementFixture fixture = SettlementFixture.active();
         fixture.turns.add(fixture.pendingTurn("pending-end", 1));
         fixture.session.setCommittedTurnCount(1);
@@ -154,7 +153,7 @@ class SpeakingConversationRuntimeTest {
     }
 
     @Test
-    void turnLimitClosingKeepsCommittedPendingDemoAssessmentEligible() {
+    void turnLimitClosingKeepsCommittedPendingAssessmentEligible() {
         SettlementFixture fixture = SettlementFixture.active();
         fixture.session.setCommittedTurnCount(29);
         fixture.session.setValidTurnCount(1);
@@ -172,16 +171,14 @@ class SpeakingConversationRuntimeTest {
     }
 
     @Test
-    void replacedConnectionDuringDemoCompositionDoesNotSettleOrDeliver() throws Exception {
+    void replacedConnectionDuringCompositionDoesNotSettleOrDeliver() throws Exception {
         AtomicInteger gatewayCalls = new AtomicInteger();
         CountDownLatch compositionStarted = new CountDownLatch(1);
         CountDownLatch allowCompletion = new CountDownLatch(1);
         SpeakingConversationComposer composer = blockingComposer(gatewayCalls, compositionStarted, allowCompletion);
         FakeRealtimeSessionService sessions = FakeRealtimeSessionService.active();
         CountingTts tts = new CountingTts();
-        SpeakingRealtimeService realtime = realtime(sessions, (content, transcript, history, achieved) ->
-                new ConversationEvaluator.Result(true, "legacy", List.of(), List.of(), List.of(), null, List.of()),
-                tts, composer, true);
+        SpeakingRealtimeService realtime = realtime(sessions, tts, composer);
 
         realtime.open("connection", "session", "ticket", sessions.events::add).join();
         realtime.start("connection", "turn-1", 7);
@@ -201,16 +198,14 @@ class SpeakingConversationRuntimeTest {
     }
 
     @Test
-    void replacementDuringDemoCompositionRecoversPendingTurnForSubsequentTurn() throws Exception {
+    void replacementDuringCompositionRecoversPendingTurnForSubsequentTurn() throws Exception {
         AtomicInteger gatewayCalls = new AtomicInteger();
         CountDownLatch compositionStarted = new CountDownLatch(1);
         CountDownLatch allowCompletion = new CountDownLatch(1);
         SpeakingConversationComposer composer = blockingComposer(gatewayCalls, compositionStarted, allowCompletion);
         FakeRealtimeSessionService sessions = FakeRealtimeSessionService.active();
         CountingTts tts = new CountingTts();
-        SpeakingRealtimeService realtime = realtime(sessions, (content, transcript, history, achieved) ->
-                new ConversationEvaluator.Result(true, "legacy", List.of(), List.of(), List.of(), null, List.of()),
-                tts, composer, true);
+        SpeakingRealtimeService realtime = realtime(sessions, tts, composer);
 
         realtime.open("old", "session", "ticket-old", sessions.events::add).join();
         realtime.start("old", "turn-1", 7);
@@ -234,9 +229,7 @@ class SpeakingConversationRuntimeTest {
     void replacementWaitsForBlockedCommitAndRecoversItsPendingTurn() throws Exception {
         FakeRealtimeSessionService sessions = FakeRealtimeSessionService.active();
         sessions.persistCommitsAndHoldCommit();
-        SpeakingRealtimeService realtime = realtime(sessions, (content, transcript, history, achieved) ->
-                new ConversationEvaluator.Result(true, "legacy", List.of(), List.of(), List.of(), null, List.of()),
-                new CountingTts(), composer(new AtomicInteger()), true);
+        SpeakingRealtimeService realtime = realtime(sessions, new CountingTts(), composer(new AtomicInteger()));
 
         realtime.open("old", "session", "ticket-old", sessions.events::add).join();
         realtime.start("old", "turn-1", 7);
@@ -263,9 +256,7 @@ class SpeakingConversationRuntimeTest {
     void sessionEndedDeliveryDoesNotWaitOnControllerLockWhileSettlementHoldsSessionLock() throws Exception {
         FakeRealtimeSessionService sessions = FakeRealtimeSessionService.active();
         sessions.holdSettlement();
-        SpeakingRealtimeService realtime = realtime(sessions, (content, transcript, history, achieved) ->
-                new ConversationEvaluator.Result(true, "legacy", List.of(), List.of(), List.of(), null, List.of()),
-                new CountingTts(), composer(new AtomicInteger()), true);
+        SpeakingRealtimeService realtime = realtime(sessions, new CountingTts(), composer(new AtomicInteger()));
         realtime.open("connection", "session", "ticket", sessions.events::add).join();
         realtime.start("connection", "turn-1", 7);
         realtime.end("connection", "turn-1", 7);
@@ -282,16 +273,14 @@ class SpeakingConversationRuntimeTest {
     }
 
     @Test
-    void closedConnectionDuringDemoCompositionDoesNotSettleOrFailTheSession() throws Exception {
+    void closedConnectionDuringCompositionDoesNotSettleOrFailTheSession() throws Exception {
         AtomicInteger gatewayCalls = new AtomicInteger();
         CountDownLatch compositionStarted = new CountDownLatch(1);
         CountDownLatch allowCompletion = new CountDownLatch(1);
         SpeakingConversationComposer composer = blockingFailingComposer(gatewayCalls, compositionStarted, allowCompletion);
         FakeRealtimeSessionService sessions = FakeRealtimeSessionService.active();
         CountingTts tts = new CountingTts();
-        SpeakingRealtimeService realtime = realtime(sessions, (content, transcript, history, achieved) ->
-                new ConversationEvaluator.Result(true, "legacy", List.of(), List.of(), List.of(), null, List.of()),
-                tts, composer, true);
+        SpeakingRealtimeService realtime = realtime(sessions, tts, composer);
 
         realtime.open("connection", "session", "ticket", sessions.events::add).join();
         realtime.start("connection", "turn-1", 7);
@@ -317,9 +306,7 @@ class SpeakingConversationRuntimeTest {
         CountDownLatch allowCompletion = new CountDownLatch(1);
         SpeakingConversationComposer composer = blockingFailingComposer(gatewayCalls, compositionStarted, allowCompletion);
         FakeRealtimeSessionService sessions = FakeRealtimeSessionService.active();
-        SpeakingRealtimeService realtime = realtime(sessions, (content, transcript, history, achieved) ->
-                new ConversationEvaluator.Result(true, "legacy", List.of(), List.of(), List.of(), null, List.of()),
-                new CountingTts(), composer, true);
+        SpeakingRealtimeService realtime = realtime(sessions, new CountingTts(), composer);
 
         realtime.open("connection", "session", "ticket", sessions.events::add).join();
         realtime.start("connection", "turn-1", 7);
@@ -335,7 +322,7 @@ class SpeakingConversationRuntimeTest {
     }
 
     @Test
-    void staleControllerEpochCannotSettleDemoTurn() {
+    void staleControllerEpochCannotSettleManagedTurn() {
         SettlementFixture fixture = SettlementFixture.active();
         fixture.turns.add(fixture.pendingTurn("stale", 1));
         fixture.session.setCommittedTurnCount(1);
@@ -347,7 +334,7 @@ class SpeakingConversationRuntimeTest {
     }
 
     @Test
-    void demoSettlementRechecksExpiryBeforeCommittingLateGatewayResult() {
+    void managedSettlementRechecksExpiryBeforeCommittingLateGatewayResult() {
         SettlementFixture fixture = SettlementFixture.active();
         fixture.turns.add(fixture.pendingTurn("expired", 1));
         fixture.session.setCommittedTurnCount(1);
@@ -362,9 +349,7 @@ class SpeakingConversationRuntimeTest {
     @Test
     void concurrentOpensLeaveExactlyOneCurrentController() throws Exception {
         FakeRealtimeSessionService sessions = FakeRealtimeSessionService.active();
-        SpeakingRealtimeService realtime = realtime(sessions, (content, transcript, history, achieved) ->
-                new ConversationEvaluator.Result(true, "legacy", List.of(), List.of(), List.of(), null, List.of()),
-                new CountingTts(), composer(new AtomicInteger()), false);
+        SpeakingRealtimeService realtime = realtime(sessions, new CountingTts(), composer(new AtomicInteger()));
         int openCount = 32;
         ExecutorService opens = Executors.newFixedThreadPool(openCount);
         CountDownLatch ready = new CountDownLatch(openCount);
@@ -396,9 +381,7 @@ class SpeakingConversationRuntimeTest {
     @Test
     void inactiveReplacedEntryDoesNotPreventDisconnectInterruption() throws Exception {
         FakeRealtimeSessionService sessions = FakeRealtimeSessionService.active();
-        SpeakingRealtimeService realtime = realtime(sessions, (content, transcript, history, achieved) ->
-                new ConversationEvaluator.Result(true, "legacy", List.of(), List.of(), List.of(), null, List.of()),
-                new CountingTts(), composer(new AtomicInteger()), false);
+        SpeakingRealtimeService realtime = realtime(sessions, new CountingTts(), composer(new AtomicInteger()));
 
         realtime.open("old", "session", "ticket-old", sessions.events::add).join();
         realtime.open("new", "session", "ticket-new", sessions.events::add).join();
@@ -412,9 +395,7 @@ class SpeakingConversationRuntimeTest {
     @Test
     void replacementDuringResultDeliveryCompletesAfterTheOldEventIsSerialized() throws Exception {
         FakeRealtimeSessionService sessions = FakeRealtimeSessionService.active();
-        SpeakingRealtimeService realtime = realtime(sessions, (content, transcript, history, achieved) ->
-                new ConversationEvaluator.Result(true, "legacy", List.of(), List.of(), List.of(), null, List.of()),
-                new CountingTts(), composer(new AtomicInteger()), true);
+        SpeakingRealtimeService realtime = realtime(sessions, new CountingTts(), composer(new AtomicInteger()));
         List<String> order = new CopyOnWriteArrayList<>();
         CountDownLatch emitStarted = new CountDownLatch(1);
         CountDownLatch allowEmit = new CountDownLatch(1);
@@ -459,7 +440,7 @@ class SpeakingConversationRuntimeTest {
     }
 
     @Test
-    void demoSettlementAndFailureHaveNoPublicEpochBypass() {
+    void managedSettlementAndFailureRequireControllerEpoch() {
         assertThrows(NoSuchMethodException.class, () -> SpeakingSessionService.class.getMethod("settleConversationTurn",
                 String.class, String.class, SpeakingConversationAssessment.class));
         assertThrows(NoSuchMethodException.class, () -> SpeakingSessionService.class.getMethod("assessmentFailed",
@@ -467,29 +448,13 @@ class SpeakingConversationRuntimeTest {
     }
 
     @Test
-    void flagOffKeepsLegacyEvaluatorAndFlagOnUsesComposerDiagnosticsAndTts() throws Exception {
+    void managedComposerSettlesTurnAndDeliversAuthorizedSpeech() throws Exception {
         AtomicInteger gatewayCalls = new AtomicInteger();
         SpeakingConversationComposer composer = composer(gatewayCalls);
         FakeRealtimeSessionService sessions = FakeRealtimeSessionService.active();
-        AtomicInteger evaluatorCalls = new AtomicInteger();
-        ConversationEvaluator evaluator = (content, transcript, history, achieved) -> {
-            evaluatorCalls.incrementAndGet();
-            return new ConversationEvaluator.Result(true, "Legacy reply", List.of(), List.of(), List.of(), null, List.of());
-        };
         CountingTts tts = new CountingTts();
-
-        SpeakingRealtimeService fallback = realtime(sessions, evaluator, tts, composer, false);
-        runTurn(fallback, sessions);
-        assertEquals(1, evaluatorCalls.get());
-        assertEquals(0, gatewayCalls.get());
-        assertTrue(sessions.events.stream().filter(event -> "TURN_RESULT".equals(event.get("type")))
-                .allMatch(event -> !event.containsKey("demoDecision")));
-
-        sessions.resetEvents();
-        sessions.resetTurn();
-        tts.calls.set(0);
-        SpeakingRealtimeService demo = realtime(sessions, evaluator, tts, composer, true);
-        runTurn(demo, sessions);
+        SpeakingRealtimeService realtime = realtime(sessions, tts, composer);
+        runTurn(realtime, sessions);
         Map<String, Object> result = sessions.events.stream()
                 .filter(event -> "TURN_RESULT".equals(event.get("type"))).findFirst().orElseThrow();
         assertEquals(1, gatewayCalls.get());
@@ -506,9 +471,7 @@ class SpeakingConversationRuntimeTest {
         SpeakingConversationComposer composer = composer(gatewayCalls);
         FakeRealtimeSessionService sessions = FakeRealtimeSessionService.active();
         CountingTts tts = new CountingTts();
-        SpeakingRealtimeService realtime = realtime(sessions, (content, transcript, history, achieved) ->
-                new ConversationEvaluator.Result(true, "legacy", List.of(), List.of(), List.of(), null, List.of()),
-                tts, composer, true);
+        SpeakingRealtimeService realtime = realtime(sessions, tts, composer);
 
         realtime.open("connection", "session", "ticket", sessions.events::add).join();
         sessions.currentState.setControllerEpoch(99);
@@ -528,9 +491,7 @@ class SpeakingConversationRuntimeTest {
         FakeRealtimeSessionService sessions = FakeRealtimeSessionService.active();
         CountingTts tts = new CountingTts();
 
-        SpeakingRealtimeService realtime = realtime(sessions, (content, transcript, history, achieved) ->
-                new ConversationEvaluator.Result(true, "legacy", List.of(), List.of(), List.of(), null, List.of()),
-                tts, composer, true);
+        SpeakingRealtimeService realtime = realtime(sessions, tts, composer);
         runTurn(realtime, sessions);
 
         Map<String, Object> error = sessions.events.stream()
@@ -551,9 +512,7 @@ class SpeakingConversationRuntimeTest {
         sessions.currentState.setConsecutiveEvaluationFailures(2);
         CountingTts tts = new CountingTts();
 
-        SpeakingRealtimeService realtime = realtime(sessions, (content, transcript, history, achieved) ->
-                new ConversationEvaluator.Result(true, "legacy", List.of(), List.of(), List.of(), null, List.of()),
-                tts, composer, true);
+        SpeakingRealtimeService realtime = realtime(sessions, tts, composer);
         runTurn(realtime, sessions);
 
         Map<String, Object> error = sessions.events.stream()
@@ -573,9 +532,7 @@ class SpeakingConversationRuntimeTest {
         sessions.currentState.setAchievedGoalIds(new ArrayList<>(List.of("goal-1", "goal-2")));
         CountingTts tts = new CountingTts();
 
-        SpeakingRealtimeService realtime = realtime(sessions, (content, transcript, history, achieved) ->
-                new ConversationEvaluator.Result(true, "legacy", List.of(), List.of(), List.of(), null, List.of()),
-                tts, composer, true);
+        SpeakingRealtimeService realtime = realtime(sessions, tts, composer);
         runTurn(realtime, sessions);
 
         Map<String, Object> result = sessions.events.stream()
@@ -589,27 +546,24 @@ class SpeakingConversationRuntimeTest {
     }
 
     @Test
-    void sessionEndedEventCarriesTerminalSnapshotForManagerOffAndOnPaths() throws Exception {
-        for (boolean managerEnabled : List.of(false, true)) {
-            FakeRealtimeSessionService sessions = FakeRealtimeSessionService.active();
-            sessions.currentState.setStatus(SpeakingSession.Status.INCOMPLETE);
-            sessions.currentState.setEndReason(SpeakingSession.EndReason.LEARNER_ENDED);
-            SpeakingRealtimeService realtime = realtime(sessions,
-                    (content, transcript, history, achieved) -> null,
-                    new CountingTts(), composer(new AtomicInteger()), managerEnabled);
+    void sessionEndedEventCarriesTerminalSnapshot() throws Exception {
+        FakeRealtimeSessionService sessions = FakeRealtimeSessionService.active();
+        sessions.currentState.setStatus(SpeakingSession.Status.INCOMPLETE);
+        sessions.currentState.setEndReason(SpeakingSession.EndReason.LEARNER_ENDED);
+        SpeakingRealtimeService realtime = realtime(sessions,
+                new CountingTts(), composer(new AtomicInteger()));
 
-            realtime.open("connection", "session", "ticket", sessions.events::add).join();
-            realtime.onSessionEnded(new SpeakingSessionService.SessionEndedEvent("session", "learner"));
+        realtime.open("connection", "session", "ticket", sessions.events::add).join();
+        realtime.onSessionEnded(new SpeakingSessionService.SessionEndedEvent("session", "learner"));
 
-            for (int i = 0; i < 100 && sessions.events.stream().noneMatch(event ->
-                    "SESSION_ENDED".equals(event.get("type"))); i++) {
-                Thread.sleep(10);
-            }
-            Map<String, Object> ended = sessions.events.stream()
-                    .filter(event -> "SESSION_ENDED".equals(event.get("type"))).findFirst().orElseThrow();
-            assertEquals(SpeakingSession.Status.INCOMPLETE,
-                    ((SpeakingSessionResponse) ended.get("snapshot")).status());
+        for (int i = 0; i < 100 && sessions.events.stream().noneMatch(event ->
+                "SESSION_ENDED".equals(event.get("type"))); i++) {
+            Thread.sleep(10);
         }
+        Map<String, Object> ended = sessions.events.stream()
+                .filter(event -> "SESSION_ENDED".equals(event.get("type"))).findFirst().orElseThrow();
+        assertEquals(SpeakingSession.Status.INCOMPLETE,
+                ((SpeakingSessionResponse) ended.get("snapshot")).status());
     }
 
     private static boolean settle(SpeakingSessionService service, String sessionId, String turnId,
@@ -645,10 +599,8 @@ class SpeakingConversationRuntimeTest {
     }
 
     private static SpeakingRealtimeService realtime(SpeakingSessionService sessions,
-            ConversationEvaluator evaluator, SpeechSynthesisPort tts, SpeakingConversationComposer composer,
-            boolean enabled) {
-        return new SpeakingRealtimeService(sessions, stream(), evaluator, tts,
-                enabled ? Optional.of(composer) : Optional.empty());
+            SpeechSynthesisPort tts, SpeakingConversationComposer composer) {
+        return new SpeakingRealtimeService(sessions, stream(), tts, composer);
     }
 
     private static void awaitClosing(SettlementFixture fixture) throws InterruptedException {
@@ -946,7 +898,6 @@ class SpeakingConversationRuntimeTest {
             return turn;
         }
         public void recordUsage(String sessionId, String turnId, SpeakingUsageSegment.Kind kind, Instant started, Instant ended) {}
-        public void assessed(String sessionId, String turnId, ConversationEvaluator.Result result) {}
         public void assessmentFailed(String sessionId, String turnId, long epoch) {
             if (epoch != currentState.getControllerEpoch() || !currentState.isOpen()) return;
             failureCalls.incrementAndGet();
