@@ -548,12 +548,13 @@ class PlacementMongoPersistenceTest {
     }
 
     private static List<String> previewQuestionIds() throws Exception {
-        String json = Files.readString(Path.of("../data/bank-320/runtime-preview/test-sets.json"));
-        @SuppressWarnings("unchecked")
-        List<Map<String, Object>> sets = (List<Map<String, Object>>) MAPPER.readValue(json, List.class);
-        @SuppressWarnings("unchecked")
-        List<Map<String, Object>> items = (List<Map<String, Object>>) sets.get(0).get("items");
-        return items.stream().map(item -> (String) item.get("questionId")).toList();
+        String json = Files.readString(Path.of("tools/placement/data/dev-v3/selection-manifest.json"));
+        var questions = MAPPER.readTree(json).required("questions");
+        List<String> ids = new ArrayList<>();
+        for (var question : questions) {
+            ids.add(question.required("question_id").asString());
+        }
+        return List.copyOf(ids);
     }
 
     private static List<PlacementQuestion> orderByIds(List<PlacementQuestion> questions, List<String> ids) {
