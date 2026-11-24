@@ -13,3 +13,7 @@ The [old folder router](subscription-quota/README.md) preserves compatibility. A
 Learner periodic assessment: [F01/F02 rules, API and compatibility](assessment.md).
 
 Speaking AI: [as-built backend entry, REST/WebSocket contract, persistence and runtime](speaking-ai/README.md). The related feature handoff is [Speaking with AI](../features/speaking-with-ai/README.md).
+
+Placement Test: [module entry](placement/README.md), [runtime](placement/placement-local-runtime.md), [question bank](placement/placement-admin-question-bank.md), [test sets](placement/placement-admin-test-sets.md) and [read-only attempt lookup](placement/placement-admin-attempt-api.md).
+
+Grammar Learning: [module entry](grammar/README.md), [V2 storage and rules](grammar/grammar-v2-runtime.md), [import/migration](grammar/grammar-v2-importer.md) and [curriculum](grammar/grammar-cefr-roadmap.md). Historical implementation reports are retained in Git history instead of current module contracts.

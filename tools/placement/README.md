@@ -1,6 +1,6 @@
 # Placement data and local development tools
 
-Start with [local runtime](../../docs/technical/placement-local-runtime.md).
+Start with [local runtime](../../docs/technical/placement/placement-local-runtime.md).
 
 ## Portable package
 
@@ -35,32 +35,21 @@ Only this audit requires the original parent `data/bank-320/package-placement-32
 the committed seed-output checksums, snapshot content and all 96 packaged WAVs.
 They do not claim to contact MongoDB or play sound.
 
-## Setup and run
+## Current team handoff
 
-```powershell
-.\tools\placement\setup-local.ps1
-.\tools\placement\setup-local.ps1 -Apply
-.\tools\placement\run-local.ps1
-```
+Use [the shared catalog bundle](../mongo-json-importer/samples/placement/README.md) for a new Placement namespace and [the runtime guide](../../docs/technical/placement/placement-local-runtime.md) to run EngolearnApplication and FE. The bundle includes 320 questions, 16 forms and 96 Cloudinary media references. Do not run the historical setup Apply or import old V1/V2 packages over this bundle.
 
-Setup initializes a missing local .env with a random JWT secret, ensures the Compose
-replica set is healthy and performs input/content preflight. An existing .env is
-never overwritten. No -Apply means no data writes. Existing identical IDs are skipped;
-different content is rejected. The generic importer is not modified.
-
-`-NoStartMongo -Network <network> -MongoUri <uri> -Database <name>` is available
-for an explicitly selected isolated DEV/test replica set. Do not put credentials
-in committed command examples or terminal logs. All input mounts are read-only.
+The generator/setup files below remain for compatibility checks, reproducible source packages and legacy migration. They are not the current catalog importer. Existing snapshots and test dependencies are preserved; remove them only after a separate compatibility migration has been approved and verified.
 
 ## User resume acceptance
 
-GET /api/v1/placement/attempts/current reads safe progress without creating a test. Contract, known side effects, real checks and repeat command: [placement-user-resume.md](../../docs/technical/placement-user-resume.md).
+GET /api/v1/placement/attempts/current reads safe progress without creating a test. Contract, known side effects, real checks and repeat command: [placement-user-resume.md](../../docs/technical/placement/placement-user-resume.md).
 
 ## Data layout (relocated 2026-11-09)
 
 - `tools/placement/data/seed/`: canonical source questions, schema and provenance manifests used by generation/tests.
 - `tools/placement/data/dev-v3/`: generated selection/audio/package manifests and development notes; not importer inputs.
-- `tools/mongo-json-importer/samples/placement-v3-questions.importer.json` and `placement-v3-test-sets-v2.importer.json`: the only current Placement import inputs.
+- `tools/mongo-json-importer/samples/placement-v3-questions.importer.json` and `placement-v3-test-sets-v2.importer.json`: legacy generator import inputs, not the current shared catalog bundle.
 - `tools/mongo-json-importer/samples/placement-media/`: bundled WAVs served by BE.
 
 The old backend-root `data/placement/` was relocated; runtime URLs, question IDs/content, V1/V2 snapshots, Mongo data and media remain unchanged. Paths beginning with parent `data/bank-320/` are historical authoring provenance outside the BE repository, used only by the optional authoring audit; they are not the removed BE data folder. Do not import seed/sidecar JSON directly or import every sample file.

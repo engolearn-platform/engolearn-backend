@@ -12,3 +12,5 @@ The list combines optional filters `search`, `userId`, `testSetCode`, `version`,
 The assigned test-set ID and version identify the snapshot, including after archive. If that version is unavailable, the test-set ID is used for display, `totalQuestions` is null and the detail still includes recorded answers. For `IN_PROGRESS` and `EXPIRED`, the result fields are null and the snapshot's answer keys, explanations and transcripts are blank. A saved zero is returned as zero for a scored attempt. Guest display references come from the attempt ID. Claimed attempts show the associated User ID and `ALREADY_CLAIMED` status.
 
 Lookup reads the stored attempt and version. It does not resolve deadlines, claim results or update a learner profile.
+
+The current FE GUI omits the Version input by owner decision. It keeps attempt/User ID, test-set code with name suggestions, status, CEFR and date bounds. Backend version filtering remains compatible; historical version display and exact ID/version name matching are retained. An omitted version must not leave a stale hidden version predicate.

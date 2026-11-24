@@ -113,4 +113,4 @@ Use the repository's existing ProblemDetail + `code` conventions. Do not expose 
 - No public delete capability. Replacing a reference does not delete the old asset.
 - No reference tracking or orphan cleanup. Do not assume an unreferenced media is automatically removed.
 - No generic Media REST controller or Media Library UI.
-- Speaking and Assessment still require their owner integrations. Placement has a feature-owned adapter/migration on this branch; see [handoff and verification](../placement-grammar-dev-integration.md).
+- Speaking and Assessment still require their owner integrations. Placement has a feature-owned adapter/migration on this branch; see [handoff and verification](../placement/README.md).

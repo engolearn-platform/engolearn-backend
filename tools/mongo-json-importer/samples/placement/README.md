@@ -44,4 +44,4 @@ Gói có đáp án/transcript quản trị và URL media công khai; không có 
 - Importer thật, dry-run trên namespace Mongo biệt lập:528 bản ghi,4 collection,0 lỗi/0 trùng,0 ghi. Chưa apply gói vào DB dùng chung hoặc một DB mới.
 - Kiểm thử FE/BE thật cho kết quả1 đúng/1 sai/18 bỏ trống: Sai19, không giả lập đáp án đã chọn;1/1 đạt,0 skip.
 
-Chi tiết thiết kế và giới hạn: [báo cáo danh mục320 câu](../../../../docs/technical/placement-catalog-320.md).
+Chi tiết thiết kế và giới hạn: [báo cáo danh mục320 câu](../../../../docs/technical/placement/README.md).

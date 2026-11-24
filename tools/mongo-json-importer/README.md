@@ -238,5 +238,5 @@ the unmodified generic importer with skip; different content aborts without
 replacement. It selects only questions + V2 and never resets attempts. Do not use
 the default all-samples import just to enable Placement.
 
-See [Placement local runtime](../../docs/technical/placement-local-runtime.md)
+See [Placement local runtime](../../docs/technical/placement/placement-local-runtime.md)
 for prerequisites, fresh-clone setup, environment isolation and legacy V1 audio.

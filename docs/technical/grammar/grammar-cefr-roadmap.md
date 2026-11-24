@@ -1,8 +1,8 @@
 # Lộ trình Grammar A1–B2 hiện hành
 
-Cập nhật23/11/2026: 43 chủ đề/106 bài/530 câu. Xếp cấp là lựa chọn biên soạn của EngoLearn dựa trên nguồn uy tín, không phải danh mục CEFR bắt buộc. [Nguồn và khoảng trống](grammar-coverage-sources.md), [kết quả](grammar-coverage-result.md).
+Cập nhật23/11/2026: 43 chủ đề/106 bài/530 câu. Xếp cấp là lựa chọn biên soạn của EngoLearn dựa trên nguồn uy tín, không phải danh mục CEFR bắt buộc. [Nguồn và khoảng trống](grammar-coverage-sources.md), [kết quả](README.md).
 
-Topic mới được chèn theo thứ tự học phù hợp, giữ thứ tự tương đối giữa Topic cũ. Trong level đã mở, các Topic published đều được chọn; Lesson trong cùng Topic mới học tuần tự. Tất cả nội dung thêm vẫn Nháp; không đồng nhất inventory biên soạn với inventory đã xuất bản.
+Topic mới được chèn theo thứ tự học phù hợp, giữ thứ tự tương đối giữa Topic cũ. Trong level đã mở, các Topic published đều được chọn; Lesson trong cùng Topic mới học tuần tự. Seed bàn giao là Nháp; trạng thái xuất bản thực tế phụ thuộc DB đích. Không đồng nhất inventory biên soạn với inventory đã xuất bản.
 
 | Cấp/thứ tự | Mã | Tên cấu trúc | Số bài biên soạn |
 |---|---|---|---:|
