@@ -12,6 +12,10 @@ import fit.iuh.engolearn.topic.controller.TopicLearningController;
 import fit.iuh.engolearn.topic.service.TopicBrowseService;
 import fit.iuh.engolearn.topic.service.TopicLearningService;
 import fit.iuh.engolearn.user.controller.AuthController;
+import fit.iuh.engolearn.user.controller.UserProfileController;
+import fit.iuh.engolearn.user.dto.response.UserProfileResponse;
+import fit.iuh.engolearn.user.service.UserProfileService;
+import fit.iuh.engolearn.shared.enums.CefrLevel;
 import fit.iuh.engolearn.user.service.UserAuthService;
 import fit.iuh.engolearn.user.infra.security.AccessCookieAuthFilter;
 import fit.iuh.engolearn.user.model.RefreshSession;
@@ -49,6 +53,7 @@ import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.options;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.request;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
@@ -59,7 +64,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         TopicBrowseController.class,
         TopicLearningController.class,
         LearningPathController.class,
-        AuthController.class
+        AuthController.class,
+        UserProfileController.class
 })
 @Import({SecurityConfig.class, SecurityContextCurrentUserProvider.class,
         AccessCookieAuthFilter.class, JwtTokenService.class})
@@ -104,6 +110,7 @@ class SecurityIntegrationTest {
     @MockitoBean private fit.iuh.engolearn.learningpath.service.LearningPathDaySubmissionService submissionService;
     @MockitoBean private fit.iuh.engolearn.learningpath.service.LearningPathDayResultService dayResultService;
     @MockitoBean private UserAuthService userAuthService;
+    @MockitoBean private UserProfileService userProfileService;
     @Autowired private JwtTokenService jwtTokenService;
     @MockitoBean private UserRepository userRepository;
     @MockitoBean private RefreshSessionRepository refreshSessionRepository;
@@ -170,6 +177,58 @@ class SecurityIntegrationTest {
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
                 .andExpect(jsonPath("$.status").value(401))
                 .andExpect(jsonPath("$.detail").exists());
+    }
+
+    @Test
+    void anonymousProfileReadIsUnauthorized() throws Exception {
+        mockMvc.perform(get("/api/v1/profile/me"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.code").value("AUTHENTICATION_REQUIRED"))
+                .andExpect(header().string("Cache-Control", "no-store"));
+        verifyNoInteractions(userProfileService);
+    }
+
+    @ParameterizedTest
+    @EnumSource(UserRole.class)
+    void everySignedInRoleCanReadOnlyItsOwnProfile(UserRole role) throws Exception {
+        when(userProfileService.getCurrentProfile(USER_ID)).thenReturn(new UserProfileResponse(null, CefrLevel.A2));
+
+        mockMvc.perform(get("/api/v1/profile/me")
+                        .cookie(accessCookie(role))
+                        .header("X-Dev-User-Id", OTHER_USER_ID))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.cefrLevel").value("A2"))
+                .andExpect(jsonPath("$.data.displayName").value(org.hamcrest.Matchers.nullValue()))
+                .andExpect(header().string("Cache-Control", "no-store"));
+        verify(userProfileService).getCurrentProfile(USER_ID);
+    }
+
+    @Test
+    void anonymousProfileUpdateIsUnauthorized() throws Exception {
+        mockMvc.perform(patch("/api/v1/profile/me")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"displayName\":\"Someone\"}"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("AUTHENTICATION_REQUIRED"));
+        verifyNoInteractions(userProfileService);
+    }
+
+    @ParameterizedTest
+    @EnumSource(UserRole.class)
+    void everySignedInRoleCanUpdateOnlyItsOwnName(UserRole role) throws Exception {
+        when(userProfileService.updateDisplayName(USER_ID, "Nguyễn Minh"))
+                .thenReturn(new UserProfileResponse("Nguyễn Minh", CefrLevel.A2));
+
+        mockMvc.perform(patch("/api/v1/profile/me")
+                        .cookie(accessCookie(role))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"displayName\":\"Nguyễn Minh\"}")
+                        .header("X-Dev-User-Id", OTHER_USER_ID))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.displayName").value("Nguyễn Minh"))
+                .andExpect(header().string("Cache-Control", "no-store"));
+        verify(userProfileService).updateDisplayName(USER_ID, "Nguyễn Minh");
     }
 
     @Test
