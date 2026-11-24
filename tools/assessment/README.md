@@ -2,10 +2,34 @@
 
 ## Chạy Placement → Đánh giá định kỳ trên máy thử
 
-Cần hai checkout đã ghép tương ứng, JDK 21, Node 22 LTS, Python 3.9+, curl, OpenSSL
-và Docker Engine hoạt động trên Ubuntu hoặc WSL2. Từ gốc backend, chạy:
+Cần Git, JDK 21, Node 22 từ 22.18, npm, Python 3.9+, curl, OpenSSL và
+Docker chạy Linux containers. Dùng terminal Ubuntu hoặc terminal của distro WSL2.
+Trên Windows, kiểm tra cột `VERSION` của distro bằng `wsl -l -v` trong PowerShell.
+Trong Docker Desktop, chọn **Linux containers**, dùng **WSL 2 based engine** và bật
+**Settings → Resources → WSL Integration** cho distro đó. Mở terminal WSL2,
+kiểm tra các công cụ bên trong distro và chạy `docker info` trước khi khởi động demo.
+Xem [hướng dẫn Docker Desktop và WSL2](https://docs.docker.com/desktop/features/wsl/).
+
+Kiểm tra Docker trong terminal sẽ chạy demo:
 
 ```bash
+docker info --format '{{.ServerVersion}}'
+docker context inspect --format '{{.Endpoints.docker.Host}}' "$(docker context show)"
+javac -version
+node --version
+npm --version
+python3 --version
+```
+
+Script cần endpoint Docker cục bộ bắt đầu bằng `unix://`. Nếu Docker chỉ chạy
+được trong PowerShell, kiểm lại WSL Integration và context trong terminal WSL2.
+
+Từ một thư mục mới, clone cùng nhánh bàn giao ở cả hai repo rồi chạy từ backend:
+
+```bash
+git clone -b feat/pfc-placement-integration https://github.com/engolearn-platform/engolearn-backend.git
+git clone -b feat/pfc-placement-integration https://github.com/engolearn-platform/engolearn-frontend.git
+cd engolearn-backend
 bash tools/assessment/run-placement-demo.sh ../engolearn-frontend
 ```
 
@@ -16,6 +40,11 @@ dùng DB mới. Hai ứng dụng được mở từ mã của từng checkout. K
 quả đã có hoặc nạp baseline giả. Giữ terminal mở, mở URL in ra và đăng ký học viên
 mới. Dừng bằng Ctrl+C. Ba cổng mặc định là 28380 (BE), 28300 (FE) và 28317 (Mongo).
 Đổi bằng biến `PFC_BACKEND_PORT`, `PFC_FRONTEND_PORT` và `PFC_MONGO_PORT` khi cần.
+
+Với cổng mặc định, mở [Placement demo](http://localhost:28300/placement).
+Khi chạy trong WSL2, mở địa chỉ đó từ trình duyệt Windows. Demo local dùng WAV
+mẫu đi kèm và không cần tài khoản Cloudinary hay MongoDB có sẵn.
+Xem [cách Windows truy cập ứng dụng trong WSL](https://learn.microsoft.com/windows/wsl/networking).
 
 1. Mở `/assessment` sau khi đăng nhập. Mục điều kiện dẫn tới `/placement` nếu tài
    khoản chưa có kết quả.
