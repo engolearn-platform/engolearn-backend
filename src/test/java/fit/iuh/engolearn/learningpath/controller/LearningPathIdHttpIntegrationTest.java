@@ -1,8 +1,10 @@
 package fit.iuh.engolearn.learningpath.controller;
 
 import fit.iuh.engolearn.config.AbstractMongoIntegrationTest;
+import fit.iuh.engolearn.shared.enums.CefrLevel;
 import fit.iuh.engolearn.shared.enums.UserRole;
 import fit.iuh.engolearn.shared.security.impl.JwtTokenService;
+import fit.iuh.engolearn.user.model.UserProfile;
 import java.time.Instant;
 import java.util.Date;
 import java.util.List;
@@ -39,6 +41,7 @@ class LearningPathIdHttpIntegrationTest extends AbstractMongoIntegrationTest {
         String owner = "pfc-demo-learner-v2";
         String attemptId = "native-submitted-assessment";
         seedAccount(owner);
+        mongoTemplate.insert(UserProfile.builder().id(owner).cefrLevel(CefrLevel.A1).build());
         seedEligibleProjection(owner, attemptId);
         Document input = Document.parse(java.nio.file.Files.readString(java.nio.file.Path.of(
                 "tools/mongo-json-importer/samples/assessment-demo.json")));
@@ -74,6 +77,8 @@ class LearningPathIdHttpIntegrationTest extends AbstractMongoIntegrationTest {
         JsonNode submitted = mapper.readTree(authenticatedRequest(base + "/api/v1/assessment/attempts/" + attemptId + "/submit",
                 HttpMethod.POST, "{\"confirmed\":true}", owner)).path("data");
         assertThat(submitted.path("status").asString()).isEqualTo("READY");
+        assertThat(mongoTemplate.findById(owner, UserProfile.class))
+                .extracting(UserProfile::getCefrLevel).isEqualTo(CefrLevel.A2);
         JsonNode recommendation = mapper.readTree(authenticatedGet(recommendationUrl, owner)).path("data");
         assertThat(recommendation.path("state").asString()).isEqualTo("AVAILABLE");
         String body = "{\"assessmentAttemptId\":\"" + attemptId + "\",\"microSkills\":[\"Reading for Gist\"]}";
