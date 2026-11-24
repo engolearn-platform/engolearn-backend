@@ -56,7 +56,7 @@ trap 'exit 143' TERM
 
 # The fixture is loaded only in the empty DB created by this run.
 python3 "$backend/tools/assessment/dev-placement-fixtures.py" > "$logs/fixtures.json"
-container=$(docker run -d --rm --publish "127.0.0.1:$mongo_port:$mongo_port" mongo:8.0.29-noble \
+container=$(docker run -d --rm --ulimit nofile=64000:64000 --publish "127.0.0.1:$mongo_port:$mongo_port" mongo:8.0.29-noble \
     mongod --bind_ip_all --port "$mongo_port" --replSet pfcdemo)
 mongo=(docker exec -i "$container" mongosh --host 127.0.0.1 --port "$mongo_port" --quiet)
 await_mongo() {
