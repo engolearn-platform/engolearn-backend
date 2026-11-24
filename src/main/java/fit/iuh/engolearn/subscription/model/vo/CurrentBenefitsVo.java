@@ -1,8 +1,6 @@
 package fit.iuh.engolearn.subscription.model.vo;
 
 import fit.iuh.engolearn.shared.EmbeddedDocument;
-import fit.iuh.engolearn.subscription.model.enums.*;
-import java.time.Instant;
 import java.util.List;
 import lombok.*;
 import org.springframework.data.mongodb.core.mapping.Field;
@@ -15,11 +13,13 @@ import org.springframework.data.mongodb.core.mapping.Field;
 @EqualsAndHashCode
 public class CurrentBenefitsVo implements EmbeddedDocument {
     @Field("plan_code")
-    private PlanCode planCode;
+    private String planCode;
     @Field("display_name")
     private String displayName;
     @Field("policy_snapshot_id")
     private String policySnapshotId;
+    @Field("managed_product")
+    private boolean managedProduct;
     @Field("benefits")
     @Singular
     private List<PlanBenefitVo> benefits;

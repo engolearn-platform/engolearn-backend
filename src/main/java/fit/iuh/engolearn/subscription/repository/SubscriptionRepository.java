@@ -32,6 +32,9 @@ public interface SubscriptionRepository {
     List<PolicyState> findDuePolicyStates(Instant at);
     boolean activatePendingPolicy(PolicyState state);
     boolean schedulePolicy(PolicyState old, PolicyVersion next);
+    boolean replacePendingPolicy(PolicyState old, PolicyVersion next);
+    boolean cancelPendingPolicy(PolicyState old);
+    boolean replacePendingWithActive(PolicyState old, PolicyVersion next);
     PublicationReceipt findManifestPublicationReceipt(String manifestId);
     void ensurePublicationStorage();
 }
