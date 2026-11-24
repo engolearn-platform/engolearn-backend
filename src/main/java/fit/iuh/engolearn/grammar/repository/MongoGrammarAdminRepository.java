@@ -24,6 +24,8 @@ import org.springframework.stereotype.Repository;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.Instant;
+import java.text.Normalizer;
+import java.util.Locale;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -43,7 +45,7 @@ public class MongoGrammarAdminRepository implements GrammarAdminRepository {
     public TopicPage search(String search, GrammarLevel level, String status, int page, int size) {
         var filters = new ArrayList<Criteria>();
         if (search != null && !search.isBlank()) {
-            Pattern term = Pattern.compile(Pattern.quote(search.strip()), Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE);
+            Pattern term = accentInsensitiveLiteral(search.strip());
             filters.add(new Criteria().orOperator(Criteria.where("titleVi").regex(term),
                     Criteria.where("titleEn").regex(term), Criteria.where("code").regex(term)));
         }
@@ -58,6 +60,25 @@ public class MongoGrammarAdminRepository implements GrammarAdminRepository {
         query.with(Sort.by("level", "order", "code")).skip((long) page * size).limit(size);
         query.fields().exclude("lessons.draft").exclude("lessons.published");
         return new TopicPage(storage.find(query), total);
+    }
+
+    private static Pattern accentInsensitiveLiteral(String input) {
+        String normalized = Normalizer.normalize(input, Normalizer.Form.NFD)
+                .replaceAll("\\p{M}+", "").replace('đ', 'd').replace('Đ', 'D').toLowerCase(Locale.ROOT);
+        StringBuilder expression = new StringBuilder();
+        for (int codePoint : normalized.codePoints().toArray()) {
+            expression.append(switch (codePoint) {
+                case 'a' -> "[aàáạảãăằắặẳẵâầấậẩẫ]";
+                case 'e' -> "[eèéẹẻẽêềếệểễ]";
+                case 'i' -> "[iìíịỉĩ]";
+                case 'o' -> "[oòóọỏõôồốộổỗơờớợởỡ]";
+                case 'u' -> "[uùúụủũưừứựửữ]";
+                case 'y' -> "[yỳýỵỷỹ]";
+                case 'd' -> "[dđ]";
+                default -> Pattern.quote(new String(Character.toChars(codePoint)));
+            });
+        }
+        return Pattern.compile(expression.toString(), Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE);
     }
 
     @Override

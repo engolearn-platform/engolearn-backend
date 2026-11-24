@@ -464,7 +464,7 @@ public class GrammarLearnerServiceImpl implements GrammarLearnerService {
         Integer bestScore = progress == null ? null : progress.getBestScore();
         return new GrammarLessonSummaryResponse(lesson.getId(), slot.number(), content.getTitleVi(), content.getTitleEn(),
                 content.getObjective(), slot.status(), slot.unlocked(), bestScore,
-                seen != null && seen < lesson.getContentVersion());
+                seen != null && seen < lesson.getContentVersion(), content.getBlocks().size());
     }
 
     private static GrammarBlockResponse blockResponse(GrammarBlockVo block) {

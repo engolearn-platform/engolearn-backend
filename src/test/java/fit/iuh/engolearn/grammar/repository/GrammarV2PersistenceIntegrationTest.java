@@ -75,6 +75,15 @@ class GrammarV2PersistenceIntegrationTest {
         assertThat(topic.getLessons()).hasSize(3);
         return topic;
     }
+    @Test void accentInsensitiveLiteralSearchUsesRealV2Data() {
+        assertThat(admin.search("thi hien tai don", GrammarLevel.A1, null, 0, 10).topics())
+                .extracting(GrammarTopic::getId).containsExactly(topicId);
+        assertThat(admin.search("THÌ HIỆN TẠI ĐƠN", GrammarLevel.A1, null, 0, 10).topics())
+                .extracting(GrammarTopic::getId).containsExactly(topicId);
+        assertThat(admin.search("thi hien tai don", GrammarLevel.A2, null, 0, 10).total()).isZero();
+        assertThat(admin.search(".*", null, null, 0, 10).total()).isZero();
+    }
+
     @Test void realV2SeedHydratesAllThreeLessons() {
         var topic = full();
         assertThat(topic.getLessons().getFirst().getDraft().getBlocks()).hasSize(5);

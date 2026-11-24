@@ -51,3 +51,7 @@ Grammar stays inside the existing feature. FE components/views use `learning/` a
 BE web records are individual files in `grammar/dto/request` and `grammar/dto/response`, with Request/Response suffixes. Management content requests and responses are mapped explicitly in GrammarAdminMapper. The consolidated GrammarAdminDtos/GrammarLearnerRequests/GrammarLearnerResponses classes were removed; the seed validator imports the replacement records. JSON fields, validation, roles and business rules are preserved. No persistence model, collection, ID, seed content or learner progress is migrated by this change.
 
 Chi tiết thay đổi cấu trúc và kết quả kiểm chứng: [báo cáo chuẩn hóa](grammar-structure-standardization.md).
+
+## UX metadata và tìm kiếm24/11/2026
+
+GrammarLessonSummaryResponse thêm blockCount, đếm content.getBlocks của bản Published đã hydrate cùng topic. Thay đổi JSON additive, không đổi collection/ID hoặc tiến độ. MongoGrammarAdminRepository tìm literal không dấu/hoa thường bằng character class tiếng Việt và escape ký tự regex; query giữ count/filter/paging/sort/export hiện có. Không thêm fuzzy index hoặc sửa lỗi chính tả. Test GrammarV2PersistenceIntegrationTest.accentInsensitiveLiteralSearchUsesRealV2Data dùng seed V2 thật trên Mongo replica set riêng, kiểm tra không dấu/có dấu/CEFR và .*.
