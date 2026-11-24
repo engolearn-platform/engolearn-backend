@@ -1,5 +1,35 @@
 # Chuẩn bị dữ liệu Đánh giá định kỳ cho bản demo
 
+## Chạy Placement → Đánh giá định kỳ trên máy thử
+
+Cần hai checkout đã ghép tương ứng, JDK 21, Node 22 LTS, Python 3.9+, curl, OpenSSL
+và Docker Engine hoạt động trên Ubuntu hoặc WSL2. Từ gốc backend, chạy:
+
+```bash
+bash tools/assessment/run-placement-demo.sh ../engolearn-frontend
+```
+
+Nếu checkout frontend nằm nơi khác, truyền đường dẫn thực. Chương trình tạo MongoDB
+8 replica set mới trên loopback và nạp đúng một đề Placement đã xuất bản theo Form 01
+với WAV dự phòng đóng gói, một đề định kỳ demo v2 và catalog cần thiết. Mỗi lần chạy
+dùng DB mới. Hai ứng dụng được mở từ mã của từng checkout. Không cần dùng lại kết
+quả đã có hoặc nạp baseline giả. Giữ terminal mở, mở URL in ra và đăng ký học viên
+mới. Dừng bằng Ctrl+C. Ba cổng mặc định là 28380 (BE), 28300 (FE) và 28317 (Mongo).
+Đổi bằng biến `PFC_BACKEND_PORT`, `PFC_FRONTEND_PORT` và `PFC_MONGO_PORT` khi cần.
+
+1. Mở `/assessment` sau khi đăng nhập. Mục điều kiện dẫn tới `/placement` nếu tài
+   khoản chưa có kết quả.
+2. Làm và nộp Placement bằng cùng tài khoản. Nhấp **Đến đánh giá định kỳ** ở trang kết quả.
+3. Xác nhận có kết quả đầu vào hợp lệ, có đề định kỳ đã xuất bản và còn lượt.
+   Nghe thử, xác nhận, bắt đầu, lưu đáp án, nộp và mở kết quả/lịch sử.
+4. Mở lại `/assessment` để kiểm mốc chờ 21 ngày. Đăng nhập tài khoản thử thứ hai
+   để kiểm không mở được kết quả của tài khoản đầu.
+
+Nếu dùng DB dev nhóm thay cho demo, tự nạp/publish đề định kỳ riêng theo hướng dẫn
+Assessment. Placement, đề định kỳ, media và catalog đều phải nằm trong môi trường
+mà backend đang chạy và tại DB `APP_DB` đã cấu hình. Dùng profile `prod` với đề
+chính thức và Media được duyệt theo phần dưới khi nghiệm thu môi trường nhóm.
+
 ## Tách nguồn dữ liệu
 
 Dùng profile `dev` để soạn và thử bộ WAV mẫu. Bản demo chung dùng profile `prod`,

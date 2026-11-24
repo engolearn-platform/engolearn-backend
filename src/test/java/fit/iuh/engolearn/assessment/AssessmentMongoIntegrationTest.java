@@ -11,6 +11,7 @@ import fit.iuh.engolearn.quota.contract.QuotaAvailability;
 import fit.iuh.engolearn.subscription.dto.request.PublicationManifestRequest;
 import fit.iuh.engolearn.subscription.service.SubscriptionPublicationService;
 import fit.iuh.engolearn.subscription.service.SubscriptionService;
+import fit.iuh.engolearn.user.contract.UserAssessmentProgress;
 import java.io.ByteArrayInputStream;
 import java.nio.file.*;
 import java.security.MessageDigest;
@@ -69,6 +70,7 @@ class AssessmentMongoIntegrationTest {
     @Autowired AssessmentService service;
     @MockitoSpyBean AssessmentMedia media;
     @Autowired AssessmentRepository store;
+    @Autowired UserAssessmentProgress progress;
     @Autowired AssessmentGrantRevocation revocations;
     @Autowired SubscriptionPublicationService publications;
     @Autowired SubscriptionService subscriptions;
@@ -187,6 +189,58 @@ class AssessmentMongoIntegrationTest {
     }
 
     @Test
+    void ownedPlacementResultDoesNotReplaceAnUnavailablePeriodicPaper() {
+        mongo.getCollection("assessment_dev_baselines").deleteOne(new Document("_id", USER));
+        mongo.getCollection("placement_attempts").insertOne(new Document("_id", UUID.randomUUID().toString())
+                .append("user_id", USER).append("status", "SUBMITTED").append("correct_count", 18)
+                .append("placement_level", "B2").append("started_at", Date.from(START.minusSeconds(90))));
+        mongo.remove(new Query(), AssessmentPaper.class);
+
+        var preparation = service.preparation(USER);
+        assertThat(preparation.baselineValid()).isTrue();
+        assertThat(preparation.paperAvailable()).isFalse();
+        assertThatThrownBy(() -> service.start(USER, command())).isInstanceOfSatisfying(
+                AssessmentException.class, e -> assertThat(e.code()).isEqualTo("NO_PAPER"));
+        assertThat(remaining()).isEqualTo(1);
+    }
+
+    @Test
+    void submissionMigratesLegacyLevelsIntoExistingUserProfile() {
+        var paper = store.published().getFirst();
+        paper.setDemonstration(false);
+        mongo.save(paper);
+        var attempt = startModern();
+        clock.at = START.plusSeconds(2);
+        save(attempt, 1, 1, 1);
+
+        var profileType = fit.iuh.engolearn.user.model.UserProfile.class;
+        var account = Query.query(Criteria.where("_id").is(USER));
+        var update = new Update().unset("assessment_progress").set("display_name", "Profile name")
+                .set("cefr_level", "B2");
+        assertThat(mongo.updateFirst(account, update, profileType).getMatchedCount()).isEqualTo(1);
+        var historicalTime = START.minus(Duration.ofDays(22));
+        var legacy = new Document("user_id", USER).append("initial_level", "A2")
+                .append("current_level", "B1").append("highest_level", "B1")
+                .append("latest_valid_at", Date.from(historicalTime))
+                .append("_class", "fit.iuh.engolearn.assessment.model.AssessmentProfile");
+        mongo.getCollection("assessment_profiles").insertOne(legacy);
+        assertThat(service.preparation(USER).highestLevel()).isEqualTo("B1");
+
+        assertThat(service.submit(USER, attempt.id(), binding).status()).isEqualTo("READY");
+        var profile = mongo.findById(USER, profileType);
+        var periodic = profile.getAssessmentProgress();
+        assertThat(profile.getDisplayName()).isEqualTo("Profile name");
+        assertThat(profile.getCefrLevel().name()).isEqualTo("B2");
+        assertThat(periodic.initialLevel()).isEqualTo("A2");
+        assertThat(periodic.currentLevel()).isEqualTo("A1");
+        assertThat(periodic.highestLevel()).isEqualTo("B1");
+        assertThat(periodic.latestValidAttemptId()).isEqualTo(attempt.id());
+        assertThat(mongo.getCollection("assessment_profiles").find(new Document("user_id", USER)).first())
+                .isEqualTo(legacy);
+        assertThat(service.result(USER, attempt.id()).currentLevel()).isEqualTo("A1");
+    }
+
+    @Test
     void verifiedRefundDeliveryIsIdempotentAndOnlyRevokesItsCorrelatedGrant() {
         var consumer = new fit.iuh.engolearn.assessment.infra.event.AssessmentRefundConsumer(revocations, mapper);
         var refunded = new fit.iuh.engolearn.subscription.contract.event.PremiumPeriodRefundedEvent(USER, "snapshot-1", START);
@@ -230,7 +284,7 @@ class AssessmentMongoIntegrationTest {
         try {assertThatThrownBy(this::start).isInstanceOf(RuntimeException.class);}
         finally {mongo.executeCommand(new Document("collMod","assessment_attempts").append("validator",new Document()));}
         assertThat(mongo.getCollection("assessment_attempts").countDocuments()).isZero();
-        assertThat(store.profile(USER)).isNull();assertThat(remaining()).isEqualTo(1);
+        assertThat(progress.find(USER, true)).isEmpty();assertThat(remaining()).isEqualTo(1);
     }
     @Test void missingAudioRollsBackStartAndDoesNotCharge() throws Exception {
         Files.delete(MEDIA.resolve("unit14.wav"));
@@ -238,7 +292,7 @@ class AssessmentMongoIntegrationTest {
         assertThat(mongo.getCollection("assessment_attempts").countDocuments()).isZero();assertThat(remaining()).isEqualTo(1);
     }
     @Test void quotaDenialAfterAbandonDoesNotCreateAnotherAttemptOrResetCooldown() {
-        var a=start();service.abandon(USER,a.id());assertThat(store.profile(USER).getLatestValidAt()).isNull();
+        var a=start();service.abandon(USER,a.id());assertThat(progress.find(USER, true).orElseThrow().latestValidAt()).isNull();
         assertThatThrownBy(this::start).isInstanceOfSatisfying(AssessmentException.class,e->assertThat(e.code()).isEqualTo("QUOTA_EXHAUSTED"));
         assertThat(mongo.getCollection("assessment_attempts").countDocuments()).isEqualTo(1);
     }
@@ -332,13 +386,13 @@ class AssessmentMongoIntegrationTest {
         assertThatThrownBy(()->service.result(USER,a.id())).isInstanceOf(AssessmentException.class);
         assertThatThrownBy(()->service.review(USER,a.id())).isInstanceOf(AssessmentException.class);
         var row=service.history(USER,0,20).getFirst();assertThat(row.score()).isNull();assertThat(row.level()).isNull();assertThat(row.series()).isNull();
-        assertThat(store.profile(USER).getLatestValidAt()).isNull();assertThat(remaining()).isZero();
+        assertThat(progress.find(USER, true).orElseThrow().latestValidAt()).isNull();assertThat(remaining()).isZero();
     }
     @Test void deadlineTakesPrecedenceOverLateAbandonAndUsesDeadlineAsCooldownOrigin() {
         var a=start();save(a,1,1,1);clock.at=START.plusSeconds(4000);
         assertThat(service.abandon(USER,a.id()).status()).isEqualTo("READY");
         assertThat(service.result(USER,a.id()).submittedAt()).isEqualTo(START.plusSeconds(3600));
-        assertThat(store.profile(USER).getLatestValidAt()).isEqualTo(START.plusSeconds(3600));
+        assertThat(progress.find(USER, true).orElseThrow().latestValidAt()).isEqualTo(START.plusSeconds(3600));
     }
     @Test void cooldownBoundaryAndMonthResetAreIndependent() {
         var a=start();save(a,1,1,1);service.submit(USER,a.id(),binding);

@@ -67,8 +67,6 @@ public class MongoAssessmentRepository implements AssessmentRepository {
         return mongo.find(Query.query(where("status").is("ACTIVE").and("next_due_at").lte(now)).limit(100),AssessmentAttempt.class);
     }
     public AssessmentAttempt save(AssessmentAttempt a) {return mongo.save(a);}
-    public AssessmentProfile profile(String user) {return mongo.findOne(Query.query(where("user_id").is(user)),AssessmentProfile.class);}
-    public void saveProfile(AssessmentProfile profile) {mongo.save(profile);}
     public boolean revoked(String user,String source) {
         return mongo.exists(Query.query(where("user_id").is(user).and("source_id").is(source)),"assessment_grant_revocations");
     }

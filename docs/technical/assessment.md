@@ -52,7 +52,7 @@ Controllers return typed `ApiResponse` DTOs; failures use `ProblemDetail`. No Ma
 module/dependency has been added. Root documents extend `BaseDocument`; embedded values
 implement `EmbeddedDocument`; owned persisted fields have explicit snake_case mappings.
 
-Collections: `assessment_papers`, `assessment_attempts`, `assessment_profiles`,
+Collections: `assessment_papers`, `assessment_attempts`,
 `assessment_gates`, `assessment_grant_revocations`, `assessment_paper_drafts`,
 and `assessment_audio_assets`. The attempt embeds a copied
 `AssessmentPaperSnapshotVo`, not an indexed paper root. History paginates/project rows
@@ -68,9 +68,15 @@ are bounded. Request/command IDs and answer sequences protect replays and stale 
 Assessment gets an owned, completed baseline through `PlacementBaselineLookup`.
 When there is no valid baseline or prior result, an eligible new attempt is blocked.
 The test-only baseline adapter can fill a missing Placement baseline in `dev & !prod`.
-Demonstration papers and attempts are excluded elsewhere. The internal current level
-tracks the latest valid periodic result and can decrease. For an official paper,
-`UserLevelPromotion` advances the level used by Topic monotonically in the result transaction.
+Demonstration papers and attempts are excluded elsewhere. The User contract stores
+the Placement starting level, latest periodic level, highest periodic level and last
+valid attempt in `user_profiles.assessment_progress`. The latest periodic level can
+decrease. For an official paper, `UserLevelPromotion` advances the shared learning
+unlock level `user_profiles.cefr_level` monotonically in the same result transaction.
+Existing rows in `assessment_profiles` are read only when embedded progress is absent.
+The next valid submission migrates their progress to the existing User profile without
+replacing its display name or unlock level. Keep the legacy data during rollout and let
+User repair missing profiles before retrying a write.
 The Learning Path contract exposes native results without writing plans. Official submission
 returns a retryable `ASSESSMENT_LEVEL_SYNC_UNAVAILABLE` if User cannot promote its profile.
 The result transaction rolls back. A normal registered user has a User profile; repair
@@ -215,7 +221,14 @@ and its [WAV files](../../tools/mongo-json-importer/samples/assessment-media). T
    and preparation reports `paperAvailable: true` and `baselineValid: true`.
    Then use the sound check, start and submit a test attempt, and verify the new entry in History.
 
-The paper import does not create a login or supply Placement results. For a newly registered
+For the signed-in Placement-to-Assessment journey on a clean development machine,
+use [the isolated local demo](../../tools/assessment/README.md#chạy-placement--đánh-giá-định-kỳ-trên-máy-thử).
+It seeds a published Placement form and a separate published version-2 periodic paper.
+`baselineValid` means the account already qualifies by result. `paperAvailable`
+means the current environment has a published periodic paper eligible for selection.
+A valid Placement result alone cannot make a periodic paper available.
+
+The paper-only import does not create a login or supply Placement results. For a newly registered
 test account in an isolated development database, register it normally after importing the
 development catalog; normal registration creates its Subscription account. Do not use the
 retired account-only manifest. For a test-only baseline, import a separate local JSON file with

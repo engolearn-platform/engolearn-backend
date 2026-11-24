@@ -6,6 +6,9 @@ import fit.iuh.engolearn.assessment.model.vo.AssessmentUnitVo;
 import fit.iuh.engolearn.assessment.model.vo.AssessmentPaperSnapshotVo;
 import fit.iuh.engolearn.shared.enums.CefrLevel;
 import fit.iuh.engolearn.user.contract.UserLevelPromotion;
+import fit.iuh.engolearn.user.contract.UserAssessmentProgress;
+import fit.iuh.engolearn.user.contract.dto.UserAssessmentProgressDto;
+import fit.iuh.engolearn.user.contract.exception.UserLevelPromotionException;
 import fit.iuh.engolearn.assessment.model.enums.*;
 
 import fit.iuh.engolearn.assessment.contract.AssessmentBaselineSource;
@@ -40,6 +43,7 @@ public class AssessmentServiceImpl implements AssessmentService {
     private final AssessmentAccess access;
     private final AssessmentMedia media;
     private final UserLevelPromotion userLevels;
+    private final UserAssessmentProgress userAssessmentProgress;
     private final Clock clock;
     private final Environment environment;
     private boolean development() {var p=List.of(environment.getActiveProfiles());return p.contains("dev")&&!p.contains("prod");}
@@ -51,13 +55,13 @@ public class AssessmentServiceImpl implements AssessmentService {
             if(active!=null) {settleAndGrade(active,now);store.save(active);if(!AssessmentStatus.ACTIVE.equals(active.getStatus())) active=null;}
             var p=profile(user);
             var baseline=baselines.findValidBaseline(user);
-            boolean valid=p!=null&&p.getLatestValidAt()!=null||baseline.isPresent();
-            Instant eligible=p==null||p.getLatestValidAt()==null?null:p.getLatestValidAt().plus(Duration.ofDays(21));
+            boolean valid=p!=null&&p.latestValidAt()!=null||baseline.isPresent();
+            Instant eligible=p==null||p.latestValidAt()==null?null:p.latestValidAt().plus(Duration.ofDays(21));
             return new AssessmentPreparationResponse(valid,eligible,eligible==null||!now.isBefore(eligible),
                     active==null?availability.checkAvailability(user,QUOTA):null,active==null?null:active.getId(),
-                    !papers().isEmpty(),development(),p==null?baseline.map(AssessmentBaselineDto::level).orElse(null):p.getInitialLevel(),
-                    p==null?baseline.map(AssessmentBaselineDto::level).orElse(null):p.getCurrentLevel(),
-                    p==null?baseline.map(AssessmentBaselineDto::level).orElse(null):p.getHighestLevel());
+                    !papers().isEmpty(),development(),p==null?baseline.map(AssessmentBaselineDto::level).orElse(null):p.initialLevel(),
+                    p==null?baseline.map(AssessmentBaselineDto::level).orElse(null):p.currentLevel(),
+                    p==null?baseline.map(AssessmentBaselineDto::level).orElse(null):p.highestLevel());
         });
     }
     public AssessmentStateResponse start(String user, AssessmentStartRequest command) {
@@ -114,14 +118,9 @@ public class AssessmentServiceImpl implements AssessmentService {
                     "pfc:" + command.requestId(), attempt.getId(), at));
             if (!consumed.accepted()) fail(409, "QUOTA_EXHAUSTED", "Đã hết lượt đánh giá trong tháng.");
             if (eligibility.profile() == null) {
-                var profile = new AssessmentProfile();
-                profile.setUserId(user);
-                profile.setDevelopmentData(development());
                 String level = eligibility.baseline().orElseThrow().level();
-                profile.setInitialLevel(level);
-                profile.setCurrentLevel(level);
-                profile.setHighestLevel(level);
-                store.saveProfile(profile);
+                userAssessmentProgress.save(user, new UserAssessmentProgressDto(
+                        level, level, level, null, null, development()));
             }
             store.save(attempt);
             return AssessmentMapper.state(attempt, at, development());
@@ -143,18 +142,18 @@ public class AssessmentServiceImpl implements AssessmentService {
         }
         var profile = profile(user);
         var baseline = baselines.findValidBaseline(user);
-        if ((profile == null || profile.getLatestValidAt() == null) && baseline.isEmpty()) {
+        if ((profile == null || profile.latestValidAt() == null) && baseline.isEmpty()) {
             fail(409, "BASELINE_REQUIRED", "Cần có kết quả đầu vào hợp lệ trước khi bắt đầu.");
         }
-        if (profile != null && profile.getLatestValidAt() != null
-                && at.isBefore(profile.getLatestValidAt().plus(Duration.ofDays(21)))) {
+        if (profile != null && profile.latestValidAt() != null
+                && at.isBefore(profile.latestValidAt().plus(Duration.ofDays(21)))) {
             fail(409, "COOLDOWN", "Chưa đủ 21 ngày từ kết quả hợp lệ gần nhất.");
         }
         return new StartEligibility(profile, baseline);
     }
 
     private record StartPlan(AssessmentStateResponse replay, AssessmentPaper paper) {}
-    private record StartEligibility(AssessmentProfile profile, Optional<AssessmentBaselineDto> baseline) {}
+    private record StartEligibility(UserAssessmentProgressDto profile, Optional<AssessmentBaselineDto> baseline) {}
 
     public AssessmentStateResponse state(String user,String id,String binding) {
         return taking(user,id,binding,(a,at)->AssessmentMapper.state(a,at,development()));
@@ -277,7 +276,7 @@ public class AssessmentServiceImpl implements AssessmentService {
                 if(grant.isPresent()) {a.getAnalysisGrants().add(grant.get());full=true;}
             }
             store.save(a);
-            return AssessmentMapper.result(a,store.profile(user),full,development());
+            return AssessmentMapper.result(a,profile(user),full,development());
         });
     }
     public AssessmentReviewResponse review(String user,String id) {
@@ -324,15 +323,17 @@ public class AssessmentServiceImpl implements AssessmentService {
         if(!AssessmentStatus.ACTIVE.equals(a.getStatus())) return;
         AssessmentGrading.grade(a,at);
         if(AssessmentStatus.READY.equals(a.getStatus())) {
-            var p=store.profile(a.getUserId());
-            if(p==null) throw new IllegalStateException("Missing assessment profile");
-            p.setHighestLevel(AssessmentGrading.highest(p.getHighestLevel(),a.getLevel()));
-            if(p.getLatestValidAt()==null||!at.isBefore(p.getLatestValidAt())) {
-                p.setCurrentLevel(a.getLevel());p.setLatestValidAt(at);p.setLatestValidAttemptId(a.getId());
-            }
-            store.saveProfile(p);
+            String user = a.getUserId();
+            var previous = userAssessmentProgress.find(user, development())
+                    .orElseThrow(UserLevelPromotionException::new);
+            String highest = AssessmentGrading.highest(previous.highestLevel(), a.getLevel());
+            boolean latest = previous.latestValidAt() == null || !at.isBefore(previous.latestValidAt());
+            userAssessmentProgress.save(user, new UserAssessmentProgressDto(previous.initialLevel(),
+                    latest ? a.getLevel() : previous.currentLevel(), highest,
+                    latest ? at : previous.latestValidAt(), latest ? a.getId() : previous.latestValidAttemptId(),
+                    previous.developmentData()));
             if (!a.getPaper().isDemonstration()) {
-                userLevels.promote(a.getUserId(), CefrLevel.valueOf(p.getHighestLevel()));
+                userLevels.promote(user, CefrLevel.valueOf(highest));
             }
         }
     }
@@ -340,9 +341,8 @@ public class AssessmentServiceImpl implements AssessmentService {
         try {return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(value.getBytes(StandardCharsets.UTF_8)));}
         catch(NoSuchAlgorithmException e) {throw new IllegalStateException(e);}
     }
-    private AssessmentProfile profile(String user) {
-        var p=store.profile(user);
-        return p!=null&&p.isDevelopmentData()&&!development()?null:p;
+    private UserAssessmentProgressDto profile(String user) {
+        return userAssessmentProgress.find(user, development()).orElse(null);
     }
     private List<AssessmentPaper> papers() {
         return store.published().stream().filter(p->p.getRulesVersion()==2)
