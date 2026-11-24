@@ -82,6 +82,36 @@ class PlacementUserLevelIntegrationTest extends AbstractMongoIntegrationTest {
     }
 
     @Test
+    void profileApiAndPlacementUseSameUserProfileAndPreserveDisplayName() throws Exception {
+        Browser user = register();
+        request(user.client(), "PATCH", "/api/v1/profile/me", Map.of("displayName", "Placement Learner"), 200);
+        assertThat(request(user.client(), "GET", "/api/v1/profile/me", null, 200)
+                .path("cefrLevel").asText()).isEqualTo("A1");
+
+        String attempt = answeredAttempt(user.client());
+        request(user.client(), "POST", API + "/" + attempt + "/submit", null, 200);
+        JsonNode profile = request(user.client(), "GET", "/api/v1/profile/me", null, 200);
+        assertThat(profile.path("cefrLevel").asText()).isEqualTo("A2");
+        assertThat(profile.path("displayName").asText()).isEqualTo("Placement Learner");
+        // Registration exposes a String ID, while raw Mongo stores the generated ID as BSON ObjectId.
+        var storedId = new org.bson.types.ObjectId(user.id());
+        Document stored = mongoTemplate.getCollection("user_profiles").find(new Document("_id", storedId)).first();
+        assertThat(stored).isNotNull();
+        assertThat(stored.getString("cefr_level")).isEqualTo("A2");
+        assertThat(stored.getString("display_name")).isEqualTo("Placement Learner");
+        assertThat(mongoTemplate.getCollection("users").find(new Document("_id", storedId)).first())
+                .doesNotContainKeys("cefr_level", "cefrLevel");
+
+        JsonNode renamed = request(user.client(), "PATCH", "/api/v1/profile/me",
+                Map.of("displayName", "Updated Learner"), 200);
+        assertThat(renamed.path("cefrLevel").asText()).isEqualTo("A2");
+        assertThat(request(user.client(), "GET", "/api/v1/grammar/roadmap", null, 200)
+                .path("currentLevel").asText()).isEqualTo("A2");
+        assertThat(mongoTemplate.getCollection("user_profiles").find(new Document("_id", storedId)).first()
+                .getString("display_name")).isEqualTo("Updated Learner");
+    }
+
+    @Test
     void higherC1AndC2SurviveHistoricalLearningAndRepeatedCommands() throws Exception {
         Browser user = register();
         String id = answeredAttempt(user.client());

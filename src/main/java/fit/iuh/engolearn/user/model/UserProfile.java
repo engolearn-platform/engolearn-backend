@@ -17,6 +17,9 @@ import org.springframework.data.mongodb.core.mapping.Field;
 @SuperBuilder
 @Document("user_profiles")
 public class UserProfile extends BaseDocument {
+    @Field("display_name")
+    private String displayName;
+
     @Field("cefr_level")
     private CefrLevel cefrLevel;
 }

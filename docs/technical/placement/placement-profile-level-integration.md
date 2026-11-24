@@ -10,3 +10,5 @@ Placement gọi `UserLevelPromotion` của module User, chỉ nâng khi kết qu
 - POST `/api/v1/placement/attempts/{attemptId}/learning` dùng kết quả của chính chủ để kích hoạt hướng học theo hợp đồng hiện tại; không cho chọn level tùy ý từ FE.
 
 FE lấy lại User/profile sau thao tác để tránh hiển thị dữ liệu phiên cũ. [Grammar đọc profile](../grammar/grammar-placement-level-integration.md) để mở cấp, không tự nâng profile khi hoàn thành học liệu. Kiểm tra hồi quy gồm `PlacementUserLevelIntegrationTest`, ownership/claim và quyền kế thừa; cần Mongo và Auth thật.
+
+API Profile của nhóm GET/PATCH `/api/v1/profile/me` dùng cùng `user_profiles`. Placement cập nhật riêng `cefr_level`/`updated_at`, giữ `display_name`; đổi tên hồ sơ không đổi level. `PlacementUserLevelIntegrationTest.profileApiAndPlacementUseSameUserProfileAndPreserveDisplayName` xác minh submit thật, API Profile, raw collection và Grammar roadmap cùng đọc A2; không tạo trường level ở `users`.
