@@ -85,7 +85,7 @@ class PlacementCrossIdentityMongoTest {
         Clock clock = mock(Clock.class);
         when(clock.instant()).thenAnswer(ignored -> time.get());
         var deadlines = new PlacementDeadlineServiceImpl(attempts, sets);
-        service = new PlacementAttemptServiceImpl(attempts, sets, clock, deadlines);
+        service = new PlacementAttemptServiceImpl(attempts, sets, clock, deadlines, source -> source);
         claims = new PlacementClaimServiceImpl(attempts, deadlines, clock);
         mongo.insert(PlacementAttempt.builder().id("known-expired-session")
                 .guestSessionId(guest.guestSessionId()).status(PlacementAttemptStatus.EXPIRED)

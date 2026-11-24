@@ -28,7 +28,7 @@
     "sha256" : "60d6781c0567bba2024c63000fb488d6ee8be1287bcb8ce808272e99b975f3b9"
   }, {
     "path" : "engolearn-backend/src/main/java/fit/iuh/engolearn/placement/service/PlacementTestSetSnapshotFactory.java",
-    "sha256" : "7c15220592fd1c6d0aa27d76f9b398cd3dff32ba3023fe64ec4bc3c65294435e"
+    "sha256" : "62b2d6478ab33e95a53c05952e6cbbfcdb866fbdc733ec9c293af18b402ecfb9"
   } ],
   "outputs" : {
     "placement-v3-questions.importer.json" : {

@@ -1,0 +1,477 @@
+{
+  "metadata": {
+    "name": "engolearn-grammar-a1-present-simple-v2",
+    "version": 2,
+    "description": "A1 content for Grammar V2 separate topic/lesson storage; DRAFT, not applied to the existing development database.",
+    "status": "PREPARED_NOT_APPLIED",
+    "model": "data_1.grammar-v2.proposed.json",
+    "model_sha256": "fe54012b21da899f23e74c09d57192edcd66294085187b4a79dd3584ae62e1ff",
+    "source_dataset": "grammar-a1-present-simple.importer.json",
+    "source_sha256": "69dd9abf2940c6bcc721c40ad9f8ad8299c9e6859887ff9b30b0cd8d1b392cf3",
+    "required_backend": "Run the current branch with Grammar V2 storage support; keep existing HTTP API. Review target IDs, code, order and counter before import.",
+    "counter_precondition": "Before actual import, reconcile topic-order-and-code.topic_sequence >= 1 and verify IDs/code/order against target DB. No counter write is included.",
+    "progress_policy": "No fabricated user progress; runtime progress belongs to grammar_lesson_progress in this selected V2 proposal.",
+    "technical_collections": "Existing sessions, revisions, unlocks, counters, locks and audit are not seeded by this content bundle.",
+    "sources": [
+      "https://learnenglish.britishcouncil.org/free-resources/grammar/a1-a2/present-simple",
+      "https://learnenglish.britishcouncil.org/free-resources/grammar/english-grammar-reference/present-simple",
+      "https://learnenglishteens.britishcouncil.org/grammar/a1-a2-grammar/present-simple"
+    ]
+  },
+  "collections": {
+    "grammar_topics": [
+      {
+        "_id": "c22461d9-1635-5b98-82eb-50543d0abea2",
+        "code": "ENG-GRM-T0001",
+        "title_vi": "Thì hiện tại đơn",
+        "title_en": "Present Simple",
+        "description": "Học cách dùng thì hiện tại đơn với động từ thường để nói về thói quen và sự thật quen thuộc. Luyện câu khẳng định, phủ định, câu hỏi và trả lời ngắn trong những tình huống hằng ngày.",
+        "level": "A1",
+        "status": "DRAFT",
+        "order": 1,
+        "version": {
+          "$numberLong": "0"
+        },
+        "lesson_sequence": {
+          "$numberLong": "3"
+        },
+        "learner_publication_fence": {
+          "$numberLong": "0"
+        },
+        "first_published_at": null,
+        "created_at": {
+          "$date": "2026-11-20T00:00:00.000Z"
+        },
+        "updated_at": {
+          "$date": "2026-11-20T00:00:00.000Z"
+        },
+        "schema_version": 2
+      }
+    ],
+    "grammar_lessons": [
+      {
+        "code": "ENG-GRM-T0001-L001",
+        "order": 1,
+        "status": "DRAFT",
+        "version": 0,
+        "content_version": 0,
+        "ready": false,
+        "first_published_at": null,
+        "published": null,
+        "draft": {
+          "title_vi": "Thói quen và câu khẳng định",
+          "title_en": "Habits and affirmative sentences",
+          "objective": "Chọn đúng dạng động từ với I/you/we/they và he/she/it để nói về thói quen hoặc sự thật quen thuộc; áp dụng các dạng thường gặp có s, es, ies và has.",
+          "tags": [
+            "A1",
+            "present-simple"
+          ],
+          "blocks": [
+            {
+              "block_id": "c1f596c1-ff87-5c5a-8bd7-053072dbb849",
+              "type": "EXPLANATION",
+              "title": "Khi nào dùng hiện tại đơn?",
+              "text": "Thì hiện tại đơn giúp diễn tả việc lặp lại và sự thật quen thuộc. Trong câu khẳng định với động từ thường, dạng động từ thay đổi theo chủ ngữ. Tên của một người, như Mai, cũng được xem là ngôi thứ ba số ít. Không thêm am/is/are trước một động từ thường trong cấu trúc này."
+            },
+            {
+              "block_id": "e900bcf5-c48d-5aba-a117-6d1cbf5d5099",
+              "type": "FORMULA",
+              "formula": "I / You / We / They + V (dạng nguyên mẫu không to)\nHe / She / It / một người hoặc vật số ít + V-s/es",
+              "text": "V là động từ chỉ hoạt động hoặc trạng thái, chẳng hạn read, work và like. Các cụm every day hoặc on Sundays có thể cho biết việc lặp lại; phải đọc ngữ cảnh thay vì chỉ dò một từ khóa."
+            },
+            {
+              "block_id": "89f29798-bd7e-5b31-a1dd-26f6174b9295",
+              "type": "EXAMPLE",
+              "examples": [
+                {
+                  "english": "Mai studies English after dinner.",
+                  "vietnamese": "Mai học tiếng Anh sau bữa tối.",
+                  "analysis": "Mai là một người; study đổi thành studies."
+                },
+                {
+                  "english": "We play badminton on Sundays.",
+                  "vietnamese": "Chúng tôi chơi cầu lông vào các Chủ nhật.",
+                  "analysis": "We đi với dạng play."
+                },
+                {
+                  "english": "My uncle has a small garden.",
+                  "vietnamese": "Chú tôi có một khu vườn nhỏ.",
+                  "analysis": "My uncle là số ít; have có dạng has."
+                }
+              ]
+            },
+            {
+              "block_id": "c6ca1dec-2e70-59b8-a06c-c4bbc1e2c97f",
+              "type": "RULE_QUICK_NOTE",
+              "title": "Dạng ngôi thứ ba số ít",
+              "text": "Khi chủ ngữ là he, she, it hoặc một danh từ số ít, kiểm tra dạng động từ trước khi hoàn thành câu:",
+              "rule_items": [
+                "Phần lớn động từ thêm s: read → reads.",
+                "Động từ tận cùng bằng s, sh, ch, x hoặc z thường thêm es: watch → watches.",
+                "Phụ âm + y đổi y thành ies: study → studies.",
+                "Nguyên âm + y giữ y rồi thêm s: play → plays.",
+                "Ghi nhớ have → has, go → goes và do → does."
+              ]
+            },
+            {
+              "block_id": "a5a9ea4b-635b-5f4a-b8ac-fd6ddbaec2aa",
+              "type": "COMMON_MISTAKE",
+              "incorrect": "Mai study English after dinner.",
+              "correct": "Mai studies English after dinner.",
+              "explanation": "Mai là chủ ngữ ngôi thứ ba số ít. Trong câu khẳng định hiện tại đơn, study phải đổi thành studies; không giữ dạng dùng với I/you/we/they."
+            }
+          ],
+          "questions": [
+            {
+              "question_id": "608f2261-b9ad-5dca-8a52-8ae9737efd87",
+              "type": "MULTIPLE_CHOICE",
+              "prompt": "Complete the sentence in the present simple: My sister ____ cartoons after school.",
+              "explanation": "My sister là một người nên watch thêm es thành watches. Watch dùng với chủ ngữ như I hoặc they; watching cần một cấu trúc khác, còn is watch không phải dạng đúng trong câu này.",
+              "options": [
+                "watch",
+                "watches",
+                "watching",
+                "is watch"
+              ],
+              "correct_index": 1
+            },
+            {
+              "question_id": "31d381f5-585c-5f93-b92f-556c86d258c6",
+              "type": "MULTIPLE_CHOICE",
+              "prompt": "Complete the sentence in the present simple: My grandfather ____ a blue bicycle.",
+              "explanation": "My grandfather là ngôi thứ ba số ít. Dạng hiện tại đơn của have với chủ ngữ này là has, không phải haves. Have và having không hoàn thành được câu khẳng định theo yêu cầu.",
+              "options": [
+                "have",
+                "haves",
+                "having",
+                "has"
+              ],
+              "correct_index": 3
+            },
+            {
+              "question_id": "21edc20e-1670-5598-b6c7-64fee93cc9c7",
+              "type": "MULTIPLE_CHOICE",
+              "prompt": "Complete the sentence in the present simple: We ____ chess on Friday evenings.",
+              "explanation": "We đi với động từ nguyên mẫu không to nên dùng play. Không thêm s cho chủ ngữ we; playing và are play cũng không tạo được câu hiện tại đơn đúng ở đây.",
+              "options": [
+                "play",
+                "plays",
+                "playing",
+                "are play"
+              ],
+              "correct_index": 0
+            },
+            {
+              "question_id": "a7e35b10-03b3-5c67-9102-94f40f4eb749",
+              "type": "FILL_IN_BLANK",
+              "prompt": "Complete with the present simple form of 'study': Nam ____ English every morning.",
+              "explanation": "Nam là một người, tương ứng với he. Study tận cùng bằng phụ âm d + y nên đổi y thành ies: studies.",
+              "correct_answer": "studies",
+              "accepted_answers": []
+            },
+            {
+              "question_id": "29e9b0a5-284d-571f-bbd3-f19b77f0ba9f",
+              "type": "FILL_IN_BLANK",
+              "prompt": "Complete with the present simple form of 'go': They ____ to the library every Saturday.",
+              "explanation": "They là chủ ngữ số nhiều, đi với dạng go. Goes chỉ dùng với chủ ngữ ngôi thứ ba số ít trong câu khẳng định hiện tại đơn.",
+              "correct_answer": "go",
+              "accepted_answers": []
+            }
+          ]
+        },
+        "_id": "691a0f9c-22f2-505a-9bce-cb94dce325b2",
+        "topic_id": "c22461d9-1635-5b98-82eb-50543d0abea2",
+        "schema_version": 2,
+        "created_at": {
+          "$date": "2026-11-20T00:00:00.000Z"
+        },
+        "updated_at": {
+          "$date": "2026-11-20T00:00:00.000Z"
+        }
+      },
+      {
+        "code": "ENG-GRM-T0001-L002",
+        "order": 2,
+        "status": "DRAFT",
+        "version": 0,
+        "content_version": 0,
+        "ready": false,
+        "first_published_at": null,
+        "published": null,
+        "draft": {
+          "title_vi": "Câu phủ định với do và does",
+          "title_en": "Negative sentences with do and does",
+          "objective": "Viết câu phủ định hiện tại đơn với động từ thường bằng do not/does not hoặc dạng rút gọn; giữ động từ chính ở dạng nguyên mẫu.",
+          "tags": [
+            "A1",
+            "present-simple"
+          ],
+          "blocks": [
+            {
+              "block_id": "52edd21f-c83b-5c6f-9c7c-e9ce13adacb5",
+              "type": "EXPLANATION",
+              "title": "Phủ định một thói quen hoặc trạng thái",
+              "text": "Để nói một việc không xảy ra thường xuyên hoặc một trạng thái không đúng, đặt do not hoặc does not trước động từ thường. Chọn trợ động từ theo chủ ngữ. Khi đã có does not, động từ chính không mang s/es. Quy tắc này không áp dụng cho phủ định của be; chẳng hạn is not là một cấu trúc riêng."
+            },
+            {
+              "block_id": "eedc0668-caca-5c45-a8c1-f44ad59ef988",
+              "type": "FORMULA",
+              "formula": "I / You / We / They + do not (don't) + V\nHe / She / It / danh từ số ít + does not (doesn't) + V",
+              "text": "V luôn là dạng nguyên mẫu không to. Dấu nháy trong don't và doesn't thay cho chữ o bị lược bỏ, không được bỏ dấu nháy rồi viết dont hoặc doesnt."
+            },
+            {
+              "block_id": "2d6ea56a-ea03-52d8-9a35-f0e5e280e5f6",
+              "type": "EXAMPLE",
+              "examples": [
+                {
+                  "english": "We don't eat lunch at school.",
+                  "vietnamese": "Chúng tôi không ăn trưa ở trường.",
+                  "analysis": "We dùng don't; eat giữ nguyên."
+                },
+                {
+                  "english": "Linh doesn't drink coffee.",
+                  "vietnamese": "Linh không uống cà phê.",
+                  "analysis": "Linh dùng doesn't; không viết drinks."
+                },
+                {
+                  "english": "My brother does not have a car.",
+                  "vietnamese": "Anh trai tôi không có ô tô.",
+                  "analysis": "Sau does not dùng have, không dùng has."
+                }
+              ]
+            },
+            {
+              "block_id": "a794eed7-0f23-5e7f-b379-7157c9515280",
+              "type": "RULE_QUICK_NOTE",
+              "title": "Một dấu hiệu ngôi thứ ba là đủ",
+              "text": "Kiểm tra trợ động từ và động từ chính như một cặp:",
+              "rule_items": [
+                "Với I/you/we/they, chọn do not hoặc don't.",
+                "Với he/she/it và một người/vật số ít, chọn does not hoặc doesn't.",
+                "Sau cả hai trợ động từ, dùng động từ chính nguyên mẫu.",
+                "Dạng đầy đủ và dạng rút gọn có cùng nghĩa trong các câu của bài này."
+              ]
+            },
+            {
+              "block_id": "94f178d3-c708-514f-a873-21259f8dcb68",
+              "type": "COMMON_MISTAKE",
+              "incorrect": "Linh doesn't drinks coffee.",
+              "correct": "Linh doesn't drink coffee.",
+              "explanation": "Doesn't đã thể hiện ngôi thứ ba số ít. Động từ chính phải trở về drink; thêm s lần nữa làm câu sai cấu trúc."
+            }
+          ],
+          "questions": [
+            {
+              "question_id": "8d641c75-351e-51c8-998f-f6cde96071fe",
+              "type": "MULTIPLE_CHOICE",
+              "prompt": "Complete the negative sentence in the present simple: My brother ____ like hot weather.",
+              "explanation": "My brother là ngôi thứ ba số ít nên cần does not trước like. Do not không phù hợp chủ ngữ này; is not và not không tạo được câu phủ định đúng với động từ thường like ở đây.",
+              "options": [
+                "do not",
+                "does not",
+                "is not",
+                "not"
+              ],
+              "correct_index": 1
+            },
+            {
+              "question_id": "42b8116a-e5a7-5561-ab9a-2c08f8293a88",
+              "type": "MULTIPLE_CHOICE",
+              "prompt": "Which negative sentence is correct in the present simple?",
+              "explanation": "They dùng don't và động từ drink nguyên mẫu. Doesn't không đi với they; drinks không đứng sau don't; aren't drink cũng không phải cấu trúc phủ định hiện tại đơn của động từ thường.",
+              "options": [
+                "They doesn't drink tea.",
+                "They don't drinks tea.",
+                "They aren't drink tea.",
+                "They don't drink tea."
+              ],
+              "correct_index": 3
+            },
+            {
+              "question_id": "df0f57fd-1424-5f1d-9b1f-687a06762558",
+              "type": "MULTIPLE_CHOICE",
+              "prompt": "Choose the correct present simple negative form of 'have': She ____ a car.",
+              "explanation": "She dùng doesn't. Sau trợ động từ, have giữ dạng nguyên mẫu; vì vậy doesn't has sai. Hai phương án còn lại cũng không đúng cấu trúc với chủ ngữ she.",
+              "options": [
+                "doesn't have",
+                "doesn't has",
+                "don't have",
+                "isn't have"
+              ],
+              "correct_index": 0
+            },
+            {
+              "question_id": "09607f0c-dbe9-541f-842c-bef6f2732374",
+              "type": "FILL_IN_BLANK",
+              "prompt": "Complete with 'do not' or 'does not'. Contractions are allowed: They ____ eat meat.",
+              "explanation": "They dùng do not, có thể rút gọn thành don't. Chỉ điền trợ động từ phủ định vì động từ chính eat đã có sẵn sau ô trống.",
+              "correct_answer": "do not",
+              "accepted_answers": [
+                "don't"
+              ]
+            },
+            {
+              "question_id": "996d992f-93af-523a-9d52-9f2630cd1f0d",
+              "type": "FILL_IN_BLANK",
+              "prompt": "Complete with 'do not' or 'does not'. Contractions are allowed: Hoa ____ work on Sundays.",
+              "explanation": "Hoa là một người nên dùng does not hoặc doesn't. Động từ work đã có sẵn và giữ nguyên mẫu sau trợ động từ.",
+              "correct_answer": "does not",
+              "accepted_answers": [
+                "doesn't"
+              ]
+            }
+          ]
+        },
+        "_id": "d72cd2e9-6216-5b3c-9e45-00a3ad41c7f4",
+        "topic_id": "c22461d9-1635-5b98-82eb-50543d0abea2",
+        "schema_version": 2,
+        "created_at": {
+          "$date": "2026-11-20T00:00:00.000Z"
+        },
+        "updated_at": {
+          "$date": "2026-11-20T00:00:00.000Z"
+        }
+      },
+      {
+        "code": "ENG-GRM-T0001-L003",
+        "order": 3,
+        "status": "DRAFT",
+        "version": 0,
+        "content_version": 0,
+        "ready": false,
+        "first_published_at": null,
+        "published": null,
+        "draft": {
+          "title_vi": "Câu hỏi và trả lời ngắn",
+          "title_en": "Questions and short answers",
+          "objective": "Đặt câu hỏi Yes/No và câu hỏi với what/where/when bằng do/does; trả lời ngắn đúng chủ ngữ và giữ động từ chính ở dạng nguyên mẫu.",
+          "tags": [
+            "A1",
+            "present-simple"
+          ],
+          "blocks": [
+            {
+              "block_id": "a21c5940-c1f9-5221-ac79-01501e25eb01",
+              "type": "EXPLANATION",
+              "title": "Hỏi về hoạt động thường ngày",
+              "text": "Với động từ thường, đặt do hoặc does trước chủ ngữ để hỏi Yes/No. Muốn hỏi thông tin cụ thể, đặt what, where hoặc when trước do/does. Động từ chính giữ nguyên mẫu. Bài này không dạy câu hỏi mà từ để hỏi chính là chủ ngữ."
+            },
+            {
+              "block_id": "cf802cc6-2bb0-5cb4-90c7-e9816c84eb9c",
+              "type": "FORMULA",
+              "formula": "Do + I / you / we / they + V ...?\nDoes + he / she / it / danh từ số ít + V ...?\nWhat / Where / When + do / does + chủ ngữ + V ...?",
+              "text": "Trả lời ngắn: Yes, chủ ngữ + do/does. hoặc No, chủ ngữ + don't/doesn't. Khi trả lời về một người bằng tên, thay bằng he hoặc she phù hợp ngữ cảnh. Khi ai đó hỏi you, người trả lời nói về bản thân dùng I."
+            },
+            {
+              "block_id": "d0f75441-97f7-5e0c-998a-6dd5f8bb7a38",
+              "type": "EXAMPLE",
+              "examples": [
+                {
+                  "english": "Does Minh ride a bike to school? — Yes, he does.",
+                  "vietnamese": "Minh có đạp xe đến trường không? — Có.",
+                  "analysis": "Does cho một người; ride không thêm s; câu trả lời ngắn dùng he does."
+                },
+                {
+                  "english": "Do you read before bed? — No, I don't.",
+                  "vietnamese": "Bạn có đọc sách trước giờ ngủ không? — Không.",
+                  "analysis": "Người được hỏi dùng I để trả lời về bản thân."
+                },
+                {
+                  "english": "Where do your parents work?",
+                  "vietnamese": "Bố mẹ bạn làm việc ở đâu?",
+                  "analysis": "Your parents là số nhiều; where hỏi địa điểm và dùng do."
+                }
+              ]
+            },
+            {
+              "block_id": "81e0548d-2d4d-52fa-b903-ed56e4632128",
+              "type": "RULE_QUICK_NOTE",
+              "title": "Chọn trợ động từ trước, kiểm tra động từ sau",
+              "text": "Đọc chủ ngữ để chọn do hoặc does, sau đó kiểm tra động từ chính và mẫu trả lời ngắn. Dùng các bước sau để tự rà câu hỏi:",
+              "rule_items": [
+                "Do dùng với I/you/we/they hoặc danh từ số nhiều; does dùng với ngôi thứ ba số ít.",
+                "Sau do/does, động từ chính ở dạng nguyên mẫu không to.",
+                "What hỏi thông tin/sự việc, where hỏi nơi chốn, when hỏi thời gian.",
+                "Trong trả lời ngắn, dùng trợ động từ tương ứng, không thay bằng is/are khi câu hỏi dùng động từ thường."
+              ]
+            },
+            {
+              "block_id": "7bd94e6c-1842-5c66-b86d-c3990dfd65a6",
+              "type": "COMMON_MISTAKE",
+              "incorrect": "Does Minh rides a bike to school?",
+              "correct": "Does Minh ride a bike to school?",
+              "explanation": "Does đã mang dấu hiệu ngôi thứ ba số ít. Rides phải đổi về ride sau trợ động từ; không giữ dạng câu khẳng định."
+            }
+          ],
+          "questions": [
+            {
+              "question_id": "cb11435b-012d-5137-8727-6323c16344f9",
+              "type": "MULTIPLE_CHOICE",
+              "prompt": "Complete the present simple question: ____ your sister walk to school?",
+              "explanation": "Your sister là một người nên chọn Does trước chủ ngữ. Walk là động từ thường; is/are không tạo được câu hỏi đúng với dạng walk trong câu này.",
+              "options": [
+                "Do",
+                "Does",
+                "Is",
+                "Are"
+              ],
+              "correct_index": 1
+            },
+            {
+              "question_id": "569de999-f112-53b8-af47-bf3ff09f89da",
+              "type": "MULTIPLE_CHOICE",
+              "prompt": "Mina plays tennis every Saturday. Choose the correct positive short answer to 'Does Mina play tennis every Saturday?'",
+              "explanation": "Câu hỏi bắt đầu bằng Does và Mina được thay bằng she. Câu trả lời ngắn khẳng định là Yes, she does. Dùng is hoặc lặp plays không đúng mẫu trả lời ngắn được yêu cầu; she do không hòa hợp chủ ngữ.",
+              "options": [
+                "Yes, she do.",
+                "Yes, she is.",
+                "Yes, she plays.",
+                "Yes, she does."
+              ],
+              "correct_index": 3
+            },
+            {
+              "question_id": "08532950-4960-5499-9dd0-0b793e6d2a60",
+              "type": "MULTIPLE_CHOICE",
+              "prompt": "Complete the present simple question: Where ____ your parents live?",
+              "explanation": "Your parents là chủ ngữ số nhiều nên dùng do. Where đứng trước trợ động từ để hỏi nơi chốn; does dùng cho ngôi thứ ba số ít.",
+              "options": [
+                "does",
+                "are",
+                "do",
+                "is"
+              ],
+              "correct_index": 2
+            },
+            {
+              "question_id": "7b4d1250-dc76-5f79-9033-9c2598923d66",
+              "type": "FILL_IN_BLANK",
+              "prompt": "Complete with the base form of 'work': Where does Sam ____?",
+              "explanation": "Sau does, động từ chính là nguyên mẫu work. Works chỉ xuất hiện với Sam trong câu khẳng định không có trợ động từ does.",
+              "correct_answer": "work",
+              "accepted_answers": []
+            },
+            {
+              "question_id": "996f5e6c-d2c7-52b5-b6bb-c3f7d82772e3",
+              "type": "FILL_IN_BLANK",
+              "prompt": "Complete with 'Do' or 'Does': ____ Emma and Ben study together?",
+              "explanation": "Emma and Ben là hai người nên dùng Do. Viết do thường vẫn được chấm khớp vì ứng dụng không phân biệt chữ hoa/thường; không cần lưu lặp hai dạng như hai đáp án khác nhau.",
+              "correct_answer": "Do",
+              "accepted_answers": []
+            }
+          ]
+        },
+        "_id": "a7435286-5d61-50c6-8f53-fa9f1674d087",
+        "topic_id": "c22461d9-1635-5b98-82eb-50543d0abea2",
+        "schema_version": 2,
+        "created_at": {
+          "$date": "2026-11-20T00:00:00.000Z"
+        },
+        "updated_at": {
+          "$date": "2026-11-20T00:00:00.000Z"
+        }
+      }
+    ],
+    "grammar_lesson_progress": []
+  }
+}

@@ -51,7 +51,7 @@ class PlacementAttemptServiceTest {
         sets = new SamplePlacementTestSetRepository(new ClassPathResource("placement/sample-test-set.json"),
                 new ObjectMapper());
         service = new PlacementAttemptServiceImpl(attempts, sets, clock,
-                new PlacementDeadlineServiceImpl(attempts, sets));
+                new PlacementDeadlineServiceImpl(attempts, sets), source -> source);
     }
 
     @Test
@@ -260,7 +260,7 @@ class PlacementAttemptServiceTest {
         Clock clock = mock(Clock.class);
         when(clock.instant()).thenReturn(time.get());
         PlacementAttemptService legacyService = new PlacementAttemptServiceImpl(repository,
-                mock(PlacementTestSetRepository.class), clock, mock(PlacementDeadlineService.class));
+                mock(PlacementTestSetRepository.class), clock, mock(PlacementDeadlineService.class), source -> source);
 
         var outcome = legacyService.start(user);
 

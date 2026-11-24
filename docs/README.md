@@ -21,3 +21,5 @@ Module references: [authentication](runbooks/user-auth.md), [learning-path list]
 Architecture owns shared rules; flows own behavior; technical pages own module implementation/contracts; runbooks own practical operations. Link to the owner instead of duplicating it. Update affected pages when implementation changes. Keep architectural decisions in ADRs and use Git for implementation history and earlier verification records instead of maintaining duplicate snapshots. Earlier Subscription documents are available in Git history under `docs/technical/subscription-quota/`; dated evidence does not establish current runtime status.
 
 Learner assessment: [technical contract](technical/assessment.md).
+
+Placement Test: [technical entry](technical/placement/README.md). Grammar Learning: [technical entry](technical/grammar/README.md). Each module entry links current run/import instructions and contracts.

@@ -11,6 +11,9 @@ import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.dao.DuplicateKeyException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
@@ -29,6 +32,41 @@ public class MongoPlacementAttemptRepository implements PlacementAttemptReposito
     @Override
     public Optional<PlacementAttempt> findById(String id) {
         return Optional.ofNullable(mongo.findById(id, PlacementAttempt.class));
+    }
+
+    @Override
+    public Page<PlacementAttempt> findForAdmin(PlacementAttemptSearch filter, Pageable page) {
+        List<Criteria> criteria = new ArrayList<>();
+        if (filter.search() != null) {
+            criteria.add(new Criteria().orOperator(Criteria.where("_id").is(filter.search()),
+                    Criteria.where("user_id").is(filter.search())));
+        }
+        if (filter.userId() != null) criteria.add(Criteria.where("user_id").is(filter.userId()));
+        if (!filter.testSetVersions().isEmpty()) {
+            criteria.add(new Criteria().orOperator(filter.testSetVersions().stream()
+                    .map(set -> Criteria.where("test_set_id").is(set.id()).and("test_set_version").is(set.version()))
+                    .toList()));
+        }
+        if (filter.version() != null) criteria.add(Criteria.where("test_set_version").is(filter.version()));
+        if (filter.status() != null) criteria.add(Criteria.where("status").is(filter.status()));
+        if (filter.level() != null) {
+            criteria.add(Criteria.where("status").in(PlacementAttemptStatus.SUBMITTED,
+                            PlacementAttemptStatus.AUTO_SUBMITTED)
+                    .and("correct_count").ne(null).and("placement_level").is(filter.level()));
+        }
+        if (filter.startedAtFrom() != null || filter.startedAtBefore() != null) {
+            Criteria dates = Criteria.where("started_at");
+            if (filter.startedAtFrom() != null) dates.gte(filter.startedAtFrom());
+            if (filter.startedAtBefore() != null) dates.lt(filter.startedAtBefore());
+            criteria.add(dates);
+        }
+        Query count = criteria.isEmpty() ? new Query() : Query.query(new Criteria().andOperator(criteria));
+        long total = mongo.count(count, PlacementAttempt.class);
+        if (page.getOffset() >= total) return new PageImpl<>(List.of(), page, total);
+        Query rows = Query.of(count).with(page).with(Sort.by(Sort.Order.desc("started_at"), Sort.Order.asc("_id")));
+        rows.fields().include("user_id", "guest_session_id", "test_set_id", "test_set_version", "status",
+                "started_at", "correct_count", "placement_level", "claim_expires_at");
+        return new PageImpl<>(mongo.find(rows, PlacementAttempt.class), page, total);
     }
 
     @Override

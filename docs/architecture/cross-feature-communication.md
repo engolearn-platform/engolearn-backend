@@ -65,7 +65,8 @@ A new dependency needs an explicit reason and approval. Keep this table in sync 
 | `quota` | `subscription.contract` (effective-entitlement lookup and durable Subscription-owned facts) |
 | `payment` | None; must never depend on Subscription |
 | `media` | None; provider exposes `media.contract.MediaManagement`; consuming features declare their own dependency when they integrate it |
-| `placement` | `user.contract.UserLevelPromotion` for atomic monotonic profile promotion on owned completion/Guest claim and explicit learning activation (user-approved 2026-11-08) |
+| `grammar` | `user.contract.UserLevelLookup` for read-only profile-based roadmap and access; Grammar persists its own permanent unlocks only (owner-approved 2026-11-23). See [integration design](../technical/grammar/grammar-placement-level-integration.md). |
+| `placement` | `media.contract.MediaManagement` for Placement-owned audio upload and response delivery (user-approved 2026-11-23); `user.contract.UserLevelPromotion` for atomic monotonic profile promotion on owned completion/Guest claim and explicit learning activation (user-approved 2026-11-08) |
 | `speaking` | `topic` |
 
 Payment owns commands in `payment.contract.dto` and facts in `payment.contract.event`; Subscription owns the receiving result consumer. Payment must never import Subscription types. Quota consumes Subscription-owned entitlement/policy facts and can resolve effective entitlements through its public capability.
@@ -78,4 +79,4 @@ Normal durable routes use local producer state/Outbox and consumer receipt/effec
 
 When a feature is extracted, its provider may expose a private/internal HTTP adapter and the caller may implement the same capability interface with a REST client. Keep service logic dependent on the interface so the transport can change without rewriting business logic. Do not build internal controllers, REST clients, or shared contract libraries before that extraction is approved.
 
-Placement/Profile integration: User owns conditional level persistence; Placement owns result validation and the joint Mongo transaction. No direct Placement access to User collections, no Topic behavior change. See [integration handoff](../technical/placement-profile-level-integration.md).
+Placement/Profile integration: User owns conditional level persistence; Placement owns result validation and the joint Mongo transaction. No direct Placement access to User collections, no Topic behavior change. See [integration handoff](../technical/placement/placement-profile-level-integration.md).
