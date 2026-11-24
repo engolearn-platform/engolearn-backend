@@ -81,7 +81,8 @@ public final class PlacementTestSetSnapshotFactory {
             throw new IllegalArgumentException("Reading question " + question.getId() + " has no passage");
         }
         if (index >= READING) {
-            if (question.getProvenance() == null || question.getProvenance().getAudioDurationSeconds() <= 0) {
+            double duration = audioDuration(question);
+            if (!Double.isFinite(duration) || duration <= 0) {
                 throw new IllegalArgumentException("Listening question " + question.getId() + " has no audio duration");
             }
         }
@@ -93,15 +94,22 @@ public final class PlacementTestSetSnapshotFactory {
                 .map(option -> new PlacementOptionVo(option.getId(), option.getLabel(), option.getText()))
                 .toList();
         PlacementAudioVo audio = requiredSkill == PlacementSkill.LISTENING
-                ? new PlacementAudioVo(question.getAudioUrl(), question.getProvenance().getAudioDurationSeconds())
+                ? new PlacementAudioVo(question.getAudioMediaId() == null ? question.getAudioUrl() : null, audioDuration(question), question.getAudioMediaId())
                 : null;
         String label = question.getProvenance() == null ? null : question.getProvenance().getTitle();
-        return PlacementSnapshotItemVo.builder().id(question.getId()).order(order)
+        return PlacementSnapshotItemVo.builder().id(question.getId()).code(question.getCode()).order(order)
                 .skill(question.getSkill()).level(question.getLevel()).label(label)
                 .prompt(question.getPrompt()).passage(question.getPassage())
                 .options(options).correctOptionId(question.getCorrectOptionId())
                 .explanation(question.getExplanation()).transcript(question.getTranscript())
                 .audio(audio).build();
+    }
+
+    private static double audioDuration(PlacementQuestion question) {
+        if (question.isAdminAudioOverride()) {
+            return question.getAudioDurationSeconds() == null ? 0 : question.getAudioDurationSeconds();
+        }
+        return question.getProvenance() == null ? 0 : question.getProvenance().getAudioDurationSeconds();
     }
 
     private static void validateBlueprint(Map<PlacementLevel, int[]> blueprint) {

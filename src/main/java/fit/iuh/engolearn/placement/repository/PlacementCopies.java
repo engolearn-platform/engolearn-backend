@@ -27,19 +27,6 @@ final class PlacementCopies {
     }
 
     static PlacementTestSet testSet(PlacementTestSet source) {
-        List<PlacementSnapshotItemVo> items = source.getItems().stream().map(item ->
-                PlacementSnapshotItemVo.builder().id(item.getId()).order(item.getOrder())
-                        .skill(item.getSkill()).level(item.getLevel()).label(item.getLabel())
-                        .prompt(item.getPrompt()).passage(item.getPassage())
-                        .correctOptionId(item.getCorrectOptionId())
-                        .explanation(item.getExplanation()).transcript(item.getTranscript())
-                        .audio(item.getAudio() == null ? null : new PlacementAudioVo(
-                                item.getAudio().getUrl(), item.getAudio().getDurationSeconds()))
-                        .options(item.getOptions().stream().map(o ->
-                                new PlacementOptionVo(o.getId(), o.getLabel(), o.getText())).toList())
-                        .build()).toList();
-        return PlacementTestSet.builder().id(source.getId()).code(source.getCode())
-                .name(source.getName()).version(source.getVersion()).status(source.getStatus())
-                .items(items).build();
+        return fit.iuh.engolearn.placement.mapper.PlacementSnapshotMapper.copy(source, audio -> audio);
     }
 }

@@ -10,6 +10,7 @@ import fit.iuh.engolearn.subscription.contract.dto.*;
 import fit.iuh.engolearn.subscription.dto.response.*;
 import fit.iuh.engolearn.subscription.exception.SubscriptionRequestException;
 import fit.iuh.engolearn.subscription.model.*;
+import fit.iuh.engolearn.subscription.model.enums.PeriodKind;
 import fit.iuh.engolearn.subscription.mapper.SubscriptionModelMapper;
 import fit.iuh.engolearn.subscription.repository.SubscriptionRepository;
 
@@ -28,22 +29,27 @@ public class SubscriptionServiceImpl implements SubscriptionService, EffectiveEn
     private final SubscriptionTransactions transactions;
     private final Clock clock;
     private final SubscriptionMessagePublisher messages;
+    private final SubscriptionProductService productCatalog;
 
     public List<PlanCardResponse> plans() {
         try {
             policy("FREE", clock.instant());
-            Map<String, PlanVersion> latest = new HashMap<>();
-            for (PlanVersion p : store.findPublishedPlans(clock.instant()))
-                latest.putIfAbsent(p.getPlan().getPlanCode().name(), p);
-            return latest.values()
-                         .stream()
-                         .sorted(Comparator.comparingInt(PlanVersion::getDisplayOrder)
-                                           .thenComparing(p -> p.getPlan().getPlanCode().name()))
-                         .map(p -> SubscriptionModelMapper.sortedPlanCard(p.getPlan()))
-                         .toList();
+            return productCatalog.publicPlans();
         } catch (RuntimeException ex) {
             throw new SubscriptionRequestException(503, "PLAN_CONFIGURATION_UNAVAILABLE",
                                                    "Published plan configuration cannot be confirmed");
+        }
+    }
+
+    @Override
+    public PlanCardResponse product(String planCode) {
+        try {
+            return productCatalog.publicPlan(planCode);
+        } catch (SubscriptionRequestException ex) {
+            throw ex;
+        } catch (RuntimeException ex) {
+            throw new SubscriptionRequestException(503, "PLAN_CONFIGURATION_UNAVAILABLE",
+                    "Published plan configuration cannot be confirmed");
         }
     }
 
@@ -97,7 +103,10 @@ public class SubscriptionServiceImpl implements SubscriptionService, EffectiveEn
         EffectiveEntitlementDto candidate;
         if (p != null) {
             candidate = SubscriptionModelMapper.entitlement(userId, a.getEntitlementVersion(),
-                    p.getSnapshot(), 0, p.getPeriodStartAt(), p.getPeriodEndAt());
+                    p.getSnapshot().getPolicyScope().name(), p.getSnapshot().getPolicySnapshotId(),
+                    p.getSnapshot().getPolicyVersion(), p.getSnapshot(), 0, p.getPeriodStartAt(),
+                    p.getPeriodEndAt(), p.getBenefits(), p.getKind() == PeriodKind.TRIAL
+                            ? "TRIAL" : p.getBenefits().getPlanCode());
         } else {
             PolicyVersion free = policy("FREE", at);
             PolicyState state = store.findPolicyState("FREE");
@@ -106,19 +115,21 @@ public class SubscriptionServiceImpl implements SubscriptionService, EffectiveEn
                     ? state.getPendingEffectiveAt() : null;
             candidate = SubscriptionModelMapper.entitlement(userId, a.getEntitlementVersion(), "FREE", free.getId(),
                     free.getVersion(), free.getSnapshot(), state.getActivationSequence() + (pending ? 1 : 0),
-                    free.getEffectiveAt(), validUntil);
+                    free.getEffectiveAt(), validUntil, free.getBenefits(), "FREE");
         }
         String fingerprint = fit.iuh.engolearn.shared.messaging.MessageHashes.hash(String.join("|",
                 candidate.policyScope(), candidate.policySnapshotId(), Long.toString(candidate.policyVersion()),
                 Long.toString(candidate.policyActivationSequence()), candidate.effectiveAt().toString(),
-                String.valueOf(candidate.validUntil())));
+                String.valueOf(candidate.validUntil()), String.valueOf(candidate.planCode()),
+                String.join(",", candidate.serviceRights()), Boolean.toString(candidate.managedProduct())));
         if (fingerprint.equals(a.getEntitlementFingerprint())) return candidate;
         if (!store.advanceEntitlement(a, fingerprint))
             throw new org.springframework.dao.OptimisticLockingFailureException("Entitlement revision changed");
         EffectiveEntitlementDto changed = new EffectiveEntitlementDto(candidate.userId(),
                 Math.addExact(candidate.entitlementVersion(), 1), candidate.policyScope(), candidate.policySnapshotId(),
                 candidate.policyVersion(), candidate.policyActivationSequence(), candidate.effectiveAt(),
-                candidate.validUntil(), candidate.policySnapshot());
+                candidate.validUntil(), candidate.policySnapshot(), candidate.planCode(), candidate.serviceRights(),
+                candidate.managedProduct());
         messages.entitlementChanged(new EntitlementChangedEvent(changed));
         return changed;
     }
@@ -134,13 +145,14 @@ public class SubscriptionServiceImpl implements SubscriptionService, EffectiveEn
             boolean paid = p != null && !"TRIAL".equals(p.getKind().name());
             String reason = paid ? "ACTIVE_PREMIUM" : a.isTrialUsed() ? "ALREADY_USED" : null;
             SubscriptionPeriod latest = p != null ? p : periods.isEmpty() ? null : periods.getFirst();
+            String planCode = p == null ? "FREE" : p.getKind() == PeriodKind.TRIAL ? "TRIAL" : p.getBenefits().getPlanCode();
             return new MySubscriptionSummaryResponse(p == null ? "FREE" : "PREMIUM", p != null ? (paid ? "ACTIVE" : "TRIAL") :
                     latest == null ? "FREE" : "REFUNDED".equals(latest.getState().name()) ? "REFUNDED" : "EXPIRED",
                                              latest == null ? null : latest.getPeriodStartAt(),
                                              latest == null ? null : latest.getPeriodEndAt(), reason == null, reason,
                                              p == null ? SubscriptionModelMapper.toDto(
                                                      policy("FREE", at).getBenefits()) : SubscriptionModelMapper.toDto(
-                                                     p.getBenefits()));
+                                                     p.getBenefits()), planCode);
         } catch (SubscriptionUnavailableException ex) {
             throw ex;
         } catch (RuntimeException ex) {

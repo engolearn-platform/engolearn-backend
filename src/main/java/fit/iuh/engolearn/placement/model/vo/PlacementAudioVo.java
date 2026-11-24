@@ -8,4 +8,9 @@ import org.springframework.data.mongodb.core.mapping.Field;
 public class PlacementAudioVo implements EmbeddedDocument {
     @Field("url") private String url;
     @Field("duration_seconds") private double durationSeconds;
+    @Field("media_id") private String mediaId;
+
+    public PlacementAudioVo(String url, double durationSeconds) {
+        this(url, durationSeconds, null);
+    }
 }

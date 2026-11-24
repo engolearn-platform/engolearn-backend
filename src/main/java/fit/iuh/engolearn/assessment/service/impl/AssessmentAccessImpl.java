@@ -16,7 +16,10 @@ public class AssessmentAccessImpl implements AssessmentAccess {
     public Optional<String> currentGrant(String user) {
         var at=clock.instant();
         var e=provider.resolveEffectiveEntitlement(user,at);
-        if(!("PREMIUM".equals(e.policyScope())||"TRIAL".equals(e.policyScope()))
+        boolean granted = "TRIAL".equals(e.policyScope())
+                || !e.managedProduct() && "PREMIUM".equals(e.planCode())
+                || e.serviceRights().contains("ASSESSMENT_FULL_ANALYSIS");
+        if(!granted
                 ||e.effectiveAt().isAfter(at)||e.validUntil()!=null&&!at.isBefore(e.validUntil())) return Optional.empty();
         String source=AssessmentAccess.sourceKey(e.policyScope(), e.policySnapshotId(), e.effectiveAt());
         return store.revoked(user,source)?Optional.empty():Optional.of(source);

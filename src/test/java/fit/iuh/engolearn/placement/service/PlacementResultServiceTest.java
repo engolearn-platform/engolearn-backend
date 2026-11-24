@@ -55,9 +55,9 @@ class PlacementResultServiceTest {
         sets = new SamplePlacementTestSetRepository(new ClassPathResource("placement/sample-test-set.json"),
                 new ObjectMapper());
         deadlines = new PlacementDeadlineServiceImpl(attempts, sets);
-        attemptService = new PlacementAttemptServiceImpl(attempts, sets, clock, deadlines);
+        attemptService = new PlacementAttemptServiceImpl(attempts, sets, clock, deadlines, source -> source);
         claimService = new PlacementClaimServiceImpl(attempts, deadlines, clock);
-        resultService = new PlacementResultServiceImpl(attempts, sets, deadlines, clock);
+        resultService = new PlacementResultServiceImpl(attempts, sets, deadlines, clock, source -> source);
     }
 
     @Test
@@ -192,7 +192,7 @@ class PlacementResultServiceTest {
                         ? Optional.of(archived) : Optional.empty();
             }
         };
-        var archivedResultService = new PlacementResultServiceImpl(attempts, archivedSource, deadlines, clock);
+        var archivedResultService = new PlacementResultServiceImpl(attempts, archivedSource, deadlines, clock, source -> source);
         assertThat(archivedResultService.getReview(id, user.currentUserId()).questions().get(0).prompt())
                 .isEqualTo(original);
     }
@@ -204,7 +204,7 @@ class PlacementResultServiceTest {
             @Override public Optional<PlacementTestSet> findPublished() { return sets.findPublished(); }
             @Override public Optional<PlacementTestSet> findVersion(String setId, int version) { return Optional.empty(); }
         };
-        var service = new PlacementResultServiceImpl(attempts, missing, deadlines, clock);
+        var service = new PlacementResultServiceImpl(attempts, missing, deadlines, clock, source -> source);
         assertUnavailable(() -> service.getResult(id, user.currentUserId()), HttpStatus.CONFLICT,
                 "PLACEMENT_TEST_SET_UNAVAILABLE");
         assertUnavailable(() -> service.getReview(id, user.currentUserId()), HttpStatus.CONFLICT,
@@ -218,7 +218,7 @@ class PlacementResultServiceTest {
         corrupted.setCorrectCount(4);
         var broken = org.mockito.Mockito.mock(InMemoryPlacementAttemptRepository.class);
         when(broken.findById(id)).thenReturn(Optional.of(corrupted));
-        var service = new PlacementResultServiceImpl(broken, sets, deadlines, clock);
+        var service = new PlacementResultServiceImpl(broken, sets, deadlines, clock, source -> source);
         assertUnavailable(() -> service.getResult(id, user.currentUserId()), HttpStatus.CONFLICT,
                 "PLACEMENT_RESULT_INCONSISTENT");
         assertUnavailable(() -> service.getReview(id, user.currentUserId()), HttpStatus.CONFLICT,

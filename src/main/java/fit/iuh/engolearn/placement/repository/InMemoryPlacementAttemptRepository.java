@@ -6,9 +6,13 @@ import fit.iuh.engolearn.placement.model.enums.PlacementLevel;
 import fit.iuh.engolearn.placement.model.vo.PlacementAnswerVo;
 import java.time.Instant;
 import java.util.Comparator;
+import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Repository;
 
 @Repository
@@ -20,6 +24,24 @@ public class InMemoryPlacementAttemptRepository implements PlacementAttemptRepos
     @Override
     public synchronized Optional<PlacementAttempt> findById(String id) {
         return Optional.ofNullable(attempts.get(id)).map(PlacementCopies::attempt);
+    }
+
+    @Override
+    public synchronized Page<PlacementAttempt> findForAdmin(PlacementAttemptSearch filter, Pageable page) {
+        List<PlacementAttempt> matches = attempts.values().stream()
+                .filter(attempt -> matchesAdminFilter(attempt, filter))
+                .sorted(Comparator.comparing(PlacementAttempt::getStartedAt).reversed()
+                        .thenComparing(PlacementAttempt::getId))
+                .toList();
+        List<PlacementAttempt> rows = matches.stream().skip(page.getOffset()).limit(page.getPageSize())
+                .<PlacementAttempt>map(attempt -> PlacementAttempt.builder().id(attempt.getId()).userId(attempt.getUserId())
+                        .guestSessionId(attempt.getGuestSessionId()).testSetId(attempt.getTestSetId())
+                        .testSetVersion(attempt.getTestSetVersion()).status(attempt.getStatus())
+                        .startedAt(attempt.getStartedAt()).claimExpiresAt(attempt.getClaimExpiresAt())
+                        .correctCount(attempt.getCorrectCount()).placementLevel(attempt.getPlacementLevel())
+                        .build())
+                .toList();
+        return new PageImpl<>(rows, page, matches.size());
     }
 
     @Override
@@ -150,5 +172,19 @@ public class InMemoryPlacementAttemptRepository implements PlacementAttemptRepos
         return (attempt.getStatus() == PlacementAttemptStatus.SUBMITTED
                 || attempt.getStatus() == PlacementAttemptStatus.AUTO_SUBMITTED)
                 && attempt.getCorrectCount() != null && attempt.getPlacementLevel() != null;
+    }
+
+    private boolean matchesAdminFilter(PlacementAttempt attempt, PlacementAttemptSearch filter) {
+        return (filter.search() == null || filter.search().equals(attempt.getId())
+                    || filter.search().equals(attempt.getUserId()))
+                && (filter.userId() == null || filter.userId().equals(attempt.getUserId()))
+                && (filter.testSetVersions().isEmpty() || filter.testSetVersions().stream()
+                    .anyMatch(set -> set.id().equals(attempt.getTestSetId())
+                            && set.version() == attempt.getTestSetVersion()))
+                && (filter.version() == null || filter.version() == attempt.getTestSetVersion())
+                && (filter.status() == null || filter.status() == attempt.getStatus())
+                && (filter.level() == null || (validResult(attempt) && filter.level() == attempt.getPlacementLevel()))
+                && (filter.startedAtFrom() == null || !attempt.getStartedAt().isBefore(filter.startedAtFrom()))
+                && (filter.startedAtBefore() == null || attempt.getStartedAt().isBefore(filter.startedAtBefore()));
     }
 }

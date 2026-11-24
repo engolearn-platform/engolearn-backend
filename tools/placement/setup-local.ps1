@@ -1,6 +1,7 @@
 [CmdletBinding()]
 param(
     [switch]$Apply,
+    [switch]$ExplanationsOnly,
     [switch]$NoStartMongo,
     [string]$MongoUri,
     [string]$Database,
@@ -58,12 +59,14 @@ try {
     $env:MONGO_IMPORT_CONFLICT_POLICY='skip'
     Remove-Item Env:MONGO_IMPORT_APPLY -ErrorAction SilentlyContinue
     if($Apply) { $env:MONGO_IMPORT_APPLY='1' }
-    Write-Host "Placement $(if($Apply){'apply'}else{'preflight'}) database: $Database (questions + V2 only; no replacements)"
+    $script=if($ExplanationsOnly){'update-explanations.mongosh.js'}else{'import-local.mongosh.js'}
+    $scope=if($ExplanationsOnly){'Vietnamese explanations and new V3 snapshot'}else{'base questions and V2 snapshot, then V3 explanations on apply'}
+    Write-Host "Placement $(if($Apply){'apply'}else{'preflight'}) database: $Database ($scope)"
     & docker run --rm --network $Network --mount "type=bind,source=$repoRoot,target=/workspace,readonly" --workdir /workspace `
         -e MONGO_IMPORT_URI -e MONGO_IMPORT_DATABASE -e MONGO_IMPORT_FILES_JSON -e MONGO_IMPORT_OBJECT_ID_FIELDS `
         -e MONGO_IMPORT_APPLY -e MONGO_IMPORT_CONFLICT_POLICY -e MONGO_IMPORT_BATCH_SIZE -e MONGO_IMPORT_CONTINUE_ON_ERROR `
-        mongo:8.0.29-noble mongosh --nodb --norc --quiet --file /workspace/tools/placement/import-local.mongosh.js
-    if($LASTEXITCODE -ne 0) { throw 'Placement preflight/import failed; review the report, no replacements are attempted.' }
+        mongo:8.0.29-noble mongosh --nodb --norc --quiet --file "/workspace/tools/placement/$script"
+    if($LASTEXITCODE -ne 0) { throw 'Placement preflight/import failed; review the report.' }
 } finally {
     Pop-Location
     foreach($name in $names) { [Environment]::SetEnvironmentVariable($name,$saved[$name],'Process') }

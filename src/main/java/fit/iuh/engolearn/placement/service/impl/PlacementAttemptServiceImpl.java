@@ -19,6 +19,7 @@ import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import fit.iuh.engolearn.placement.service.PlacementAudioDelivery;
 
 @Service
 @RequiredArgsConstructor
@@ -29,6 +30,8 @@ public class PlacementAttemptServiceImpl implements PlacementAttemptService {
     private final PlacementTestSetRepository testSets;
     private final Clock placementClock;
     private final PlacementDeadlineService deadlines;
+
+    private final PlacementAudioDelivery audioDelivery;
 
     @Override
     public boolean isKnownGuestSession(String sessionId) {
@@ -118,7 +121,7 @@ public class PlacementAttemptServiceImpl implements PlacementAttemptService {
     public PlacementAttemptResponse get(String attemptId, PlacementAccessContext access) {
         Instant now = placementClock.instant();
         PlacementAttempt attempt = deadlines.resolve(requireOwned(attemptId, access), now);
-        return PlacementAttemptMapper.toAttempt(attempt, requireSet(attempt), now);
+        return PlacementAttemptMapper.toAttempt(attempt, audioDelivery.prepare(requireSet(attempt)), now);
     }
 
     @Override

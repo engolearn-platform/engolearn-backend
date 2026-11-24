@@ -2,14 +2,14 @@
 
 > Historical preparation notes below retain the original proposal constraints.
 > For the shared-data layout and current local runtime verified on 2026-11-08,
-> follow [Placement local runtime](../../../docs/technical/placement-local-runtime.md).
+> follow [Placement local runtime](../../../../docs/technical/placement/placement-local-runtime.md).
 > The standalone/27017 proposal below is not the active backend configuration.
 
 ## Current boundary
 
 M3.1 creates local artifacts only. It does not approve a target, import data,
 create/drop indexes, restart Backend, or start audio. M1 and all shared importer
-files are immutable inputs. See the shared [format guide](../../../tools/mongo-json-importer/mongodb-json-importer-data-format-guide.md).
+files are immutable inputs. See the shared [format guide](../../../mongo-json-importer/mongodb-json-importer-data-format-guide.md).
 
 Proposed target: `127.0.0.1:27017 / engolearn_placement_dev_v3` (not yet approved).
 Never substitute `engolearn_e2e_20261107` or a `placement_m30_race_*` database.
@@ -17,7 +17,7 @@ Run `tools/placement/inspect-dev-target.mongosh.js` read-only before any approva
 
 ## Package
 
-Generate/check using [the Placement tool README](../../../tools/placement/README.md).
+Generate/check using [the Placement tool README](../../README.md).
 `package-manifest.json` records input/output SHA-256, counts and validation scope.
 The two `*.importer.json` files live in `tools/mongo-json-importer/samples/` and are the only import inputs. Manifests remain in `tools/placement/data/dev-v3/`. Selection, package and
 audio manifests are sidecars, not Mongo collections and not generic importer inputs.

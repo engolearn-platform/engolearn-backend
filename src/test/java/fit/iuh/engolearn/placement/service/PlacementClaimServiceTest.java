@@ -44,7 +44,7 @@ class PlacementClaimServiceTest {
         var sets = new SamplePlacementTestSetRepository(new ClassPathResource("placement/sample-test-set.json"),
                 new ObjectMapper());
         var deadlines = new PlacementDeadlineServiceImpl(attempts, sets);
-        attemptService = new PlacementAttemptServiceImpl(attempts, sets, clock, deadlines);
+        attemptService = new PlacementAttemptServiceImpl(attempts, sets, clock, deadlines, source -> source);
         claimService = new PlacementClaimServiceImpl(attempts, deadlines, clock);
     }
 
