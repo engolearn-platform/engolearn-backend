@@ -45,3 +45,7 @@ Gói có đáp án/transcript quản trị và URL media công khai; không có 
 - Kiểm thử FE/BE thật cho kết quả1 đúng/1 sai/18 bỏ trống: Sai19, không giả lập đáp án đã chọn;1/1 đạt,0 skip.
 
 Chi tiết thiết kế và giới hạn: [báo cáo danh mục320 câu](../../../../docs/technical/placement/README.md).
+
+## Shared demo state
+
+The current catalog already stores7 Published/9 Draft forms. [Shared setup](../../README.md#shared-placementgrammar-demo-state) verifies the exact state, question content/snapshots and audio identity before any Grammar change. Placement publication is intentionally not automated; a different catalog/status must be reviewed/imported first. It does not archive or replace Published forms, regenerate IDs, alter question content or migrate old attempts. The counts cover the16 canonical forms; extra historical Archived/legacy versions remain visible on databases that already contain them. Use the same setup for Grammar39 Published/4 Draft-ready Topics after importing the common dataset.
