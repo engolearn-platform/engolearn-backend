@@ -2,11 +2,15 @@
 
 | Responsibility | Entry point |
 | --- | --- |
-| Topic profile authoring and readiness | `TopicSpeakingProfileController`, `TopicSpeakingProfileServiceImpl`, `TopicPublishReadinessServiceImpl` |
+| Topic profile and readiness | `TopicSpeakingProfileController`, `TopicSpeakingProfileServiceImpl`, `TopicPublishReadinessServiceImpl` |
 | Learner scope gate and released content | `TopicSpeakingAccess`, `TopicLearningServiceImpl.openableScope` |
 | Learner REST | `SpeakingController`, `SpeakingSessions` |
-| Opening, control and turn state primitives | `SpeakingRuntime`, `SpeakingSessionServiceImpl` |
-| Mongo persistence and recovery | `SpeakingSessionRepository`, `SpeakingOwnerSlotRepository`, `SpeakingTurnRepository`, `SpeakingTurnArchive`, `SpeakingSessionRecovery` |
-| Protected audio playback | `SpeakingSessionServiceImpl` via `MediaManagement` |
+| Lease, lifecycle and durable commit | `SpeakingRuntime`, `SpeakingSessionServiceImpl` |
+| WebSocket upgrade and wire adaptation | `SpeakingSocketConfiguration`, `SpeakingSocketHandshake`, `SpeakingSocketHandler`, `SpeakingFrames` |
+| Opening, recording and generation orchestration | `SpeakingRealtime`, `SpeakingRealtimeImpl`, `SpeakingRecording`, `SpeakingConversation` |
+| Provider adapters | `AssemblyAiSpeechStream`, `GeminiSpeakingGeneration`, `CartesiaSpeechSynthesis` |
+| Mongo archives and recovery | `SpeakingTurnArchive`, `SpeakingSessionRecovery` |
+| Measured usage recording and replay | `SpeakingQuota`, `SpeakingQuotaImpl` |
+| Protected audio and assessment handoff | `SpeakingAudioStorage`, `SpeakingRuntime.finalizedAudioEvidence`, `FinalizedSpeakingAudio` |
 
-The focused suites include `SpeakingFoundationMongoIntegrationTest`, `SecurityIntegrationTest`, `TopicLearningServiceImplTest`, `TopicPublishReadinessServiceImplTest` and `ArchitectureTest`. AssemblyAI and Cartesia adapter tests use local fixtures.
+`SpeakingRealtimeMongoIntegrationTest` runs actual Spring HTTP and WebSocket routes against disposable MongoDB with provider fakes. `SpeakingFoundationMongoIntegrationTest` covers Topic authoring, ownership, lifecycle fences and history. The local Gemini HTTP test checks MIME, explicit schema, raw text and retry behavior.

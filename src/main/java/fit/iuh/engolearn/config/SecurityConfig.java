@@ -73,6 +73,9 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/placement/attempts/*/result", "/api/v1/placement/attempts/*/review",
                                 "/api/v1/placement/attempts/*/learning").hasRole("USER")
                         .requestMatchers("/api/v1/subscription/me", "/api/v1/subscription/me/**", "/api/v1/quota/me/**").authenticated()
+                        // The upgrade interceptor authenticates the one-time control ticket.
+                        .requestMatchers(HttpMethod.GET, "/ws/speaking/*").permitAll()
+                        .requestMatchers("/ws/speaking", "/ws/speaking/**").denyAll()
                         .requestMatchers("/api/v1/speaking", "/api/v1/speaking/**").hasRole("USER")
                         .requestMatchers(HttpMethod.PUT, "/api/management/topics/*/speaking-profile",
                                 "/api/management/topics/*/items/*/speaking-profile").hasRole("CONTENT_MANAGER")

@@ -31,7 +31,7 @@ class CartesiaSpeechSynthesisTest {
                 assertThrows(IllegalStateException.class, () -> synthesis.synthesize("Hello!")).getMessage());
     }
 
-    @Test void sendsVoiceIdAndMp3FormatToBytesApi() throws Exception {
+    @Test void sendsVoiceIdAndPcmWavFormatToBytesApi() throws Exception {
         ObjectMapper mapper = new ObjectMapper();
         HttpClient client = mock(HttpClient.class);
         HttpResponse<byte[]> response = mock(HttpResponse.class);
@@ -56,7 +56,8 @@ class CartesiaSpeechSynthesisTest {
         assertEquals("2026-08-14", request.get().headers().firstValue("Cartesia-Version").orElseThrow());
         assertEquals("sonic-3.6", payload.path("model_id").asText());
         assertEquals("voice-id", payload.path("voice").asText());
-        assertEquals("mp3", payload.path("output_format").path("container").asText());
+        assertEquals("wav", payload.path("output_format").path("container").asText());
+        assertEquals("pcm_s16le", payload.path("output_format").path("encoding").asText());
         assertEquals("Hello!", payload.path("transcript").asText());
     }
 

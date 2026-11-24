@@ -42,7 +42,12 @@ public class SpeakingSession extends BaseDocument {
     @Field("ticket_expires_at") private Instant ticketExpiresAt;
     @Field("lease_id") private String leaseId;
     @Field("lease_instance") private String leaseInstance;
+    @Field("prompt_version") private String promptVersion;
+    @Field("opening_token") private String openingToken;
+    @Field("opening_deadline") private Instant openingDeadline;
+    @Field("memory") private SpeakingMemoryVo memory;
     @Field("opening") private SpeakingOpeningVo opening;
+    @Field("retry_closed_through_sequence") private int retryClosedThroughSequence;
     @Field("last_turn_sequence") private int lastTurnSequence;
     @Field("finalized_turn_count") private int finalizedTurnCount;
     @Field("committed_turn_count") private int committedTurnCount;

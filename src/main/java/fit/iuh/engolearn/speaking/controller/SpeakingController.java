@@ -5,6 +5,8 @@ import fit.iuh.engolearn.speaking.dto.request.SpeakingRequests.*;
 import fit.iuh.engolearn.speaking.dto.response.SpeakingAssessmentResponse;
 import fit.iuh.engolearn.speaking.dto.response.SpeakingResponses.*;
 import fit.iuh.engolearn.speaking.service.SpeakingSessions;
+import fit.iuh.engolearn.speaking.service.SpeakingRealtime;
+import fit.iuh.engolearn.speaking.model.enums.SpeakingSessionStatus;
 import fit.iuh.engolearn.topic.contract.dto.SpeakingScopeDto;
 import fit.iuh.engolearn.topic.contract.enums.SpeakingScopeType;
 import jakarta.servlet.http.HttpServletResponse;
@@ -18,6 +20,7 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 public class SpeakingController {
     private final SpeakingSessions sessions;
+    private final SpeakingRealtime realtime;
 
     @GetMapping("/availability")
     public ApiResponse<Availability> availability(@RequestParam(required = false) SpeakingScopeType scopeType,
@@ -29,6 +32,7 @@ public class SpeakingController {
     @PostMapping("/sessions")
     public ApiResponse<Session> create(@Valid @RequestBody Create request, HttpServletResponse response) {
         var result = sessions.create(request);
+        beginOpening(result.session());
         response.setStatus(result.created() ? 201 : 200);
         return ApiResponse.ok(result.session());
     }
@@ -36,12 +40,18 @@ public class SpeakingController {
     @PostMapping("/sessions/replace")
     public ApiResponse<?> replace(@Valid @RequestBody Replace request, HttpServletResponse response) {
         var result = sessions.replace(request);
+        realtime.sessionChanged(request.sessionId());
         if (result.replacingSessionId() != null) {
             response.setStatus(202);
             return ApiResponse.ok(new Replacing("REPLACING", result.replacingSessionId()));
         }
+        beginOpening(result.session());
         response.setStatus(result.created() ? 201 : 200);
         return ApiResponse.ok(result.session());
+    }
+
+    private void beginOpening(Session session) {
+        if (session.status() == SpeakingSessionStatus.INITIALIZING) realtime.openSession(session.sessionId());
     }
 
     @GetMapping("/sessions/{id}")
@@ -61,7 +71,9 @@ public class SpeakingController {
 
     @PostMapping("/sessions/{id}/end")
     public ApiResponse<Session> end(@PathVariable String id, @Valid @RequestBody Control request) {
-        return ApiResponse.ok(sessions.end(id, request.controllerEpoch()));
+        var session = sessions.end(id, request.controllerEpoch());
+        realtime.sessionChanged(id);
+        return ApiResponse.ok(session);
     }
 
     @GetMapping("/sessions")

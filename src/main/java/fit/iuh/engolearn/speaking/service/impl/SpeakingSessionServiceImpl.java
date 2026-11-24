@@ -18,6 +18,8 @@ import fit.iuh.engolearn.speaking.repository.*;
 import fit.iuh.engolearn.speaking.service.SpeakingRuntime;
 import fit.iuh.engolearn.speaking.service.SpeakingSessions;
 import fit.iuh.engolearn.speaking.utils.SpeakingSessionSettings;
+import fit.iuh.engolearn.speaking.utils.SpeakingConversation;
+import fit.iuh.engolearn.speaking.utils.SpeakingConversation.Result;
 import fit.iuh.engolearn.topic.contract.TopicSpeakingAccess;
 import fit.iuh.engolearn.topic.contract.dto.SpeakingScopeDto;
 import lombok.RequiredArgsConstructor;
@@ -346,12 +348,26 @@ public class SpeakingSessionServiceImpl implements SpeakingSessions, SpeakingRun
 
     @Override
     public void releaseLease(Lease lease) {
-        change(lease.sessionId(), current -> {
+        var released = change(lease.sessionId(), current -> {
             if (!leaseMatches(current, lease)) return false;
             discardReceiving(current, "TURN_CANCELLED");
             clearConnection(current);
             return true;
         }, true);
+        if (released.getLeaseId() == null) flushTerminal(released);
+    }
+
+    @Override
+    public void closeRetryWindow(Lease lease, UUID nextClientTurnId) {
+        change(lease.sessionId(), current -> {
+            requireLease(current, lease);
+            requireActive(current);
+            int sequence = current.getLastTurnSequence();
+            if (current.getActiveTurn() != null || sequence <= current.getRetryClosedThroughSequence()
+                    || turns.findBySessionIdAndValueClientTurnId(current.getId(), nextClientTurnId.toString()).isPresent()) return false;
+            current.setRetryClosedThroughSequence(sequence);
+            return true;
+        });
     }
 
     @Override
@@ -360,6 +376,7 @@ public class SpeakingSessionServiceImpl implements SpeakingSessions, SpeakingRun
         for (int attempt = 0; attempt < ATTEMPTS; attempt++) {
             SpeakingSession session = runtimeSession(lease.sessionId());
             requireLease(session, lease);
+            requireActive(session);
             var current = session.getActiveTurn();
             if (current != null && clientId.equals(current.getClientTurnId())) return viewTurn(current);
             var previous = turns.findBySessionIdAndValueClientTurnId(session.getId(), clientId);
@@ -428,9 +445,11 @@ public class SpeakingSessionServiceImpl implements SpeakingSessions, SpeakingRun
                 throw failure(HttpStatus.BAD_REQUEST, "AUDIO_LIMIT", "The turn audio exceeds its limit", false);
             }
             turn.setSealedAt(now());
+            turn.setEvidenceToken(token);
             turn.setLearnerAudio(audio);
             turn.setSpeechDurationMs(durationMs);
             turn.setWorkToken(token);
+            turn.setWorkDeadline(now().plusSeconds(60));
             turn.setStatus(SpeakingTurnStatus.TRANSCRIBING);
             return true;
         });
@@ -447,12 +466,14 @@ public class SpeakingSessionServiceImpl implements SpeakingSessions, SpeakingRun
             if (previous.getStatus() != SpeakingTurnStatus.FAILED || previous.getAttempt() >= 1
                     || previous.getTranscript() == null || previous.getTranscript().isBlank()
                     || !"CONVERSATION_UNAVAILABLE".equals(previous.getReason())
+                    || previous.getSequence() <= current.getRetryClosedThroughSequence()
                     || previous.getSequence() != current.getLastTurnSequence()) throw staleTurn();
             previous.setRevision(previous.getRevision() + 1);
             previous.setAttempt(previous.getAttempt() + 1);
             previous.setStatus(SpeakingTurnStatus.GENERATING);
             previous.setReason(null);
             previous.setWorkToken(token);
+            previous.setWorkDeadline(now().plusSeconds(60));
             current.setActiveTurn(previous);
             return true;
         });
@@ -461,11 +482,17 @@ public class SpeakingSessionServiceImpl implements SpeakingSessions, SpeakingRun
 
     @Override
     public void transcript(TurnWork work, String original) {
+        transcript(work, original, 0);
+    }
+
+    @Override
+    public void transcript(TurnWork work, String original, long successfulSttWaitMs) {
         if (original == null || original.isBlank()) throw failure(HttpStatus.BAD_REQUEST, "EMPTY_AUDIO", "No speech was detected", false);
         change(work.sessionId(), session -> {
             SpeakingTurnVo turn = workTurn(session, work);
             if (turn.getStatus() != SpeakingTurnStatus.TRANSCRIBING) throw staleTurn();
             turn.setTranscript(original);
+            turn.setSuccessfulWaitMs(Math.min(10000, Math.max(0, successfulSttWaitMs)));
             turn.setStatus(SpeakingTurnStatus.GENERATING);
             return true;
         });
@@ -474,6 +501,17 @@ public class SpeakingSessionServiceImpl implements SpeakingSessions, SpeakingRun
     @Override
     public Turn settle(TurnWork work, SpeakingTurnStatus result, String reason, String reply, SpeakingHintVo hint,
                        SpeakingCorrectionVo correction) {
+        return settle(work, result, reason, reply, hint, correction, null, 0);
+    }
+
+    @Override
+    public Turn commit(TurnWork work, Result result, long generationWaitMs) {
+        return settle(work, SpeakingTurnStatus.COMMITTED, null, result.reply(), result.hint(),
+                result.correction(), result.delta(), generationWaitMs);
+    }
+
+    private Turn settle(TurnWork work, SpeakingTurnStatus result, String reason, String reply, SpeakingHintVo hint,
+                        SpeakingCorrectionVo correction, List<SpeakingMemoryVo.Delta> delta, long generationWaitMs) {
         if (!result.terminal()) throw new IllegalArgumentException("A settled turn must be terminal");
         SpeakingSession saved = change(work.sessionId(), session -> {
             SpeakingTurnVo turn = workTurn(session, work);
@@ -482,16 +520,69 @@ public class SpeakingSessionServiceImpl implements SpeakingSessions, SpeakingRun
                 turn.setReply(reply);
                 turn.setHint(hint);
                 turn.setCorrection(correction);
-                turn.setAudioStatus(SpeakingAudioStatus.TEXT_READY);
+                turn.setAudioStatus(delta == null ? SpeakingAudioStatus.TEXT_READY : SpeakingAudioStatus.AUDIO_PENDING);
+                if (delta != null) {
+                    turn.setMemoryDelta(delta);
+                    turn.setDeliveryToken(work.token());
+                    turn.setDeliveryDeadline(now().plusSeconds(45));
+                    turn.setSuccessfulWaitMs(Math.min(10000, turn.getSuccessfulWaitMs() + Math.max(0, generationWaitMs)));
+                }
                 session.setCommittedTurnCount(session.getCommittedTurnCount() + 1);
             }
+            if (result == SpeakingTurnStatus.SKIPPED && "EMPTY_AUDIO".equals(reason)) turn.setSpeechDurationMs(0);
             finalizeTurn(session, turn, result, reason);
+            if (result == SpeakingTurnStatus.COMMITTED && delta != null) {
+                var history = new ArrayList<>(archived(session.getId()));
+                history.add(turn);
+                session.setMemory(SpeakingConversation.replay(session.getMemory(), history));
+            }
             return true;
         });
         Turn response = viewTurn(saved.getActiveTurn());
         SpeakingSession latest = advance(saved.getId());
         if (latest.getStatus() == SpeakingSessionStatus.ENDED) finishSlot(latest);
         return response;
+    }
+
+    @Override
+    public SpeakingTurnVo workState(TurnWork work) {
+        return workTurn(runtimeSession(work.sessionId()), work);
+    }
+
+    @Override
+    public void attachAudio(TurnWork work, SpeakingMediaVo audio) {
+        if (audio == null) return;
+        var session = change(work.sessionId(), current -> {
+            var turn = current.getActiveTurn();
+            if (turn == null || !work.turnId().equals(turn.getTurnId())
+                    || !Objects.equals(turn.getEvidenceToken(), work.token()) || turn.getLearnerAudio() != null) return false;
+            turn.setLearnerAudio(audio);
+            turn.setRevision(turn.getRevision() + 1);
+            return true;
+        });
+        var active = session.getActiveTurn();
+        if (active == null || !work.turnId().equals(active.getTurnId())) {
+            archive.attachLearnerAudio(work.sessionId(), work.turnId(), work.token(), audio, now());
+        } else if (active.getStatus().terminal()) {
+            flushTerminal(session);
+        }
+    }
+
+    @Override
+    public SpeakingTurnVo finalizedAudioEvidence(String sessionId, String turnId) {
+        var evidence = turn(runtimeSession(sessionId), turnId);
+        if (evidence.getSealedAt() == null) throw staleTurn();
+        return evidence;
+    }
+
+    @Override
+    public List<SpeakingTurnVo> conversationHistory(TurnWork work) {
+        var turn = workState(work);
+        return archived(work.sessionId()).stream().filter(row -> row.getSequence() < turn.getSequence()).toList();
+    }
+
+    private List<SpeakingTurnVo> archived(String id) {
+        return turns.findBySessionIdOrderByValueSequenceAsc(id).stream().map(SpeakingTurn::getValue).toList();
     }
 
     @Override
@@ -502,16 +593,54 @@ public class SpeakingSessionServiceImpl implements SpeakingSessions, SpeakingRun
 
     @Override
     public boolean completeOpening(String sessionId, SpeakingOpeningVo opening) {
+        return completeOpening(sessionId, null, opening);
+    }
+
+    @Override
+    public String claimOpening(String sessionId, Instant until) {
+        String token = id();
+        var saved = change(sessionId, current -> {
+            if (current.getStatus() != SpeakingSessionStatus.INITIALIZING || timeLimitReached(current)
+                    || current.getOpeningDeadline() != null && current.getOpeningDeadline().isAfter(now())) return false;
+            current.setOpeningToken(token);
+            current.setOpeningDeadline(until);
+            return true;
+        });
+        return token.equals(saved.getOpeningToken()) ? token : null;
+    }
+
+    @Override
+    public boolean completeOpening(String sessionId, String token, SpeakingOpeningVo opening) {
         if (opening == null || opening.getReply() == null || opening.getReply().isBlank()) {
             throw new IllegalArgumentException("A completed opening requires a reply");
         }
         for (int attempt = 0; attempt < ATTEMPTS; attempt++) {
             SpeakingSession session = runtimeSession(sessionId);
-            if (session.getStatus() != SpeakingSessionStatus.INITIALIZING || timeLimitReached(session)) return false;
+            if (session.getStatus() != SpeakingSessionStatus.INITIALIZING || timeLimitReached(session)
+                    || !Objects.equals(token, session.getOpeningToken()) || token != null
+                    && !session.getOpeningDeadline().isAfter(now())) return false;
             session.setOpening(opening);
             session.setStartedAt(now());
             session.setStatus(SpeakingSessionStatus.ACTIVE);
             if (trySave(session) != null) return true;
+        }
+        throw busy();
+    }
+
+    @Override
+    public boolean openingAudio(String sessionId, String token, SpeakingAudioStatus status, SpeakingMediaVo audio) {
+        if (token == null) return false;
+        for (int attempt = 0; attempt < ATTEMPTS; attempt++) {
+            var current = runtimeSession(sessionId);
+            var opening = current.getOpening();
+            if (!token.equals(current.getOpeningToken()) || opening == null
+                    || opening.getAudioStatus() != SpeakingAudioStatus.AUDIO_PENDING) return false;
+            if (status == SpeakingAudioStatus.AUDIO_READY && !current.getOpeningDeadline().isAfter(now())) return false;
+            opening.setAudioStatus(status);
+            opening.setAudio(audio);
+            current.setOpeningToken(null);
+            current.setOpeningDeadline(null);
+            if (trySave(current) != null) return true;
         }
         throw busy();
     }
@@ -525,6 +654,14 @@ public class SpeakingSessionServiceImpl implements SpeakingSessions, SpeakingRun
                 change(session.getId(), current -> !instance.equals(current.getLeaseInstance())
                         && discardReceiving(current, "SYSTEM_INTERRUPTED"), true);
             }
+            change(session.getId(), current -> {
+                var active = current.getActiveTurn();
+                if (active == null || active.getWorkDeadline() == null || active.getWorkDeadline().isAfter(now())
+                        || active.getStatus().terminal() || active.getStatus() == SpeakingTurnStatus.RECEIVING) return false;
+                String reason = active.getTranscript() == null ? "STT_UNAVAILABLE" : "CONVERSATION_UNAVAILABLE";
+                finalizeTurn(current, active, SpeakingTurnStatus.FAILED, reason);
+                return true;
+            }, true);
             SpeakingSession latest = advance(session.getId());
             if (latest.getStatus() == SpeakingSessionStatus.ENDED) finishSlot(latest);
         }
@@ -548,7 +685,8 @@ public class SpeakingSessionServiceImpl implements SpeakingSessions, SpeakingRun
             current.setStatus(SpeakingSessionStatus.ENDED);
             current.setEndedAt(now());
             current.setUnfinishedOwner(null);
-            clearConnection(current);
+            current.setTicketHash(null);
+            current.setTicketExpiresAt(null);
             return true;
         }, true);
         if (advanced.getDeletedAt() != null) return advanced;
@@ -593,6 +731,7 @@ public class SpeakingSessionServiceImpl implements SpeakingSessions, SpeakingRun
         turn.setStatus(status);
         turn.setReason(reason);
         turn.setWorkToken(null);
+        turn.setWorkDeadline(null);
         if (turn.getSealedAt() != null && turn.getAttempt() == 0) {
             session.setFinalizedTurnCount(session.getFinalizedTurnCount() + 1);
             session.setSpeechDurationMs(session.getSpeechDurationMs() + turn.getSpeechDurationMs());
@@ -663,7 +802,7 @@ public class SpeakingSessionServiceImpl implements SpeakingSessions, SpeakingRun
                 return sessions.insert(SpeakingSession.builder().id(intent.getSessionId()).ownerId(owner).unfinishedOwner(owner)
                         .clientRequestId(intent.getClientRequestId()).sourceSessionId(intent.getSourceSessionId())
                         .sourceEpoch(intent.getSourceEpoch()).snapshot(intent.getSnapshot()).limits(intent.getLimits())
-                        .controllerEpoch(1).createdAt(now()).status(SpeakingSessionStatus.INITIALIZING)
+                        .controllerEpoch(1).createdAt(now()).promptVersion(SpeakingConversation.VERSION).status(SpeakingSessionStatus.INITIALIZING)
                         .assessmentStatus(SpeakingAssessmentStatus.PENDING).build());
             } catch (DuplicateKeyException duplicate) {
                 return sessions.findById(intent.getSessionId()).orElseThrow(SpeakingSessionServiceImpl::busy);
@@ -747,7 +886,8 @@ public class SpeakingSessionServiceImpl implements SpeakingSessions, SpeakingRun
         if (session.getStatus() == SpeakingSessionStatus.ENDED || session.getStatus() == SpeakingSessionStatus.CLOSING
                 && !session.getClosingCutoff().isAfter(now())) throw staleTurn();
         var turn = activeTurn(session, work.turnId());
-        if (!Objects.equals(turn.getWorkToken(), work.token()) || turn.getStatus().terminal()
+        if (!Objects.equals(turn.getWorkToken(), work.token())
+                || turn.getWorkDeadline() != null && !turn.getWorkDeadline().isAfter(now()) || turn.getStatus().terminal()
                 || turn.getStatus() == SpeakingTurnStatus.RECEIVING) throw staleTurn();
         return turn;
     }

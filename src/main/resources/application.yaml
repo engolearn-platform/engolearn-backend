@@ -63,6 +63,12 @@ engolearn:
       endpoint: ${SPEAKING_CARTESIA_ENDPOINT:https://api.cartesia.ai/tts/bytes}
       api-version: ${SPEAKING_CARTESIA_API_VERSION:2026-08-14}
       timeout: ${SPEAKING_CARTESIA_TIMEOUT:20s}
+    realtime:
+      workers: ${SPEAKING_REALTIME_WORKERS:4}
+      queue-capacity: ${SPEAKING_REALTIME_QUEUE_CAPACITY:24}
+      max-connections: ${SPEAKING_REALTIME_MAX_CONNECTIONS:128}
+      max-frames-per-second: ${SPEAKING_REALTIME_MAX_FRAMES_PER_SECOND:160}
+      max-commands-per-second: ${SPEAKING_REALTIME_MAX_COMMANDS_PER_SECOND:16}
     indexes:
       enabled: true
     recovery:

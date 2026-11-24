@@ -12,6 +12,17 @@ public class SpeakingProviderProperties {
     private final AssemblyAi assemblyai = new AssemblyAi();
     private final Gemini gemini = new Gemini();
     private final Cartesia cartesia = new Cartesia();
+    private final Realtime realtime = new Realtime();
+
+    @Getter
+    @Setter
+    public static class Realtime {
+        private int workers = 4;
+        private int queueCapacity = 24;
+        private int maxConnections = 128;
+        private int maxFramesPerSecond = 160;
+        private int maxCommandsPerSecond = 16;
+    }
 
     @Getter
     @Setter
