@@ -38,8 +38,6 @@ import tools.jackson.databind.ObjectMapper;
 
 import java.net.URI;
 import java.net.http.*;
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
 import java.time.*;
 import java.util.*;
 import java.util.concurrent.*;
@@ -59,7 +57,7 @@ class SpeakingAssessmentMongoIntegrationTest extends AbstractMongoIntegrationTes
     private static final String OWNER = "assessment-owner";
     private static final String OTHER = "assessment-other";
     private static final String BASE = "/api/v1/speaking/sessions";
-    private static final byte[] PCM = voice();
+    private static final byte[] PCM = SpeakingAssessmentAudioFixture.voicedPcm();
     private static final String RUBRIC = """
             {"grammar":{"accuracy":{"status":"ASSESSED","level":5,"reasonVi":"Câu rõ nghĩa."},
             "range":{"status":"ASSESSED","level":3,"reasonVi":"Mẫu câu khá đa dạng."},"examples":[]},
@@ -305,15 +303,6 @@ class SpeakingAssessmentMongoIntegrationTest extends AbstractMongoIntegrationTes
     private static AcousticAssessmentPort.Result acoustic(double pronunciation, double fluency) {
         return new AcousticAssessmentPort.Result(pronunciation, fluency, 8,
                 List.of(new SpeakingWordAssessmentVo("coffee", 50d, "Mispronunciation")));
-    }
-
-    private static byte[] voice() {
-        var pcm = ByteBuffer.allocate(9_000 * 32).order(ByteOrder.LITTLE_ENDIAN);
-        for (int i = 0; i < 9_000 * 16; i++) {
-            pcm.putShort((short) (3500 * (0.7 + 0.3 * Math.sin(i * 2 * Math.PI * 4 / 16000))
-                    * Math.sin(i * 2 * Math.PI * 200 / 16000)));
-        }
-        return pcm.array();
     }
 
     private void await(java.util.function.BooleanSupplier condition) throws Exception {

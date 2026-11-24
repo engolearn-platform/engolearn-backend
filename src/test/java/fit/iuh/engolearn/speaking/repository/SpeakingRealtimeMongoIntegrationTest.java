@@ -11,11 +11,19 @@ import fit.iuh.engolearn.quota.service.impl.QuotaServiceImpl;
 import fit.iuh.engolearn.shared.enums.CefrLevel;
 import fit.iuh.engolearn.shared.enums.UserRole;
 import fit.iuh.engolearn.shared.security.impl.JwtTokenService;
+import fit.iuh.engolearn.speaking.model.SpeakingAudioAssessment;
 import fit.iuh.engolearn.speaking.model.SpeakingSession;
+import fit.iuh.engolearn.speaking.model.enums.SpeakingAssessmentStatus;
+import fit.iuh.engolearn.speaking.model.enums.SpeakingAudioAssessmentStatus;
+import fit.iuh.engolearn.speaking.model.enums.SpeakingTurnStatus;
+import fit.iuh.engolearn.speaking.service.SpeakingAssessment;
 import fit.iuh.engolearn.speaking.service.SpeakingQuota;
 import fit.iuh.engolearn.speaking.service.SpeakingRuntime;
 import fit.iuh.engolearn.speaking.service.FinalizedSpeakingAudio;
+import fit.iuh.engolearn.speaking.utils.SpeakingConversation.Message;
 import fit.iuh.engolearn.speaking.utils.SpeakingConversation.Prompt;
+import fit.iuh.engolearn.speaking.utils.SpeakingFrames;
+import fit.iuh.engolearn.speaking.utils.SpeakingLanguageRubric;
 import fit.iuh.engolearn.speaking.utils.SpeakingWav;
 import fit.iuh.engolearn.speaking.utils.port.*;
 import fit.iuh.engolearn.topic.service.TopicSpeakingProfileService;
@@ -38,6 +46,7 @@ import org.springframework.context.event.EventListener;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.TestPropertySource;
@@ -53,6 +62,7 @@ import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -103,6 +113,7 @@ class SpeakingRealtimeMongoIntegrationTest extends AbstractMongoIntegrationTest 
     @Autowired private SpeakingTurnRepository turns;
     @Autowired private SpeakingSessionRepository sessions;
     @Autowired private SpeakingAssessmentRepository assessments;
+    @Autowired private SpeakingAssessment assessmentWorker;
     @Autowired private SpeakingQuota speakingQuota;
     @Autowired private TopicSpeakingProfileService profiles;
     @Autowired private SpeakingRuntime runtime;
@@ -111,6 +122,9 @@ class SpeakingRealtimeMongoIntegrationTest extends AbstractMongoIntegrationTest 
     @MockitoBean private SpeechStreamPort stt;
     @MockitoBean private ConversationGenerationPort gemini;
     @MockitoBean private SpeechSynthesisPort cartesia;
+    @MockitoBean private AcousticAssessmentPort acoustic;
+    @MockitoBean private LanguageAssessmentPort language;
+    @MockitoBean private LearnerAssessmentAudioPort retainedAudio;
     @MockitoSpyBean private QuotaServiceImpl quota;
 
     @BeforeEach
@@ -256,6 +270,136 @@ class SpeakingRealtimeMongoIntegrationTest extends AbstractMongoIntegrationTest 
                 OTHER, null).statusCode()).isEqualTo(403);
         connection.binary(frame(turn, 1, VOICE));
         assertThat(connection.next("ERROR").path("payload").path("code").asString()).isEqualTo("STALE_TURN");
+    }
+
+    @Test
+    void publishesOneReadyAssessmentFromTheSameTurnsCommittedOverWebSocket() throws Exception {
+        when(acoustic.assess(any(), any())).thenReturn(new AcousticAssessmentPort.Result(78.5, 0d, 8, List.of()));
+        String id = create();
+        String endpoint = BASE + "/sessions/" + id;
+        String openingReply = "Good morning! What can I get you?";
+        ready(id, openingReply);
+        Socket socket = socket(id, ticket(id, 1));
+        assertThat(socket.next("SESSION_STATE").path("payload").path("opening").path("reply").asString())
+                .isEqualTo(openingReply);
+        assertThat(data(request("GET", endpoint + "/assessment", OWNER, null)).path("status").asString())
+                .isEqualTo("PENDING");
+
+        var utterances = List.of(
+                "I would like to order a cup of coffee with milk please.",
+                "Could you tell me what kinds of sandwiches you have today?",
+                "That sounds lovely but I would prefer the cheese sandwich today.",
+                "Can you warm it up while I wait near the counter?",
+                "I am going to pay with my card and eat inside.");
+        var pcm = SpeakingAssessmentAudioFixture.voicedPcm();
+        var turnIds = new ArrayList<String>();
+        var languageHistory = new ArrayList<Message>();
+        for (int index = 0; index < utterances.size(); index++) {
+            int sequence = index + 1;
+            String utterance = utterances.get(index);
+            String reply = "Let me help you with order item " + sequence + ".";
+            var turnId = commitTurn(socket, pcm, sequence, utterance, reply);
+            turnIds.add(turnId);
+            var persisted = turns.findById(turnId).orElseThrow().getValue();
+            assertThat(persisted.getStatus()).isEqualTo(SpeakingTurnStatus.COMMITTED);
+            assertThat(persisted.getTranscript()).isEqualTo(utterance);
+            assertThat(persisted.getReply()).isEqualTo(reply);
+            languageHistory.add(new Message("user", utterance));
+            languageHistory.add(new Message("assistant", reply));
+        }
+        awaitCondition(() -> assessments.samples(id).stream().filter(sample ->
+                sample.getStatus().terminal()).count() == turnIds.size());
+        assertThat(assessments.samples(id))
+                .allSatisfy(sample -> assertThat(sample.getStatus()).as("Acoustic sample %s: %s",
+                        sample.getId(), sample.getReason()).isEqualTo(SpeakingAudioAssessmentStatus.ASSESSED))
+                .extracting(SpeakingAudioAssessment::getId).containsExactlyInAnyOrderElementsOf(turnIds);
+        when(language.assess(anyString(), anyString(), anyList(), eq(SpeakingLanguageRubric.SCHEMA), any())).thenReturn("""
+                {"grammar":{"accuracy":{"status":"ASSESSED","level":5,"reasonVi":"Câu rõ nghĩa."},
+                "range":{"status":"ASSESSED","level":3,"reasonVi":"Mẫu câu đa dạng."},
+                "examples":[{"turnId":"%s","original":"a cup of coffee with milk","suggested":"a milky coffee"}]},
+                "vocabulary":{"accuracy":{"status":"ASSESSED","level":4,"reasonVi":"Từ phù hợp."},
+                "range":{"status":"ASSESSED","level":3,"reasonVi":"Có thể mở rộng vốn từ."},"examples":[]},
+                "feedback":{"strengthsVi":["Bạn diễn đạt rõ ý."],"improvementsVi":[],"recommendationsVi":[]}}
+                """.formatted(turnIds.getFirst()));
+
+        String end = "{\"controllerEpoch\":1}";
+        JsonNode ended = data(request("POST", endpoint + "/end", OWNER, end));
+        assertThat(ended.path("status").asString()).isEqualTo("ENDED");
+        assertThat(ended.path("assessmentStatus").asString()).isEqualTo("FINALIZING");
+        assertThat(ended.path("committedTurnCount").asInt()).isEqualTo(turnIds.size());
+        awaitCondition(() -> {
+            assessmentWorker.recover();
+            return sessions.findById(id).orElseThrow().getAssessmentStatus() == SpeakingAssessmentStatus.READY;
+        });
+        JsonNode result = data(request("GET", endpoint + "/assessment", OWNER, null));
+        assertThat(keys(result)).containsExactlyInAnyOrder("sessionId", "status", "criteria", "feedback", "finalizedAt");
+        assertThat(result.path("sessionId").asString()).isEqualTo(id);
+        assertThat(result.path("status").asString()).isEqualTo("READY");
+        var criteria = result.path("criteria");
+        assertThat(keys(criteria)).containsExactlyInAnyOrder("pronunciation", "fluency", "grammar", "vocabulary");
+        assertCriterion(criteria.path("pronunciation"), 78.5, 100, turnIds.size());
+        assertCriterion(criteria.path("fluency"), 0d, 100, turnIds.size());
+        assertCriterion(criteria.path("grammar"), 4d, 5, turnIds.size());
+        assertCriterion(criteria.path("vocabulary"), 3.5, 5, turnIds.size());
+        assertThat(criteria.path("grammar").path("examples").get(0).path("turnId").asString()).isEqualTo(turnIds.getFirst());
+
+        JsonNode history = data(request("GET", endpoint + "/turns", OWNER, null)).path("items");
+        assertThat(history).extracting(turn -> turn.path("turnId").asString()).containsExactlyElementsOf(turnIds);
+        assertThat(history).extracting(turn -> turn.path("transcript").asString()).containsExactlyElementsOf(utterances);
+        assertThat(history).allSatisfy(turn -> assertThat(turn.path("replyDeliveredAt").isNull()).isFalse());
+        var rubricData = ArgumentCaptor.forClass(String.class);
+        verify(language).assess(anyString(), rubricData.capture(), eq(languageHistory), eq(SpeakingLanguageRubric.SCHEMA), any());
+        assertThat(mapper.readTree(rubricData.getValue()).path("turns")).extracting(turn -> turn.path("turnId").asString())
+                .containsExactlyElementsOf(turnIds);
+        verify(acoustic, times(turnIds.size())).assess(any(), any());
+        verifyNoInteractions(retainedAudio);
+
+        assertThat(data(request("POST", endpoint + "/end", OWNER, end)).path("assessmentStatus").asString()).isEqualTo("READY");
+        assessmentWorker.recover();
+        assertThat(data(request("GET", endpoint + "/assessment", OWNER, null))).isEqualTo(result);
+        assertThat(request("GET", endpoint + "/assessment", OTHER, null).statusCode()).isEqualTo(403);
+        assertThat(mongoTemplate.findAll(SpeakingSession.class)).singleElement().satisfies(session -> {
+            assertThat(session.getId()).isEqualTo(id);
+            assertThat(session.getAssessment().getFinalizedAt()).isEqualTo(Instant.parse(result.path("finalizedAt").asString()));
+            assertThat(session.getLanguageAssessment()).isNull();
+        });
+        assertThat(mongoTemplate.getCollectionNames()).doesNotContain("speaking_sessions", "speaking_turns",
+                "speaking_assessments", "speaking_audio_assets", "speaking_item_configs", "speaking_usage_segments");
+        assertThat(mongoTemplate.getCollection("user_topic_progress").countDocuments()).isZero();
+        assertThat(mongoTemplate.getCollection("user_topic_item_progress").countDocuments()).isZero();
+        verifyNoMoreInteractions(language);
+    }
+
+    private String commitTurn(Socket socket, byte[] pcm, int sequence, String utterance, String reply) throws Exception {
+        transcript.set(utterance);
+        answer.set(mapper.writeValueAsString(Map.of("reply", reply)));
+        UUID turnId = start(socket);
+        int chunk = 0;
+        for (int offset = 0; offset < pcm.length; offset += SpeakingFrames.CHUNK) {
+            byte[] payload = Arrays.copyOfRange(pcm, offset, Math.min(offset + SpeakingFrames.CHUNK, pcm.length));
+            socket.binary(frame(turnId, chunk++, payload));
+        }
+        socket.command("END_TURN", turnId, Map.of());
+        assertThat(socket.next("TURN_PROCESSING").path("turnId").asString()).isEqualTo(turnId.toString());
+        JsonNode finalTranscript = socket.next("TRANSCRIPT_FINAL");
+        assertThat(finalTranscript.path("turnId").asString()).isEqualTo(turnId.toString());
+        assertThat(finalTranscript.path("payload").path("transcript").asString()).isEqualTo(utterance);
+        JsonNode result = socket.next("TURN_RESULT");
+        assertThat(result.path("turnId").asString()).isEqualTo(turnId.toString());
+        assertThat(result.path("sequence").asInt()).isEqualTo(sequence);
+        assertThat(result.path("payload").path("reply").asString()).isEqualTo(reply);
+        assertThat(socket.next("TTS_COMPLETED").path("turnId").asString()).isEqualTo(turnId.toString());
+        // The WAV acknowledgment precedes archive finalization and release of the in-flight turn.
+        awaitCondition(() -> turns.findById(turnId.toString()).map(turn -> turn.isQuotaRecorded()).orElse(false));
+        return turnId.toString();
+    }
+
+    private static void assertCriterion(JsonNode criterion, double score, int maxScore, int samples) {
+        assertThat(criterion.path("status").asString()).isEqualTo("ASSESSED");
+        assertThat(criterion.path("score").isNumber()).isTrue();
+        assertThat(criterion.path("score").asDouble()).isEqualTo(score);
+        assertThat(criterion.path("maxScore").asInt()).isEqualTo(maxScore);
+        assertThat(criterion.path("sampleCount").asInt()).isEqualTo(samples);
     }
 
     @Test
