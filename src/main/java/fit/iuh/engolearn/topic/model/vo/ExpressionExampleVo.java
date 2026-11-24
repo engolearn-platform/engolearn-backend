@@ -2,6 +2,7 @@ package fit.iuh.engolearn.topic.model.vo;
 
 import fit.iuh.engolearn.shared.EmbeddedDocument;
 import fit.iuh.engolearn.topic.model.enums.ExpressionType;
+import fit.iuh.engolearn.topic.model.enums.ExpressionLabel;
 import lombok.*;
 import org.springframework.data.mongodb.core.mapping.Field;
 
@@ -30,4 +31,7 @@ public class ExpressionExampleVo implements EmbeddedDocument {
 
     @Field("linked_vocab_ids")
     private List<String> linkedVocabIds;
+
+    @Field("label")
+    private ExpressionLabel label;
 }

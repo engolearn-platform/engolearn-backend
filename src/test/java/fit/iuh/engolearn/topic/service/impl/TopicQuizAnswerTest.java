@@ -1,5 +1,7 @@
 package fit.iuh.engolearn.topic.service.impl;
 
+import fit.iuh.engolearn.topic.mapper.TopicLearnerMediaMapper;
+import fit.iuh.engolearn.topic.service.TopicMediaService;
 import fit.iuh.engolearn.topic.service.*;
 
 import fit.iuh.engolearn.topic.dto.request.AnswerQuizRequest;
@@ -52,6 +54,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+import static org.mockito.Mockito.mock;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.catchThrowableOfType;
 import static org.mockito.ArgumentMatchers.any;
@@ -123,7 +126,7 @@ class TopicQuizAnswerTest {
     @BeforeEach
     void setUp() {
         service = new TopicAttemptServiceImpl( catalog, attempts, versions, new TopicAttemptMutationRepository(mongo), topicItems, learning, quizMapper,
-                topics, releases, generations, retries, attemptMapper, quizProgress, new TopicRetrySessionMapper());
+                topics, releases, generations, retries, attemptMapper, quizProgress, new TopicRetrySessionMapper(), new TopicLearnerMediaMapper(mock(TopicMediaService.class)));
     }
 
     @Test

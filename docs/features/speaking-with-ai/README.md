@@ -1,6 +1,6 @@
 # Speaking với AI — ánh xạ nghiệp vụ đến BE
 
-Trang này đối chiếu BE trên nhánh `dev` với đặc tả nghiệp vụ. Bằng chứng hiện tại dựa trên mã nguồn và các test hiện có. Các kiểm tra trực tiếp với provider, micro, trình duyệt và tải vẫn cần xác minh.
+Trang này đối chiếu triển khai BE hiện tại với đặc tả nghiệp vụ. Bằng chứng dựa trên mã nguồn và các test hiện có. Các kiểm tra trực tiếp với provider, micro, trình duyệt và tải vẫn cần xác minh.
 
 ## Nguồn và phạm vi
 
@@ -18,7 +18,7 @@ Trang này đối chiếu BE trên nhánh `dev` với đặc tả nghiệp vụ.
 | SPK-UC-005–007 (F02) | Một phần | API đọc lịch sử/chi tiết, phát audio có hạn và xóa mềm đã có; SLA, retention thực tế và tính bất biến trước tác vụ đến muộn chưa xác minh đầy đủ. |
 | SPK-UC-008–010 (F03) | Chưa triển khai | Có model cấu hình và dữ liệu dev; chưa có màn hình/quy trình Content Manager, lưu bản nháp, phân loại MINOR/MAJOR hoặc chặn publish topic. |
 
-Luồng đánh giá mặc định dùng `SpeakingConversationComposer`, Gemini với Prompt V2, bộ kiểm tra bản nháp và `ConversationManager`. Khi tắt manager, BE dùng `GeminiConversationEvaluator`. Xem [luồng đánh giá](../../technical/speaking-ai/runtime-flows.md#1-realtime-speaking-turn) và [cấu hình runtime](../../technical/speaking-ai/module-contract.md#runtime-selection-and-rollback).
+Luồng đánh giá duy nhất dùng `SpeakingConversationComposer`, Gemini với Prompt V2, bộ kiểm tra bản nháp và `ConversationManager` ở cả `dev` và `prod`. Mọi lỗi provider được xử lý theo luồng lỗi đánh giá, không đổi evaluator. Xem [luồng đánh giá](../../technical/speaking-ai/runtime-flows.md#1-realtime-speaking-turn) và [hợp đồng runtime](../../technical/speaking-ai/module-contract.md#runtime-configuration).
 
 ## Luật chung BR-38.*
 
@@ -32,7 +32,7 @@ Luồng đánh giá mặc định dùng `SpeakingConversationComposer`, Gemini v
 | BR-38.10 | Các ngưỡng vận hành được đặt trong BE/FE, không do Content Manager sửa theo item. Số lượt hợp lệ tối thiểu thuộc cấu hình nội dung từng item, khác với giới hạn tối đa 30 lượt của phiên. |
 | BR-38.11 | Turn, assessment và audio metadata là các bản ghi riêng. Transcript nằm trong turn và được chép vào assessment khi có đánh giá hợp lệ. Audio bytes lưu qua MediaStorage. Chưa xác nhận việc xóa, ẩn và lưu giữ đáp ứng toàn bộ quyền và thời hạn nghiệp vụ. **Một phần**. |
 | BR-38.12 | **Chưa xác minh** tải 10–20 phiên và **chưa thấy** cơ chế giới hạn tải toàn module để từ chối tạo phiên với lý do quá tải. Pool xử lý lượt không phải bộ kiểm soát số phiên đang hoạt động. |
-| BR-38.13 | Filter chặn REST/WS Speaking khi có profile `prod`; ngoài `prod` cờ BE mặc định bật, không giới hạn riêng cho profile `dev`. BE dùng cookie và ID từ tài khoản, không nhận định danh demo do client tự khai. Đây là **khác biệt so với mô tả thử nghiệm**; các fixture vẫn chỉ chạy với `dev`. |
+| BR-38.13 | Speaking được wire như business module trong cả `dev` và `prod`, không có cờ bật/tắt riêng. REST dùng cookie và ID tài khoản, còn WebSocket yêu cầu ticket và kiểm tra origin. Việc có wiring không chứng minh production readiness; provider E2E, MediaManagement media-ID integration, multi-instance và tải vẫn cần xác minh. |
 
 ## Ánh xạ theo use case
 
@@ -45,7 +45,7 @@ Luồng đánh giá mặc định dùng `SpeakingConversationComposer`, Gemini v
 | [SPK-UC-005 — Xem lịch sử][uc005] | `SpeakingController.history`; `SpeakingSessionService.history` lọc theo người học, tùy chọn item, bỏ dữ liệu xóa mềm. | **Đã có.** Đọc cấp tài khoản không kiểm tra lại item có còn hiển thị; không phụ thuộc mic hay hạn mức. Chưa đo p95 ≤ 2 giây; khi API/DB không khả dụng thì không có đường đọc riêng. |
 | [SPK-UC-006 — Xem chi tiết][uc006] | `SpeakingSessionService.get/playback/openingPlayback` đọc snapshot của phiên và audio thuộc phiên. | **Đã có.** URL ký có hiệu lực 60 giây. Bản ghi người học và audio mở lời AI có cửa sổ phát 30 ngày. Đây là giới hạn truy cập, dữ liệu vẫn được lưu. Chưa đo p95 chi tiết ≤ 2 giây hay bắt đầu phát ≤ 1 giây. |
 | [SPK-UC-007 — Xóa Speaking][uc007] | `SpeakingSessionService.delete/deleteAll` kết thúc phiên đang mở, chờ trạng thái cuối rồi ghi `deletedAt`; đọc chi tiết và phát lại kiểm tra ownership/deletion. | **Đã có xóa mềm.** Chưa kiểm chứng đầy đủ thao tác đồng thời, kết quả đến muộn và hết hạn của URL đã cấp trước khi xóa. Không thay đổi dữ liệu tiến độ Topic. |
-| [SPK-UC-008 — Soạn cấu hình nháp][uc008] | `SpeakingItemConfig`, `SpeakingGoal`, repository và dev seed lưu cấu hình dùng để mở phiên. | **Chưa có luồng Content Manager.** Đọc cấu hình đã publish không thay thế việc soạn bản nháp, kiểm tra quyền hay áp dụng giá trị mặc định ở bước publish. |
+| [SPK-UC-008 — Soạn cấu hình nháp][uc008] | `SpeakingItemConfig`, `SpeakingGoal`, repository lưu cấu hình dùng để mở phiên. | **Chưa có luồng Content Manager.** Đọc cấu hình đã publish không thay thế việc soạn bản nháp, kiểm tra quyền hay áp dụng giá trị mặc định ở bước publish. |
 | [SPK-UC-009 — Kiểm tra publish][uc009] | `SpeakingSessionService.publishedConfig` kiểm tra cấu hình của version khi đọc cấu hình hoặc mở phiên. | **Chưa có.** Topic publish chưa gọi bộ kiểm tra này để chặn phát hành cả topic và trả danh sách item/trường lỗi theo BR-F3.6–3.7. BR-F3.8 đã bỏ. |
 | [SPK-UC-010 — Cập nhật sau publish][uc010] | `SpeakingContentSnapshot` giữ nội dung lúc tạo phiên, độc lập với cấu hình hiện tại. | **Có snapshot; chưa có workflow cập nhật.** Chưa có tác vụ phân loại MINOR/MAJOR cho Speaking, phát hành version và thông báo người học. |
 

@@ -37,8 +37,7 @@ class RuntimeProfilesTest {
                         "AUTH_JWT_SECRET=test-only-signing-secret-at-least-32-bytes",
                         "CORS_ALLOWED_ORIGINS=https://frontend.example.test",
                         "AUTH_COOKIE_SECURE=false", "PLACEMENT_ALLOW_DRAFT=false",
-                        "DEV_SPEAKING_FIXTURE_ENABLED=false",
-                        "PAYMENT_DEV_RESET_ENABLED=false", "SPEAKING_DEV_SEED_FILE=")
+                        "PAYMENT_DEV_RESET_ENABLED=false")
                 .withInitializer(new ConfigDataApplicationContextInitializer());
     }
 
@@ -67,11 +66,27 @@ class RuntimeProfilesTest {
         });
     }
 
+    @ParameterizedTest
+    @ValueSource(strings = {"dev", "prod"})
+    void healthEndpointsStayMinimalAndAnonymousSafe(String profile) {
+        configuration(profile).run(context -> {
+            assertThat(context).hasNotFailed();
+            var environment = context.getEnvironment();
+            assertThat(environment.getProperty("management.endpoints.web.exposure.include"))
+                    .isEqualTo("health");
+            assertThat(environment.getProperty("management.endpoint.health.probes.enabled", Boolean.class))
+                    .isTrue();
+            assertThat(environment.getProperty("management.endpoint.health.show-details"))
+                    .isEqualTo("never");
+            assertThat(environment.getProperty("management.endpoint.health.show-components"))
+                    .isEqualTo("never");
+        });
+    }
+
     @Test
     void documentedDevEnvironmentAliasesEnableTheHelpers() {
         configuration("dev")
-                .withPropertyValues("PAYMENT_DEV_RESET_ENABLED=true", "PLACEMENT_ALLOW_DRAFT=true",
-                        "DEV_SPEAKING_FIXTURE_ENABLED=true")
+                .withPropertyValues("PAYMENT_DEV_RESET_ENABLED=true", "PLACEMENT_ALLOW_DRAFT=true")
                 .withBean(CurrentUserProvider.class, () -> mock(CurrentUserProvider.class))
                 .withBean(DevPurchaseResetService.class, () -> mock(DevPurchaseResetService.class))
                 .withUserConfiguration(DevPurchaseResetController.class)
@@ -79,7 +94,6 @@ class RuntimeProfilesTest {
                     assertThat(context).hasNotFailed().hasSingleBean(DevPurchaseResetController.class);
                     var environment = context.getEnvironment();
                     assertThat(environment.getProperty("engolearn.placement.test-set.allow-draft", Boolean.class)).isTrue();
-                    assertThat(environment.getProperty("engolearn.development.speaking-fixture-enabled", Boolean.class)).isTrue();
                     assertThat(environment.getProperty("engolearn.security.cookies.secure", Boolean.class)).isFalse();
                 });
     }
@@ -87,20 +101,13 @@ class RuntimeProfilesTest {
     @Test
     void prodIgnoresDevelopmentAliasesAndHasNoResetController() {
         configuration("prod")
-                .withPropertyValues("PAYMENT_DEV_RESET_ENABLED=true", "PLACEMENT_ALLOW_DRAFT=true",
-                        "DEV_SPEAKING_FIXTURE_ENABLED=true",
-                        "SPEAKING_DEV_SEED_FILE=must-not-run.json")
-                .withUserConfiguration(DevPurchaseResetController.class,
-                        SpeakingDevFixture.class, SpeakingDevSeed.class)
+                .withPropertyValues("PAYMENT_DEV_RESET_ENABLED=true", "PLACEMENT_ALLOW_DRAFT=true")
+                .withUserConfiguration(DevPurchaseResetController.class)
                 .run(context -> {
-                    assertThat(context).hasNotFailed().doesNotHaveBean(DevPurchaseResetController.class)
-                            .doesNotHaveBean(SpeakingDevFixture.class)
-                            .doesNotHaveBean(SpeakingDevSeed.class);
+                    assertThat(context).hasNotFailed().doesNotHaveBean(DevPurchaseResetController.class);
                     var environment = context.getEnvironment();
                     assertThat(environment.getProperty("engolearn.payment.dev-reset.enabled", Boolean.class)).isFalse();
                     assertThat(environment.getProperty("engolearn.placement.test-set.allow-draft", Boolean.class)).isFalse();
-                    assertThat(environment.getProperty("engolearn.development.speaking-fixture-enabled", Boolean.class)).isFalse();
-                    assertThat(environment.getProperty("engolearn.speaking.dev-seed-file")).isEmpty();
                     assertThat(environment.getProperty("engolearn.security.cookies.secure", Boolean.class)).isTrue();
                 });
     }
@@ -108,10 +115,8 @@ class RuntimeProfilesTest {
     @Test
     void legacyTopicSeedAliasDoesNotConfigureStartupSeeding() {
         configuration("dev").withPropertyValues("DEV_TOPIC_SEED_ENABLED=true")
-                .withUserConfiguration(SpeakingDevFixture.class)
                 .run(context -> {
                     assertThat(context).hasNotFailed();
-                    assertThat(context).doesNotHaveBean(SpeakingDevFixture.class);
                     assertThat(context.getEnvironment().getProperty("engolearn.development.topic-seed-enabled")).isNull();
                 });
     }

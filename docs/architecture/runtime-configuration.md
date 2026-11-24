@@ -9,13 +9,13 @@ before beans or startup runners execute. Do not store `spring.profiles.active` i
 
 | Layer | Owns |
 | --- | --- |
-| application.yaml | Shared application configuration, local Mongo connection defaults, enabled transactions, Placement Mongo/level-sync wiring, common auth and integration properties |
+| application.yaml | Shared application configuration, shared MongoDB URI and default application database, enabled transactions, Placement Mongo/level-sync wiring, common auth and integration properties |
 | application-dev.yaml | Development resources, HTTP cookie defaults, optional test helpers, bundled media paths and VNPay sandbox defaults |
-| application-prod.yaml | Managed MongoDB connection URI, application database, Render-aware HTTP port, CORS and a production-appropriate server-selection timeout |
+| application-prod.yaml | Required application database, Render-aware HTTP port, CORS and a production-appropriate server-selection timeout |
 
 Both environments require a replica-set-capable MongoDB deployment because business flows use
 transactions. `dev` uses the team local single-node replica set; `prod` uses a managed replica
-set such as MongoDB Atlas. The production URI owns the connection topology and credentials.
+set such as MongoDB Atlas. The URI owns connection topology and credentials for both profiles.
 Use separate databases, credentials and provider resources; never share development data with
 production. Both use real cookie/JWT authentication. Profile selection must not choose a subset
 of business modules or weaken their rules.
@@ -27,7 +27,7 @@ java -jar target/engolearn-0.0.1-SNAPSHOT.jar --spring.profiles.active=prod
 ```
 
 The entry-point initializer enforces profile selection, Placement Mongo mode and enabled
-transactions; prod additionally requires deployment inputs and secure cookies. Focused
+transactions, and a MongoDB URI; prod additionally requires deployment inputs and secure cookies. Focused
 unit/slice tests may construct small contexts and explicit sample adapters; they do not
 certify application runtime readiness. CI defaults to prod with disposable infrastructure
 and test-only inputs, not production resources. Tests that explicitly select profiles or
@@ -43,11 +43,11 @@ Production may supply process environment or a deployment secret store. Existing
 
 | Environment input | Meaning / policy |
 | --- | --- |
-| MONGO_HOST, MONGO_PORT, MONGO_REPLICA_SET | Local `dev` Mongo address and replica set; defaults are localhost:27017 and engolearn-rs. Not used by `prod` when a URI is configured |
-| MONGODB_URI | Required in `prod`; complete managed MongoDB connection string, normally the `mongodb+srv://` URI copied from Atlas. Keep it in the deployment secret store, never in Git |
+| MONGO_PORT | Published host port for local Compose. The backend takes connection settings from MONGODB_URI |
+| MONGODB_URI | Required in both profiles. Use the local replica-set URI in `dev` and the managed URI in `prod` (typically `mongodb+srv://` for Atlas). Keep real values in your ignored local environment or deployment secret store |
 | PORT | HTTP listener port; Render Web Services supply `10000` by default. `prod` falls back to `8080` outside Render |
 | APP_DB | Application database name in both profiles; `spring.mongodb.database` overrides any database name embedded in the URI |
-| APP_USER, APP_PASSWORD | Local `dev` application database credentials; Atlas credentials are supplied inside `MONGODB_URI` |
+| APP_USER, APP_PASSWORD | Local Compose application user initialization. The running backend gets its credentials from MONGODB_URI |
 | MONGO_USER, MONGO_PASS | Compose/tool root credentials, not the application identity |
 | AUTH_JWT_SECRET, AUTH_JWT_ISSUER | Real JWT configuration; existing signing-key validation applies |
 | AUTH_COOKIE_SECURE | Dev HTTP/HTTPS override; prod requires secure cookies regardless of this alias |
@@ -55,7 +55,7 @@ Production may supply process environment or a deployment secret store. Existing
 | PLACEMENT_MEDIA_DIRECTORY, ASSESSMENT_MEDIA_DIRECTORY | Dev-only bundled-media overrides; not production inputs |
 | CLOUDINARY_URL or CLOUDINARY_* | Shared Media provider credentials as required by the module |
 | VNPAY_ENABLED, VNPAY_* | Optional provider activation/settings; enabled provider needs valid merchant settings; prod has no implicit sandbox URLs |
-| ASSEMBLYAI_API_KEY, GEMINI_API_KEY, CARTESIA_API_KEY, CARTESIA_VOICE_ID | Speaking resources; see its production gap below |
+| ASSEMBLYAI_API_KEY, GEMINI_API_KEY, CARTESIA_API_KEY, CARTESIA_VOICE_ID | Speaking provider credentials and voice; optional SPEAKING_ASSEMBLYAI_*, SPEAKING_GEMINI_* and SPEAKING_CARTESIA_* inputs override shared endpoints, models, API version and adapter timeouts |
 
 Root [Compose](../../docker-compose.yaml) provisions one member in engolearn-rs. Its
 healthcheck rejects existing multi-member topology without modifying it. Host clients
@@ -73,8 +73,6 @@ checks dev without prod independently of YAML.
 | Environment input | Default | Capability |
 | --- | --- | --- |
 | PAYMENT_DEV_RESET_ENABLED | false | Owner-only unresolved unpaid purchase release; preserves financial/refund guards, transaction and audit |
-| DEV_SPEAKING_FIXTURE_ENABLED | false | Existing fixed airport Speaking fixture |
-| SPEAKING_DEV_SEED_FILE | empty | Optional Speaking config file for existing item/version IDs |
 | PLACEMENT_ALLOW_DRAFT | false | DRAFT fallback only if no PUBLISHED test set exists |
 | DEV_LOG_LEVEL | INFO | Development application logging; do not expose credentials/tokens |
 
@@ -87,7 +85,7 @@ local development target. The importer rejects system database names and names w
 `prod`/`production` token; that name check does not establish that a database is safe or
 non-production.
 
-Safe defaults (helper flags false, empty development seed path and secure cookies)
+Safe defaults (helper flags false and secure cookies)
 are declared once in application.yaml. Dev overrides only its permitted conveniences;
 prod does not repeat those declarations. Profile guards still exclude dev beans in prod.
 
@@ -130,9 +128,12 @@ Do not restore module-named runtime profiles.
 | Topic | Development examples are imported from explicitly selected JSON files; keep learner/authoring fixtures out of production and verify publication, list, detail and attempt flows against the target database |
 | Placement | Mongo/transaction/level-sync defaults configured. MEDIA NOT PROD-INTEGRATED: migrate local audio to Media storage and persist references in Mongo; verify current and historical playback without repository files |
 | Subscription / Payment / Quota | Shared Mongo and transactions; import development catalog only to a disposable local database; verify Admin updates, provider and durable delivery independently |
-| Speaking | NOT PROD-INTEGRATED: existing availability filter blocks prod, managed conversation wiring excludes prod. Module owner must resolve its experimental/production contract; this migration does not enable it |
+| Speaking | Managed-only conversation and module wiring are active in both `dev` and `prod`. Provider credentials are supplied per capability and failures remain explicit. Production readiness is still unverified: provider-backed E2E, MediaManagement media-ID integration, multi-instance recovery/state coordination and load/latency evidence remain open |
 | Assessment | Owned Placement baseline and Media delivery are wired. Register historical files and sound check, then verify preparation, attempt and review on the production-profile demo environment |
 | Auth / Media / others | Verify real identity/authorization and storage integration in both profiles; no production dependency on repository samples or local media directories |
+
+The [Speaking module contract](../technical/speaking-ai/module-contract.md#runtime-configuration)
+owns the provider settings, environment mappings, defaults and verification commands for both profiles.
 
 These gaps do not establish production readiness. Retired module-specific application
 files must not be restored; scripts select dev. The old

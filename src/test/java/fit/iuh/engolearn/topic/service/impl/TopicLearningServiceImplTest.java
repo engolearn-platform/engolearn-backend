@@ -1,5 +1,7 @@
 package fit.iuh.engolearn.topic.service.impl;
 
+import fit.iuh.engolearn.topic.mapper.TopicLearnerMediaMapper;
+import fit.iuh.engolearn.topic.service.TopicMediaService;
 import fit.iuh.engolearn.topic.service.*;
 
 import fit.iuh.engolearn.shared.enums.CefrLevel;
@@ -65,6 +67,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import static org.mockito.Mockito.mock;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -141,7 +144,7 @@ class TopicLearningServiceImplTest {
                 generations, retryRuntimes, new TopicRetrySessionMapper());
         service = new TopicLearningServiceImpl(topicRepository, topicVersionRepository, topicItemRepository,
                 topicItemVersionRepository, userTopicProgressRepository, userTopicItemProgressRepository,
-                userTopicAttemptRepository, userTopicItemAttemptRepository, userLevels, generations, catalog);
+                userTopicAttemptRepository, userTopicItemAttemptRepository, userLevels, generations, catalog, new TopicLearnerMediaMapper(mock(TopicMediaService.class)));
     }
 
     @Test

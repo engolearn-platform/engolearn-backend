@@ -482,43 +482,6 @@ public class SpeakingSessionService {
         return turn;
     }
 
-    public synchronized void assessed(String sessionId, String turnId,
-            fit.iuh.engolearn.speaking.utils.port.ConversationEvaluator.Result result) {
-        SpeakingSession session = sessions.findById(sessionId).orElseThrow();
-        SpeakingTurn turn = turns.findByIdAndSessionId(turnId, sessionId).orElseThrow();
-        if (session.getDeletedAt() != null || !session.isOpen()
-                || turn.getEvaluationState() != SpeakingTurn.EvaluationState.PENDING) return;
-        if (session.getClosingAt() != null
-                && !Instant.now().isBefore(session.getClosingAt().plusSeconds(10))) return;
-        turn.setValid(result.valid());
-        turn.setAiReply(result.reply());
-        turn.setEvaluationState(result.valid() ? SpeakingTurn.EvaluationState.SUCCEEDED
-                : SpeakingTurn.EvaluationState.INVALID);
-        if (result.valid()) {
-            SpeakingAssessmentRecord assessment = SpeakingAssessmentRecord.builder().id(turnId)
-                    .sessionId(sessionId).learnerId(session.getLearnerId()).transcript(turn.getTranscript())
-                    .criteriaVersion("speaking-v1").goalEvidence(result.goalEvidence())
-                    .resourceEvidence(result.resourceEvidence()).corrections(result.corrections())
-                    .hint(result.hint()).feedback(result.feedback()).build();
-            assessments.save(assessment);
-            session.setValidTurnCount(session.getValidTurnCount() + 1);
-            Set<String> achieved = new LinkedHashSet<>(session.getAchievedGoalIds());
-            result.goalEvidence().forEach(e -> achieved.add(e.goalId()));
-            session.setAchievedGoalIds(new ArrayList<>(achieved));
-            session.setConsecutiveEvaluationFailures(0);
-        }
-        turns.save(turn);
-        sessions.save(session);
-        if (session.getClosingAt() != null) {
-            finish(session, session.getClosingReason());
-        } else {
-            if (session.getContent().legacyRatioPolicy() ? complete(session) : allGoalsAndTurns(session)) {
-                finish(session, SpeakingSession.EndReason.GOALS_REACHED);
-            }
-            else if (session.getCommittedTurnCount() >= 30) finish(session, SpeakingSession.EndReason.TURN_LIMIT);
-        }
-    }
-
     public synchronized boolean settleConversationTurn(String sessionId, String turnId, long controllerEpoch,
             SpeakingConversationAssessment assessment) {
         SpeakingSession session = sessions.findById(sessionId).orElseThrow();
@@ -728,10 +691,6 @@ public class SpeakingSessionService {
 
     private boolean complete(SpeakingSession session) {
         return ConversationStateView.from(session).completionFor(session.getContent()).completionEligible();
-    }
-
-    private boolean allGoalsAndTurns(SpeakingSession session) {
-        return ConversationStateView.from(session).completionFor(session.getContent()).autoEndEligible();
     }
 
     private synchronized void finish(SpeakingSession session, SpeakingSession.EndReason reason) {

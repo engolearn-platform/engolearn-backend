@@ -59,7 +59,7 @@ A new dependency needs an explicit reason and approval. Keep this table in sync 
 | `assessment` | `subscription.contract` (effective entitlements and verified Premium refund facts), `quota.contract` (atomic consumption), `placement.contract.PlacementBaselineLookup` (owned baseline), `media.contract.MediaManagement` (protected audio), `user.contract.UserLevelPromotion` (monotonic Topic level) |
 | `learningpath` | `assessment.contract.AssessmentResults` for owner-scoped READY results and batch source validation; no direct Assessment collection access |
 | `dictionary` | None |
-| `topic` | `dictionary`, `user.contract` |
+| `topic` | `dictionary`, `user.contract`, `media.contract.MediaManagement` for Topic-owned protected content media |
 | `user` | `subscription.contract.SubscriptionAccountInitialization` for new-account enrollment in the registration Mongo transaction |
 | `subscription` | `payment.contract` for purchase/refund commands and results; conditional dev-only reset capability as described above |
 | `quota` | `subscription.contract` (effective-entitlement lookup and durable Subscription-owned facts) |

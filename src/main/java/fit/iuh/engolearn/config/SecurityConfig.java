@@ -60,12 +60,25 @@ public class SecurityConfig {
                         .authenticationEntryPoint(authenticationEntryPoint)
                         .accessDeniedHandler(accessDeniedHandler))
                 .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
+                        .requestMatchers("/actuator/**").denyAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/auth/me").authenticated()
                         .requestMatchers(HttpMethod.POST, "/api/v1/auth/register", "/api/v1/auth/login", "/api/v1/auth/refresh", "/api/v1/auth/logout").permitAll()
                         .requestMatchers("/api/v1/subscription/admin", "/api/v1/subscription/admin/**").hasRole("ADMIN")
                         .requestMatchers("/api/v1/subscription/me", "/api/v1/subscription/me/**", "/api/v1/quota/me/**").authenticated()
                         .requestMatchers("/api/v1/speaking/**").authenticated()
                         .requestMatchers("/api/learning-paths", "/api/learning-paths/**").authenticated()
+                        .requestMatchers(HttpMethod.POST, "/api/management/topics").hasRole("CONTENT_MANAGER")
+                        .requestMatchers(HttpMethod.POST, "/api/management/topics/*/media/*").hasRole("CONTENT_MANAGER")
+                        .requestMatchers(HttpMethod.GET, "/api/management/topics/*/media/*").hasRole("CONTENT_MANAGER")
+                        .requestMatchers(HttpMethod.PATCH, "/api/management/topics/*").hasRole("CONTENT_MANAGER")
+                        .requestMatchers(HttpMethod.PUT, "/api/management/topics/*/items/*/context", "/api/management/topics/*/items/*/vocabulary",
+                                "/api/management/topics/*/items/*/expressions", "/api/management/topics/*/items/*/quizzes").hasRole("CONTENT_MANAGER")
+                        .requestMatchers(HttpMethod.POST, "/api/management/topics/*/items").hasRole("CONTENT_MANAGER")
+                        .requestMatchers(HttpMethod.PATCH, "/api/management/topics/*/items/**").hasRole("CONTENT_MANAGER")
+                        .requestMatchers(HttpMethod.DELETE, "/api/management/topics/*/items/**").hasRole("CONTENT_MANAGER")
+                        .requestMatchers(HttpMethod.GET, "/api/management/topics", "/api/management/topics/**").hasRole("CONTENT_MANAGER")
+                        .requestMatchers(HttpMethod.HEAD, "/api/management/topics", "/api/management/topics/**").hasRole("CONTENT_MANAGER")
                         .requestMatchers("/api/v1/topics/mine").hasAnyRole("USER", "CONTENT_MANAGER", "ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/v1/topics", "/api/v1/topics/{topicId}").permitAll()
                         .requestMatchers("/api/v1/topics", "/api/v1/topics/**", "/api/v1/topic-items", "/api/v1/topic-items/**",
@@ -119,7 +132,8 @@ public class SecurityConfig {
                 || path.startsWith("/api/v1/subscription/") || path.startsWith("/api/v1/quota/")
                 || path.startsWith("/api/v1/auth/") || path.startsWith("/api/v1/speaking/")
                 || path.equals("/api/learning-paths")
-                || path.startsWith("/api/learning-paths/")) {
+                || path.startsWith("/api/learning-paths/")
+                || path.equals("/api/management/topics") || path.startsWith("/api/management/topics/")) {
             problemDetail.setDetail(status == HttpStatus.UNAUTHORIZED ? "Authentication is required" : "Access is denied");
             problemDetail.setInstance(URI.create(path));
             problemDetail.setProperty("code", status == HttpStatus.UNAUTHORIZED ? "AUTHENTICATION_REQUIRED" : "ACCESS_DENIED");
