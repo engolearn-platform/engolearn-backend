@@ -1,6 +1,8 @@
 package fit.iuh.engolearn.subscription;
 
 import fit.iuh.engolearn.config.AbstractMongoIntegrationTest;
+import fit.iuh.engolearn.assessment.repository.AssessmentRepository;
+import fit.iuh.engolearn.assessment.service.AssessmentAccess;
 import fit.iuh.engolearn.payment.contract.dto.CreateCheckoutCommandDto;
 import fit.iuh.engolearn.payment.contract.event.*;
 import fit.iuh.engolearn.payment.contract.event.PaymentExpiredEvent;
@@ -72,6 +74,7 @@ class PurchaseFlowIntegrationTest extends AbstractMongoIntegrationTest {
     @Autowired MutableClock clock;
     @Autowired List<DurableMessageRepository> repositories;
     @Autowired PurchaseService purchases;
+    @Autowired AssessmentRepository assessment;
     @Autowired DevPurchaseResetService devResets;
     @Autowired PurchaseRepository store;
     @Autowired SubscriptionPublicationService publication;
@@ -395,12 +398,18 @@ class PurchaseFlowIntegrationTest extends AbstractMongoIntegrationTest {
         subscriptions.activateTrial(USER,key());
         consumption.consume(new UsageCommandDto(USER,"TEST",1,"TEST","usage","refund-r",null));
         PurchaseResponse p=paidPurchase("MONTHLY");
+        var paidPeriod = mongoTemplate.findById(p.periodId(), SubscriptionPeriod.class);
+        String assessmentGrant = AssessmentAccess.sourceKey("PREMIUM",
+                paidPeriod.getSnapshot().getPolicySnapshotId(), paidPeriod.getPeriodStartAt());
+        String otherGrant = AssessmentAccess.sourceKey("PREMIUM",
+                paidPeriod.getSnapshot().getPolicySnapshotId(), paidPeriod.getPeriodStartAt().minusSeconds(86400));
         long outbox=count("subscription_outbox");
         assertThatThrownBy(()->transactions.execute(()->{subscriptionRefunds.request(ADMIN,p.purchaseReference(),key(),"Rollback");
             throw new IllegalStateException("rollback");})).isInstanceOf(IllegalStateException.class);
         assertThat(count("subscription_refund_requests")).isZero();assertThat(count("subscription_outbox")).isEqualTo(outbox);
         var request=subscriptionRefunds.request(ADMIN,p.purchaseReference(),key(),"Requested by learner").refund();drain();
         assertThat(subscriptions.summary(USER).tier()).isEqualTo("PREMIUM");
+        assertThat(assessment.revoked(USER, assessmentGrant)).isFalse();
         var refund=refundTransaction(request);
         assertThat(refund.getAmountVnd()).isEqualTo(p.amountVnd());assertThat(refund.getRequestedBy()).isEqualTo(ADMIN);
         assertThat(refundOutcomes.startProcessing(refund.getId())).isTrue();
@@ -418,12 +427,15 @@ class PurchaseFlowIntegrationTest extends AbstractMongoIntegrationTest {
         refundOutcomes.confirmSuccess(refund.getId(),p.amountVnd(),"VND",clock.instant());
         var delivery=paymentMessages.claim(Set.of("subscription.payment"),clock.instant(),clock.instant().plusSeconds(30));
         doThrow(new IllegalStateException("receipt failure")).when(receipts).recordReceipt(any(),any());
+        assertThat(assessment.revoked(USER, assessmentGrant)).isFalse();
         long before=count("subscription_outbox");
         assertThatThrownBy(()->consumer.consume(delivery.envelope())).isInstanceOf(IllegalStateException.class);
         assertThat(store.findByReference(p.purchaseReference()).getStatus()).isEqualTo(PurchaseStatus.REFUND_PENDING);
         assertThat(mongoTemplate.findById(p.periodId(),SubscriptionPeriod.class).getState()).isEqualTo(PeriodState.ACTIVE);
         assertThat(count("subscription_outbox")).isEqualTo(before);
         reset(receipts);consumer.consume(delivery.envelope());consumer.consume(delivery.envelope());drain();
+        assertThat(assessment.revoked(USER, assessmentGrant)).isTrue();
+        assertThat(assessment.revoked(USER, otherGrant)).isFalse();
         assertThat(purchases.detail(USER,p.purchaseReference()).status()).isEqualTo("REFUNDED");
         assertThat(mongoTemplate.findById(p.periodId(),SubscriptionPeriod.class).getState()).isEqualTo(PeriodState.REFUNDED);
         assertThat(subscriptions.summary(USER).tier()).isEqualTo("FREE");
