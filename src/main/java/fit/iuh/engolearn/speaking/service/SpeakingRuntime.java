@@ -21,7 +21,10 @@ public interface SpeakingRuntime {
     Turn admit(Lease lease, UUID clientTurnId);
     void recordingStarted(Lease lease, String turnId);
     Turn cancel(Lease lease, String turnId);
-    TurnWork seal(Lease lease, String turnId, SpeakingMediaVo audio, long durationMs);
+    default TurnWork seal(Lease lease, String turnId, SpeakingMediaVo audio, long durationMs) {
+        return seal(lease, turnId, audio, durationMs, true);
+    }
+    TurnWork seal(Lease lease, String turnId, SpeakingMediaVo audio, long durationMs, boolean captureComplete);
     TurnWork retry(Lease lease, String turnId);
     void transcript(TurnWork work, String original);
     Turn settle(TurnWork work, SpeakingTurnStatus result, String reason, String reply, SpeakingHintVo hint,

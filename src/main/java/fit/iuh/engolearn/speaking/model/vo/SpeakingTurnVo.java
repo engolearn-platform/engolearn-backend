@@ -35,6 +35,7 @@ public class SpeakingTurnVo implements EmbeddedDocument {
     @Field("speech_duration_ms") private long speechDurationMs;
     @Field("recording_started_at") private Instant recordingStartedAt;
     @Field("sealed_at") private Instant sealedAt;
+    @Field("capture_complete") private Boolean captureComplete;
     @Field("memory_delta") private List<SpeakingMemoryVo.Delta> memoryDelta;
     @Field("reason") private String reason;
 }

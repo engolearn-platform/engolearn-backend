@@ -1,5 +1,6 @@
 package fit.iuh.engolearn.speaking.mapper;
 
+import fit.iuh.engolearn.speaking.dto.response.SpeakingAssessmentResponse;
 import fit.iuh.engolearn.speaking.dto.response.SpeakingResponses.*;
 import fit.iuh.engolearn.speaking.model.SpeakingSession;
 import fit.iuh.engolearn.speaking.model.vo.*;
@@ -59,6 +60,32 @@ public final class SpeakingSessionMapper {
                 correction.getOriginal(), correction.getSuggested(), correction.getExplanationVi()),
                 audioAvailable(turn.getLearnerAudio(), now), audioAvailable(turn.getAssistantAudio(), now), turn.getAudioStatus(),
                 turn.getReplyDeliveredAt(), turn.getSpeechDurationMs(), turn.getReason());
+    }
+
+    public static SpeakingAssessmentResponse assessment(SpeakingSession session) {
+        var data = session.getAssessment();
+        if (data == null) return SpeakingAssessmentResponse.pending(session.getId(), session.getAssessmentStatus());
+        var criteria = new SpeakingAssessmentResponse.Criteria(criterion(data.getPronunciation(), 100),
+                criterion(data.getFluency(), 100), criterion(data.getGrammar(), 5), criterion(data.getVocabulary(), 5));
+        var feedback = data.getFeedback();
+        var responseFeedback = new SpeakingAssessmentResponse.Feedback(feedback.getStrengthsVi(), feedback.getImprovementsVi(),
+                feedback.getRecommendationsVi(), feedback.getWordsToPractice().stream().map(word ->
+                new SpeakingAssessmentResponse.Word(word.getWord(), word.getAccuracyScore(), word.getErrorType())).toList());
+        return new SpeakingAssessmentResponse(session.getId(), session.getAssessmentStatus(), criteria, responseFeedback,
+                data.getFinalizedAt());
+    }
+
+    private static SpeakingAssessmentResponse.Criterion criterion(SpeakingCriterionVo value, int maximum) {
+        return new SpeakingAssessmentResponse.Criterion(value.getStatus().name(), value.getScore(), maximum, value.getReason(),
+                value.getSampleCount(), value.getWordCount(), value.getSpeechDurationMs(), component(value.getAccuracy()),
+                component(value.getRange()), value.getExamples().stream().map(example ->
+                new SpeakingAssessmentResponse.Example(example.getTurnId(), example.getOriginal(), example.getSuggested())).toList());
+    }
+
+    private static SpeakingAssessmentResponse.Component component(SpeakingRubricComponentVo value) {
+        if (value == null) return null;
+        return new SpeakingAssessmentResponse.Component(value.getStatus().name(),
+                value.getLevel() == null ? null : value.getLevel().toString(), value.getReasonVi());
     }
 
     public static boolean audioAvailable(SpeakingMediaVo audio, Instant now) {

@@ -102,6 +102,7 @@ class SpeakingRealtimeMongoIntegrationTest extends AbstractMongoIntegrationTest 
     @Autowired private JwtTokenService tokens;
     @Autowired private SpeakingTurnRepository turns;
     @Autowired private SpeakingSessionRepository sessions;
+    @Autowired private SpeakingAssessmentRepository assessments;
     @Autowired private SpeakingQuota speakingQuota;
     @Autowired private TopicSpeakingProfileService profiles;
     @Autowired private SpeakingRuntime runtime;
@@ -417,6 +418,25 @@ class SpeakingRealtimeMongoIntegrationTest extends AbstractMongoIntegrationTest 
         assertThat(following.get().data()).contains("Orange juice");
         assertThat(sessions.findById(id).orElseThrow().getMemory().getProcessedThroughTurn()).isEqualTo(2);
         assertThat(sessions.findById(id).orElseThrow().getMemory().getVersion()).isOne();
+    }
+
+    @Test
+    void sealsKnownGappedCaptureWithoutSuppressingTheConversationReply() throws Exception {
+        var id = create();
+        ready(id, "Good morning! What can I get you?");
+        var socket = socket(id, ticket(id, 1));
+        var idTurn = start(socket);
+        socket.binary(frame(idTurn, 0, VOICE));
+        socket.binary(frame(idTurn, 2, VOICE));
+        assertThat(socket.next("ERROR").path("payload").path("code").asString()).isEqualTo("INVALID_FRAME");
+        socket.command("END_TURN", idTurn, Map.of());
+        assertThat(socket.next("TURN_RESULT").path("payload").path("reply").asString()).isEqualTo("One juice, coming right up!");
+        socket.next("TTS_COMPLETED");
+        assertThat(runtime.finalizedAudioEvidence(id, idTurn.toString()).getCaptureComplete()).isFalse();
+        assertThat(assessments.samples(id)).singleElement().satisfies(sample -> {
+            assertThat(sample.getReason()).isEqualTo("AUDIO_INCOMPLETE");
+            assertThat(sample.getPronunciation()).isNull();
+        });
     }
 
     private static List<String> keys(JsonNode object) {

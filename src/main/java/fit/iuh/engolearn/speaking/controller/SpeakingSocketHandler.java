@@ -107,14 +107,14 @@ public class SpeakingSocketHandler extends AbstractWebSocketHandler {
         Connection connection = connection(socket);
         if (connection == null) return;
         if (message.getPayloadLength() > SpeakingFrames.HEADER + SpeakingFrames.CHUNK) {
-            connection.error(null, "FRAME_TOO_LARGE", "Speaking audio frame is too large");
+            connection.rejectAudio("FRAME_TOO_LARGE", "Speaking audio frame is too large");
             return;
         }
         SpeakingFrames.Learner frame;
         try {
             frame = SpeakingFrames.read(message.getPayload());
         } catch (IllegalArgumentException invalid) {
-            connection.error(null, "INVALID_FRAME", "Invalid Speaking audio frame");
+            connection.rejectAudio("INVALID_FRAME", "Invalid Speaking audio frame");
             return;
         }
         connection.audio(frame);

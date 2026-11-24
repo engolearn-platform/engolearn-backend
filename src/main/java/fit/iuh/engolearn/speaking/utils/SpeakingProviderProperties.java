@@ -13,6 +13,28 @@ public class SpeakingProviderProperties {
     private final Gemini gemini = new Gemini();
     private final Cartesia cartesia = new Cartesia();
     private final Realtime realtime = new Realtime();
+    private final Azure azure = new Azure();
+    private final Assessment assessment = new Assessment();
+
+    @Getter
+    @Setter
+    public static class Azure {
+        private boolean enabled = true;
+        private String apiKey;
+        private String region;
+    }
+
+    @Getter
+    @Setter
+    public static class Assessment {
+        private int audioWorkers = 1;
+        private int audioQueueCapacity = 50;
+        private Duration audioTimeout = Duration.ofSeconds(20);
+        private int audioTransientRetries = 1;
+        private Duration audioDeadline = Duration.ofSeconds(30);
+        private boolean languageEnabled = true;
+        private Duration languageTimeout = Duration.ofSeconds(30);
+    }
 
     @Getter
     @Setter

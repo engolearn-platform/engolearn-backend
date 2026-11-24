@@ -1,6 +1,7 @@
 package fit.iuh.engolearn.config;
 
 import fit.iuh.engolearn.speaking.model.SpeakingSession;
+import fit.iuh.engolearn.speaking.model.SpeakingAudioAssessment;
 import fit.iuh.engolearn.speaking.model.SpeakingTurn;
 import fit.iuh.engolearn.speaking.utils.SpeakingProviderProperties;
 import fit.iuh.engolearn.speaking.utils.SpeakingSessionSettings;
@@ -24,7 +25,7 @@ public class SpeakingMongoIndexes {
 
     public static void initialize(MongoTemplate mongo) {
         var resolver = new MongoPersistentEntityIndexResolver(mongo.getConverter().getMappingContext());
-        for (Class<?> type : new Class<?>[]{SpeakingSession.class, SpeakingTurn.class}) {
+        for (Class<?> type : new Class<?>[]{SpeakingSession.class, SpeakingTurn.class, SpeakingAudioAssessment.class}) {
             resolver.resolveIndexFor(type).forEach(mongo.indexOps(type)::createIndex);
         }
     }

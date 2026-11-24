@@ -2,6 +2,7 @@ package fit.iuh.engolearn.speaking.utils;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.util.Arrays;
 
 public final class SpeakingWav {
     public static final int PCM_BYTES_PER_MS = 32;
@@ -18,6 +19,18 @@ public final class SpeakingWav {
                 .putInt(RIFF).putInt(36 + pcm.length).putInt(WAVE).putInt(FMT).putInt(16)
                 .putShort((short) 1).putShort((short) 1).putInt(16000).putInt(32000)
                 .putShort((short) 2).putShort((short) 16).putInt(DATA).putInt(pcm.length).put(pcm).array();
+    }
+
+    public static byte[] learnerPcm(byte[] wav, int maximumBytes) {
+        if (wav == null || wav.length < 44 || wav.length - 44 > maximumBytes
+                || (wav.length & 1) != 0) throw invalid();
+        var format = ByteBuffer.wrap(wav).order(ByteOrder.LITTLE_ENDIAN);
+        if (format.getInt() != RIFF || format.getInt() != wav.length - 8 || format.getInt() != WAVE
+                || format.getInt() != FMT || format.getInt() != 16 || format.getShort() != 1
+                || format.getShort() != 1 || format.getInt() != 16000 || format.getInt() != 32000
+                || format.getShort() != 2 || format.getShort() != 16 || format.getInt() != DATA
+                || format.getInt() != wav.length - 44) throw invalid();
+        return Arrays.copyOfRange(wav, 44, wav.length);
     }
 
     public static boolean containsSignal(byte[] pcm) {

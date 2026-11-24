@@ -458,7 +458,10 @@ public class SpeakingRealtimeImpl implements SpeakingRealtime {
 
         @Override
         public synchronized void audio(SpeakingFrames.Learner frame) {
-            if (!allow(false)) return;
+            if (!allow(false)) {
+                if (recording != null) recording.observeRateLimitedFrame(frame);
+                return;
+            }
             try {
                 var state = runtime.state(lease);
                 if (state.status() != SpeakingSessionStatus.ACTIVE || recording == null || state.activeTurn() == null
@@ -474,10 +477,17 @@ public class SpeakingRealtimeImpl implements SpeakingRealtime {
             }
         }
 
+        @Override
+        public synchronized void rejectAudio(String code, String message) {
+            if (recording != null) recording.rejectMalformedFrame();
+            error(null, code, message);
+        }
+
         private void end(Command command) {
             var current = receiving(command.turnId());
             byte[] pcm = current.pcm();
-            var work = runtime.seal(lease, current.turnId(), null, SpeakingRecording.speechDurationMs(pcm));
+            var work = runtime.seal(lease, current.turnId(), null, SpeakingRecording.speechDurationMs(pcm),
+                    current.captureComplete());
             int sequence = recordingSequence;
             recording = null;
             var pending = SpeakingWav.containsSignal(pcm) ? current.finish() : null;

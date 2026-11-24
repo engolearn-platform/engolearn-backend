@@ -18,6 +18,7 @@ import fit.iuh.engolearn.speaking.repository.*;
 import fit.iuh.engolearn.speaking.service.SpeakingRuntime;
 import fit.iuh.engolearn.speaking.service.SpeakingSessions;
 import fit.iuh.engolearn.speaking.utils.SpeakingSessionSettings;
+import fit.iuh.engolearn.speaking.utils.SpeakingProviderProperties;
 import fit.iuh.engolearn.speaking.utils.SpeakingConversation;
 import fit.iuh.engolearn.speaking.utils.SpeakingConversation.Result;
 import fit.iuh.engolearn.topic.contract.TopicSpeakingAccess;
@@ -55,6 +56,7 @@ public class SpeakingSessionServiceImpl implements SpeakingSessions, SpeakingRun
     private final MediaManagement media;
     private final CurrentUserProvider users;
     private final SpeakingSessionSettings settings;
+    private final SpeakingProviderProperties providerProperties;
     private final Clock clock;
     private final String instance = id();
 
@@ -238,7 +240,7 @@ public class SpeakingSessionServiceImpl implements SpeakingSessions, SpeakingRun
     @PreAuthorize("hasRole('USER')")
     public SpeakingAssessmentResponse assessment(String id) {
         SpeakingSession session = owned(id, users.requireCurrentUserId());
-        return SpeakingAssessmentResponse.pending(id, session.getAssessmentStatus());
+        return SpeakingSessionMapper.assessment(session);
     }
 
     @Override
@@ -434,7 +436,7 @@ public class SpeakingSessionServiceImpl implements SpeakingSessions, SpeakingRun
     }
 
     @Override
-    public TurnWork seal(Lease lease, String turnId, SpeakingMediaVo audio, long durationMs) {
+    public TurnWork seal(Lease lease, String turnId, SpeakingMediaVo audio, long durationMs, boolean captureComplete) {
         String token = id();
         change(lease.sessionId(), current -> {
             requireLease(current, lease);
@@ -445,6 +447,7 @@ public class SpeakingSessionServiceImpl implements SpeakingSessions, SpeakingRun
                 throw failure(HttpStatus.BAD_REQUEST, "AUDIO_LIMIT", "The turn audio exceeds its limit", false);
             }
             turn.setSealedAt(now());
+            turn.setCaptureComplete(captureComplete);
             turn.setEvidenceToken(token);
             turn.setLearnerAudio(audio);
             turn.setSpeechDurationMs(durationMs);
@@ -684,6 +687,7 @@ public class SpeakingSessionServiceImpl implements SpeakingSessions, SpeakingRun
             if (turn != null) return false;
             current.setStatus(SpeakingSessionStatus.ENDED);
             current.setEndedAt(now());
+            current.setAssessmentAudioDeadline(current.getEndedAt().plus(providerProperties.getAssessment().getAudioDeadline()));
             current.setUnfinishedOwner(null);
             current.setTicketHash(null);
             current.setTicketExpiresAt(null);

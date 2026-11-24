@@ -69,6 +69,18 @@ engolearn:
       max-connections: ${SPEAKING_REALTIME_MAX_CONNECTIONS:128}
       max-frames-per-second: ${SPEAKING_REALTIME_MAX_FRAMES_PER_SECOND:160}
       max-commands-per-second: ${SPEAKING_REALTIME_MAX_COMMANDS_PER_SECOND:16}
+    azure:
+      enabled: ${SPEAKING_AZURE_ENABLED:true}
+      api-key: ${AZURE_SPEECH_KEY:}
+      region: ${AZURE_SPEECH_REGION:}
+    assessment:
+      audio-workers: ${SPEAKING_ASSESSMENT_AUDIO_WORKERS:1}
+      audio-queue-capacity: ${SPEAKING_ASSESSMENT_AUDIO_QUEUE_CAPACITY:50}
+      audio-timeout: ${SPEAKING_ASSESSMENT_AUDIO_TIMEOUT:20s}
+      audio-transient-retries: ${SPEAKING_ASSESSMENT_AUDIO_TRANSIENT_RETRIES:1}
+      audio-deadline: ${SPEAKING_ASSESSMENT_AUDIO_DEADLINE:30s}
+      language-enabled: ${SPEAKING_ASSESSMENT_LANGUAGE_ENABLED:true}
+      language-timeout: ${SPEAKING_ASSESSMENT_LANGUAGE_TIMEOUT:30s}
     indexes:
       enabled: true
     recovery:

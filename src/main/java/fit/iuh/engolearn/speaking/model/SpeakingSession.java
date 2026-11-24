@@ -18,6 +18,7 @@ import java.time.Instant;
         partialFilter = "{'unfinished_owner':{'$type':'string'}}")
 @CompoundIndex(name = "speaking_v2_history", def = "{'owner_id':1,'deleted_at':1,'created_at':-1,'_id':-1}")
 @CompoundIndex(name = "speaking_v2_status", def = "{'status':1,'created_at':1}")
+@CompoundIndex(name = "speaking_v2_assessment_work", def = "{'assessment_status':1,'deleted_at':1,'_id':1}")
 @CompoundIndex(name = "speaking_v2_scope", def = "{'owner_id':1,'snapshot.scope_type':1,'snapshot.topic_id':1,'snapshot.topic_item_id':1,'created_at':-1,'_id':-1}")
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @SuperBuilder
 public class SpeakingSession extends BaseDocument {
@@ -54,4 +55,8 @@ public class SpeakingSession extends BaseDocument {
     @Field("speech_duration_ms") private long speechDurationMs;
     @Field("active_turn") private SpeakingTurnVo activeTurn;
     @Field("assessment_status") private SpeakingAssessmentStatus assessmentStatus;
+    @Field("assessment_audio_deadline") private Instant assessmentAudioDeadline;
+    @Field("assessment_language_deadline") private Instant assessmentLanguageDeadline;
+    @Field("language_assessment") private SpeakingLanguageAssessmentVo languageAssessment;
+    @Field("assessment") private SpeakingAssessmentVo assessment;
 }

@@ -8,6 +8,7 @@ import java.util.Optional;
 
 public interface SpeakingTurnRepository extends MongoRepository<SpeakingTurn, String> {
     List<SpeakingTurn> findBySessionIdOrderByValueSequenceAsc(String sessionId);
+    List<SpeakingTurn> findBySessionIdAndValueSealedAtIsNotNullOrderByValueSequenceAsc(String sessionId);
     Optional<SpeakingTurn> findByIdAndSessionId(String id, String sessionId);
     Optional<SpeakingTurn> findBySessionIdAndValueClientTurnId(String sessionId, String clientTurnId);
 }

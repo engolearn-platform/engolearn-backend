@@ -22,6 +22,8 @@ public final class SpeakingRecording {
     private volatile boolean failed;
     private boolean started;
     private long nextIndex;
+    private long highestObservedIndex = -1;
+    private boolean malformedCapture;
 
     public SpeakingRecording(SpeechStreamPort stream, String turnId, Consumer<String> interim) {
         this.stream = stream;
@@ -51,9 +53,11 @@ public final class SpeakingRecording {
 
     public void add(SpeakingFrames.Learner frame, long limitMs, Runnable markFirstFrame) {
         synchronized (forwarding) {
-            if (!receiving || !frame.turnId().toString().equals(turnId) || frame.index() != nextIndex) {
+            if (!receiving || !frame.turnId().toString().equals(turnId)) {
                 throw new IllegalArgumentException("Learner audio is out of sequence");
             }
+            highestObservedIndex = Math.max(highestObservedIndex, frame.index());
+            if (frame.index() != nextIndex) throw new IllegalArgumentException("Learner audio is out of sequence");
             if (audio.size() + frame.payload().length > limitMs * SpeakingWav.PCM_BYTES_PER_MS) {
                 throw new IllegalStateException("Learner audio exceeds the turn limit");
             }
@@ -83,6 +87,26 @@ public final class SpeakingRecording {
     public byte[] pcm() {
         synchronized (forwarding) {
             return audio.toByteArray();
+        }
+    }
+
+    public void observeRateLimitedFrame(SpeakingFrames.Learner frame) {
+        synchronized (forwarding) {
+            if (receiving && turnId.equals(frame.turnId().toString())) {
+                highestObservedIndex = Math.max(highestObservedIndex, frame.index());
+            }
+        }
+    }
+
+    public void rejectMalformedFrame() {
+        synchronized (forwarding) {
+            if (receiving) malformedCapture = true;
+        }
+    }
+
+    public boolean captureComplete() {
+        synchronized (forwarding) {
+            return !malformedCapture && nextIndex > highestObservedIndex;
         }
     }
 

@@ -91,6 +91,7 @@ class SpeakingFoundationMongoIntegrationTest extends AbstractMongoIntegrationTes
     private fit.iuh.engolearn.media.contract.MediaManagement media;
     @Autowired private fit.iuh.engolearn.shared.security.CurrentUserProvider users;
     @Autowired private fit.iuh.engolearn.speaking.utils.SpeakingSessionSettings settings;
+    @Autowired private fit.iuh.engolearn.speaking.utils.SpeakingProviderProperties providerProperties;
     @Autowired private java.time.Clock clock;
     @Autowired private TopicSpeakingProfileService profiles;
     @Autowired private TopicSpeakingAccess access;
@@ -340,7 +341,7 @@ class SpeakingFoundationMongoIntegrationTest extends AbstractMongoIntegrationTes
         runtime.admit(firstLease, UUID.randomUUID());
 
         var restarted = new fit.iuh.engolearn.speaking.service.impl.SpeakingSessionServiceImpl(
-                repository, ownerSlots, turns, archive, access, quota, media, users, settings, clock);
+                repository, ownerSlots, turns, archive, access, quota, media, users, settings, providerProperties, clock);
         restarted.recover();
         assertCode(() -> restarted.state(firstLease), "CONTROLLER_CHANGED");
         var newLease = restarted.consumeTicket(session, restarted.ticket(session, 1).ticket());

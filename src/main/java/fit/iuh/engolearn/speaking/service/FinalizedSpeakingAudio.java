@@ -10,4 +10,8 @@ public record FinalizedSpeakingAudio(String sessionId, String turnId, int sequen
     public byte[] pcm() {
         return pcm.clone();
     }
+
+    public int pcmLength() {
+        return pcm.length;
+    }
 }

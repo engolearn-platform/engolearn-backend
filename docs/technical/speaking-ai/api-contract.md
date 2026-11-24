@@ -8,4 +8,4 @@ Creating a session returns the persisted INITIALIZING state and upgrade path wit
 
 The server sends `SESSION_STATE` on connection and returns it on `SYNC_SESSION`. To receive live opening audio, clients can connect while the session is INITIALIZING. Reconnect relies on saved opening and turn text with separately authorized playback of available WAV files. Browser playback is outside server delivery state.
 
-The assessment endpoint exposes PENDING and FINALIZING with nullable scores until assessment finalization.
+The assessment endpoint exposes PENDING and FINALIZING with nullable scores until assessment finalization. READY has all four criteria assessed, PARTIAL has one to three, and UNAVAILABLE has none. Criterion status and reason distinguish insufficient evidence from technical failure. Session history reports the stored assessment status and the owner can open the result without a socket.

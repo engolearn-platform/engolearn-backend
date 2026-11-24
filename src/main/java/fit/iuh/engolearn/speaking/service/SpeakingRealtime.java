@@ -21,6 +21,7 @@ public interface SpeakingRealtime {
     interface Connection {
         void command(Command command);
         void audio(SpeakingFrames.Learner frame);
+        void rejectAudio(String code, String message);
         void error(UUID requestId, String code, String message);
         void close();
     }
