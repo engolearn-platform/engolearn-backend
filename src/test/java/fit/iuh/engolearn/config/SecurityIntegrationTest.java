@@ -116,6 +116,15 @@ class SecurityIntegrationTest {
     @MockitoBean private RefreshSessionRepository refreshSessionRepository;
 
     @ParameterizedTest
+    @ValueSource(strings = {"/api/management/topics/cafe/speaking-profile/publish",
+            "/api/management/topics/cafe/items/order/speaking-profile/publish"})
+    void speakingProfilePublicationRejectsAnonymousRequests(String path) throws Exception {
+        mockMvc.perform(post(path).contentType(MediaType.APPLICATION_JSON).content("{\"revision\":1}"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("AUTHENTICATION_REQUIRED"));
+    }
+
+    @ParameterizedTest
     @ValueSource(strings = {"/actuator/env", "/actuator/metrics"})
     void nonHealthActuatorPathsRejectAnonymousRequests(String path) throws Exception {
         mockMvc.perform(get(path))

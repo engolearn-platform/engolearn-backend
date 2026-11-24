@@ -128,7 +128,7 @@ Do not restore module-named runtime profiles.
 | Topic | Development examples are imported from explicitly selected JSON files; keep learner/authoring fixtures out of production and verify publication, list, detail and attempt flows against the target database |
 | Placement | Mongo/transaction/level-sync defaults configured. MEDIA NOT PROD-INTEGRATED: migrate local audio to Media storage and persist references in Mongo; verify current and historical playback without repository files |
 | Subscription / Payment / Quota | Shared Mongo and transactions; import development catalog only to a disposable local database; verify Admin updates, provider and durable delivery independently |
-| Speaking | Managed-only conversation and module wiring are active in both `dev` and `prod`. Provider credentials are supplied per capability and failures remain explicit. Production readiness is still unverified: provider-backed E2E, MediaManagement media-ID integration, multi-instance recovery/state coordination and load/latency evidence remain open |
+| Speaking | Speaking V2 profile, session and control persistence are shared by `dev` and `prod`. Provider orchestration and real-provider verification follow the Speaking V2 phase gates |
 | Assessment | NOT FULLY PROD-INTEGRATED: real baseline integration and storage-backed audio are required. Filesystem playback is refused in prod; verify preparation/attempt/review after integrating Media |
 | Auth / Media / others | Verify real identity/authorization and storage integration in both profiles; no production dependency on repository samples or local media directories |
 
