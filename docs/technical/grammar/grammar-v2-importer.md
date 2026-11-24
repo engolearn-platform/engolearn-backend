@@ -27,3 +27,5 @@ Apply yêu cầu MIGRATE, kiểm tra lại source/hash/version/counter/order/chi
 Không migrate/import tự động khi khởi động app. Các mẫu A1 và ValidateGrammarSeed còn được giữ để kiểm tra tương thích legacy/V2; chúng không phải bundle nhập mặc định và không thay xác minh toàn bộ học liệu hiện hành.
 
 Sau nạp: Admin mở `/admin/grammar`, kiểm tra từng bài → Sẵn sàng → xuất bản; học viên `/grammar` chỉ nhìn thấy Published theo quyền cấp. Kết quả biên soạn/xuất bản trên một DB local không được áp đặt lên DB của thành viên khác.
+
+Để các máy có cùng trạng thái demo, dùng [shared setup](../../../tools/mongo-json-importer/README.md#shared-placementgrammar-demo-state): bộ43/106 đã nạp chỉ cần dry-run/Apply qua Admin API; không import lại hoặc ghi đè status. Metadata xác định4 chủ đề giữ Draft-ready,39 chủ đề còn lại được xuất bản qua nghiệp vụ để tạo revision hợp lệ.

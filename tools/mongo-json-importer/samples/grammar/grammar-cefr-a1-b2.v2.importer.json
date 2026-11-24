@@ -15147,6 +15147,21 @@
       "https://learnenglishteens.britishcouncil.org/sites/teens/files/gs_question_words.pdf",
       "https://owl.purdue.edu/owl/general_writing/punctuation/independent_and_dependent_clauses/index.html",
       "https://www.eaquals.org/wp-content/uploads/Core-Inventory-Posters-2018-update.pdf"
-    ]
+    ],
+    "demo_state": {
+      "version": 1,
+      "published_topics": 39,
+      "published_lessons": 99,
+      "draft_topics": 4,
+      "draft_lessons": 7,
+      "draft_topic_ids": [
+        "17e2057e-476e-4c37-b4a9-b05d7bb59c45",
+        "74d59ea0-0dcc-4619-91c7-f00aa924630b",
+        "13dee675-f1d3-4583-b32c-86243ce1d99e",
+        "8dd3d0ab-0e3e-484c-84bb-52268059e665"
+      ],
+      "apply_with": "tools/mongo-json-importer/setup-placement-grammar-demo.ps1",
+      "policy": "Seed remains DRAFT; use existing Admin APIs to ready/publish. No user data or direct status overwrite."
+    }
   }
 }
