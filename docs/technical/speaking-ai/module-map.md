@@ -15,7 +15,6 @@ Speaking turns a Topic item version and published Speaking config into an indepe
 | Opening generation and audio | [`SpeakingOpeningService`][opening] | `SpeakingSessionService` persists [`SpeakingOpening`][opening-model] and fences attempts. [`GeminiSpeakingOpeningGenerator`][opening-gateway] generates the reply and hint. |
 | Managed turn evaluation | [`SpeakingConversationComposer`][composer] | [`PromptV2Builder`][prompt] builds the prompt. [`GeminiSpeakingAiGateway`][gateway] calls Gemini. [`SpeakingDraftValidator`][validator] validates the draft and filters evidence. |
 | Deterministic dialogue and completion decisions | [`ConversationManager`][manager], [`ConversationStateView`][state] | [`DialogueDecision`][decision] carries the result. `SpeakingSessionService` applies it and owns terminal writes. |
-| Legacy turn evaluation | [`GeminiConversationEvaluator`][legacy] | [`ConversationEvaluator`][legacy-port] and `SpeakingSessionService.assessed`. Used when the managed composer is absent. |
 | Assessment, turn and progress writes | [`SpeakingSessionService`][sessions] | [`SpeakingAssessmentRecordAdapter`][assessment-adapter] maps managed evidence and feedback. [`SpeakingTurn`][turn], [`SpeakingAssessmentRecord`][assessment] and `SpeakingSession` persist separate records. |
 | Reply delivery, TTS and private media | [`SpeakingRealtimeService`][realtime] | [`CartesiaSpeechSynthesis`][tts] synthesizes text. [`MediaStorage`][media] stores private audio and signs URLs. `SpeakingOpeningService` coordinates opening audio separately. |
 
@@ -26,18 +25,18 @@ Speaking turns a Topic item version and published Speaking config into an indepe
 | AI repeats a question or guides toward an achieved goal | `SpeakingConversationComposer` for selected history, `PromptV2Builder` for guidance and `ConversationManager.decide` for dialogue authorization | [`ConversationManagerTest`][manager-test], [`PromptV2BuilderTest`][prompt-test] |
 | Opening has weak guidance, stays pending or has no audio | `SpeakingOpeningService` and `GeminiSpeakingOpeningGenerator` | `SpeakingSessionService.retryOpening`, `SpeakingOpening`, [`SpeakingOpeningServiceTest`][opening-test] |
 | Learner ends a recording and no turn commits | `SpeakingRealtimeService.end` and `SpeakingSessionService.commit` | `AssemblyAiSpeechStream.endTurn`, opening/controller checks, [`AssemblyAiSpeechStreamTest`][stt-test] |
-| Assessment credits incorrect evidence | `SpeakingDraftValidator.validateV2` for managed evaluation, `GeminiConversationEvaluator` for legacy | `SpeakingAssessmentRecordAdapter`, [`SpeakingDraftValidatorContractTest`][validator-test] |
+| Assessment credits incorrect evidence | `SpeakingDraftValidator.validateV2` for managed evaluation | `SpeakingAssessmentRecordAdapter`, [`SpeakingDraftValidatorContractTest`][validator-test] |
 | Goals are met but the session continues or never finishes closing | `ConversationStateView.completionFor` and `SpeakingSessionService.finalizeClosing` | `ConversationManager`, `SpeakingRealtimeService.evaluateConversation`, [`SpeakingConversationRuntimeTest`][runtime-test] |
 | A reconnect stalls or an old tab still sends events | `SpeakingRealtimeService.open/close` and `SpeakingSessionService.resume/consumeTicket` | [`SpeakingConversationRuntimeTest`][runtime-test], [`SpeakingRealtimeEventShapeTest`][event-test] |
 | An item cannot start Speaking, or a session uses old content | `SpeakingSessionService.create/publishedConfig` | [`SpeakingItemLookup`][topic], `SpeakingItemConfig`, `SpeakingContentSnapshot`, [`SpeakingSessionServiceTest`][session-test] |
 | History or audio is missing, expired or inaccessible | `SpeakingSessionService.history/get/playback/openingPlayback` | [`SpeakingAudioAsset`][audio], `MediaStorage`, [`SpeakingSessionServiceTest`][session-test] |
-| Routes are disabled or the evaluator path differs by environment | [`SpeakingAvailabilityFilter`][availability] and [`SpeakingConversationConfig`][conversation-config] | [Runtime flags](module-contract.md#runtime-selection-and-rollback), [configuration tests][config-tests] |
+| Runtime wiring differs by environment | [`SpeakingConversationConfig`][conversation-config] and shared runtime configuration | [Module contract](module-contract.md), [configuration tests][config-tests] |
 
 ## Important boundaries
 
 - Topic supplies openable item/version facts through [`SpeakingItemLookup`][topic], implemented by [`TopicLearningServiceImpl`][topic-impl]. Speaking owns the pinned session copy and its own usage accounting. Topic retains ownership of learning progress.
 - Speaking owns audio metadata in Mongo. Shared [`MediaStorage`][media] owns the storage interface and URL signing, with [`CloudinaryMediaStorage`][cloudinary] as the adapter. Speaking checks session ownership before requesting a playback URL.
-- Managed Gemini output is a draft. Validation and deterministic dialogue decisions precede settlement. Socket delivery and synthesis follow settlement on the normal response path. See the [module contract](module-contract.md#provider-and-integration-boundaries) for the managed and legacy paths.
+- Gemini output is a draft. Validation and deterministic dialogue decisions precede settlement. Socket delivery and synthesis follow settlement on the normal response path. See the [module contract](module-contract.md#provider-and-integration-boundaries) for the managed-only path.
 
 ## Code and test navigation
 
@@ -72,14 +71,11 @@ Speaking turns a Topic item version and published Speaking config into an indepe
 [prompt]: ../../../src/main/java/fit/iuh/engolearn/speaking/utils/PromptV2Builder.java
 [gateway]: ../../../src/main/java/fit/iuh/engolearn/speaking/utils/GeminiSpeakingAiGateway.java
 [opening-gateway]: ../../../src/main/java/fit/iuh/engolearn/speaking/utils/GeminiSpeakingOpeningGenerator.java
-[legacy]: ../../../src/main/java/fit/iuh/engolearn/speaking/utils/GeminiConversationEvaluator.java
-[legacy-port]: ../../../src/main/java/fit/iuh/engolearn/speaking/utils/port/ConversationEvaluator.java
 [topic]: ../../../src/main/java/fit/iuh/engolearn/topic/contract/SpeakingItemLookup.java
 [topic-impl]: ../../../src/main/java/fit/iuh/engolearn/topic/service/impl/TopicLearningServiceImpl.java
 [media]: ../../../src/main/java/fit/iuh/engolearn/shared/media/MediaStorage.java
 [cloudinary]: ../../../src/main/java/fit/iuh/engolearn/shared/media/CloudinaryMediaStorage.java
 [ws-config]: ../../../src/main/java/fit/iuh/engolearn/config/SpeakingWebSocketConfig.java
-[availability]: ../../../src/main/java/fit/iuh/engolearn/config/SpeakingAvailabilityFilter.java
 [conversation-config]: ../../../src/main/java/fit/iuh/engolearn/config/SpeakingConversationConfig.java
 [tests]: ../../../src/test/java/fit/iuh/engolearn/speaking
 [config-tests]: ../../../src/test/java/fit/iuh/engolearn/config

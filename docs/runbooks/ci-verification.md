@@ -16,12 +16,13 @@ There is no third Spring runtime profile and no developer `.env` in the CI check
 | APP_USER / APP_PASSWORD | ci_test / ci-only-placeholder; retained for explicit dev-profile test binding, not used by prod when URI is set |
 | CORS_ALLOWED_ORIGINS | http://localhost:3000; loopback frontend origin for tests |
 | AUTH_JWT_SECRET | Existing GitHub Actions variable CI_AUTH_JWT_SECRET; test-only signing key, at least 32 bytes |
-| GEMINI_API_KEY | Deliberately invalid dummy value; permits bean construction in legacy tests explicitly selecting dev |
+| Provider credentials | Not supplied to CI. Adapter tests use explicit transports or test fixtures and must not make live provider calls |
 
 The workflow validates the selected profile, rejects a root `.env`, and retains signing-key
-validation. Do not supply production database credentials or provider keys to make tests pass.
-Other optional integration configuration retains the common defaults. Provider tests must use
-their own stubs/mocks; the dummy Gemini key is not functional provider integration evidence.
+validation. Speaking's managed beans can be constructed without provider secrets, and each
+provider reports missing credentials when its capability is called. Do not supply production
+database credentials or provider keys to make tests pass. Other optional integration
+configuration retains the common defaults. Provider tests use their own transports or fixtures.
 
 ## How integration database connections work
 

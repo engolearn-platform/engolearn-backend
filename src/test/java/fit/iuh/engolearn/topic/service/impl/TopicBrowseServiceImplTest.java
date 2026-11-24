@@ -26,6 +26,7 @@ import fit.iuh.engolearn.topic.repository.TopicItemVersionRepository;
 import fit.iuh.engolearn.topic.repository.TopicRepository;
 import fit.iuh.engolearn.topic.repository.TopicVersionRepository;
 import fit.iuh.engolearn.topic.utils.TopicCursorCodec;
+import fit.iuh.engolearn.topic.service.TopicMediaService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -73,12 +74,17 @@ class TopicBrowseServiceImplTest {
     @Mock
     private TopicItemVersionRepository topicItemVersionRepository;
 
+    @Mock
+    private TopicMediaService topicMedia;
+
     private TopicBrowseServiceImpl service;
 
     @BeforeEach
     void setUp() {
         service = new TopicBrowseServiceImpl(topicRepository, topicVersionRepository,
-                topicItemVersionRepository);
+                topicItemVersionRepository, topicMedia);
+        lenient().when(topicMedia.resolveCover(any())).thenAnswer(invocation ->
+                ((Topic) invocation.getArgument(0)).getCoverUrl());
     }
 
     // --- list ---------------------------------------------------------------------------

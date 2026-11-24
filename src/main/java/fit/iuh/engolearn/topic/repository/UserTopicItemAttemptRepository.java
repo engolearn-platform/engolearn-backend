@@ -15,4 +15,6 @@ public interface UserTopicItemAttemptRepository extends MongoRepository<UserTopi
     List<UserTopicItemAttempt> findByUserIdAndTopicItemId(String userId, String topicItemId);
 
     List<UserTopicItemAttempt> findByUserIdAndTopicId(String userId, String topicId);
+
+    boolean existsByTopicItemId(String topicItemId);
 }

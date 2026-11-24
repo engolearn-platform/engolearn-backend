@@ -19,6 +19,7 @@ import fit.iuh.engolearn.topic.exception.LearningPreconditionFailedException;
 import fit.iuh.engolearn.topic.exception.TopicItemNotFoundException;
 import fit.iuh.engolearn.topic.exception.TopicNotFoundException;
 import fit.iuh.engolearn.topic.mapper.TopicItemMapper;
+import fit.iuh.engolearn.topic.mapper.TopicLearnerMediaMapper;
 import fit.iuh.engolearn.topic.model.Topic;
 import fit.iuh.engolearn.topic.model.TopicItem;
 import fit.iuh.engolearn.topic.model.TopicItemVersion;
@@ -79,6 +80,7 @@ public class TopicLearningServiceImpl implements TopicLearningService, SpeakingI
     private final UserLevelLookup userLevels;
     private final TopicGenerationService generations;
     private final TopicLearnerCatalogService catalog;
+    private final TopicLearnerMediaMapper learnerMedia;
 
     // --- content -----------------------------------------------------------------------
 
@@ -126,7 +128,7 @@ public class TopicLearningServiceImpl implements TopicLearningService, SpeakingI
         ItemContext item = resolvePublishedItem(userId, topicItemId);
         UserTopicItemAttempt itemAttempt = findActiveItemAttempt(userId, topicItemId, item.generation());
         TopicItemVersion version = resolveLearningVersion(item, itemAttempt);
-        return TopicItemMapper.toContentResponse(topicItemId, version);
+        return learnerMedia.content(item.topic().getId(), TopicItemMapper.toContentResponse(topicItemId, version));
     }
 
     // --- position ----------------------------------------------------------------------

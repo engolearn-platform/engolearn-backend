@@ -39,7 +39,7 @@ public final class GeminiSpeakingAiGateway implements SpeakingAiGateway {
         this.promptBuilder = Objects.requireNonNull(promptBuilder, "promptBuilder");
         this.endpoint = requireNonBlank(endpoint, "endpoint");
         this.model = requireNonBlank(model, "model");
-        this.apiKey = requireNonBlank(apiKey, "apiKey");
+        this.apiKey = apiKey == null ? "" : apiKey;
         this.timeout = Objects.requireNonNull(timeout, "timeout");
         if (timeout.isZero() || timeout.isNegative()) throw new IllegalArgumentException("timeout must be positive");
         this.transport = Objects.requireNonNull(transport, "transport");
@@ -48,6 +48,11 @@ public final class GeminiSpeakingAiGateway implements SpeakingAiGateway {
     @Override
     public GatewayOutcome assess(SpeakingAiRequestV1 request) {
         Objects.requireNonNull(request, "request");
+        if (apiKey.isBlank()) {
+            return new GatewayOutcome.TransportFailure(new GatewayOutcome.ProviderFailure(
+                    GatewayOutcome.FailureCode.MISSING_CREDENTIALS,
+                    "Gemini API key is not configured", null, null, null));
+        }
         ProviderHttpRequest httpRequest = requestFor(promptBuilder.build(request));
         final ProviderHttpResponse response;
         try {
