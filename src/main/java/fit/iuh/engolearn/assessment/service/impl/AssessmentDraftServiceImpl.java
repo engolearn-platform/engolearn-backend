@@ -1,5 +1,6 @@
 package fit.iuh.engolearn.assessment.service.impl;
 
+import fit.iuh.engolearn.assessment.contract.AssessmentSkillCatalog;
 import fit.iuh.engolearn.assessment.dto.request.*;
 import fit.iuh.engolearn.assessment.dto.response.*;
 import fit.iuh.engolearn.assessment.exception.AssessmentException;
@@ -29,6 +30,11 @@ public class AssessmentDraftServiceImpl implements AssessmentDraftService {
         if (draft == null) throw new AssessmentException(404, "DRAFT_NOT_FOUND", "Không tìm thấy bản nháp.");
         return draft;
     }
+    public List<AssessmentSkillOptionResponse> skillCatalog() {
+        return Arrays.stream(AssessmentSkillCatalog.values())
+                .map(skill -> new AssessmentSkillOptionResponse(skill.name(), skill.label(), skill.section())).toList();
+    }
+
     public AssessmentDraftResponse get(String series) { return AssessmentDraftMapper.response(requireDraft(series)); }
     public List<DraftSummaryResponse> list(int page) {
         return drafts.summaries(page).stream()

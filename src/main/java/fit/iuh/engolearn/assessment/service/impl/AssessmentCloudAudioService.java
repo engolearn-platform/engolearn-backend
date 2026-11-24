@@ -12,6 +12,7 @@ import fit.iuh.engolearn.media.contract.exception.MediaNotFoundException;
 import fit.iuh.engolearn.media.contract.exception.MediaStorageUnavailableException;
 import fit.iuh.engolearn.media.contract.exception.MediaUploadRejectedException;
 import java.io.ByteArrayInputStream;
+import fit.iuh.engolearn.assessment.utils.AssessmentWav;
 import java.io.IOException;
 import java.io.InputStream;
 import java.security.MessageDigest;
@@ -21,10 +22,6 @@ import java.util.Locale;
 import java.util.UUID;
 import java.time.Clock;
 import java.time.Duration;
-import javax.sound.sampled.AudioFileFormat;
-import javax.sound.sampled.AudioFormat;
-import javax.sound.sampled.AudioSystem;
-import javax.sound.sampled.UnsupportedAudioFileException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
@@ -32,7 +29,6 @@ import org.springframework.stereotype.Service;
 @Service
 @RequiredArgsConstructor
 public class AssessmentCloudAudioService implements AssessmentCloudAudio {
-    static final int MAX_BYTES = 4_000_000;
     private final AssessmentAudioRepository repository;
     private final MediaManagement media;
     private final Clock clock;
@@ -60,16 +56,16 @@ public class AssessmentCloudAudioService implements AssessmentCloudAudio {
     public String upload(InputStream input, String expectedDigest, boolean soundCheck) {
         final byte[] bytes;
         try {
-            bytes = input.readNBytes(MAX_BYTES + 1);
+            bytes = input.readNBytes(AssessmentWav.MAX_BYTES + 1);
         } catch (IOException ex) {
             throw invalid("Không đọc được tệp WAV.");
         }
-        if (bytes.length == 0 || bytes.length > MAX_BYTES) throw invalid("Tệp WAV vượt giới hạn 4.000.000 byte hoặc rỗng.");
+        if (bytes.length == 0 || bytes.length > AssessmentWav.MAX_BYTES) throw invalid("Tệp WAV vượt giới hạn 4.000.000 byte hoặc rỗng.");
         String digest = sha256(bytes);
         if (expectedDigest != null && !expectedDigest.equalsIgnoreCase(digest)) {
             throw invalid("SHA-256 của tệp WAV không khớp với dữ liệu nguồn.");
         }
-        double duration = duration(bytes, soundCheck ? 50 : 120);
+        double duration = AssessmentWav.duration(bytes, soundCheck ? 50 : 120);
         var asset = find(digest);
         if (asset == null) {
             asset = uploadNew(bytes, digest, duration);
@@ -102,25 +98,6 @@ public class AssessmentCloudAudioService implements AssessmentCloudAudio {
         var asset = new AssessmentAudioAsset(digest, mediaId, duration);
         if (!repository.complete(asset, token)) throw unavailable();
         return asset;
-    }
-
-    private static double duration(byte[] bytes, int limit) {
-        try (var content = new ByteArrayInputStream(bytes);
-             var audio = AudioSystem.getAudioInputStream(content)) {
-            var fileType = AudioSystem.getAudioFileFormat(new ByteArrayInputStream(bytes)).getType();
-            var encoding = audio.getFormat().getEncoding();
-            double seconds = audio.getFrameLength() / (double) audio.getFormat().getFrameRate();
-            long expectedBytes = Math.multiplyExact(audio.getFrameLength(), (long) audio.getFormat().getFrameSize());
-            if (!AudioFileFormat.Type.WAVE.equals(fileType)
-                    || !AudioFormat.Encoding.PCM_SIGNED.equals(encoding) && !AudioFormat.Encoding.PCM_UNSIGNED.equals(encoding)
-                    || !Double.isFinite(seconds) || seconds <= 0 || seconds > limit
-                    || expectedBytes <= 0 || audio.readAllBytes().length != expectedBytes) {
-                throw invalid("Cần WAV PCM đầy đủ và có thời lượng tối đa " + limit + " giây.");
-            }
-            return seconds;
-        } catch (UnsupportedAudioFileException | IOException | ArithmeticException ex) {
-            throw invalid("Không nhận diện được WAV PCM hợp lệ.");
-        }
     }
 
     private static String sha256(byte[] bytes) {

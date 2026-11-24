@@ -15,6 +15,7 @@ import fit.iuh.engolearn.assessment.service.AssessmentMedia;
 import fit.iuh.engolearn.assessment.service.AssessmentPublishing;
 import fit.iuh.engolearn.assessment.service.AssessmentPaperSelection;
 import fit.iuh.engolearn.assessment.service.AssessmentTransactions;
+import fit.iuh.engolearn.shared.security.CurrentUserProvider;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -28,10 +29,12 @@ public class AssessmentPublishingService implements AssessmentPublishing {
     private final AssessmentPaperSelection selection;
     private final AssessmentTransactions transactions;
     private final AssessmentMedia audio;
+    private final CurrentUserProvider users;
 
     public AssessmentDraftResponse preview(String series, String revision) {
         var draft = requireDraft(series, revision);
         validate(draft);
+        if (!drafts.markPreviewed(draft, users.requireCurrentUserId())) throw stale();
         return AssessmentDraftMapper.response(draft);
     }
 
@@ -47,28 +50,48 @@ public class AssessmentPublishingService implements AssessmentPublishing {
 
     public void review(String series, String revision) {
         var draft = requireDraft(series, revision);
-        validate(draft);
-        if (!drafts.markReviewed(draft)) throw stale();
+        String reviewer = users.requireCurrentUserId();
+        if (draft.getPreviewedBy() == null || !draft.getPreviewedBy().contains(reviewer)) {
+            throw new AssessmentException(409, "DRAFT_PREVIEW_REQUIRED", "Hãy xem thử đúng bản nháp trước khi xác nhận.");
+        }
+        if (!drafts.markReviewed(draft, reviewer)) throw stale();
     }
 
     public ManagedAssessmentPaperResponse publish(String series, String revision) {
-        return transactions.execute("paper:" + series, () -> {
-            var released = drafts.publishedFromRevision(series, revision);
-            if (released != null) return response(released);
-            var draft = requireDraft(series, revision);
-            if (!revision.equals(draft.getReviewedRevision())) {
-                throw new AssessmentException(409, "DRAFT_REVIEW_REQUIRED", "Xem thử và xác nhận đúng bản nháp trước khi xuất bản.");
-            }
-            var latest = drafts.latestPaper(series);
-            if (latest != null && latest.getVersion() >= draft.getVersion()) throw stale();
-            var paper = validate(draft);
+        var released = drafts.publishedFromRevision(series, revision);
+        if (released != null) return response(released);
+
+        AssessmentPaper paper;
+        try {
+            paper = validate(requireReviewed(series, revision));
             paper.setUnits(AssessmentMapper.snapshot(paper).getUnits());
             for (var unit : paper.getUnits()) unit.setAudioMediaId(audio.durableReference(unit));
+        } catch (AssessmentException ex) {
+            released = drafts.publishedFromRevision(series, revision);
+            if (released != null) return response(released);
+            throw ex;
+        }
+
+        return transactions.execute("paper:" + series, () -> {
+            var replay = drafts.publishedFromRevision(series, revision);
+            if (replay != null) return response(replay);
+            var draft = requireReviewed(series, revision);
+            var latest = drafts.latestPaper(series);
+            if (latest != null && latest.getVersion() >= draft.getVersion()) throw stale();
             if (!drafts.delete(draft)) throw stale();
             drafts.deactivatePublished(series);
             drafts.insertPaper(paper);
             return response(paper);
         });
+    }
+
+    private AssessmentDraft requireReviewed(String series, String revision) {
+        var draft = requireDraft(series, revision);
+        if (!revision.equals(draft.getReviewedRevision())
+                || draft.getPreviewedBy() == null || draft.getPreviewedBy().isEmpty()) {
+            throw new AssessmentException(409, "DRAFT_REVIEW_REQUIRED", "Xem thử và xác nhận đúng bản nháp trước khi xuất bản.");
+        }
+        return draft;
     }
 
     public void deleteDraft(String series, String revision) {

@@ -27,6 +27,11 @@ public class AssessmentDraftController {
         return ApiResponse.ok(drafts.list(page));
     }
 
+    @GetMapping("/skill-catalog")
+    public ApiResponse<List<AssessmentSkillOptionResponse>> skillCatalog() {
+        return ApiResponse.ok(drafts.skillCatalog());
+    }
+
     @GetMapping("/{series}")
     public ApiResponse<AssessmentDraftResponse> get(@PathVariable String series) {
         return ApiResponse.ok(drafts.get(series));

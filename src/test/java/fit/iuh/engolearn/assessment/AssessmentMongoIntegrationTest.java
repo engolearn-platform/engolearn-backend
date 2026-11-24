@@ -26,11 +26,18 @@ import org.springframework.boot.test.context.*;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.*;
 import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.test.context.*;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.test.web.servlet.MockMvc;
 import tools.jackson.databind.ObjectMapper;
 import static org.assertj.core.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.Mockito.doAnswer;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -60,6 +67,7 @@ class AssessmentMongoIntegrationTest {
     @Autowired MutableClock clock;
     @Autowired MongoTemplate mongo;
     @Autowired AssessmentService service;
+    @MockitoSpyBean AssessmentMedia media;
     @Autowired AssessmentRepository store;
     @Autowired AssessmentGrantRevocation revocations;
     @Autowired SubscriptionPublicationService publications;
@@ -112,10 +120,60 @@ class AssessmentMongoIntegrationTest {
     AssessmentStateResponse save(AssessmentStateResponse a,int q,long sequence,Integer choice){return service.answer(USER,a.id(),binding,answer(q,sequence,choice),false);}
     long remaining(){return quota.checkAvailability(USER,"PROFICIENCY_CHECK_ATTEMPT").remaining();}
     @Test
+    void paperArchivedWhileCheckingAudioCannotConsumeQuota() {
+        var paper = store.published().getFirst();
+        var archived = new java.util.concurrent.atomic.AtomicBoolean();
+        doAnswer(invocation -> {
+            assertThat(TransactionSynchronizationManager.isActualTransactionActive()).isFalse();
+            if (archived.compareAndSet(false, true)) {
+                mongo.updateFirst(Query.query(Criteria.where("_id").is(paper.getId())),
+                        new Update().set("published", false), AssessmentPaper.class);
+            }
+            return invocation.callRealMethod();
+        }).when(media).delivery(any(), anyInt());
+
+        assertThatThrownBy(() -> service.start(USER, command())).isInstanceOfSatisfying(
+                AssessmentException.class, e -> assertThat(e.code()).isEqualTo("PAPER_CHANGED"));
+        assertThat(archived.get()).isTrue();
+        assertThat(mongo.getCollection("assessment_attempts").countDocuments()).isZero();
+        assertThat(mongo.getCollection("quota_usage_ledger").countDocuments()).isZero();
+        assertThat(remaining()).isEqualTo(1);
+    }
+
+    @Test
+    void missingHistoricalUserProfileReturnsRetryableErrorAndKeepsSavedAnswers() throws Exception {
+        var paper = store.published().getFirst();
+        paper.setDemonstration(false);
+        mongo.save(paper);
+        var attempt = startModern();
+        clock.at = START.plusSeconds(2);
+        save(attempt, 1, 1, 1);
+        var profileType = fit.iuh.engolearn.user.model.UserProfile.class;
+        var profile = mongo.findById(USER, profileType);
+        // Simulate data imported before account registration created a profile.
+        assertThat(profile).isNotNull();
+        mongo.remove(profile);
+        String path = "/api/v1/assessment/attempts/" + attempt.id() + "/submit";
+
+        mvc.perform(post(path).cookie(userCookie).header("X-Assessment-Binding", binding)
+                        .contentType("application/json").content("{\"confirmed\":true}"))
+                .andExpect(status().isServiceUnavailable())
+                .andExpect(jsonPath("$.code").value("ASSESSMENT_LEVEL_SYNC_UNAVAILABLE"));
+        assertThat(store.attempt(attempt.id(), USER).getStatus().name()).isEqualTo("ACTIVE");
+        assertThat(store.attempt(attempt.id(), USER).getAnswers()).hasSize(1);
+
+        mongo.insert(profile);
+        mvc.perform(post(path).cookie(userCookie).header("X-Assessment-Binding", binding)
+                        .contentType("application/json").content("{\"confirmed\":true}"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.data.status").value("READY"));
+        assertThat(remaining()).isZero();
+    }
+
+    @Test
     void aRealOwnedPlacementResultEnablesAssessmentWithoutDevelopmentBaseline() {
         mongo.getCollection("assessment_dev_baselines").deleteOne(new Document("_id", USER));
         assertThat(service.preparation(USER).baselineValid()).isFalse();
-        var result = new Document("_id", UUID.randomUUID().toString()).append("user_id", "another-learner")
+        var result = new Document("_id", UUID.randomUUID().toString()).append("user_id", "another-learner-" + UUID.randomUUID())
                 .append("status", "SUBMITTED").append("correct_count", 18)
                 .append("placement_level", "B2").append("started_at", Date.from(START.minusSeconds(90)));
         mongo.getCollection("placement_attempts").insertOne(result);

@@ -58,7 +58,11 @@ and `assessment_audio_assets`. The attempt embeds a copied
 `AssessmentPaperSnapshotVo`, not an indexed paper root. History paginates/project rows
 without loading question snapshots. Indexes belong to models and feature configuration.
 The per-user gate serializes actions in real Mongo replica-set transactions. Consumption
-joins the start transaction; failed profile/attempt writes roll back consumption. Retries
+joins the start transaction; failed profile/attempt writes roll back consumption.
+The selected paper and audio are validated outside that transaction. The final start
+rechecks eligibility and publication while holding the same series gate as publish
+and archive. The timer starts after those checks. A withdrawn version returns
+`PAPER_CHANGED` before creating an attempt or consuming quota. Retries
 are bounded. Request/command IDs and answer sequences protect replays and stale writes.
 
 Assessment gets an owned, completed baseline through `PlacementBaselineLookup`.
@@ -67,7 +71,10 @@ The test-only baseline adapter can fill a missing Placement baseline in `dev & !
 Demonstration papers and attempts are excluded elsewhere. The internal current level
 tracks the latest valid periodic result and can decrease. For an official paper,
 `UserLevelPromotion` advances the level used by Topic monotonically in the result transaction.
-The Learning Path contract exposes native results without writing plans.
+The Learning Path contract exposes native results without writing plans. Official submission
+returns a retryable `ASSESSMENT_LEVEL_SYNC_UNAVAILABLE` if User cannot promote its profile.
+The result transaction rolls back. A normal registered user has a User profile; repair
+missing profiles in imported accounts through the owning User flow before retrying.
 
 ## Learning Path result contract
 
@@ -135,7 +142,9 @@ running until expiry. There is no pause, resume or clock-bypass endpoint.
 In `dev`, the development fixture reads PCM WAV from `ASSESSMENT_MEDIA_DIRECTORY`,
 defaulting to the bundled sample folder. Uploaded draft files use Media in both profiles.
 In `prod`, playback resolves protected URLs through `MediaManagement` after binding,
-phase or review authorization. The same issue ID may retry issuance while the unit is
+phase or review authorization. For a taking request the server resolves delivery outside
+the transaction and rechecks the unit, deadline and issue ID before accepting issuance.
+The same issue ID may retry issuance while the unit is
 open. New papers and snapshots store `audio_media_id` where available. A migrated legacy
 snapshot resolves its original SHA-256 through `assessment_audio_assets`, preserving its
 content and timestamps. Setup of the separate sound-check reference is explicit.
@@ -240,10 +249,14 @@ Nháp ở collection `assessment_paper_drafts`, khóa duy nhất theo series. T�
 đã đăng ký. Các thao tác quản trị đều qua kiểm quyền ở service.
 
 - POST `/{series}/preview` với revision để kiểm ma trận và xem nội dung. GET
-  `/{series}/preview/audio/{unit}?revision=...` cấp audio xem thử. Không tạo lượt hay trừ quota.
-- POST `/{series}/review` xác nhận revision đang xem. PUT lưu mới xóa xác nhận cũ.
+  `/{series}/preview/audio/{unit}?revision=...` cấp audio xem thử. Preview thành công ghi người xem đúng revision. Không tạo lượt hay trừ quota.
+- GET `/skill-catalog` cấp mã, tên và phần thi từ contract Assessment. Phiên bản 2 chỉ
+  nhận mapping đã thống nhất với Learning Path; phạm vi hiện có là R01, R02, R04, L01, L03.
+- POST `/{series}/review` xác nhận chính người đó đã mở preview cho revision hiện tại.
+  PUT lưu mới xóa dấu đã xem và xác nhận cũ.
 - POST `/{series}/publish` yêu cầu revision đã duyệt. Việc tạo bản xuất bản,
-  ngừng cấp phiên bản trước và bỏ nháp nằm trong một giao dịch MongoDB.
+  ngừng cấp phiên bản trước và bỏ nháp nằm trong một giao dịch MongoDB. Media được
+  chuẩn bị trước giao dịch và revision được kiểm lại trong giao dịch.
   Gửi lại revision đã xuất bản trả về đúng phiên bản đó.
 - DELETE `/{series}?revision=...` chỉ xóa nháp khớp revision. GET
   `/api/v1/assessment/admin/papers` liệt kê phiên bản. POST

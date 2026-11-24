@@ -22,6 +22,7 @@ import org.springframework.test.context.TestPropertySource;
 import org.junit.jupiter.api.condition.EnabledIf;
 import org.testcontainers.DockerClientFactory;
 import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.node.ObjectNode;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @EnabledIf("mongoAvailable")
@@ -100,6 +101,10 @@ class AssessmentDraftIntegrationTest {
         assertThat(call("GET", DRAFTS, null, login("USER")).statusCode()).isEqualTo(403);
         assertThat(call("GET", DRAFTS, null, login("CONTENT_MANAGER")).statusCode()).isEqualTo(200);
         assertThat(call("GET", DRAFTS, null, login("ADMIN")).statusCode()).isEqualTo(200);
+        assertThat(call("GET", DRAFTS + "/skill-catalog", null, login("USER")).statusCode()).isEqualTo(403);
+        var catalog = call("GET", DRAFTS + "/skill-catalog", null, login("CONTENT_MANAGER"));
+        assertThat(catalog.statusCode()).isEqualTo(200);
+        assertThat(json.readTree(catalog.body()).path("data").size()).isEqualTo(5);
     }
 
     @Test void twoEditorsCannotOverwriteEachOtherOrDuplicateADraft() throws Exception {
@@ -156,6 +161,47 @@ class AssessmentDraftIntegrationTest {
     }
 
     @Test
+    void savingChangesInvalidatesPreviewAndUnsupportedSkillCannotBePublished() throws Exception {
+        var fixture = Document.parse(Files.readString(Path.of("tools/mongo-json-importer/samples/assessment-demo.json")));
+        var source = fixture.get("collections", Document.class).getList("assessment_papers", Document.class).getFirst();
+        mongoTemplate.getCollection("assessment_papers").insertOne(source);
+        String series = source.getString("series");
+        String path = DRAFTS + "/" + series;
+        String cookie = login("CONTENT_MANAGER");
+        var created = call("POST", DRAFTS, json.writeValueAsString(Map.of("series", series, "name", "Tên mới")), cookie);
+        assertThat(created.statusCode()).as(created.body()).isEqualTo(201);
+        var draft = (ObjectNode) json.readTree(created.body()).path("data");
+        String oldRequest = json.writeValueAsString(Map.of("revision", draft.path("revision").asString()));
+        assertThat(call("POST", path + "/preview", oldRequest, cookie).statusCode()).isEqualTo(200);
+        assertThat(call("POST", path + "/review", oldRequest, cookie).statusCode()).isEqualTo(204);
+
+        var skill = (ObjectNode) draft.path("skills").get(0);
+        String sourceCode = skill.path("code").asString();
+        skill.put("code", "UNMAPPED");
+        for (var unit : draft.path("units")) {
+            for (var question : unit.path("questions")) {
+                if (sourceCode.equals(question.path("skillCode").asString())) {
+                    ((ObjectNode) question).put("skillCode", "UNMAPPED");
+                }
+            }
+        }
+        var saved = call("PUT", path, json.writeValueAsString(Map.of(
+                "revision", draft.path("revision"), "name", draft.path("name"),
+                "units", draft.path("units"), "skills", draft.path("skills"))), cookie);
+        assertThat(saved.statusCode()).as(saved.body()).isEqualTo(200);
+        String request = json.writeValueAsString(Map.of("revision", json.readTree(saved.body()).at("/data/revision").asString()));
+        assertThat(call("POST", path + "/review", oldRequest, cookie).statusCode()).isEqualTo(409);
+        var review = call("POST", path + "/review", request, cookie);
+        assertThat(review.statusCode()).isEqualTo(409);
+        assertThat(json.readTree(review.body()).path("code").asString()).isEqualTo("DRAFT_PREVIEW_REQUIRED");
+        var preview = call("POST", path + "/preview", request, cookie);
+        assertThat(preview.statusCode()).isEqualTo(422);
+        assertThat(preview.body()).contains("UNMAPPED");
+        assertThat(call("POST", path + "/publish", request, cookie).statusCode()).isEqualTo(409);
+        assertThat(mongoTemplate.getCollection("assessment_papers").countDocuments()).isEqualTo(1);
+    }
+
+    @Test
     void aReviewedRevisionPublishesOnlyOnceAndCanBeArchived() throws Exception {
         var fixture = Document.parse(Files.readString(Path.of("tools/mongo-json-importer/samples/assessment-demo.json")));
         var source = fixture.get("collections", Document.class).getList("assessment_papers", Document.class).getFirst();
@@ -169,8 +215,13 @@ class AssessmentDraftIntegrationTest {
         String request = json.writeValueAsString(Map.of("revision", revision));
 
         assertThat(call("POST", path + "/publish", request, cookie).statusCode()).isEqualTo(409);
+        var reviewWithoutPreview = call("POST", path + "/review", request, cookie);
+        assertThat(reviewWithoutPreview.statusCode()).isEqualTo(409);
+        assertThat(json.readTree(reviewWithoutPreview.body()).path("code").asString()).isEqualTo("DRAFT_PREVIEW_REQUIRED");
         var preview = call("POST", path + "/preview", request, cookie);
         assertThat(preview.statusCode()).as(preview.body()).isEqualTo(200);
+        var otherReviewer = call("POST", path + "/review", request, login("CONTENT_MANAGER"));
+        assertThat(otherReviewer.statusCode()).isEqualTo(409);
         var audio = call("GET", path + "/preview/audio/0?revision=" + revision, null, cookie);
         assertThat(audio.statusCode()).as(audio.body()).isEqualTo(200);
         assertThat(json.readTree(audio.body()).at("/data/base64").asString()).isNotBlank();

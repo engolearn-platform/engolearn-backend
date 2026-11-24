@@ -29,7 +29,9 @@ import static org.assertj.core.api.Assertions.*;
 class AssessmentMediaTest {
     @TempDir Path directory;
     private AssessmentMediaImpl localMedia() {
-        return new AssessmentMediaImpl(directory.toString(), new MockEnvironment(), null);
+        var environment = new MockEnvironment();
+        environment.setActiveProfiles("dev");
+        return new AssessmentMediaImpl(directory.toString(), environment, null);
     }
     private String wave(String file,int seconds) throws Exception {
         Path path=directory.resolve(file);var format=new AudioFormat(16000,16,1,true,false);
@@ -48,6 +50,21 @@ class AssessmentMediaTest {
         assertThatThrownBy(()->media.read("audio.wav",digest,50)).isInstanceOf(AssessmentException.class);
         assertThat(media.read("audio.wav",digest,120)).isNotEmpty();
     }
+    @Test
+    void localMediaRejectsRenamedAiffAndTruncatedWave() throws Exception {
+        var renamed = directory.resolve("renamed.wav");
+        var format = new AudioFormat(16000, 16, 1, true, false);
+        try (var input = new AudioInputStream(new ByteArrayInputStream(new byte[32000]), format, 16000)) {
+            AudioSystem.write(input, AudioFileFormat.Type.AIFF, renamed.toFile());
+        }
+        var local = localMedia();
+        assertThatThrownBy(() -> local.read("renamed.wav", null, 28)).isInstanceOf(AssessmentException.class);
+        wave("truncated.wav", 1);
+        var path = directory.resolve("truncated.wav");
+        Files.write(path, java.util.Arrays.copyOf(Files.readAllBytes(path), 64));
+        assertThatThrownBy(() -> local.read("truncated.wav", null, 28)).isInstanceOf(AssessmentException.class);
+    }
+
     @Test void filesystemTraversalCannotReadOutsideConfiguredMediaRoot() {
         assertThatThrownBy(()->localMedia().read("../outside.wav",null,50)).isInstanceOf(AssessmentException.class);
     }
@@ -82,7 +99,13 @@ class AssessmentMediaTest {
         assertThat(media.delivery(legacy, 28).expiresAt()).isEqualTo(expiresAt);
         assertThat(media.durableReference(legacy)).isEqualTo("media-id");
         legacy.setAudioMediaId("media-id");
-        assertThat(media.delivery(legacy, 28).base64()).isNull();
+        var renewed = new MediaDeliveryDto(URI.create("https://media.example.test/renewed.wav"),
+                expiresAt.plusSeconds(60), "audio/wav");
+        when(cloud.resolve("media-id")).thenReturn(renewed);
+        var replay = media.delivery(legacy, 28);
+        assertThat(replay.base64()).isNull();
+        assertThat(replay.url()).isEqualTo(renewed.url());
+        assertThat(replay.expiresAt()).isEqualTo(renewed.expiresAt());
         legacy.setAudioMediaId("other");
         assertThatThrownBy(() -> media.delivery(legacy, 28)).isInstanceOf(AssessmentException.class);
         legacy.setAudioMediaId("media-id");

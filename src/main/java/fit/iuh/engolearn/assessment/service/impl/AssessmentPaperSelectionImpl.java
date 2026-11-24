@@ -1,4 +1,6 @@
 package fit.iuh.engolearn.assessment.service.impl;
+
+import fit.iuh.engolearn.assessment.contract.AssessmentSkillCatalog;
 import fit.iuh.engolearn.assessment.service.*;
 import fit.iuh.engolearn.assessment.model.enums.*;
 
@@ -27,7 +29,17 @@ public class AssessmentPaperSelectionImpl implements AssessmentPaperSelection {
         Set<String> audioPaths=new HashSet<>();
         if(p.getSkills().stream().filter(s->AssessmentSection.READING.equals(s.getSection())).count()!=3
                 ||p.getSkills().stream().filter(s->AssessmentSection.LISTENING.equals(s.getSection())).count()!=2) invalid();
-        for(var skill:p.getSkills()) if(skill.getCode()==null || !codes.add(skill.getCode()) || skill.getName()==null || skill.getName().isBlank()) invalid();
+        for (var skill : p.getSkills()) {
+            if (skill == null || skill.getCode() == null || !codes.add(skill.getCode())
+                    || skill.getName() == null || skill.getName().isBlank()) {
+                invalid("Danh sách kỹ năng thiếu mã, tên hoặc có mã trùng.");
+            }
+            if (modern && AssessmentSkillCatalog.find(skill.getCode())
+                    .filter(definition -> skill.getSection() != null && definition.section().equals(skill.getSection().name()))
+                    .isEmpty()) {
+                invalid("Mã kỹ năng " + skill.getCode() + " chưa có mapping được hỗ trợ hoặc không đúng phần thi.");
+            }
+        }
         int number=1;
         for(int i=0;i<26;i++) {
             var u=p.getUnits().get(i);
@@ -67,17 +79,20 @@ public class AssessmentPaperSelectionImpl implements AssessmentPaperSelection {
                     throw new AssessmentException(ex.status(), ex.code(), "Phần " + (i + 1) + ": " + ex.getMessage(), ex);
                 }
             }
-            if(position>=10 && position<=13 && !Arrays.equals(levels,new int[][]{{5,0,0,0},{0,5,0,0},{0,1,4,0},{0,0,1,4}}[position-10])) invalid();
-            if(position>=24 && !Arrays.equals(levels,new int[][]{{1,3,1,0},{0,0,3,2}}[position-24])) invalid();
+            if(position>=10 && position<=13 && !Arrays.equals(levels,new int[][]{{5,0,0,0},{0,5,0,0},{0,1,4,0},{0,0,1,4}}[position-10])) invalid("Phần " + (i + 1) + " có phân bố mức Đọc theo đoạn sai.");
+            if(position>=24 && !Arrays.equals(levels,new int[][]{{1,3,1,0},{0,0,3,2}}[position-24])) invalid("Phần " + (i + 1) + " có phân bố mức Nghe theo nhóm sai.");
         }
-        if(counts.size()!=5 || counts.values().stream().anyMatch(n->n!=10)) invalid();
+        for (String code : codes) {
+            int total = counts.getOrDefault(code, 0);
+            if (total != 10) invalid("Kỹ năng " + code + " có " + total + " câu. Cần đúng 10 câu.");
+        }
         checkSingleLevels(p,modern?12:0,new int[]{1,2,3,4});
         checkSingleLevels(p,modern?0:14,new int[]{2,2,3,3});
     }
     private void checkSingleLevels(AssessmentPaper p,int start,int[] expected) {
         int[] actual=new int[4];
         for(int i=start;i<start+10;i++) actual[List.of("A1","A2","B1","B2").indexOf(p.getUnits().get(i).getQuestions().getFirst().getLevel())]++;
-        if(!Arrays.equals(actual,expected)) invalid();
+        if(!Arrays.equals(actual,expected)) invalid("Các phần " + (start + 1) + "–" + (start + 10) + " có phân bố mức câu đơn sai.");
     }
     private void invalid() {invalid("Bộ đề chưa khớp ma trận câu hỏi, mức độ hoặc kỹ năng.");}
     private void invalid(String detail) {throw new AssessmentException(503, "PAPER_INVALID", detail);}

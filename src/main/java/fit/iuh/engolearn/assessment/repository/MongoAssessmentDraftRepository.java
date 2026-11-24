@@ -35,12 +35,18 @@ public class MongoAssessmentDraftRepository implements AssessmentDraftRepository
         var query = Query.query(where("_id").is(draft.getId()).and("revision").is(expectedRevision));
         var changes = new Update().set("name", draft.getName()).set("skills", draft.getSkills())
                 .set("units", draft.getUnits()).set("source_audio_units", draft.getSourceAudioUnits())
-                .set("revision", draft.getRevision()).unset("reviewed_revision").currentDate("updated_at");
+                .set("revision", draft.getRevision()).unset("reviewed_revision").unset("previewed_by").currentDate("updated_at");
         return mongo.updateFirst(query, changes, AssessmentDraft.class).getMatchedCount() == 1;
     }
 
-    public boolean markReviewed(AssessmentDraft draft) {
+    public boolean markPreviewed(AssessmentDraft draft, String userId) {
         return mongo.updateFirst(sameRevision(draft),
+                new Update().addToSet("previewed_by", userId), AssessmentDraft.class).getMatchedCount() == 1;
+    }
+
+    public boolean markReviewed(AssessmentDraft draft, String userId) {
+        var query = sameRevision(draft).addCriteria(where("previewed_by").is(userId));
+        return mongo.updateFirst(query,
                 new Update().set("reviewed_revision", draft.getRevision()), AssessmentDraft.class).getMatchedCount() == 1;
     }
 

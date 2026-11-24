@@ -10,7 +10,8 @@ public interface AssessmentDraftRepository {
     AssessmentPaper sourcePaper(String id);
     void insert(AssessmentDraft draft);
     boolean replace(String expectedRevision, AssessmentDraft draft);
-    boolean markReviewed(AssessmentDraft draft);
+    boolean markPreviewed(AssessmentDraft draft, String userId);
+    boolean markReviewed(AssessmentDraft draft, String userId);
     boolean delete(AssessmentDraft draft);
     List<AssessmentPaper> papers(int page);
     AssessmentPaper paperVersion(String series, int version);

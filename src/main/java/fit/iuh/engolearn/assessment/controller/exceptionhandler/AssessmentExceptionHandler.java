@@ -8,6 +8,7 @@ import fit.iuh.engolearn.assessment.exception.AssessmentException;
 import fit.iuh.engolearn.quota.contract.exception.QuotaUnavailableException;
 import fit.iuh.engolearn.subscription.contract.exception.SubscriptionUnavailableException;
 import fit.iuh.engolearn.shared.security.UnauthenticatedException;
+import fit.iuh.engolearn.user.contract.exception.UserLevelPromotionException;
 import jakarta.servlet.http.*;
 import java.net.URI;
 import java.util.Map;
@@ -23,11 +24,15 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 public class AssessmentExceptionHandler {
     @ExceptionHandler({AssessmentException.class,UnauthenticatedException.class,QuotaUnavailableException.class,SubscriptionUnavailableException.class,
             MethodArgumentNotValidException.class,HandlerMethodValidationException.class,HttpMessageNotReadableException.class,
-            MissingRequestHeaderException.class,MethodArgumentTypeMismatchException.class,org.springframework.dao.DataAccessException.class})
+            MissingRequestHeaderException.class,MethodArgumentTypeMismatchException.class,UserLevelPromotionException.class,org.springframework.dao.DataAccessException.class})
     public ProblemDetail handle(Exception e,HttpServletRequest request,HttpServletResponse response) {
         int status=503;String code="UPSTREAM_UNAVAILABLE",detail="Không xác nhận được quyền hoặc hạn mức. Hãy thử lại.";
         if(e instanceof AssessmentException a) {status=a.status();code=a.code();detail=a.getMessage();}
         else if(e instanceof UnauthenticatedException) {status=401;code="AUTHENTICATION_REQUIRED";detail="Vui lòng đăng nhập.";}
+        else if (e instanceof UserLevelPromotionException) {
+            code = "ASSESSMENT_LEVEL_SYNC_UNAVAILABLE";
+            detail = "Chưa đồng bộ được mức học. Hãy thử lại.";
+        }
         else if(e instanceof org.springframework.dao.DataAccessException) {status=503;code="ASSESSMENT_STORAGE_UNAVAILABLE";detail="Không lưu được bài. Hãy thử lại cùng yêu cầu.";}
         else if(e instanceof MethodArgumentNotValidException || e instanceof HandlerMethodValidationException
                 || e instanceof HttpMessageNotReadableException || e instanceof MissingRequestHeaderException || e instanceof MethodArgumentTypeMismatchException) {

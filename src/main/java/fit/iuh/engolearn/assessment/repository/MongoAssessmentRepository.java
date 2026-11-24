@@ -56,6 +56,10 @@ public class MongoAssessmentRepository implements AssessmentRepository {
     public List<AssessmentAttempt> valid(String user) {
         return mongo.find(Query.query(where("user_id").is(user).and("status").is("READY")).with(Sort.by(Sort.Direction.DESC,"submitted_at","_id")),AssessmentAttempt.class);
     }
+    public boolean isPublished(String paperId) {
+        return mongo.exists(Query.query(where("_id").is(paperId).and("published").is(true)), AssessmentPaper.class);
+    }
+
     public List<AssessmentPaper> published() {
         return mongo.find(Query.query(where("published").is(true)),AssessmentPaper.class);
     }
