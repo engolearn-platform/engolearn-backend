@@ -29,11 +29,11 @@ Payment command intake deduplicates transport identity and business reference. D
 | Capability / fact | Consumer | Meaning |
 | --- | --- | --- |
 | `SubscriptionAccountInitialization.initializeNewAccount(userId)` | User registration | Requires the caller's Mongo transaction. Creates NEW_ACCOUNT history with unused Trial and zero revisions. Existing valid history is preserved. Missing legacy provenance fails unavailable. Failure rolls back registration together with user/profile writes. |
-| `EffectiveEntitlementProvider.resolveEffectiveEntitlement(userId, at)` | Quota | Effective policy at server time; returns `EffectiveEntitlementDto`, fails unavailable instead of assuming Free |
+| `EffectiveEntitlementProvider.resolveEffectiveEntitlement(userId, at)` | Quota and Assessment | Effective policy at server time; returns `EffectiveEntitlementDto`, fails unavailable instead of assuming Free |
 | `EntitlementChangedEvent` | Quota | New effective entitlement snapshot/version; refresh selection without usage reset |
 | `QuotaPolicyActivatedEvent` | Quota | Stable activation ID/sequence, scope/version/snapshot, changed types and effective time; actual activation, not future save |
 
-The [entitlement DTO](../../../src/main/java/fit/iuh/engolearn/subscription/contract/dto/EffectiveEntitlementDto.java) carries user ID, monotonic entitlement version, policy scope/snapshot ID/version, activation sequence, `effectiveAt`, nullable `validUntil` and full `QuotaPolicySnapshotDto`. Each rule carries quota type/display name/limit/unit/period/display order. Missing or expired projections use authoritative lookup; stale versions cannot replace newer ones. Lookup may advance Subscription's fingerprint/version and emit a durable entitlement fact. It does not replay a missed policy activation.
+The [entitlement DTO](../../../src/main/java/fit/iuh/engolearn/subscription/contract/dto/EffectiveEntitlementDto.java) carries user ID, monotonic entitlement version, policy scope/snapshot ID/version, activation sequence, `effectiveAt`, nullable `validUntil`, full `QuotaPolicySnapshotDto`, actual `planCode`, benefit-code `serviceRights`, and `managedProduct`. Each quota rule carries quota type/display name/limit/unit/period/display order. Assessment checks `ASSESSMENT_FULL_ANALYSIS` for managed paid plans; legacy Trial and unmanaged Premium keep their prior grant. Quota scope remains `PREMIUM`, so existing quota policy behavior is unchanged. Missing or expired projections use authoritative lookup; stale versions cannot replace newer ones. Lookup may advance Subscription's fingerprint/version and emit a durable entitlement fact. It does not replay a missed policy activation.
 
 ## Quota-owned capabilities
 

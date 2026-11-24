@@ -23,6 +23,12 @@ public class SubscriptionController {
         return ApiResponse.ok(new PlanListResponse(service.plans()));
     }
 
+    @GetMapping("/plans/{planCode}")
+    public ApiResponse<PlanCardResponse> plan(@PathVariable String planCode, HttpServletResponse response) {
+        response.setHeader("Cache-Control", "no-store");
+        return ApiResponse.ok(service.product(planCode));
+    }
+
     @GetMapping("/me")
     public ApiResponse<MySubscriptionSummaryResponse> me(HttpServletResponse response) {
         response.setHeader("Cache-Control", "no-store");

@@ -7,6 +7,7 @@ import fit.iuh.engolearn.subscription.dto.request.CreatePurchaseRequest;
 import fit.iuh.engolearn.subscription.dto.response.PurchaseResponse;
 import fit.iuh.engolearn.subscription.dto.response.PurchaseHistoryResponse;
 import fit.iuh.engolearn.subscription.exception.SubscriptionRequestException;
+import fit.iuh.engolearn.subscription.mapper.SubscriptionModelMapper;
 import fit.iuh.engolearn.subscription.model.*;
 import fit.iuh.engolearn.subscription.model.enums.*;
 import fit.iuh.engolearn.subscription.repository.*;
@@ -26,6 +27,7 @@ public class PurchaseServiceImpl implements PurchaseService {
     private final SubscriptionRepository subscriptions;
     private final SubscriptionMessageRepository messages;
     private final SubscriptionTransactions transactions;
+    private final SubscriptionProductService products;
     private final ObjectMapper mapper;
     private final Clock clock;
     private final org.springframework.beans.factory.ObjectProvider<DevPurchaseResetService> devResets;
@@ -35,9 +37,10 @@ public class PurchaseServiceImpl implements PurchaseService {
         return create(userId,key,request,null);
     }
     public Creation create(String userId, String key, CreatePurchaseRequest request, String clientIp) {
-        if (request == null || !"PREMIUM".equals(request.planCode()) ||
+        if (request == null || request.planCode() == null || request.expectedVersion() == null ||
+                request.expectedVersion() < 1 || request.expectedVersion() > 9_007_199_254_740_991L ||
                 request.billingPeriod() == null || !Set.of("MONTHLY", "ANNUAL").contains(request.billingPeriod()))
-            throw error(400, "INVALID_REQUEST", "A Premium billing option is required");
+            throw error(400, "INVALID_REQUEST", "A plan, displayed version, and billing option are required");
         String intentKey;
         try {
             intentKey = UUID.fromString(key).toString();
@@ -70,27 +73,18 @@ public class PurchaseServiceImpl implements PurchaseService {
                 throw error(409, "PREMIUM_ALREADY_ACTIVE", "Premium is already active");
         PremiumPurchase blocking = purchases.findBlocking(userId);
         if (blocking != null) throw error(409, "PURCHASE_PENDING", "Purchase is still unresolved: " + blocking.getPurchaseReference());
-        PlanVersion plan = subscriptions.findPublishedPlans(now).stream()
-                .filter(p -> p.getScope() == PolicyScope.PREMIUM && p.getPlan().getPlanCode() == PlanCode.PREMIUM)
-                .findFirst().orElseThrow(() -> error(409, "OFFER_UNAVAILABLE", "Premium is not currently offered"));
-        PolicyState state = subscriptions.findPolicyState("PREMIUM");
-        if (state == null) throw new SubscriptionUnavailableException();
-        String policyId = state.getPendingVersionId() != null && !now.isBefore(state.getPendingEffectiveAt())
-                ? state.getPendingVersionId() : state.getActiveVersionId();
-        PolicyVersion policy = subscriptions.findPolicyVersion(policyId);
-        if (policy == null || policy.getVersion() != plan.getVersion() || now.isBefore(policy.getEffectiveAt()))
-            throw new SubscriptionUnavailableException();
-        var option = plan.getPlan().getBillingOptions().stream()
-                .filter(o -> o.getBillingPeriod().name().equals(request.billingPeriod())).findFirst()
-                .orElseThrow(() -> error(409, "OFFER_UNAVAILABLE", "Billing option is unavailable"));
+        SubscriptionProductService.PurchaseSelection selection = products.reserveForPurchase(
+                request.planCode(), request.expectedVersion(), request.billingPeriod());
+        var option = selection.selectedPrice();
         MessageValidation.money(option.getAmount(), option.getCurrency());
         if (checkoutLifetime.isNegative() || checkoutLifetime.isZero()) throw new SubscriptionUnavailableException();
         String reference = UUID.randomUUID().toString();
         PremiumPurchase purchase = PremiumPurchase.builder().id(reference).purchaseReference(reference).userId(userId)
-                .planCode(PlanCode.PREMIUM).billingPeriod(BillingPeriod.valueOf(request.billingPeriod()))
-                .amountVnd(option.getAmount()).currency(option.getCurrency()).planVersion(plan.getVersion())
-                .policyVersion(policy.getVersion()).planSnapshot(plan.getPlan()).benefitsSnapshot(policy.getBenefits())
-                .policySnapshot(policy.getSnapshot()).selectedBillingOption(option).expiresAt(now.plus(checkoutLifetime))
+                .planCode(request.planCode()).billingPeriod(BillingPeriod.valueOf(request.billingPeriod()))
+                .amountVnd(option.getAmount()).currency(option.getCurrency()).planVersion(selection.version())
+                .policyVersion(selection.policy().getPolicyVersion())
+                .planSnapshot(SubscriptionModelMapper.toVo(selection.card())).benefitsSnapshot(selection.benefits())
+                .policySnapshot(selection.policy()).selectedBillingOption(option).expiresAt(now.plus(checkoutLifetime))
                 .status(PurchaseStatus.PAYMENT_SETUP_PENDING).idempotencyKey(key).requestFingerprint(fingerprint(request))
                 .blocksNewPurchase(true).intentCreatedAt(now).createdAt(now).build();
         purchases.insert(purchase);
@@ -103,7 +97,12 @@ public class PurchaseServiceImpl implements PurchaseService {
     }
 
     private Creation replay(PremiumPurchase purchase, CreatePurchaseRequest request) {
-        if (!fingerprint(request).equals(purchase.getRequestFingerprint()))
+        String current = fingerprint(request);
+        String legacy = purchase.getPlanCode() + ":" + request.billingPeriod();
+        boolean acceptedLegacyReplay = "PREMIUM".equals(purchase.getPlanCode()) &&
+                "PREMIUM".equals(request.planCode()) && purchase.getPlanVersion() == request.expectedVersion() &&
+                legacy.equals(purchase.getRequestFingerprint());
+        if (!current.equals(purchase.getRequestFingerprint()) && !acceptedLegacyReplay)
             throw error(409, "IDEMPOTENCY_CONFLICT", "Intent key was used for another purchase selection");
         return new Creation(response(purchase), false);
     }
@@ -147,9 +146,13 @@ public class PurchaseServiceImpl implements PurchaseService {
                 purchase.getPaidAt(), purchase.getPeriodId(), purchase.getIntentCreatedAt() == null ? purchase.getCreatedAt() : purchase.getIntentCreatedAt(),
                 purchase.getFailureCode(), purchase.getPeriodEndAt(), purchase.getRefundReference(), purchase.getRefundId(),
                 purchase.getRefundStatus() == null ? null : purchase.getRefundStatus().name(),
-                devResets.getIfAvailable()!=null && devResets.getIfAvailable().canReset(purchase),purchase.getDevResetAt());
+                devResets.getIfAvailable()!=null && devResets.getIfAvailable().canReset(purchase),purchase.getDevResetAt(),
+                purchase.getBenefitsSnapshot() == null ? null : purchase.getBenefitsSnapshot().getDisplayName(),
+                purchase.getPlanVersion(), purchase.getPlanCode() == null ? "PREMIUM" : purchase.getPlanCode());
     }
-    private String fingerprint(CreatePurchaseRequest request) { return request.planCode() + ":" + request.billingPeriod(); }
+    private String fingerprint(CreatePurchaseRequest request) {
+        return request.planCode() + ":" + request.expectedVersion() + ":" + request.billingPeriod();
+    }
     private SubscriptionRequestException error(int status, String code, String message) {
         return new SubscriptionRequestException(status, code, message);
     }

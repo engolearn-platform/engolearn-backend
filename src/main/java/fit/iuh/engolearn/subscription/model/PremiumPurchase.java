@@ -35,7 +35,7 @@ public class PremiumPurchase extends BaseDocument {
     @Field("user_id")
     private String userId;
     @Field("plan_code")
-    private PlanCode planCode;
+    private String planCode;
     @Field("billing_period")
     private BillingPeriod billingPeriod;
     @Field("amount_vnd")
