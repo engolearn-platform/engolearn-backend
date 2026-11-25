@@ -12,6 +12,10 @@ Reply, validated optional fields, memory delta and the embedded memory watermark
 
 Only MediaManagement IDs and stored timestamps are persisted for audio. Sealed learner audio can attach to the active or archived turn through its evidence token. Playback checks session ownership, deletion and 30-day eligibility before requesting protected MediaManagement delivery. A deleted session is a soft tombstone and continues to reserve its original request ID.
 
+History starts with the owner and non-deleted filter. The grouped query computes one record per saved parent Topic with its full session count, maximum creation time and latest available saved title and level. Speaking streams those grouped records and requests current Topic Learning metadata in batches of at most 100 parents. It accumulates all status totals and retains one requested page. Only returned cards can request cover delivery.
+
+The `speaking_v2_parent_history` index keys are owner, deletion marker, saved parent Topic ID, creation time descending and session ID descending. It supports parent list ordering, count and the saved-title fallback. The account recent and exact-scope list queries retain their existing indexes. No session documents are rewritten to support history.
+
 Charge inputs persist on the archived turn before calling Quota. They record the owner, recording occurrence time, measured learner speech, capped successful processing wait and the WAV duration sent to the socket. Quota acknowledgment is independent of the conversation state. Interrupted or uncertain calls replay the same operation key and inputs.
 
 Validated language evidence and the acoustic and language deadlines persist on the session while work settles. The final write replaces the intermediate language result with the four criteria, rubric components and selected examples, evidence counts, feedback, policy versions and finalization time. Audio jobs and the session store neither raw provider responses nor learner PCM.

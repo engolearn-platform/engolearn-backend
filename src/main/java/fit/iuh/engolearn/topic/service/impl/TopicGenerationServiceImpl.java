@@ -10,6 +10,9 @@ import org.springframework.stereotype.Service;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.HexFormat;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -28,10 +31,18 @@ public class TopicGenerationServiceImpl implements TopicGenerationService {
         return state == null ? 0 : state.getGeneration();
     }
     @Override
-    public java.util.Map<String, Long> snapshot(String userId) {
-        java.util.Map<String, Long> result = new java.util.HashMap<>();
-        states.findByUserId(userId)
-                .forEach(state -> result.put(state.getTopicId(), state.getGeneration()));
+    public Map<String, Long> snapshot(String userId) {
+        return index(states.findByUserId(userId));
+    }
+
+    @Override
+    public Map<String, Long> snapshot(String userId, Collection<String> topicIds) {
+        return index(states.findByUserIdAndIdIn(userId, topicIds.stream().map(topicId -> id(userId, topicId)).toList()));
+    }
+
+    private Map<String, Long> index(Collection<TopicLearnerState> rows) {
+        Map<String, Long> result = new HashMap<>();
+        rows.forEach(state -> result.put(state.getTopicId(), state.getGeneration()));
         return result;
     }
     @Override
