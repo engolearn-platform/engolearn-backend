@@ -60,8 +60,7 @@ class PlacementCrossIdentityMongoTest {
 
     @BeforeAll
     static void connect() {
-        client = MongoClients.create(System.getProperty("placement.test.mongo.uri",
-                "mongodb://localhost:27017/?serverSelectionTimeoutMS=2000"));
+        client = MongoClients.create("mongodb://localhost:27017/?serverSelectionTimeoutMS=2000");
         client.getDatabase("admin").runCommand(new Document("ping", 1));
         String db = "placement_cross_identity_it_" + UUID.randomUUID().toString().replace("-", "");
         assertThat(client.listDatabaseNames().into(new ArrayList<>())).doesNotContain(db);
