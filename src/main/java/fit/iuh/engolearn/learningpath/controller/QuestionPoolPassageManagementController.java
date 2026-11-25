@@ -3,6 +3,8 @@ package fit.iuh.engolearn.learningpath.controller;
 import fit.iuh.engolearn.learningpath.dto.request.CreateQuestionPoolPassageRequest;
 import fit.iuh.engolearn.learningpath.dto.response.QuestionPoolPassageResponse;
 import fit.iuh.engolearn.learningpath.service.QuestionPoolPassageManagementService;
+import fit.iuh.engolearn.learningpath.service.QuestionPoolPassageReadinessService;
+import fit.iuh.engolearn.learningpath.dto.response.QuestionPoolPassageReadinessResponse;
 import fit.iuh.engolearn.shared.web.ApiResponse;
 import fit.iuh.engolearn.learningpath.dto.request.ListQuestionPoolPassagesRequest;
 import fit.iuh.engolearn.learningpath.dto.response.QuestionPoolPassageListResponse;
@@ -35,6 +37,14 @@ import org.springframework.web.multipart.MultipartFile;
 @RequiredArgsConstructor
 public class QuestionPoolPassageManagementController {
     private final QuestionPoolPassageManagementService passages;
+    private final QuestionPoolPassageReadinessService readiness;
+
+    @GetMapping("/{passageId}/readiness")
+    public ApiResponse<QuestionPoolPassageReadinessResponse> readiness(
+            @PathVariable @NotBlank @Size(max = 100) String passageId, HttpServletResponse response) {
+        response.setHeader("Cache-Control", "no-store");
+        return ApiResponse.ok(readiness.check(passageId));
+    }
 
     @GetMapping
     public ApiResponse<QuestionPoolPassageListResponse> list(

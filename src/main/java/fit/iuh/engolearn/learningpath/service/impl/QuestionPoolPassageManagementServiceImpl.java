@@ -29,6 +29,7 @@ import java.time.Instant;
 import java.util.Locale;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
@@ -139,10 +140,14 @@ public class QuestionPoolPassageManagementServiceImpl implements QuestionPoolPas
     public QuestionPoolPassageListResponse list(ListQuestionPoolPassagesRequest request) {
         var page = passages.search(request.keyword(), request.skill(), request.level(), request.status(),
                 request.page(), request.size());
+        var passageIds = page.getContent().stream().map(QuestionPoolPassage::getPassageId)
+                .filter(java.util.Objects::nonNull).collect(Collectors.toSet());
+        var referenceCounts = passageIds.isEmpty() ? java.util.Map.<String, Long>of() : questions.countReferencesByPassageIds(passageIds);
         var items = page.getContent().stream().map(passage -> new QuestionPoolPassageListItemResponse(
                 passage.getPassageId(), passage.getTitle(), passage.getSkill(), passage.getLevel(),
                 passage.getStatus(), passage.getRevision(), !blank(passage.getAudioMediaId())
                         || (passage.getAudio() != null && !blank(passage.getAudio().getUrl())),
+                passage.getPassageId() == null ? 0L : referenceCounts.getOrDefault(passage.getPassageId(), 0L),
                 passage.getCreatedAt(), passage.getUpdatedAt())).toList();
         var counts = passages.countByStatus();
         var counters = new QuestionPoolPassageCountersResponse(counts.total(), counts.draft(), counts.active(), counts.retired());

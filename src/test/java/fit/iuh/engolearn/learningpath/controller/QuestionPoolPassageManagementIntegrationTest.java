@@ -6,7 +6,9 @@ import fit.iuh.engolearn.learningpath.dto.request.UpdateQuestionPoolPassageReque
 import fit.iuh.engolearn.learningpath.dto.request.ListQuestionPoolPassagesRequest;
 import fit.iuh.engolearn.learningpath.model.enums.QuestionPoolSkill;
 import fit.iuh.engolearn.learningpath.repository.QuestionPoolPassageRepository;
+import fit.iuh.engolearn.learningpath.repository.QuestionPoolRepository;
 import fit.iuh.engolearn.learningpath.service.QuestionPoolPassageManagementService;
+import fit.iuh.engolearn.learningpath.service.QuestionPoolPassageReadinessService;
 import fit.iuh.engolearn.media.contract.enums.MediaAccessPolicy;
 import fit.iuh.engolearn.media.contract.exception.MediaStorageUnavailableException;
 import fit.iuh.engolearn.media.model.enums.MediaDeliveryType;
@@ -62,8 +64,10 @@ class QuestionPoolPassageManagementIntegrationTest extends AbstractMongoIntegrat
     private final JsonMapper json = JsonMapper.builder().build();
     @Autowired private JwtTokenService tokens;
     @Autowired private QuestionPoolPassageManagementService service;
+    @Autowired private QuestionPoolPassageReadinessService readinessService;
     @MockitoBean private MediaStorageProvider storage;
     @MockitoSpyBean private QuestionPoolPassageRepository passages;
+    @MockitoSpyBean private QuestionPoolRepository questions;
 
     @BeforeEach
     void storageProvider() {
@@ -926,6 +930,306 @@ class QuestionPoolPassageManagementIntegrationTest extends AbstractMongoIntegrat
         assertThat(delete(id, "revision=2", UserRole.ADMIN).getStatusCode().value()).isEqualTo(200);
         assertCounters(listData(""), 0, 0, 0, 0);
         verifyNoInteractions(storage);
+    }
+
+    @ParameterizedTest
+    @EnumSource(value = UserRole.class, names = {"CONTENT_MANAGER", "ADMIN"})
+    void readinessAcceptsUnreferencedReadingWithoutPublishingOrRecordingHumanApproval(UserRole role) {
+        seedPassage("ready", "READING", "C2", "DRAFT", "Title", "Text", null, 0);
+        var before = mongoTemplate.getCollection("question_pool_passages").find().first();
+        var response = readiness("ready", role);
+        assertThat(response.getStatusCode().value()).as(response.getBody()).isEqualTo(200);
+        assertThat(response.getHeaders().getCacheControl()).isEqualTo("no-store");
+        JsonNode data = json.readTree(response.getBody()).path("data");
+        assertThat(data.path("revision").asInt()).isEqualTo(1);
+        assertThat(data.path("status").asString()).isEqualTo("DRAFT");
+        assertThat(data.path("structurallyValid").asBoolean()).isTrue();
+        assertThat(data.path("referencingQuestionCount").asLong()).isZero();
+        assertThat(data.path("blockers").size()).isZero();
+        assertThat(data.path("warnings").size()).isZero();
+        assertThat(data.path("requiredReviewChecks").size()).isEqualTo(2);
+        assertThat(response.getBody()).doesNotContain("canPublish", "reviewedBy");
+        assertThat(mongoTemplate.getCollection("question_pool_passages").find().first()).isEqualTo(before);
+        assertNoLearnerWrites();
+        verifyNoInteractions(storage);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"ACTIVE", "RETIRED", "UNKNOWN"})
+    void readinessReportsNonDraftAsContentBlockerRatherThanPublishingIt(String status) {
+        seedPassage("not-draft", "READING", "B1", status, "Title", "Text", null, 0);
+        JsonNode data = readinessData("not-draft");
+        assertThat(issueCodes(data, "blockers")).containsExactly("PASSAGE_NOT_DRAFT");
+        assertThat(data.path("structurallyValid").asBoolean()).isFalse();
+        assertThat(mongoTemplate.getCollection("question_pool_passages").find().first().getString("status")).isEqualTo(status);
+    }
+
+    @Test
+    void readinessCollectsMissingFieldsAndReadsMalformedImportedClassificationsWithoutMappingFailure() {
+        seedPassage("malformed", "UNKNOWN", "B9", "DRAFT", " ", null, null, 0);
+        setAudio("malformed", new Document("revision", 0));
+        JsonNode data = readinessData("malformed");
+        assertThat(issueCodes(data, "blockers")).contains("INVALID_SKILL", "INVALID_LEVEL", "TITLE_REQUIRED", "INVALID_REVISION");
+        setAudio("malformed", new Document("skill", 123).append("level", new Document("bad", true))
+                .append("title", java.util.List.of("wrong type")).append("revision", "one"));
+        data = readinessData("malformed");
+        assertThat(issueCodes(data, "blockers")).contains("INVALID_STORED_FIELD", "INVALID_SKILL", "INVALID_LEVEL", "TITLE_REQUIRED", "INVALID_REVISION");
+        assertThat(data.path("revision").isNull()).isTrue();
+    }
+
+    @Test
+    void readinessRejectsMissingAndOversizedReadingContentAndListeningFieldsOnReading() {
+        seedPassage("reading-check", "READING", "B1", "DRAFT", "Title", " ", null, 0);
+        assertThat(issueCodes(readinessData("reading-check"), "blockers")).contains("READING_TEXT_REQUIRED");
+        setAudio("reading-check", new Document("title", "x".repeat(201)).append("text", "x".repeat(50001))
+                .append("transcript", "Not Reading").append("audio", new Document("url", "/old.mp3")));
+        var data = readinessData("reading-check");
+        assertThat(issueCodes(data, "blockers")).contains("CONTENT_TOO_LONG", "READING_HAS_LISTENING_CONTENT");
+        assertThat(data.path("structurallyValid").asBoolean()).isFalse();
+        verifyNoInteractions(storage);
+    }
+
+    @Test
+    void readinessCollectsListeningTranscriptAudioAndWrongContentErrors() {
+        seedPassage("listening-check", "LISTENING", "B1", "DRAFT", "Title", "Wrong text", " ", 0);
+        JsonNode data = readinessData("listening-check");
+        assertThat(issueCodes(data, "blockers")).containsExactly("TRANSCRIPT_REQUIRED", "LISTENING_HAS_READING_TEXT", "AUDIO_MISSING");
+        assertThat(data.path("requiredReviewChecks").size()).isEqualTo(4);
+        setAudio("listening-check", new Document("transcript", "x".repeat(50001)));
+        assertThat(issueCodes(readinessData("listening-check"), "blockers")).contains("CONTENT_TOO_LONG");
+        verifyNoInteractions(storage);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"/learning-path-audio/legacy.mp3", "https://audio.example.test/a.mp3", "http://audio.example.test/a.wav"})
+    void readinessWarnsThatLegacyAudioRequiresHumanPlaybackReviewWithoutFetchingUrls(String url) {
+        seedPassage("legacy-ready", "LISTENING", "B1", "DRAFT", "Title", null, "Transcript", 0);
+        setAudio("legacy-ready", new Document("audio", new Document("url", url)));
+        var data = readinessData("legacy-ready");
+        assertThat(data.path("structurallyValid").asBoolean()).isTrue();
+        assertThat(issueCodes(data, "warnings")).containsExactly("LEGACY_AUDIO_PLAYBACK_UNVERIFIED");
+        assertThat(issueCodes(data, "blockers")).isEmpty();
+        verifyNoInteractions(storage);
+        assertNoLearnerWrites();
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"javascript:alert(1)", "file:///tmp/recording.mp3", "//audio.example.test/a.mp3", "https://user:secret@audio.example.test/a.mp3", "broken audio URL"})
+    void readinessRejectsMalformedLegacyAudioLocations(String url) {
+        seedPassage("bad-url", "LISTENING", "B1", "DRAFT", "Title", null, "Transcript", 0);
+        setAudio("bad-url", new Document("audio", new Document("url", url)));
+        assertThat(issueCodes(readinessData("bad-url"), "blockers")).containsExactly("AUDIO_URL_INVALID");
+        verifyNoInteractions(storage);
+    }
+
+    @Test
+    void readinessResolvesManagedAudioButBlocksUnsupportedLearnerDeliveryWithoutPersistingUrl() {
+        String id = createListeningForDetail();
+        var before = mongoTemplate.getCollection("question_pool_passages").find().first();
+        var mediaBefore = mongoTemplate.getCollection("media_assets").find().first();
+        when(storage.privateDownloadUrl(any(), any())).thenReturn(java.net.URI.create("https://media.example.test/play.mp3?private=value"));
+        clearInvocations(storage);
+        var first = readinessData(id);
+        var second = readinessData(id);
+        assertThat(issueCodes(first, "blockers")).containsExactly("LEARNER_AUDIO_DELIVERY_UNSUPPORTED");
+        assertThat(first.path("structurallyValid").asBoolean()).isFalse();
+        assertThat(first.path("revision")).isEqualTo(second.path("revision"));
+        assertThat(first.toString()).doesNotContain("private=value", "https://media", "audioMediaId");
+        verify(storage, times(2)).privateDownloadUrl(any(), any());
+        verify(storage, never()).upload(anyString(), any(), any(), any());
+        verify(storage, never()).destroy(any());
+        assertThat(mongoTemplate.getCollection("question_pool_passages").find().first()).isEqualTo(before);
+        assertThat(mongoTemplate.getCollection("media_assets").find().first()).isEqualTo(mediaBefore);
+        assertNoLearnerWrites();
+    }
+
+    @Test
+    void readinessMissingManagedAudioIsBlockerAndNeverFallsBackToLegacy() {
+        seedPassage("missing-media", "LISTENING", "B1", "DRAFT", "Title", null, "Transcript", 0);
+        setAudio("missing-media", new Document("audio_media_id", "missing-media-id")
+                .append("audio", new Document("url", "/legacy.mp3")));
+        assertThat(issueCodes(readinessData("missing-media"), "blockers"))
+                .containsExactly("LEARNER_AUDIO_DELIVERY_UNSUPPORTED", "AUDIO_MEDIA_NOT_FOUND");
+        verifyNoInteractions(storage);
+    }
+
+    @Test
+    void readinessInvalidMediaDeliveryAndWrongMediaTypeAreContentBlockers() {
+        String id = createListeningForDetail();
+        mongoTemplate.getCollection("media_assets").updateMany(new Document(), new Document("$set", new Document("content_type", "image/png")));
+        when(storage.privateDownloadUrl(any(), any())).thenReturn(java.net.URI.create("javascript:alert(1)"));
+        assertThat(issueCodes(readinessData(id), "blockers"))
+                .contains("AUDIO_DELIVERY_URL_INVALID", "AUDIO_CONTENT_TYPE_INVALID");
+    }
+
+    @Test
+    void readinessReportsProviderAndDatabaseFailuresAs503WithoutLeakingDiagnostics() {
+        String id = createListeningForDetail();
+        doThrow(new MediaStorageUnavailableException("private provider diagnostic")).when(storage).privateDownloadUrl(any(), any());
+        var response = readiness(id, UserRole.ADMIN);
+        assertError(response, 503, "MEDIA_STORAGE_UNAVAILABLE");
+        assertThat(response.getBody()).doesNotContain("private provider diagnostic", "AUDIO_MEDIA_NOT_FOUND");
+        doThrow(new DataAccessResourceFailureException("private database diagnostic")).when(passages).findReadinessSource("database-error");
+        response = readiness("database-error", UserRole.ADMIN);
+        assertError(response, 503, "PASSAGE_STORAGE_UNAVAILABLE");
+        assertThat(response.getBody()).doesNotContain("private database diagnostic");
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"DRAFT", "ACTIVE", "RETIRED"})
+    void readinessChecksAllReferencingQuestionClassificationsWithoutChangingQuestions(String state) {
+        seedPassage("references", "READING", "B1", "DRAFT", "Title", "Text", null, 0);
+        var collection = mongoTemplate.getCollection("question_pool");
+        collection.insertMany(java.util.List.of(
+                new Document("question_id", "match").append("passage_id", "references").append("skill", "READING").append("level", "B1").append("status", state),
+                new Document("question_id", "wrong-skill").append("passage_id", "references").append("skill", "LISTENING").append("level", "B1").append("status", state),
+                new Document("question_id", "missing-level").append("passage_id", "references").append("skill", "READING").append("status", state),
+                new Document("question_id", "array-skill").append("passage_id", "references").append("skill", java.util.List.of("READING")).append("level", "B1").append("status", state),
+                new Document("question_id", "array-level").append("passage_id", "references").append("skill", "READING").append("level", java.util.List.of("B1")).append("status", state),
+                new Document("question_id", "unrelated").append("passage_id", "another").append("skill", "LISTENING")));
+        var before = collection.find().into(new java.util.ArrayList<>());
+        var data = readinessData("references");
+        assertThat(data.path("referencingQuestionCount").asLong()).isEqualTo(5);
+        assertThat(data.path("incompatibleQuestionCount").asLong()).isEqualTo(4);
+        assertThat(issueCodes(data, "blockers")).containsExactly("INCOMPATIBLE_QUESTION_REFERENCES");
+        assertThat(collection.find().into(new java.util.ArrayList<>())).isEqualTo(before);
+    }
+
+    @Test
+    void readinessRefetchUsesCurrentRevisionAndNeverCachesPreviousSuccess() {
+        seedPassage("refetch", "READING", "B1", "DRAFT", "Title", "Text", null, 0);
+        assertThat(readinessData("refetch").path("structurallyValid").asBoolean()).isTrue();
+        setAudio("refetch", new Document("text", " ").append("revision", 2));
+        var data = readinessData("refetch");
+        assertThat(data.path("revision").asInt()).isEqualTo(2);
+        assertThat(data.path("structurallyValid").asBoolean()).isFalse();
+        assertThat(issueCodes(data, "blockers")).contains("READING_TEXT_REQUIRED");
+    }
+
+    @Test
+    void readinessAllowsOneMatchingDraftQuestionWithoutRequiringThirtyActiveQuestions() {
+        seedPassage("one-question", "READING", "B1", "DRAFT", "Title", "Text", null, 0);
+        mongoTemplate.getCollection("question_pool").insertOne(new Document("question_id", "only-one")
+                .append("passage_id", "one-question").append("skill", "READING").append("level", "B1").append("status", "DRAFT"));
+        var data = readinessData("one-question");
+        assertThat(data.path("structurallyValid").asBoolean()).isTrue();
+        assertThat(data.path("referencingQuestionCount").asLong()).isEqualTo(1);
+        assertThat(data.path("incompatibleQuestionCount").asLong()).isZero();
+    }
+
+    @Test
+    void readinessEnforcesHttpAndServiceProxyRolesBeforeLookupOrMedia() {
+        assertError(readiness("missing", null), 401, "AUTHENTICATION_REQUIRED");
+        assertError(readiness("missing", UserRole.USER), 403, "ACCESS_DENIED");
+        verify(passages, never()).findReadinessSource(anyString());
+        assertThat(AopUtils.isAopProxy(readinessService)).isTrue();
+        try {
+            SecurityContextHolder.clearContext();
+            assertThatThrownBy(() -> readinessService.check("missing")).isInstanceOf(AuthenticationCredentialsNotFoundException.class);
+            authenticate(UserRole.USER);
+            assertThatThrownBy(() -> readinessService.check("missing")).isInstanceOf(AccessDeniedException.class);
+            for (UserRole role : java.util.List.of(UserRole.CONTENT_MANAGER, UserRole.ADMIN)) {
+                authenticate(role);
+                assertThatThrownBy(() -> readinessService.check("missing"))
+                        .isInstanceOf(fit.iuh.engolearn.learningpath.exception.QuestionPoolPassageNotFoundException.class);
+            }
+        } finally { SecurityContextHolder.clearContext(); }
+        verifyNoInteractions(storage);
+    }
+
+    @Test
+    void readinessValidatesIdAndReturns404ForMissingPassage() {
+        assertError(readiness(" ", UserRole.ADMIN), 400, "INVALID_PASSAGE_REQUEST");
+        assertError(readiness("x".repeat(101), UserRole.ADMIN), 400, "INVALID_PASSAGE_REQUEST");
+        assertError(readiness("missing", UserRole.ADMIN), 404, "PASSAGE_NOT_FOUND");
+    }
+
+    private JsonNode readinessData(String id) {
+        var response = readiness(id, UserRole.ADMIN);
+        assertThat(response.getStatusCode().value()).as(response.getBody()).isEqualTo(200);
+        return json.readTree(response.getBody()).path("data");
+    }
+
+    private java.util.List<String> issueCodes(JsonNode data, String field) {
+        java.util.List<String> codes = new java.util.ArrayList<>();
+        for (JsonNode issue : data.path(field)) codes.add(issue.path("code").asString());
+        return codes;
+    }
+
+    private ResponseEntity<String> readiness(String id, UserRole role) {
+        java.net.URI uri = org.springframework.web.util.UriComponentsBuilder.fromUriString("http://localhost:" + port + BASE)
+                .path("/{passageId}/readiness").encode().buildAndExpand(id).toUri();
+        try {
+            return restTemplate.exchange(uri, HttpMethod.GET, new HttpEntity<>(authHeaders(role)), String.class);
+        } catch (org.springframework.web.client.HttpStatusCodeException exception) {
+            return new ResponseEntity<>(exception.getResponseBodyAsString(), exception.getResponseHeaders(), exception.getStatusCode());
+        }
+    }
+
+    @Test
+    void listCountsQuestionReferencesInOneBatchForOnlyTheRequestedPageAcrossAllStates() {
+        seedPassage("p1", "READING", "B1", "DRAFT", "Title one", "Text", null, 0);
+        seedPassage("p2", "READING", "B1", "ACTIVE", "Title two", "Text", null, 1);
+        seedPassage("p3", "READING", "B1", "RETIRED", "Title three", "Text", null, 2);
+        var pool = mongoTemplate.getCollection("question_pool");
+        for (String state : java.util.List.of("DRAFT", "ACTIVE", "RETIRED")) {
+            pool.insertOne(new Document("question_id", state).append("passage_id", "p1")
+                    .append("skill", "READING").append("level", "B1").append("status", state));
+        }
+        pool.insertOne(new Document("question_id", "incompatible").append("passage_id", "p2")
+                .append("skill", "LISTENING").append("level", "A2").append("status", "DRAFT"));
+        pool.insertOne(new Document("question_id", "unrelated").append("passage_id", "outside-page"));
+        mongoTemplate.getCollection("learning_path_questions").insertOne(new Document("passage_id", "p3"));
+        var before = pool.find().into(new java.util.ArrayList<>());
+        var first = listData("size=2");
+        assertIds(first, "p3", "p2");
+        assertThat(first.path("items").get(0).has("referencingQuestionCount")).isTrue();
+        assertThat(first.path("items").get(0).path("referencingQuestionCount").asLong()).isZero();
+        assertThat(first.path("items").get(1).path("referencingQuestionCount").asLong()).isEqualTo(1);
+        verify(questions).countReferencesByPassageIds(java.util.Set.of("p3", "p2"));
+        var second = listData("size=2&page=1");
+        assertIds(second, "p1");
+        assertThat(second.path("items").get(0).path("referencingQuestionCount").asLong()).isEqualTo(3);
+        verify(questions).countReferencesByPassageIds(java.util.Set.of("p1"));
+        verify(questions, never()).countPassageReferences(anyString());
+        verify(questions, never()).countIncompatiblePassageReferences(anyString(), any(), any());
+        assertThat(pool.find().into(new java.util.ArrayList<>())).isEqualTo(before);
+        assertThat(mongoTemplate.getCollection("learning_path_questions").countDocuments()).isEqualTo(1);
+        verifyNoInteractions(storage);
+    }
+
+    @Test
+    void listQuestionReferenceCountRecomputesOnRefetchAndDoesNotFollowPassageFilters() {
+        seedPassage("count-refetch", "READING", "B1", "DRAFT", "Bus notice", "Text", null, 0);
+        String query = "keyword=bus&skill=READING&level=B1&status=DRAFT";
+        assertThat(listData(query).path("items").get(0).path("referencingQuestionCount").asLong()).isZero();
+        var pool = mongoTemplate.getCollection("question_pool");
+        pool.insertOne(new Document("question_id", "one").append("passage_id", "count-refetch")
+                .append("skill", "LISTENING").append("level", "A1").append("status", "RETIRED"));
+        assertThat(listData(query).path("items").get(0).path("referencingQuestionCount").asLong()).isEqualTo(1);
+        pool.updateOne(new Document("question_id", "one"), new Document("$set", new Document("status", "ACTIVE")));
+        assertThat(listData(query).path("items").get(0).path("referencingQuestionCount").asLong()).isEqualTo(1);
+        pool.deleteOne(new Document("question_id", "one"));
+        assertThat(listData(query).path("items").get(0).path("referencingQuestionCount").asLong()).isZero();
+    }
+
+    @Test
+    void emptyAndOutOfRangePagesDoNotQueryQuestionReferenceCounts() {
+        assertThat(listData("").path("items").size()).isZero();
+        seedPassage("exists", "READING", "B1", "DRAFT", "Title", "Text", null, 0);
+        assertThat(listData("keyword=missing").path("items").size()).isZero();
+        assertThat(listData("page=10&size=1").path("items").size()).isZero();
+        verify(questions, never()).countReferencesByPassageIds(anySet());
+    }
+
+    @Test
+    void listReferenceCountDatabaseFailureReturns503InsteadOfInventingZeroCounts() {
+        seedPassage("count-failure", "READING", "B1", "DRAFT", "Title", "Text", null, 0);
+        doThrow(new DataAccessResourceFailureException("private reference database diagnostic"))
+                .when(questions).countReferencesByPassageIds(anySet());
+        var response = list("", UserRole.ADMIN);
+        assertError(response, 503, "PASSAGE_STORAGE_UNAVAILABLE");
+        assertThat(response.getBody()).doesNotContain("private reference database diagnostic");
     }
 
     private void assertCounters(JsonNode data, long total, long draft, long active, long retired) {

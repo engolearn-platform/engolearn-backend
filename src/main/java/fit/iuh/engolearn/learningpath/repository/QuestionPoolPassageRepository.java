@@ -27,6 +27,34 @@ import org.springframework.stereotype.Repository;
 public class QuestionPoolPassageRepository {
     private final MongoTemplate mongo;
 
+    public Optional<QuestionPoolPassageReadinessSource> findReadinessSource(String passageId) {
+        Document source = mongo.findOne(Query.query(Criteria.where("passage_id").is(passageId)),
+                Document.class, "question_pool_passages");
+        if (source == null) return Optional.empty();
+        // Read raw classifications so malformed imported drafts produce diagnostics, not enum conversion failures.
+        List<String> malformed = new ArrayList<>();
+        for (String field : List.of("skill", "level", "status", "title", "text", "transcript", "audio_media_id")) {
+            if (source.get(field) != null && !(source.get(field) instanceof String)) malformed.add(field);
+        }
+        Integer revision = null;
+        if (source.get("revision") instanceof Number number && number.doubleValue() == number.intValue()) {
+            revision = number.intValue();
+        } else if (source.get("revision") != null) malformed.add("revision");
+        Object audio = source.get("audio");
+        Document legacy = audio instanceof Document document ? document : null;
+        if (audio != null && legacy == null) malformed.add("audio");
+        if (legacy != null && legacy.get("url") != null && !(legacy.get("url") instanceof String)) malformed.add("audio.url");
+        return Optional.of(new QuestionPoolPassageReadinessSource(
+                passageId, stringField(source, "skill"), stringField(source, "level"), stringField(source, "status"),
+                revision, stringField(source, "title"), stringField(source, "text"), stringField(source, "transcript"),
+                stringField(source, "audio_media_id"), audio != null,
+                legacy == null ? null : stringField(legacy, "url"), malformed));
+    }
+
+    private static String stringField(Document document, String field) {
+        return document.get(field) instanceof String value ? value : null;
+    }
+
     public QuestionPoolPassageCounts countByStatus() {
         var rows = mongo.aggregate(Aggregation.newAggregation(
                 Aggregation.group("status").count().as("count")), "question_pool_passages", Document.class)

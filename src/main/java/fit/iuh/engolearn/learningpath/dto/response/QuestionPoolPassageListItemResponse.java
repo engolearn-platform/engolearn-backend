@@ -7,6 +7,6 @@ import java.time.Instant;
 
 public record QuestionPoolPassageListItemResponse(
         String passageId, String title, QuestionPoolSkill skill, CefrLevel level,
-        QuestionPoolContentStatus status, int revision, boolean hasAudio,
+        QuestionPoolContentStatus status, int revision, boolean hasAudio, long referencingQuestionCount,
         Instant createdAt, Instant updatedAt) {
 }
