@@ -11,6 +11,7 @@ import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Collection;
 
 @Repository
 @RequiredArgsConstructor
@@ -23,6 +24,11 @@ public class TopicLearnerStateRepository {
 
     public List<TopicLearnerState> findByUserId(String userId) {
         return mongo.find(Query.query(Criteria.where("user_id").is(userId)), TopicLearnerState.class);
+    }
+
+    public List<TopicLearnerState> findByUserIdAndIdIn(String userId, Collection<String> ids) {
+        return mongo.find(Query.query(Criteria.where("id").in(ids).and("userId").is(userId)),
+                TopicLearnerState.class);
     }
 
     public void insert(TopicLearnerState state) {

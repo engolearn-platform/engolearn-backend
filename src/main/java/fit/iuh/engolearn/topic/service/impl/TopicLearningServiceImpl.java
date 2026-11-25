@@ -5,6 +5,7 @@ import lombok.RequiredArgsConstructor;
 
 import fit.iuh.engolearn.shared.enums.CefrLevel;
 import fit.iuh.engolearn.topic.contract.dto.SpeakingScopeDto;
+import fit.iuh.engolearn.topic.contract.dto.TopicSpeakingAccessDto.Reason;
 import fit.iuh.engolearn.topic.contract.enums.SpeakingScopeType;
 import fit.iuh.engolearn.topic.dto.request.GetTopicItemContentRequest;
 import fit.iuh.engolearn.topic.dto.request.GetTopicItemPositionRequest;
@@ -86,30 +87,42 @@ public class TopicLearningServiceImpl implements TopicLearningService, TopicSpea
     // --- content -----------------------------------------------------------------------
 
     @Override
-    public ReleasedScope openableScope(String learnerId, SpeakingScopeDto scope) {
-        if (scope == null || !scope.valid()) return null;
+    public Decision openableScope(String learnerId, SpeakingScopeDto scope) {
+        if (scope == null || !scope.valid()) return Decision.denied(Reason.SCOPE_FORBIDDEN);
         try {
             if (scope.type() == SpeakingScopeType.TOPIC) {
                 Topic topic = speakingTopic(scope.topicId());
-                requireLevelAllowed(learnerId, topic);
                 TopicVersion release = resolvePublishedRelease(topic);
-                return speakingRelease(topic, release, visibleItems(release), null);
+                return speakingDecision(learnerId, topic, speakingRelease(topic, release, visibleItems(release), null));
             }
 
             String itemId = scope.topicItemId();
             ItemContext item = resolvePublishedItem(learnerId, itemId);
-            if (!scope.topicId().equals(item.topic().getId())) return null;
+            if (!scope.topicId().equals(item.topic().getId())) return Decision.denied(Reason.SCOPE_FORBIDDEN);
+            Decision decision = speakingDecision(learnerId, item.topic(),
+                    speakingRelease(item.topic(), item.release(), item.visibleItems(), itemId));
+            if (decision.reason() != null) return decision;
             UserTopicItemAttempt attempt = findActiveItemAttempt(learnerId, itemId, item.generation());
             UserTopicItemProgress progress = findItemProgress(learnerId, itemId, item.generation());
             if (attempt == null && progress == null && !catalogAllowsReview(learnerId, itemId, item)) {
-                requireLevelAllowed(learnerId, item.topic());
-                requirePredecessorsCompleted(learnerId, item, itemId);
-                requireNoOtherItemInProgress(learnerId, item, itemId);
+                try {
+                    requirePredecessorsCompleted(learnerId, item, itemId);
+                    requireNoOtherItemInProgress(learnerId, item, itemId);
+                } catch (LearningPreconditionFailedException ex) {
+                    return Decision.denied(Reason.ITEM_LOCKED);
+                }
             }
-            return speakingRelease(item.topic(), item.release(), item.visibleItems(), itemId);
-        } catch (TopicItemNotFoundException | TopicNotFoundException | LearningPreconditionFailedException | TopicRequestException ex) {
-            return null;
+            return decision;
+        } catch (TopicItemNotFoundException | TopicNotFoundException | TopicRequestException ex) {
+            return Decision.denied(Reason.SCOPE_FORBIDDEN);
         }
+    }
+
+    private Decision speakingDecision(String learnerId, Topic topic, ReleasedScope release) {
+        if (release == null) return Decision.denied(Reason.SCOPE_FORBIDDEN);
+        CefrLevel learner = TopicUserLevelResolver.require(userLevels, learnerId);
+        if (aboveLearnerLevel(topic.getCefrLevel(), learner)) return Decision.denied(Reason.LEVEL_TOO_HIGH);
+        return Decision.allowed(release);
     }
 
     @Override
@@ -404,10 +417,14 @@ public class TopicLearningServiceImpl implements TopicLearningService, TopicSpea
         CefrLevel topicLevel = topic.getCefrLevel();
         if (topicLevel == null) return;
         CefrLevel learnerLevel = TopicUserLevelResolver.require(userLevels, userId);
-        if (topicLevel.ordinal() > learnerLevel.ordinal()) {
+        if (aboveLearnerLevel(topicLevel, learnerLevel)) {
             throw new LearningPreconditionFailedException(
                     "Topic level " + topicLevel + " is above the learner level " + learnerLevel);
         }
+    }
+
+    private boolean aboveLearnerLevel(CefrLevel topicLevel, CefrLevel learnerLevel) {
+        return topicLevel != null && topicLevel.compareTo(learnerLevel) > 0;
     }
 
     /** A topic holds at most one item being learned, so a new item cannot start beside it. */

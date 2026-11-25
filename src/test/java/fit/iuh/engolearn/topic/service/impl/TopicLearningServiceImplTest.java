@@ -143,7 +143,8 @@ class TopicLearningServiceImplTest {
     void setUp() {
         catalog = new TopicLearnerCatalogServiceImpl(browse, userLevels, userTopicProgressRepository,
                 userTopicItemProgressRepository, userTopicItemAttemptRepository, userTopicAttemptRepository,
-                generations, retryRuntimes, new TopicRetrySessionMapper());
+                generations, retryRuntimes, new TopicRetrySessionMapper(), topicRepository,
+                topicVersionRepository, topicItemVersionRepository, mock(TopicMediaService.class));
         service = new TopicLearningServiceImpl(topicRepository, topicVersionRepository, topicItemRepository,
                 topicItemVersionRepository, userTopicProgressRepository, userTopicItemProgressRepository,
                 userTopicAttemptRepository, userTopicItemAttemptRepository, userLevels, generations, catalog, new TopicLearnerMediaMapper(mock(TopicMediaService.class)));
@@ -168,8 +169,8 @@ class TopicLearningServiceImplTest {
 
         assertThat(catalog.detail(USER, TOPIC_ID).getItems().get(1).getActions().review().allowed()).isTrue();
         var scope = new SpeakingScopeDto(SpeakingScopeType.TOPIC_ITEM, TOPIC_ID, ITEM_TWO);
-        assertThat(service.openableScope(USER, scope)).isNotNull();
-        assertThat(service.openableScope(USER, scope).version()).isEqualTo(VERSION_TWO);
+        assertThat(service.openableScope(USER, scope).release()).isNotNull();
+        assertThat(service.openableScope(USER, scope).release().version()).isEqualTo(VERSION_TWO);
     }
 
     private UserTopicItemAttempt completedLearningAttempt(String itemId, String versionId) {

@@ -27,16 +27,23 @@ import fit.iuh.engolearn.topic.model.Topic;
 import fit.iuh.engolearn.topic.model.TopicItem;
 import fit.iuh.engolearn.topic.model.TopicItemVersion;
 import fit.iuh.engolearn.topic.model.TopicVersion;
+import fit.iuh.engolearn.topic.model.UserTopicAttempt;
+import fit.iuh.engolearn.topic.model.UserTopicItemProgress;
+import fit.iuh.engolearn.topic.model.UserTopicProgress;
 import fit.iuh.engolearn.topic.model.enums.ContentStatus;
+import fit.iuh.engolearn.topic.model.enums.ItemProgressStatus;
 import fit.iuh.engolearn.topic.model.vo.ItemWordVo;
 import fit.iuh.engolearn.topic.model.vo.WordSnapshotVo;
 import fit.iuh.engolearn.topic.service.TopicSpeakingProfileService;
 import fit.iuh.engolearn.user.model.RefreshSession;
 import fit.iuh.engolearn.user.model.User;
+import fit.iuh.engolearn.user.model.UserProfile;
 import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.dao.DuplicateKeyException;
@@ -154,6 +161,129 @@ class SpeakingFoundationMongoIntegrationTest extends AbstractMongoIntegrationTes
                 .isInstanceOf(AccessDeniedException.class);
         assertThatThrownBy(() -> profiles.publish(ITEM, 2)).isInstanceOf(AccessDeniedException.class);
         assertThat(mongoTemplate.findById(TOPIC_ID, Topic.class).getRevision()).isEqualTo(4L);
+    }
+
+    @Test
+    void higherTopicBlocksNewItemEvenWithProgressAndExplicitResumeRemainsPinned() throws Exception {
+        publish(ITEM, "Pinned speaking practice");
+        authorize(LEARNER, UserRole.USER);
+        var request = new Create(ITEM, UUID.randomUUID());
+        String sessionId = sessions.create(request).session().sessionId();
+        var inserted = mongoTemplate.insert(UserTopicItemProgress.builder()
+                .userId(LEARNER).topicId(TOPIC_ID).topicItemId(ITEM_ID)
+                .status(ItemProgressStatus.IN_PROGRESS).build());
+        var progress = mongoTemplate.findById(inserted.getId(), UserTopicItemProgress.class);
+        Topic topic = mongoTemplate.findById(TOPIC_ID, Topic.class);
+        topic.setCefrLevel(CefrLevel.B2);
+        mongoTemplate.save(topic);
+
+        mvc.perform(get("/api/v1/speaking/availability").cookie(cookie(LEARNER))
+                        .param("scopeType", "TOPIC_ITEM").param("topicId", TOPIC_ID).param("topicItemId", ITEM_ID))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.data.available").value(false))
+                .andExpect(jsonPath("$.data.reason").value("LEVEL_TOO_HIGH"))
+                .andExpect(jsonPath("$.data.activeSession.sessionId").value(sessionId));
+        authorize(LEARNER, UserRole.USER);
+        assertCode(() -> sessions.create(new Create(TOPIC, UUID.randomUUID())), "LEVEL_TOO_HIGH");
+        assertCode(() -> sessions.create(new Create(ITEM, UUID.randomUUID())), "LEVEL_TOO_HIGH");
+        assertCode(() -> sessions.replace(new Replace(ITEM, UUID.randomUUID(), sessionId, 1L)), "LEVEL_TOO_HIGH");
+        assertThat(sessions.create(request).created()).isFalse();
+        assertThat(sessions.history(ITEM, 0, 20).items()).singleElement().satisfies(row -> {
+            assertThat(row.sessionId()).isEqualTo(sessionId);
+            assertThat(row.controllerEpoch()).isEqualTo(1);
+            assertThat(row.status()).isEqualTo(SpeakingSessionStatus.INITIALIZING);
+        });
+        authorize(OTHER, UserRole.USER);
+        assertCode(() -> sessions.resume(sessionId, new Resume(UUID.randomUUID(), 1L)), "ACCESS_DENIED");
+        authorize(LEARNER, UserRole.USER);
+        assertCode(() -> sessions.resume(sessionId, new Resume(UUID.randomUUID(), 2L)), "CONTROLLER_CHANGED");
+        assertThat(sessions.resume(sessionId, new Resume(UUID.randomUUID(), 1L))).satisfies(resumed -> {
+            assertThat(resumed.controllerEpoch()).isEqualTo(2);
+            assertThat(resumed.context().description()).isEqualTo("Pinned speaking practice");
+        });
+        assertThat(mongoTemplate.findAll(UserTopicItemProgress.class))
+                .singleElement().usingRecursiveComparison().isEqualTo(progress);
+        assertThat(mongoTemplate.findAll(UserTopicAttempt.class)).isEmpty();
+        assertThat(mongoTemplate.findAll(UserTopicProgress.class)).isEmpty();
+    }
+
+    @ParameterizedTest
+    @EnumSource(value = CefrLevel.class, names = {"A1", "A2", "B1"})
+    void b1LearnerCanPracticeReleasedTopicWithoutEnrolling(CefrLevel topicLevel) {
+        Topic topic = mongoTemplate.findById(TOPIC_ID, Topic.class);
+        topic.setCefrLevel(topicLevel);
+        mongoTemplate.save(topic);
+        UserProfile learner = mongoTemplate.findById(LEARNER, UserProfile.class);
+        learner.setCefrLevel(CefrLevel.B1);
+        mongoTemplate.save(learner);
+        publish(TOPIC, "Published for practice");
+        var topicBefore = mongoTemplate.findById(TOPIC_ID, Topic.class);
+        var releaseBefore = mongoTemplate.findById("cafe-v1", TopicVersion.class);
+        var itemBefore = mongoTemplate.findById("order-v1", TopicItemVersion.class);
+
+        authorize(LEARNER, UserRole.USER);
+        assertThat(sessions.availability(TOPIC).available()).isTrue();
+        var session = sessions.create(new Create(TOPIC, UUID.randomUUID())).session();
+        assertThat(sessions.history(TOPIC, 0, 20).items()).hasSize(1);
+        sessions.end(session.sessionId(), session.controllerEpoch());
+        sessions.delete(session.sessionId());
+        assertThat(mongoTemplate.findAll(UserTopicAttempt.class)).isEmpty();
+        assertThat(mongoTemplate.findAll(UserTopicProgress.class)).isEmpty();
+        assertThat(mongoTemplate.findAll(UserTopicItemProgress.class)).isEmpty();
+        assertThat(mongoTemplate.findById(TOPIC_ID, Topic.class)).usingRecursiveComparison().isEqualTo(topicBefore);
+        assertThat(mongoTemplate.findById("cafe-v1", TopicVersion.class)).usingRecursiveComparison().isEqualTo(releaseBefore);
+        assertThat(mongoTemplate.findById("order-v1", TopicItemVersion.class)).usingRecursiveComparison().isEqualTo(itemBefore);
+    }
+
+    @Test
+    void topicPracticeRemainsAvailableAfterLearningProgressAndCompletion() {
+        publish(TOPIC, "Published for practice");
+        mongoTemplate.insert(UserTopicProgress.builder().userId(LEARNER).topicId(TOPIC_ID).build());
+        authorize(LEARNER, UserRole.USER);
+        assertThat(sessions.availability(TOPIC).available()).isTrue();
+        var first = sessions.create(new Create(TOPIC, UUID.randomUUID())).session();
+        mongoTemplate.insert(UserTopicItemProgress.builder().userId(LEARNER).topicId(TOPIC_ID).topicItemId(ITEM_ID)
+                .status(ItemProgressStatus.COMPLETED).build());
+        assertThat(sessions.availability(TOPIC).available()).isTrue();
+        var replacement = sessions.replace(new Replace(TOPIC, UUID.randomUUID(), first.sessionId(), 1L));
+        assertThat(replacement.session().sessionId()).isNotEqualTo(first.sessionId());
+    }
+
+    @Test
+    void noPublishedProfileAndNoAuthoritativeLevelDenyNewPractice() {
+        authorize(AUTHOR, UserRole.CONTENT_MANAGER);
+        profiles.save(TOPIC, 0, profile("Draft only"));
+        authorize(LEARNER, UserRole.USER);
+        assertThat(sessions.availability(TOPIC).reason()).isEqualTo("PROFILE_DISABLED");
+        assertCode(() -> sessions.create(new Create(TOPIC, UUID.randomUUID())), "PROFILE_DISABLED");
+        authorize(AUTHOR, UserRole.CONTENT_MANAGER);
+        profiles.publish(TOPIC, 1);
+        mongoTemplate.remove(mongoTemplate.findById(LEARNER, UserProfile.class));
+        authorize(LEARNER, UserRole.USER);
+        assertThat(sessions.availability(TOPIC).reason()).isEqualTo("SCOPE_FORBIDDEN");
+        assertCode(() -> sessions.create(new Create(TOPIC, UUID.randomUUID())), "SCOPE_FORBIDDEN");
+        assertThat(repository.findAll()).isEmpty();
+    }
+
+    @Test
+    void publishedSameParentItemReportsLockedButHiddenItemReportsOnlyForbidden() {
+        String secondId = "66fa4639f05f7400cafe0002";
+        var scope = new SpeakingScopeDto(SpeakingScopeType.TOPIC_ITEM, TOPIC_ID, secondId);
+        mongoTemplate.insert(TopicItem.builder().id(secondId).topicId(TOPIC_ID).build());
+        TopicItemVersion second = mongoTemplate.insert(TopicItemVersion.builder().id("second-v1")
+                .topicId(TOPIC_ID).topicItemId(secondId).status(ContentStatus.PUBLISHED).title("Second").order(2)
+                .vocabularies(List.of(ItemWordVo.builder().vocabId("juice")
+                        .snapshot(WordSnapshotVo.builder().word("juice").build()).build())).build());
+        TopicVersion release = mongoTemplate.findById("cafe-v1", TopicVersion.class);
+        release.setItemVersionIds(List.of("order-v1", "second-v1"));
+        mongoTemplate.save(release);
+        publish(scope, "Second item");
+        authorize(LEARNER, UserRole.USER);
+        assertThat(sessions.availability(scope).reason()).isEqualTo("ITEM_LOCKED");
+        assertCode(() -> sessions.create(new Create(scope, UUID.randomUUID())), "ITEM_LOCKED");
+        second.setStatus(ContentStatus.HIDDEN);
+        mongoTemplate.save(second);
+        assertThat(sessions.availability(scope).reason()).isEqualTo("SCOPE_FORBIDDEN");
+        assertThat(repository.findAll()).isEmpty();
     }
 
     @Test
