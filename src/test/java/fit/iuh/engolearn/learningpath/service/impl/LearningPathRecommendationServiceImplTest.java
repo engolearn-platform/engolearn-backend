@@ -1,6 +1,8 @@
 package fit.iuh.engolearn.learningpath.service.impl;
 
 import fit.iuh.engolearn.assessment.contract.AssessmentResults;
+import fit.iuh.engolearn.user.contract.UserLevelLookup;
+import fit.iuh.engolearn.shared.enums.CefrLevel;
 import fit.iuh.engolearn.assessment.contract.dto.AssessmentResultDto;
 import fit.iuh.engolearn.assessment.contract.dto.AssessmentSkillDto;
 import fit.iuh.engolearn.assessment.contract.enums.AssessmentSkillBand;
@@ -13,6 +15,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -25,7 +28,13 @@ class LearningPathRecommendationServiceImplTest {
     private final AssessmentResults results = mock(AssessmentResults.class);
     private final LearningPathRepository paths = mock(LearningPathRepository.class);
     private final QuestionPoolRepository pool = mock(QuestionPoolRepository.class);
-    private final LearningPathRecommendationServiceImpl service = new LearningPathRecommendationServiceImpl(results, paths, pool);
+    private final UserLevelLookup levels = mock(UserLevelLookup.class);
+    private final LearningPathRecommendationServiceImpl service = new LearningPathRecommendationServiceImpl(results, paths, pool, levels);
+
+    @BeforeEach
+    void profileLevel() {
+        when(levels.findLevel("learner")).thenReturn(Optional.of(CefrLevel.B1));
+    }
 
     @Test
     void usesTheExactNativeAttemptAndDoesNotSampleOrWriteDuringRecommendation() {
@@ -96,6 +105,32 @@ class LearningPathRecommendationServiceImplTest {
         when(results.findCompleted("learner", "native-old")).thenReturn(Optional.of(new AssessmentResultDto("native-old", Instant.now(), "B1", "paper", skills)));
         assertThatThrownBy(() -> service.recommend("learner", "native-old"))
                 .isInstanceOfSatisfying(ResponseStatusException.class, exception -> assertThat(exception.getStatusCode().value()).isEqualTo(409));
+        verifyNoInteractions(pool);
+    }
+
+    @Test
+    void usesCurrentProfileLevelInsteadOfAssessmentLevel() {
+        when(results.findCompleted("learner", "native-old")).thenReturn(Optional.of(result(20)));
+        when(levels.findLevel("learner")).thenReturn(Optional.of(CefrLevel.A2));
+        when(pool.countActive("Reading for Gist", "A2")).thenReturn(30L);
+        var recommendation = service.recommend("learner", "native-old");
+        assertThat(recommendation.level()).isEqualTo("A2");
+        assertThat(recommendation.state()).isEqualTo(State.AVAILABLE);
+        verify(pool, never()).countActive(any(), eq("B1"));
+    }
+
+    @Test
+    void missingProfileLevelRejectsNewRecommendationButExistingPathKeepsItsLevel() {
+        when(results.findCompleted("learner", "native-old")).thenReturn(Optional.of(result(20)));
+        when(levels.findLevel("learner")).thenReturn(Optional.empty());
+        assertThatThrownBy(() -> service.recommend("learner", "native-old"))
+                .isInstanceOfSatisfying(ResponseStatusException.class, e -> assertThat(e.getStatusCode().value()).isEqualTo(409));
+        var existing = new LearningPath();
+        existing.setId("existing");
+        existing.setUserId("learner");
+        existing.setLevel("C1");
+        when(paths.findBySourceAssessmentAttemptId("native-old")).thenReturn(Optional.of(existing));
+        assertThat(service.recommend("learner", "native-old").level()).isEqualTo("C1");
         verifyNoInteractions(pool);
     }
 

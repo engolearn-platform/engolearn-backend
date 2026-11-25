@@ -114,7 +114,7 @@ public class LearningPathCreationServiceImpl implements LearningPathCreationServ
         Map<String, List<Document>> selected = new LinkedHashMap<>();
         List<Document> allQuestions = new ArrayList<>();
         for (LearningPathRecommendationResponse.MicroSkill skill : current.microSkills()) {
-            List<Document> questions = questionPool.sampleActive(skill.name(), test.level(), 30);
+            List<Document> questions = questionPool.sampleActive(skill.name(), current.level(), 30);
             if (questions.size() != 30) {
                 throw new RecommendationChangedException(recommendations.recommend(userId, attemptId));
             }
@@ -152,7 +152,7 @@ public class LearningPathCreationServiceImpl implements LearningPathCreationServ
         path.setSource(source);
         path.setCreatedAt(createdAt.toInstant());
         path.setCreatedDate(createdDate.toString());
-        path.setLevel(test.level());
+        path.setLevel(recommendation.level());
         path.setK(skills.size());
         path.setStatus(LearningPathStatus.NOT_STARTED);
         path.setActive(true);
