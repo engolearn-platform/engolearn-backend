@@ -196,11 +196,31 @@ Example response:
     "page": 0,
     "size": 20,
     "totalElements": 1,
-    "totalPages": 1
+    "totalPages": 1,
+    "counters": {"total": 120, "draft": 30, "active": 80, "retired": 10}
   },
   "timestamp": "2026-11-25T05:00:00Z"
 }
 ```
+
+`counters` is an additive field on every successful list response. It reports the entire
+shared passage pool: total documents, DRAFT (`draft`), ACTIVE (`active`) and RETIRED
+(`retired`). These values ignore keyword, skill, level, status, page and size, matching the
+Topic management screen's global counters. They are not counts of rows on the current
+page, and totalElements remains the filtered total. All four values are present as numeric
+zeros for an empty pool; a status absent from a nonempty pool also has count zero. No
+matching rows or an out-of-range page still returns the global counters.
+
+Counters are recomputed using one unfiltered status aggregation on each list request;
+refetch after a successful create/edit/delete to refresh the screen. No new statistics
+endpoint or persisted counter/cache is introduced. Total counts all documents; documents
+with an invalid/missing stored status are not assigned to any of the three named states.
+No legacy data is repaired or reclassified by this read. Counts, filtered total and page
+rows are separate database reads, so concurrent writes can temporarily cause differences;
+there is no transaction or fixed snapshot across all response fields.
+
+This is the small status summary for the management list, not the deferred micro-skill ×
+level coverage dashboard. Authorization and existing error contracts remain unchanged.
 
 Items are summaries: full text, transcript, creator, media ID and audio URLs are omitted.
 `hasAudio` is true when either audio_media_id or legacy audio.url is nonblank; it describes

@@ -23,6 +23,7 @@ import fit.iuh.engolearn.learningpath.exception.PassageUpdateConflictException;
 import fit.iuh.engolearn.learningpath.repository.QuestionPoolRepository;
 import fit.iuh.engolearn.learningpath.dto.response.DeleteQuestionPoolPassageResponse;
 import fit.iuh.engolearn.learningpath.exception.PassageDeleteConflictException;
+import fit.iuh.engolearn.learningpath.dto.response.QuestionPoolPassageCountersResponse;
 import java.io.InputStream;
 import java.time.Instant;
 import java.util.Locale;
@@ -143,8 +144,10 @@ public class QuestionPoolPassageManagementServiceImpl implements QuestionPoolPas
                 passage.getStatus(), passage.getRevision(), !blank(passage.getAudioMediaId())
                         || (passage.getAudio() != null && !blank(passage.getAudio().getUrl())),
                 passage.getCreatedAt(), passage.getUpdatedAt())).toList();
+        var counts = passages.countByStatus();
+        var counters = new QuestionPoolPassageCountersResponse(counts.total(), counts.draft(), counts.active(), counts.retired());
         return new QuestionPoolPassageListResponse(items, request.page(), request.size(),
-                page.getTotalElements(), page.getTotalPages());
+                page.getTotalElements(), page.getTotalPages(), counters);
     }
 
     @Override

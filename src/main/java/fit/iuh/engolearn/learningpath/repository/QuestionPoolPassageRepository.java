@@ -4,6 +4,8 @@ import fit.iuh.engolearn.learningpath.model.QuestionPoolPassage;
 import fit.iuh.engolearn.learningpath.model.enums.QuestionPoolContentStatus;
 import fit.iuh.engolearn.learningpath.model.enums.QuestionPoolSkill;
 import fit.iuh.engolearn.shared.enums.CefrLevel;
+import org.bson.Document;
+import org.springframework.data.mongodb.core.aggregation.Aggregation;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -24,6 +26,22 @@ import org.springframework.stereotype.Repository;
 @RequiredArgsConstructor
 public class QuestionPoolPassageRepository {
     private final MongoTemplate mongo;
+
+    public QuestionPoolPassageCounts countByStatus() {
+        var rows = mongo.aggregate(Aggregation.newAggregation(
+                Aggregation.group("status").count().as("count")), "question_pool_passages", Document.class)
+                .getMappedResults();
+        long total = 0, draft = 0, active = 0, retired = 0;
+        for (Document row : rows) {
+            long count = ((Number) row.get("count")).longValue();
+            total += count;
+            Object status = row.get("_id");
+            if ("DRAFT".equals(status)) draft = count;
+            else if ("ACTIVE".equals(status)) active = count;
+            else if ("RETIRED".equals(status)) retired = count;
+        }
+        return new QuestionPoolPassageCounts(total, draft, active, retired);
+    }
 
     public Page<QuestionPoolPassage> search(String keyword, QuestionPoolSkill skill, CefrLevel level,
             QuestionPoolContentStatus status, int page, int size) {

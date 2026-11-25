@@ -220,6 +220,7 @@ class QuestionPoolPassageManagementIntegrationTest extends AbstractMongoIntegrat
         assertThat(data.path("totalElements").asInt()).isEqualTo(3);
         assertThat(data.path("totalPages").asInt()).isEqualTo(1);
         assertIds(data, "c", "b", "a");
+        assertCounters(data, 3, 1, 1, 1);
         JsonNode item = data.path("items").get(0);
         assertThat(item.path("title").asString()).isEqualTo("Retired title");
         assertThat(item.path("skill").asString()).isEqualTo("READING");
@@ -285,6 +286,7 @@ class QuestionPoolPassageManagementIntegrationTest extends AbstractMongoIntegrat
     @Test
     void emptyListAndNoMatchesReturn200WithZeroTotals() {
         JsonNode empty = listData("");
+        assertCounters(empty, 0, 0, 0, 0);
         assertThat(empty.path("items").size()).isZero();
         assertThat(empty.path("totalElements").asInt()).isZero();
         assertThat(empty.path("totalPages").asInt()).isZero();
@@ -879,6 +881,63 @@ class QuestionPoolPassageManagementIntegrationTest extends AbstractMongoIntegrat
         } catch (org.springframework.web.client.HttpStatusCodeException exception) {
             return new ResponseEntity<>(exception.getResponseBodyAsString(), exception.getResponseHeaders(), exception.getStatusCode());
         }
+    }
+
+    @Test
+    void listCountersStayGlobalAcrossEveryFilterPaginationAndNoMatches() {
+        seedPassage("draft-reading", "READING", "B1", "DRAFT", "Bus notice", "Text", null, 0);
+        seedPassage("draft-listening", "LISTENING", "A2", "DRAFT", "Other title", null, "Transcript", 1);
+        seedPassage("active-reading", "READING", "A1", "ACTIVE", "Other title", "Text", null, 2);
+        seedPassage("active-listening", "LISTENING", "B1", "ACTIVE", "Bus announcement", null, "Transcript", 3);
+        seedPassage("retired-reading", "READING", "C1", "RETIRED", "Other title", "Text", null, 4);
+        seedPassage("retired-listening", "LISTENING", "B2", "RETIRED", "Other title", null, "Transcript", 5);
+        for (String query : new String[]{"", "keyword=bus", "skill=LISTENING", "level=B1", "status=DRAFT",
+                "status=ACTIVE", "status=RETIRED", "size=1&page=1", "size=1&page=99", "keyword=no-matches",
+                "keyword=bus&skill=LISTENING&level=B1&status=ACTIVE&size=1&page=0"}) {
+            assertCounters(listData(query), 6, 2, 2, 2);
+        }
+        JsonNode filtered = listData("status=DRAFT&size=1");
+        assertThat(filtered.path("totalElements").asInt()).isEqualTo(2);
+        assertThat(filtered.path("items").size()).isEqualTo(1);
+        assertThat(listData("keyword=no-matches").path("totalElements").asInt()).isZero();
+        verifyNoInteractions(storage);
+    }
+
+    @Test
+    void listCountersReturnZeroForStatesAbsentFromThePool() {
+        seedPassage("only-active", "READING", "B1", "ACTIVE", "Title", "Text", null, 0);
+        assertCounters(listData(""), 1, 0, 1, 0);
+        JsonNode filtered = listData("status=DRAFT");
+        assertThat(filtered.path("items").size()).isZero();
+        assertCounters(filtered, 1, 0, 1, 0);
+        verifyNoInteractions(storage);
+    }
+
+    @Test
+    void listCountersReflectCreatesEditsAndDeletesOnRefetch() {
+        assertCounters(listData(""), 0, 0, 0, 0);
+        var created = post(READING, null, null, UserRole.ADMIN);
+        assertThat(created.getStatusCode().value()).isEqualTo(201);
+        String id = json.readTree(created.getBody()).path("data").path("passageId").asString();
+        assertCounters(listData(""), 1, 1, 0, 0);
+        assertThat(patch(id, "{\"revision\":1,\"title\":\"Updated title\"}", null, null, UserRole.ADMIN)
+                .getStatusCode().value()).isEqualTo(200);
+        assertCounters(listData("keyword=no-matches"), 1, 1, 0, 0);
+        assertThat(delete(id, "revision=2", UserRole.ADMIN).getStatusCode().value()).isEqualTo(200);
+        assertCounters(listData(""), 0, 0, 0, 0);
+        verifyNoInteractions(storage);
+    }
+
+    private void assertCounters(JsonNode data, long total, long draft, long active, long retired) {
+        JsonNode counters = data.path("counters");
+        assertThat(counters.isObject()).isTrue();
+        for (String field : new String[]{"total", "draft", "active", "retired"}) {
+            assertThat(counters.has(field)).as(field).isTrue();
+        }
+        assertThat(counters.path("total").asLong()).isEqualTo(total);
+        assertThat(counters.path("draft").asLong()).isEqualTo(draft);
+        assertThat(counters.path("active").asLong()).isEqualTo(active);
+        assertThat(counters.path("retired").asLong()).isEqualTo(retired);
     }
 
     private void seedPassage(String id, String skill, String level, String status,
