@@ -37,7 +37,9 @@ The [entitlement DTO](../../../src/main/java/fit/iuh/engolearn/subscription/cont
 
 ## Quota-owned capabilities
 
-These in-process contracts in `quota.contract` have no frontend write endpoint. Current product producers are not integrated; the following is the contract future callers must obey.
+These in-process contracts in `quota.contract` have no frontend write endpoint. AI Companion uses the availability and recording capabilities; any future product producer must obey the same contract.
+
+The product service catalog exposes `AI_COMPANION` as a metered service with canonical quota type `AI_COMPANION_TOKEN_USAGE` (`TOKEN` / `DAILY`). The catalog defines identity and units only; each published FREE, TRIAL, or product policy supplies its own allowance. A missing published rule remains unavailable, with no implicit default allowance.
 
 | Capability | Semantics |
 | --- | --- |

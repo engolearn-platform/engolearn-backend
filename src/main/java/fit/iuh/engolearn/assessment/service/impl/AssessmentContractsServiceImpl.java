@@ -3,20 +3,27 @@ import fit.iuh.engolearn.assessment.service.*;
 
 import fit.iuh.engolearn.assessment.contract.*;
 import fit.iuh.engolearn.assessment.contract.dto.*;
+import fit.iuh.engolearn.assessment.contract.enums.AssessmentCompanionScope;
 import fit.iuh.engolearn.assessment.repository.AssessmentRepository;
 import java.util.Optional;
 import org.springframework.stereotype.Service;
 
 @Service
 @lombok.RequiredArgsConstructor
-public class AssessmentContractsServiceImpl implements AssessmentResults,AssessmentGrantRevocation {
+public class AssessmentContractsServiceImpl implements AssessmentResults,AssessmentGrantRevocation,AssessmentCompanionResults {
     private final AssessmentRepository store;
     private final AssessmentTransactions transactions;
     private final org.springframework.core.env.Environment environment;
+    private final AssessmentAccess access;
     @Override public Optional<AssessmentResultDto> latest(String userId) {
         requireUser(userId);
         return store.valid(userId).stream().filter(a->development()||!a.getPaper().isDemonstration())
                 .findFirst().map(this::result);
+    }
+    @Override public Optional<AssessmentCompanionSummaryDto> latestForCompanion(String userId) {
+        requireUser(userId);
+        return store.valid(userId).stream().filter(a->development()||!a.getPaper().isDemonstration())
+                .findFirst().map(a->companionResult(userId,a));
     }
     @Override public Optional<AssessmentResultDto> findCompleted(String userId,String assessmentAttemptId) {
         requireUser(userId);
@@ -42,6 +49,20 @@ public class AssessmentContractsServiceImpl implements AssessmentResults,Assessm
                 attempt.getSkillResults().stream().map(skill->new AssessmentSkillDto(skill.getCode(),skill.getCorrect(),
                         skill.getTotal(),skill.getPercentage(),skill.getBand()==null?null:
                         fit.iuh.engolearn.assessment.contract.enums.AssessmentSkillBand.valueOf(skill.getBand().name()))).toList());
+    }
+    private AssessmentCompanionSummaryDto companionResult(String userId,
+            fit.iuh.engolearn.assessment.model.AssessmentAttempt attempt) {
+        boolean full=attempt.getAnalysisGrants().stream().anyMatch(source->!store.revoked(userId,source));
+        if(!full) full=access.currentGrant(userId).isPresent();
+        var skills=attempt.getSkillResults().stream().limit(full?5:2)
+                .map(skill->new AssessmentCompanionSkillDto(skill.getCode(),skill.getName(),skill.getExample(),
+                        skill.getSection()==null?null:skill.getSection().name(),skill.getCorrect(),skill.getTotal(),
+                        skill.getPercentage(),skill.getBand()==null?null:
+                        fit.iuh.engolearn.assessment.contract.enums.AssessmentSkillBand.valueOf(skill.getBand().name())))
+                .toList();
+        return new AssessmentCompanionSummaryDto(attempt.getId(),attempt.getSubmittedAt(),
+                attempt.getCorrectCount()==null?null:attempt.getCorrectCount()*2,attempt.getLevel(),
+                full?AssessmentCompanionScope.FULL:AssessmentCompanionScope.PREVIEW,skills);
     }
     @Override public void revoke(String userId,String sourceId) {
         if(userId==null||userId.isBlank()||sourceId==null||sourceId.isBlank()) throw new IllegalArgumentException("Grant source is required");

@@ -79,6 +79,14 @@ The calls never settle or grade an active attempt, consume quota, or write grant
 They are independent of full-analysis display grants, as the earlier `latest` contract was.
 The frontend result/review APIs still apply their existing Subscription display policy.
 
+AI Companion uses the separate `AssessmentCompanionResults.latestForCompanion(userId)`
+capability. It returns the latest owner-scoped READY result and official scaled score,
+with `PREVIEW` visibility limited to the first two of five skill rows and `FULL` visibility
+limited to all five under the same stored/current grant rule as the result screen. A current
+grant is evaluated without persisting it; result reads never settle an attempt or write grants.
+The DTO excludes question content and all skill rows hidden by the display policy. The
+Learning Path `AssessmentResults` contract remains unchanged.
+
 Learning Path owns eligibility, pool-name mapping, frozen baselines and path creation.
 Assessment does not write Learning Path state or populate the legacy `attempts` /
 `micro_skill_results` collections. See the [Learning Path contract](learningpath/learning-path-list-api.md).
