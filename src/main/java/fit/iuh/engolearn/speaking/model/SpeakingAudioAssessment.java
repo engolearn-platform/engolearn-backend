@@ -28,6 +28,8 @@ public class SpeakingAudioAssessment extends BaseDocument {
     @Field("attempt_count") private int attemptCount;
     @Field("finished_at") private Instant finishedAt;
     @Field("duration_ms") private long durationMs;
+    @Field("assessed_speech_duration_ms") private Long assessedSpeechDurationMs;
+    @Field("fluency_evidence_duration_ms") private Long fluencyEvidenceDurationMs;
     @Field("words") private int words;
     @Field("pronunciation") private Double pronunciation;
     @Field("pronunciation_reason") private String pronunciationReason;

@@ -57,10 +57,11 @@ public class SpeakingAssessmentRepository {
     }
 
     public SpeakingAudioAssessment claim(String sessionId, String turnId, String instance, String token,
-                                          Instant now, Instant deadline, int attemptLimit) {
+                                          Instant now, Instant deadline, int attemptLimit, String policyVersion) {
         Criteria match = audioIdentity(sessionId, turnId).and("status").is(PENDING).and("attempt_count").lt(attemptLimit);
         Update start = new Update().set("status", PROCESSING).set("token", token).set("worker_instance", instance)
-                .set("claim_deadline", deadline).set("updated_at", now).inc("attempt_count", 1);
+                .set("claim_deadline", deadline).set("policy_version", policyVersion)
+                .set("updated_at", now).inc("attempt_count", 1);
         return mongo.findAndModify(Query.query(match), start, FindAndModifyOptions.options().returnNew(true),
                 SpeakingAudioAssessment.class);
     }
@@ -76,20 +77,23 @@ public class SpeakingAssessmentRepository {
     }
 
     public void finish(SpeakingAudioAssessment claim, SpeakingAudioAssessmentStatus status, String reason, Instant now,
-                       long duration, int words, Double pronunciation, String pronunciationReason, Double fluency,
-                       String fluencyReason, List<SpeakingWordAssessmentVo> wordFeedback) {
+                       long preparedDurationMs, int words, Double pronunciation, String pronunciationReason, Double fluency,
+                       String fluencyReason, List<SpeakingWordAssessmentVo> wordFeedback, long assessedSpeechDurationMs,
+                       long fluencyEvidenceDurationMs) {
         Criteria match = claimIdentity(claim);
         if (status == ASSESSED) match.and("claim_deadline").gt(now);
         Update terminal = clearClaim(status, now).set("finished_at", now).set("reason", reason)
-                .set("duration_ms", duration).set("words", words).set("pronunciation", pronunciation)
+                .set("duration_ms", preparedDurationMs).set("words", words).set("pronunciation", pronunciation)
                 .set("pronunciation_reason", pronunciationReason).set("fluency", fluency)
                 .set("fluency_reason", fluencyReason).set("word_feedback", wordFeedback);
+        if (assessedSpeechDurationMs > 0) terminal.set("assessed_speech_duration_ms", assessedSpeechDurationMs);
+        if (fluencyEvidenceDurationMs > 0) terminal.set("fluency_evidence_duration_ms", fluencyEvidenceDurationMs);
         mongo.updateFirst(Query.query(match), terminal, SpeakingAudioAssessment.class);
     }
 
     public void recoverClaim(SpeakingAudioAssessment claim, int attemptLimit, Instant now, String reason) {
         if (claim.getAttemptCount() < attemptLimit) returnToQueue(claim, now);
-        else finish(claim, FAILED, reason, now, 0, 0, null, reason, null, reason, List.of());
+        else finish(claim, FAILED, reason, now, 0, 0, null, reason, null, reason, List.of(), 0, 0);
     }
 
     public boolean storeLanguage(String sessionId, SpeakingLanguageAssessmentVo language) {

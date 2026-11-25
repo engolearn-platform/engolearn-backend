@@ -7,8 +7,12 @@ final class SpeakingAssessmentAudioFixture {
     private SpeakingAssessmentAudioFixture() {}
 
     static byte[] voicedPcm() {
-        var pcm = ByteBuffer.allocate(9_000 * 32).order(ByteOrder.LITTLE_ENDIAN);
-        for (int i = 0; i < 9_000 * 16; i++) {
+        return voicedPcm(9_000);
+    }
+
+    static byte[] voicedPcm(int durationMs) {
+        var pcm = ByteBuffer.allocate(durationMs * 32).order(ByteOrder.LITTLE_ENDIAN);
+        for (int i = 0; i < durationMs * 16; i++) {
             pcm.putShort((short) (3500 * (0.7 + 0.3 * Math.sin(i * 2 * Math.PI * 4 / 16000))
                     * Math.sin(i * 2 * Math.PI * 200 / 16000)));
         }

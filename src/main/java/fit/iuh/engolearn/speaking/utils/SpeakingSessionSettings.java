@@ -7,8 +7,9 @@ import java.time.Duration;
 
 @ConfigurationProperties("engolearn.speaking.session")
 public record SpeakingSessionSettings(@DefaultValue("30") int maxTurns, @DefaultValue("20m") Duration maxDuration,
-                                      @DefaultValue("120s") Duration maxTurnAudio,
+                                      @DefaultValue(SpeakingSessionSettings.MAX_TURN_AUDIO_MS + "ms") Duration maxTurnAudio,
                                       @DefaultValue("15s") Duration closingGrace) {
+    public static final int MAX_TURN_AUDIO_MS = 120_000;
     public static final Duration TICKET_LIFETIME = Duration.ofSeconds(30);
     public static final Duration AUDIO_RETENTION = Duration.ofDays(30);
 

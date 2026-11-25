@@ -7,6 +7,7 @@ import java.util.Arrays;
 public final class SpeakingWav {
     public static final int PCM_BYTES_PER_MS = 32;
     public static final int MAX_REPLY_BYTES = 6 * 1024 * 1024;
+    static final int PCM_HEADER_BYTES = 44;
     private static final int RIFF = 0x46464952;
     private static final int WAVE = 0x45564157;
     private static final int FMT = 0x20746d66;
@@ -15,9 +16,13 @@ public final class SpeakingWav {
     private SpeakingWav() {}
 
     public static byte[] learner(byte[] pcm) {
-        return ByteBuffer.allocate(44 + pcm.length).order(ByteOrder.LITTLE_ENDIAN)
+        return pcm16Mono(pcm, 16_000);
+    }
+
+    static byte[] pcm16Mono(byte[] pcm, int sampleRate) {
+        return ByteBuffer.allocate(PCM_HEADER_BYTES + pcm.length).order(ByteOrder.LITTLE_ENDIAN)
                 .putInt(RIFF).putInt(36 + pcm.length).putInt(WAVE).putInt(FMT).putInt(16)
-                .putShort((short) 1).putShort((short) 1).putInt(16000).putInt(32000)
+                .putShort((short) 1).putShort((short) 1).putInt(sampleRate).putInt(sampleRate * Short.BYTES)
                 .putShort((short) 2).putShort((short) 16).putInt(DATA).putInt(pcm.length).put(pcm).array();
     }
 

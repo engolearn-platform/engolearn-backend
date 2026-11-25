@@ -15,8 +15,10 @@ import java.util.regex.Pattern;
 import static fit.iuh.engolearn.speaking.model.enums.SpeakingCriterionStatus.*;
 
 public final class SpeakingAcousticPolicy {
-    public static final String VERSION = "azure-v2.1";
-    public static final int MAX_SINGLE_AUDIO_MS = 30_000;
+    public static final String VERSION = "azure-v2.2";
+    static final int MAX_AUDIO_BYTES = SpeakingSessionSettings.MAX_TURN_AUDIO_MS * SpeakingWav.PCM_BYTES_PER_MS;
+    private static final int MIN_FLUENCY_MS = 4000;
+    private static final String INSUFFICIENT_SPEECH = "INSUFFICIENT_RECOGNIZED_SPEECH";
     private static final int WINDOW = 320;
     private static final int BOUNDARY_BYTES = 150 * SpeakingWav.PCM_BYTES_PER_MS;
     private static final Pattern WORD = Pattern.compile("[\\p{L}][\\p{L}'’-]{0,63}");
@@ -24,7 +26,10 @@ public final class SpeakingAcousticPolicy {
     private SpeakingAcousticPolicy() {}
 
     public static Prepared prepare(byte[] pcm, long limitMs) {
-        if (pcm == null || pcm.length % 2 != 0 || pcm.length / 32.0 > limitMs) return rejected("AUDIO_CORRUPT");
+        if (pcm == null || pcm.length % 2 != 0 || pcm.length / (double) SpeakingWav.PCM_BYTES_PER_MS > limitMs) {
+            return rejected("AUDIO_CORRUPT");
+        }
+        if (pcm.length > MAX_AUDIO_BYTES) return rejected("AUDIO_LENGTH_UNSUPPORTED");
         int firstVoice = -1;
         int lastVoice = 0;
         int voicedBytes = 0;
@@ -55,9 +60,6 @@ public final class SpeakingAcousticPolicy {
         if (firstVoice < 0) return rejected("NO_SPEECH");
         int start = Math.max(0, firstVoice - BOUNDARY_BYTES);
         int end = Math.min(pcm.length, lastVoice + BOUNDARY_BYTES);
-        if (end - start > MAX_SINGLE_AUDIO_MS * SpeakingWav.PCM_BYTES_PER_MS) {
-            return rejected("AUDIO_LENGTH_UNSUPPORTED");
-        }
         long voicedMs = voicedBytes / SpeakingWav.PCM_BYTES_PER_MS;
         if (voicedMs < 2000) return rejected("INSUFFICIENT_AUDIO");
         return new Prepared(Arrays.copyOfRange(pcm, start, end), (end - start) / SpeakingWav.PCM_BYTES_PER_MS, voicedMs, null);
@@ -68,15 +70,20 @@ public final class SpeakingAcousticPolicy {
     }
 
     public static Sample sample(long voicedMs, AcousticAssessmentPort.Result result) {
-        if (result == null) return new Sample(null, null, 0, List.of(), "INVALID_PROVIDER_RESULT", "INVALID_PROVIDER_RESULT");
+        if (result == null) {
+            return new Sample(null, null, 0, List.of(), "INVALID_PROVIDER_RESULT", "INVALID_PROVIDER_RESULT", 0, 0);
+        }
         int words = Math.max(0, result.words());
         String pronunciationReason = scoreReason(voicedMs, words, 2000, 3, result.pronunciation(), result.pronunciationReason());
-        String fluencyReason = scoreReason(voicedMs, words, 4000, 5, result.fluency(), result.fluencyReason());
+        String fluencyReason = scoreReason(voicedMs, words, MIN_FLUENCY_MS, 5, result.fluency(), result.fluencyReason());
+        if (fluencyReason == null && result.fluencyEvidenceDurationMs() < MIN_FLUENCY_MS) {
+            fluencyReason = INSUFFICIENT_SPEECH;
+        }
         return new Sample(pronunciationReason == null ? result.pronunciation() : null,
                 fluencyReason == null ? result.fluency() : null, words,
                 result.feedback() == null ? List.of() : result.feedback().stream()
                         .filter(SpeakingAcousticPolicy::usableWord).limit(500).toList(),
-                pronunciationReason, fluencyReason);
+                pronunciationReason, fluencyReason, result.assessedSpeechDurationMs(), result.fluencyEvidenceDurationMs());
     }
 
     static boolean validScore(Double score) {
@@ -84,7 +91,7 @@ public final class SpeakingAcousticPolicy {
     }
 
     private static String scoreReason(long voicedMs, int words, long minimumMs, int minimumWords, Double score, String reason) {
-        if (words < minimumWords || voicedMs < minimumMs) return "INSUFFICIENT_RECOGNIZED_SPEECH";
+        if (words < minimumWords || voicedMs < minimumMs) return INSUFFICIENT_SPEECH;
         return validScore(score) ? null : reason == null ? "INVALID_PROVIDER_RESULT" : reason;
     }
 
@@ -93,9 +100,11 @@ public final class SpeakingAcousticPolicy {
         for (var row : rows) unique.putIfAbsent(row.getId(), row);
         var samples = List.copyOf(unique.values());
         var pronunciation = criterion(samples, SpeakingAudioAssessment::getPronunciation,
-                SpeakingAudioAssessment::getPronunciationReason, SpeakingAudioAssessment::getWords, 20, 15_000, deadlineReached);
+                SpeakingAudioAssessment::getPronunciationReason, SpeakingAudioAssessment::getWords,
+                row -> knownDuration(row.getAssessedSpeechDurationMs()), 20, 15_000, deadlineReached);
+        ToLongFunction<SpeakingAudioAssessment> fluencyDuration = row -> knownDuration(row.getFluencyEvidenceDurationMs());
         var fluency = criterion(samples, SpeakingAudioAssessment::getFluency,
-                SpeakingAudioAssessment::getFluencyReason, SpeakingAudioAssessment::getDurationMs, 0, 20_000, deadlineReached);
+                SpeakingAudioAssessment::getFluencyReason, fluencyDuration, fluencyDuration, 0, 20_000, deadlineReached);
         return new Scores(pronunciation, fluency, practiceWords(samples));
     }
 
@@ -103,15 +112,16 @@ public final class SpeakingAcousticPolicy {
                                                  Function<SpeakingAudioAssessment, Double> score,
                                                  Function<SpeakingAudioAssessment, String> missing,
                                                  ToLongFunction<SpeakingAudioAssessment> weight,
+                                                 ToLongFunction<SpeakingAudioAssessment> speechDuration,
                                                  int minimumWords, int minimumDuration, boolean deadlineReached) {
         var eligible = samples.stream().filter(row -> validScore(score.apply(row)) && weight.applyAsLong(row) > 0).toList();
         int words = eligible.stream().mapToInt(SpeakingAudioAssessment::getWords).sum();
-        long duration = eligible.stream().mapToLong(SpeakingAudioAssessment::getDurationMs).sum();
+        long duration = eligible.stream().mapToLong(speechDuration).sum();
         long denominator = eligible.stream().mapToLong(weight).sum();
         boolean assessed = eligible.size() >= 3 && words >= minimumWords && duration >= minimumDuration && denominator > 0;
         String technical = samples.stream().filter(row -> row.getStatus() == SpeakingAudioAssessmentStatus.FAILED
                         || row.getStatus() == SpeakingAudioAssessmentStatus.ASSESSED && missing.apply(row) != null
-                        && !"INSUFFICIENT_RECOGNIZED_SPEECH".equals(missing.apply(row)))
+                        && !INSUFFICIENT_SPEECH.equals(missing.apply(row)))
                 .map(row -> missing.apply(row) == null ? row.getReason() : missing.apply(row))
                 .filter(Objects::nonNull).findFirst().orElse(null);
         if (technical == null && deadlineReached) technical = "AUDIO_DEADLINE_EXCEEDED";
@@ -126,6 +136,10 @@ public final class SpeakingAcousticPolicy {
                 : unsupported != null ? unsupported : "INSUFFICIENT_AUDIO_EVIDENCE";
         return SpeakingCriterionVo.builder().status(status).score(value).reason(reason)
                 .sampleCount(eligible.size()).wordCount(words).speechDurationMs(duration).examples(List.of()).build();
+    }
+
+    private static long knownDuration(Long duration) {
+        return duration == null ? 0 : duration;
     }
 
     private static List<SpeakingWordAssessmentVo> practiceWords(List<SpeakingAudioAssessment> samples) {
@@ -157,7 +171,8 @@ public final class SpeakingAcousticPolicy {
 
     public record Prepared(byte[] pcm, long durationMs, long voicedMs, String reason) {}
     public record Sample(Double pronunciation, Double fluency, int words, List<SpeakingWordAssessmentVo> feedback,
-                         String pronunciationReason, String fluencyReason) {}
+                         String pronunciationReason, String fluencyReason, long assessedSpeechDurationMs,
+                         long fluencyEvidenceDurationMs) {}
     public record Scores(SpeakingCriterionVo pronunciation, SpeakingCriterionVo fluency,
                          List<SpeakingWordAssessmentVo> words) {}
 }

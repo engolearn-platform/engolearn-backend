@@ -274,7 +274,7 @@ class SpeakingRealtimeMongoIntegrationTest extends AbstractMongoIntegrationTest 
 
     @Test
     void publishesOneReadyAssessmentFromTheSameTurnsCommittedOverWebSocket() throws Exception {
-        when(acoustic.assess(any(), any())).thenReturn(new AcousticAssessmentPort.Result(78.5, 0d, 8, List.of()));
+        when(acoustic.assess(any(), any())).thenReturn(new AcousticAssessmentPort.Result(78.5, 0d, 8, List.of(), 8_000, 7_000));
         String id = create();
         String endpoint = BASE + "/sessions/" + id;
         String openingReply = "Good morning! What can I get you?";

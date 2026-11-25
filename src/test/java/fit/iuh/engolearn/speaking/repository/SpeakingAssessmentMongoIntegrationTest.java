@@ -93,9 +93,9 @@ class SpeakingAssessmentMongoIntegrationTest extends AbstractMongoIntegrationTes
         var history = new ArrayList<SpeakingTurnVo>();
         for (int i = 1; i <= 5; i++) history.add(archived(session, i, i <= 3, i != 4));
         var orphan = history.getFirst();
-        repository.register(session.getId(), orphan.getTurnId(), 1, clock.instant(), SpeakingAcousticPolicy.VERSION, "en-US");
+        repository.register(session.getId(), orphan.getTurnId(), 1, clock.instant(), "azure-v2.1", "en-US");
         repository.claim(session.getId(), orphan.getTurnId(), "crashed-process", "old-claim",
-                clock.instant(), clock.instant().plusSeconds(15), 2);
+                clock.instant(), clock.instant().plusSeconds(15), 2, "azure-v2.1");
         var mediaUri = URI.create("https://media.test/retained-speaking-fixture");
         when(media.resolve(anyString())).thenAnswer(invocation -> new MediaDeliveryDto(mediaUri, clock.instant().plusSeconds(50), "audio/wav"));
         when(retainedAudio.read(eq(mediaUri), anyInt(), any())).thenReturn(SpeakingWav.learner(PCM));
@@ -123,6 +123,8 @@ class SpeakingAssessmentMongoIntegrationTest extends AbstractMongoIntegrationTes
         assertThat(criteria.path("vocabulary").path("score").asDouble()).isEqualTo(3.5);
         assertThat(criteria.path("pronunciation").path("wordCount").asInt()).isEqualTo(24);
         assertThat(repository.samples(session.getId())).hasSize(5);
+        assertThat(repository.samples(session.getId())).filteredOn(sample -> orphan.getTurnId().equals(sample.getId()))
+                .singleElement().satisfies(sample -> assertThat(sample.getPolicyVersion()).isEqualTo(SpeakingAcousticPolicy.VERSION));
         assertThat(repository.samples(session.getId())).filteredOn(sample -> "AUDIO_MEDIA_UNAVAILABLE".equals(sample.getReason())).hasSize(2);
         assertThat(attempts.get()).isEqualTo(4);
         verify(retainedAudio, times(3)).read(eq(mediaUri), anyInt(), any());
@@ -138,6 +140,35 @@ class SpeakingAssessmentMongoIntegrationTest extends AbstractMongoIntegrationTes
         assertThat(data(request("GET", endpoint(session, "/assessment"), OWNER, null))).isEqualTo(result);
         assertThat(request("GET", endpoint(session, "/assessment"), OTHER, null).statusCode()).isEqualTo(403);
         assertThat(request("GET", endpoint(session, "/assessment"), null, null).statusCode()).isEqualTo(401);
+    }
+
+    @Test
+    void recoveredLongPcmReachesProviderOnceAndStoresOnlyRecognizedEvidence() throws Exception {
+        var session = session(1, null);
+        var turn = archived(session, 1, true, true);
+        var longPcm = SpeakingAssessmentAudioFixture.voicedPcm(120_000);
+        var wav = SpeakingWav.learner(longPcm);
+        var mediaUri = URI.create("https://media.test/long-recovered-acoustic-fixture");
+        when(media.resolve("audio-1")).thenReturn(new MediaDeliveryDto(mediaUri, clock.instant().plusSeconds(50), "audio/wav"));
+        when(retainedAudio.read(eq(mediaUri), eq(wav.length), any())).thenReturn(wav);
+        when(acoustic.assess(any(), any())).thenReturn(new AcousticAssessmentPort.Result(81d, 76d, 85, List.of(), 84_000, 70_000));
+
+        data(end(session));
+        await(() -> terminal(session));
+
+        verify(acoustic).assess(argThat(bytes -> java.util.Arrays.equals(bytes, longPcm)), any());
+        assertThat(repository.samples(session.getId())).singleElement().satisfies(sample -> {
+            assertThat(sample.getId()).isEqualTo(turn.getTurnId());
+            assertThat(sample.getDurationMs()).isEqualTo(120_000);
+            assertThat(sample.getAssessedSpeechDurationMs()).isEqualTo(84_000L);
+            assertThat(sample.getFluencyEvidenceDurationMs()).isEqualTo(70_000L);
+        });
+        var result = data(request("GET", endpoint(session, "/assessment"), OWNER, null)).path("criteria");
+        assertThat(result.path("pronunciation").path("sampleCount").asInt()).isEqualTo(1);
+        assertThat(result.path("pronunciation").path("speechDurationMs").asLong()).isEqualTo(84_000L);
+        assertThat(result.path("fluency").path("sampleCount").asInt()).isEqualTo(1);
+        assertThat(result.path("fluency").path("speechDurationMs").asLong()).isEqualTo(70_000L);
+        assertThat(result.path("fluency").path("score").isNull()).isTrue();
     }
 
     @Test
@@ -302,7 +333,7 @@ class SpeakingAssessmentMongoIntegrationTest extends AbstractMongoIntegrationTes
 
     private static AcousticAssessmentPort.Result acoustic(double pronunciation, double fluency) {
         return new AcousticAssessmentPort.Result(pronunciation, fluency, 8,
-                List.of(new SpeakingWordAssessmentVo("coffee", 50d, "Mispronunciation")));
+                List.of(new SpeakingWordAssessmentVo("coffee", 50d, "Mispronunciation")), 8_000, 7_000);
     }
 
     private void await(java.util.function.BooleanSupplier condition) throws Exception {

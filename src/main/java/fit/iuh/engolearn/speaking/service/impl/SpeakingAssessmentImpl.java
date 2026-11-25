@@ -43,7 +43,6 @@ import static fit.iuh.engolearn.speaking.model.enums.SpeakingAudioAssessmentStat
 @Slf4j
 public class SpeakingAssessmentImpl implements SpeakingAssessment {
     private static final int RECOVERY_BATCH = 32;
-    private static final long MAX_RECOVERY_AUDIO_MS = 120_000;
     private final SpeakingAssessmentRepository repository;
     private final SpeakingTurnRepository turns;
     private final SpeakingRuntime runtime;
@@ -199,7 +198,7 @@ public class SpeakingAssessmentImpl implements SpeakingAssessment {
     private void rejectCapture(String sessionId, String turnId, String reason) {
         var now = clock.instant();
         var claim = repository.claim(sessionId, turnId, instance, UUID.randomUUID().toString(), now,
-                now.plus(properties.getAssessment().getAudioTimeout()), attemptLimit());
+                now.plus(properties.getAssessment().getAudioTimeout()), attemptLimit(), SpeakingAcousticPolicy.VERSION);
         if (claim != null) finishAudio(claim, SKIPPED, reason, now);
     }
 
@@ -243,7 +242,8 @@ public class SpeakingAssessmentImpl implements SpeakingAssessment {
             var now = clock.instant();
             if (session == null || audioClosed(session, now)) return;
             var deadline = earlier(now.plus(config.getAudioTimeout()), audioDeadline(session));
-            var work = repository.claim(sessionId, turnId, instance, UUID.randomUUID().toString(), now, deadline, attemptLimit());
+            var work = repository.claim(sessionId, turnId, instance, UUID.randomUUID().toString(), now, deadline,
+                    attemptLimit(), SpeakingAcousticPolicy.VERSION);
             if (work == null) return;
             try {
                 var turn = runtime.finalizedAudioEvidence(sessionId, turnId);
@@ -274,7 +274,8 @@ public class SpeakingAssessmentImpl implements SpeakingAssessment {
                 var status = scored ? ASSESSED : invalid ? FAILED : SKIPPED;
                 String reason = scored ? null : invalid ? "INVALID_PROVIDER_RESULT" : "INSUFFICIENT_RECOGNIZED_SPEECH";
                 repository.finish(work, status, reason, finished, audio.durationMs(), valid.words(), valid.pronunciation(),
-                        valid.pronunciationReason(), valid.fluency(), valid.fluencyReason(), valid.feedback());
+                        valid.pronunciationReason(), valid.fluency(), valid.fluencyReason(), valid.feedback(),
+                        valid.assessedSpeechDurationMs(), valid.fluencyEvidenceDurationMs());
                 return;
             } catch (Failure unavailable) {
                 now = clock.instant();
@@ -325,11 +326,12 @@ public class SpeakingAssessmentImpl implements SpeakingAssessment {
     }
 
     private static int maximumPcmBytes(SpeakingSession session) {
-        return (int) Math.min(MAX_RECOVERY_AUDIO_MS, session.getLimits().getMaxTurnAudioMs()) * SpeakingWav.PCM_BYTES_PER_MS;
+        return (int) Math.min(SpeakingSessionSettings.MAX_TURN_AUDIO_MS, session.getLimits().getMaxTurnAudioMs())
+                * SpeakingWav.PCM_BYTES_PER_MS;
     }
 
     private void finishAudio(SpeakingAudioAssessment work, SpeakingAudioAssessmentStatus status, String reason, Instant now) {
-        repository.finish(work, status, reason, now, 0, 0, null, reason, null, reason, List.of());
+        repository.finish(work, status, reason, now, 0, 0, null, reason, null, reason, List.of(), 0, 0);
     }
 
     private void recoverLanguage(SpeakingSession session, List<SpeakingTurnVo> history, Instant now) {

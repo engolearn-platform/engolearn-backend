@@ -2,6 +2,7 @@ package fit.iuh.engolearn.speaking.utils;
 
 import fit.iuh.engolearn.speaking.utils.port.SpeechSynthesisPort;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import tools.jackson.databind.ObjectMapper;
 
@@ -18,6 +19,7 @@ import java.util.Map;
 
 @Component
 public class CartesiaSpeechSynthesis implements SpeechSynthesisPort {
+    private static final int SAMPLE_RATE = 24_000;
     private final ObjectMapper mapper;
     private volatile HttpClient client;
     private final String apiKey;
@@ -57,7 +59,7 @@ public class CartesiaSpeechSynthesis implements SpeechSynthesisPort {
         try {
             String body = mapper.writeValueAsString(Map.of("model_id", model, "transcript", text,
                     "voice", voice, "language", "en", "output_format",
-                    Map.of("container", "wav", "sample_rate", 24000, "encoding", "pcm_s16le")));
+                    Map.of("container", "raw", "sample_rate", SAMPLE_RATE, "encoding", "pcm_s16le")));
             HttpRequest request = HttpRequest.newBuilder().uri(URI.create(endpoint))
                     .timeout(timeout).header("Cartesia-Version", apiVersion)
                     .header("Authorization", "Bearer " + apiKey)
@@ -67,7 +69,14 @@ public class CartesiaSpeechSynthesis implements SpeechSynthesisPort {
             if (response.statusCode() / 100 != 2) {
                 throw new IllegalStateException("Cartesia returned HTTP " + response.statusCode());
             }
-            return response.body();
+            var type = response.headers().firstValue("Content-Type").map(MediaType::parseMediaType)
+                    .orElse(MediaType.APPLICATION_OCTET_STREAM);
+            byte[] pcm = response.body();
+            if ((!"audio".equalsIgnoreCase(type.getType()) && !MediaType.APPLICATION_OCTET_STREAM.includes(type))
+                    || pcm.length == 0 || pcm.length % Short.BYTES != 0) {
+                throw new IllegalStateException("Cartesia response is not complete PCM16 audio");
+            }
+            return SpeakingWav.pcm16Mono(pcm, SAMPLE_RATE);
         } catch (InterruptedException ex) {
             Thread.currentThread().interrupt();
             throw new IllegalStateException("Cartesia request interrupted", ex);
@@ -92,7 +101,7 @@ public class CartesiaSpeechSynthesis implements SpeechSynthesisPort {
         @Override
         public void onNext(List<ByteBuffer> chunks) {
             for (ByteBuffer chunk : chunks) size += chunk.remaining();
-            if (size > SpeakingWav.MAX_REPLY_BYTES) {
+            if (size > SpeakingWav.MAX_REPLY_BYTES - SpeakingWav.PCM_HEADER_BYTES) {
                 subscription.cancel();
                 onError(new IllegalStateException("Cartesia audio exceeds the response limit"));
                 return;

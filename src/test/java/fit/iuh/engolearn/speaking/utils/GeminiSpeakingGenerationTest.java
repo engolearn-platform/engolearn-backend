@@ -74,8 +74,17 @@ class GeminiSpeakingGenerationTest {
             var assessmentSchema = requests.get(2).path("generationConfig").path("responseJsonSchema").path("properties");
             assertThat(assessmentSchema.properties().stream().map(Map.Entry::getKey))
                     .containsExactlyInAnyOrder("grammar", "vocabulary", "feedback");
-            assertThat(requests.get(2).path("contents").get(1).path("role").asString()).isEqualTo("user");
-            assertThat(requests.get(2).path("contents").get(2).path("role").asString()).isEqualTo("model");
+            var assessmentContents = requests.get(2).path("contents");
+            assertThat(assessmentContents).hasSize(4);
+            assertThat(assessmentContents.path(1).path("role").asString()).isEqualTo("user");
+            assertThat(assessmentContents.path(1).path("parts").path(0).path("text").asString())
+                    .isEqualTo("My exact original speech");
+            assertThat(assessmentContents.path(2).path("role").asString()).isEqualTo("model");
+            assertThat(assessmentContents.path(2).path("parts").path(0).path("text").asString())
+                    .isEqualTo("My delivered reply");
+            assertThat(assessmentContents.path(3).path("role").asString()).isEqualTo("user");
+            assertThat(assessmentContents.path(3).path("parts").path(0).path("text").asString())
+                    .contains("Evaluate only the indexed learner speech");
             assertThat(requests.get(0).path("tools").isMissingNode()).isTrue();
         } finally {
             structured.close();

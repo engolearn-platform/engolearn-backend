@@ -5,11 +5,16 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
 import java.net.http.HttpClient;
+import java.net.http.HttpHeaders;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Flow;
 import java.util.concurrent.atomic.AtomicReference;
@@ -31,13 +36,16 @@ class CartesiaSpeechSynthesisTest {
                 assertThrows(IllegalStateException.class, () -> synthesis.synthesize("Hello!")).getMessage());
     }
 
-    @Test void sendsVoiceIdAndPcmWavFormatToBytesApi() throws Exception {
+    @Test void requestsRawPcmAndReturnsWavWithCompleteLengths() throws Exception {
         ObjectMapper mapper = new ObjectMapper();
         HttpClient client = mock(HttpClient.class);
         HttpResponse<byte[]> response = mock(HttpResponse.class);
-        byte[] audio = {1, 2, 3};
+        byte[] pcm = new byte[48_000];
+        pcm[0] = 1;
+        pcm[pcm.length - 1] = 2;
         when(response.statusCode()).thenReturn(200);
-        when(response.body()).thenReturn(audio);
+        when(response.headers()).thenReturn(HttpHeaders.of(Map.of("Content-Type", List.of("audio/pcm")), (a, b) -> true));
+        when(response.body()).thenReturn(pcm);
         AtomicReference<HttpRequest> request = new AtomicReference<>();
         when(client.send(any(HttpRequest.class), any(HttpResponse.BodyHandler.class)))
                 .thenAnswer(invocation -> {
@@ -48,7 +56,13 @@ class CartesiaSpeechSynthesisTest {
         CartesiaSpeechSynthesis synthesis = new CartesiaSpeechSynthesis(mapper, "test-key", "voice-id",
                 "sonic-3.6", "http://cartesia.test/tts/bytes", "2026-08-14", Duration.ofSeconds(5), client);
 
-        assertArrayEquals(audio, synthesis.synthesize("Hello!"));
+        byte[] wav = synthesis.synthesize("Hello!");
+        assertEquals(1_000, SpeakingWav.durationMs(wav));
+        var header = ByteBuffer.wrap(wav).order(ByteOrder.LITTLE_ENDIAN);
+        assertEquals(wav.length - 8, header.getInt(4));
+        assertEquals(24_000, header.getInt(24));
+        assertEquals(pcm.length, header.getInt(40));
+        assertArrayEquals(pcm, Arrays.copyOfRange(wav, 44, wav.length));
         assertEquals("http://cartesia.test/tts/bytes", request.get().uri().toString());
         assertEquals("Bearer test-key", request.get().headers().firstValue("Authorization").orElseThrow());
         JsonNode payload = mapper.readTree(readBody(request.get().bodyPublisher().orElseThrow()));
@@ -56,8 +70,9 @@ class CartesiaSpeechSynthesisTest {
         assertEquals("2026-08-14", request.get().headers().firstValue("Cartesia-Version").orElseThrow());
         assertEquals("sonic-3.6", payload.path("model_id").asText());
         assertEquals("voice-id", payload.path("voice").asText());
-        assertEquals("wav", payload.path("output_format").path("container").asText());
+        assertEquals("raw", payload.path("output_format").path("container").asText());
         assertEquals("pcm_s16le", payload.path("output_format").path("encoding").asText());
+        assertEquals(24_000, payload.path("output_format").path("sample_rate").asInt());
         assertEquals("Hello!", payload.path("transcript").asText());
     }
 

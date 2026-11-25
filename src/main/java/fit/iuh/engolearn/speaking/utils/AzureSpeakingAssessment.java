@@ -15,6 +15,7 @@ import tools.jackson.databind.ObjectMapper;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.*;
 
@@ -22,6 +23,8 @@ import java.util.concurrent.*;
 @RequiredArgsConstructor
 public class AzureSpeakingAssessment implements AcousticAssessmentPort {
     public static final String LOCALE = "en-US";
+    private static final long TICKS_PER_MS = 10_000L;
+    private static final int MAX_SEGMENTS = 50;
     private final SpeakingProviderProperties properties;
     private final ObjectMapper mapper;
 
@@ -32,9 +35,7 @@ public class AzureSpeakingAssessment implements AcousticAssessmentPort {
         if (blank(configuration.getApiKey()) || blank(configuration.getRegion())) {
             throw new Failure("AUDIO_PROVIDER_NOT_CONFIGURED", false);
         }
-        if (pcm.length > SpeakingAcousticPolicy.MAX_SINGLE_AUDIO_MS * SpeakingWav.PCM_BYTES_PER_MS) {
-            throw new Failure("AUDIO_LENGTH_UNSUPPORTED", false);
-        }
+        validatePcm(pcm);
         try {
             return recognize(configuration, pcm, timeout);
         } catch (LinkageError failure) {
@@ -54,6 +55,15 @@ public class AzureSpeakingAssessment implements AcousticAssessmentPort {
         }
     }
 
+    static void validatePcm(byte[] pcm) {
+        if (pcm == null || pcm.length == 0 || pcm.length % Short.BYTES != 0) {
+            throw new Failure("AUDIO_CORRUPT", false);
+        }
+        if (pcm.length > SpeakingAcousticPolicy.MAX_AUDIO_BYTES) {
+            throw new Failure("AUDIO_LENGTH_UNSUPPORTED", false);
+        }
+    }
+
     private Result recognize(SpeakingProviderProperties.Azure configuration, byte[] pcm, Duration timeout)
             throws ExecutionException, InterruptedException, TimeoutException {
         long deadline = System.nanoTime() + timeout.toNanos();
@@ -67,12 +77,12 @@ public class AzureSpeakingAssessment implements AcousticAssessmentPort {
                      PronunciationAssessmentGranularity.Word, false)) {
             rubric.applyTo(recognizer);
             var ended = new CompletableFuture<Void>();
-            List<Result> segments = Collections.synchronizedList(new ArrayList<>());
+            List<Segment> segments = Collections.synchronizedList(new ArrayList<>());
+            long audioTicks = pcm.length * TICKS_PER_MS / SpeakingWav.PCM_BYTES_PER_MS;
             recognizer.recognized.addEventListener((sender, event) -> {
                 try (var result = event.getResult()) {
                     if (result.getReason() != ResultReason.RecognizedSpeech) return;
-                    if (segments.size() >= 50) throw new Failure("INVALID_PROVIDER_RESULT", false);
-                    segments.add(parse(mapper, result.getProperties().getProperty(PropertyId.SpeechServiceResponse_JsonResult)));
+                    addSegment(segments, result.getProperties().getProperty(PropertyId.SpeechServiceResponse_JsonResult), audioTicks);
                 } catch (RuntimeException invalid) {
                     ended.completeExceptionally(new Failure("INVALID_PROVIDER_RESULT", false));
                 }
@@ -85,16 +95,28 @@ public class AzureSpeakingAssessment implements AcousticAssessmentPort {
             recognizer.sessionStopped.addEventListener((sender, event) -> ended.complete(null));
             await(recognizer.startContinuousRecognitionAsync(), deadline);
             await(ended, deadline);
-            if (!pcmInput.complete()) throw new Failure("AUDIO_PROVIDER_INCOMPLETE", false);
-            return combine(List.copyOf(segments));
+            return finishRecognition(List.copyOf(segments), pcmInput.complete());
         } finally {
             format.close();
         }
     }
 
+    void addSegment(List<Segment> segments, String response, long audioTicks) {
+        synchronized (segments) {
+            if (segments.size() >= MAX_SEGMENTS) throw new Failure("INVALID_PROVIDER_RESULT", false);
+            segments.add(parse(mapper, response, audioTicks));
+        }
+    }
+
+    static Result finishRecognition(List<Segment> segments, boolean inputComplete) {
+        if (!inputComplete) throw new Failure("AUDIO_PROVIDER_INCOMPLETE", false);
+        return combine(segments);
+    }
+
     private static SpeechConfig configure(SpeechConfig speech) {
         speech.setSpeechRecognitionLanguage(LOCALE);
         speech.setOutputFormat(OutputFormat.Detailed);
+        speech.requestWordLevelTimestamps();
         // Read to end of stream. A single-shot recognizer can stop at an internal pause.
         speech.setProperty(PropertyId.Speech_SegmentationSilenceTimeoutMs, "5000");
         return speech;
@@ -110,32 +132,68 @@ public class AzureSpeakingAssessment implements AcousticAssessmentPort {
         };
     }
 
-    static Result combine(List<Result> segments) {
-        if (segments.isEmpty()) return new Result(null, null, 0, List.of());
-        if (segments.size() == 1) return segments.getFirst();
-        int words = segments.stream().mapToInt(Result::words).sum();
+    static Result combine(List<Segment> segments) {
+        if (segments.isEmpty()) return new Result(null, null, 0, List.of(), 0, 0);
+        var durations = measure(segments);
+        long assessedMs = durations.assessedTicks() / TICKS_PER_MS;
+        long fluencyMs = durations.fluencyTicks() / TICKS_PER_MS;
+        if (segments.size() == 1) {
+            var segment = segments.getFirst();
+            return new Result(segment.pronunciation(), segment.fluency(), segment.words(), segment.feedback(), assessedMs, fluencyMs);
+        }
+        int words = segments.stream().mapToInt(Segment::words).sum();
         boolean valid = words > 0 && segments.stream().allMatch(segment -> segment.words() > 0
                 && SpeakingAcousticPolicy.validScore(segment.pronunciation()));
         Double pronunciation = valid ? segments.stream().mapToDouble(segment ->
                 segment.pronunciation() * segment.words()).sum() / words : null;
-        // Phrase-level fluency excludes pauses between Azure segments. There is no native whole-turn score here.
+        Double fluency = durations.fluencyTicks() > 0 ? durations.weightedFluency() / durations.fluencyTicks() : null;
+        String fluencyReason = fluency != null ? null
+                : segments.stream().anyMatch(segment -> SpeakingAcousticPolicy.validScore(segment.fluency()))
+                ? "INSUFFICIENT_RECOGNIZED_SPEECH" : "INVALID_PROVIDER_RESULT";
         var feedback = segments.stream().flatMap(segment -> segment.feedback().stream()).limit(500).toList();
-        return new Result(pronunciation, null, words, feedback, valid ? null : "INVALID_PROVIDER_RESULT",
-                "AUDIO_SEGMENTED_FLUENCY_UNAVAILABLE");
+        return new Result(pronunciation, fluency, words, feedback, valid ? null : "INVALID_PROVIDER_RESULT", fluencyReason,
+                assessedMs, fluencyMs);
+    }
+
+    private static Durations measure(List<Segment> segments) {
+        var intervals = segments.stream().flatMap(segment -> segment.timings().stream()
+                        .map(timing -> new TimedFluency(timing, segment.fluency())))
+                .sorted(Comparator.comparingLong(evidence -> evidence.timing().start()))
+                .toList();
+        long assessedEnd = 0;
+        long fluencyEnd = 0;
+        long assessedTicks = 0;
+        long fluencyTicks = 0;
+        double weightedFluency = 0;
+        // Earlier interval starts own overlaps. Stable sorting breaks ties by Azure segment order.
+        for (var evidence : intervals) {
+            var timing = evidence.timing();
+            assessedTicks += Math.max(0, timing.end() - Math.max(assessedEnd, timing.start()));
+            assessedEnd = Math.max(assessedEnd, timing.end());
+            if (SpeakingAcousticPolicy.validScore(evidence.fluency())) {
+                long weight = Math.max(0, timing.end() - Math.max(fluencyEnd, timing.start()));
+                fluencyEnd = Math.max(fluencyEnd, timing.end());
+                fluencyTicks += weight;
+                weightedFluency += evidence.fluency() * weight;
+            }
+        }
+        return new Durations(assessedTicks, fluencyTicks, weightedFluency);
     }
 
     private static <T> T await(Future<T> pending, long deadline) throws InterruptedException, ExecutionException, TimeoutException {
         return pending.get(Math.max(1, deadline - System.nanoTime()), TimeUnit.NANOSECONDS);
     }
 
-    static Result parse(ObjectMapper mapper, String response) {
+    static Segment parse(ObjectMapper mapper, String response, long audioTicks) {
         if (response == null || response.isBlank() || response.length() > 512_000) {
             throw new Failure("INVALID_PROVIDER_RESULT", false);
         }
-        JsonNode best = mapper.readTree(response).path("NBest").path(0);
+        JsonNode phrase = mapper.readTree(response);
+        JsonNode best = phrase.path("NBest").path(0);
         if (!best.isObject()) throw new Failure("INVALID_PROVIDER_RESULT", false);
         JsonNode assessed = best.path("PronunciationAssessment");
         var words = new ArrayList<SpeakingWordAssessmentVo>();
+        var timings = new ArrayList<Interval>();
         int recognized = 0;
         for (JsonNode node : best.path("Words")) {
             JsonNode score = node.path("PronunciationAssessment");
@@ -144,11 +202,35 @@ public class AzureSpeakingAssessment implements AcousticAssessmentPort {
             if (word == null || word.isBlank() || word.length() > 64 || "Omission".equals(error)
                     || word.codePoints().noneMatch(Character::isLetter)) continue;
             recognized++;
+            var timing = interval(node, audioTicks);
+            if (timing != null) timings.add(timing);
             var evidence = new SpeakingWordAssessmentVo(word, score(score.path("AccuracyScore")), error);
             if (SpeakingAcousticPolicy.usableWord(evidence)) words.add(evidence);
         }
-        return new Result(score(assessed.path("AccuracyScore")), score(assessed.path("FluencyScore")), recognized, List.copyOf(words));
+        if (timings.isEmpty() && recognized > 0) {
+            var timing = interval(phrase, audioTicks);
+            if (timing != null) timings.add(timing);
+        }
+        return new Segment(score(assessed.path("AccuracyScore")), score(assessed.path("FluencyScore")), recognized,
+                List.copyOf(words), List.copyOf(timings));
     }
+
+    private static Interval interval(JsonNode node, long audioTicks) {
+        JsonNode offset = node.path("Offset");
+        JsonNode duration = node.path("Duration");
+        if (!offset.isIntegralNumber() || !offset.canConvertToLong()
+                || !duration.isIntegralNumber() || !duration.canConvertToLong()) return null;
+        long start = offset.asLong();
+        long length = duration.asLong();
+        return start >= 0 && start < audioTicks && length > 0 && length <= audioTicks - start
+                ? new Interval(start, start + length) : null;
+    }
+
+    record Segment(Double pronunciation, Double fluency, int words, List<SpeakingWordAssessmentVo> feedback,
+                   List<Interval> timings) {}
+    private record Interval(long start, long end) {}
+    private record TimedFluency(Interval timing, Double fluency) {}
+    private record Durations(long assessedTicks, long fluencyTicks, double weightedFluency) {}
 
     private static String text(JsonNode node) {
         return node.isString() ? node.asString() : null;
