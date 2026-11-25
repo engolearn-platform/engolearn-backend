@@ -92,7 +92,7 @@ public class TopicMediaServiceImpl implements TopicMediaService {
         String reference = topic == null ? null : topic.getCoverUrl();
         if (reference == null || !reference.startsWith("topic-media:")) return reference;
         if (!isReference(topic, reference, TopicMediaKind.IMAGE)) return null;
-        return resolveStoredReference(topic.getId(), reference);
+        return resolveDelivery(parse(reference).mediaId());
     }
 
     @Override
@@ -102,8 +102,12 @@ public class TopicMediaServiceImpl implements TopicMediaService {
         if (parsed == null || !Objects.equals(topicId, parsed.topicId())) return null;
         Topic topic = topics.findById(topicId).orElse(null);
         if (topic == null || !registered(topic, parsed.mediaId())) return null;
+        return resolveDelivery(parsed.mediaId());
+    }
+
+    private String resolveDelivery(String mediaId) {
         try {
-            return media.resolve(parsed.mediaId()).url().toString();
+            return media.resolve(mediaId).url().toString();
         } catch (RuntimeException deliveryFailure) {
             return null;
         }

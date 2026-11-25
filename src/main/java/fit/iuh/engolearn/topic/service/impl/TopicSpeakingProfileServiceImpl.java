@@ -32,8 +32,9 @@ public class TopicSpeakingProfileServiceImpl implements TopicSpeakingProfileServ
 
     @Override
     public TopicSpeakingAccessDto resolve(String learnerId, SpeakingScopeDto scope) {
-        ReleasedScope release = scopes.openableScope(learnerId, scope);
-        if (release == null) return new TopicSpeakingAccessDto(TopicSpeakingAccessDto.Reason.SCOPE_FORBIDDEN, null);
+        var decision = scopes.openableScope(learnerId, scope);
+        if (decision.reason() != null) return new TopicSpeakingAccessDto(decision.reason(), null);
+        ReleasedScope release = decision.release();
         TopicSpeakingProfile state = state(scope);
         TopicSpeakingProfileDto published = published(state, release);
         Map<String, TopicSpeakingResourceDto> choices = resources(release);
