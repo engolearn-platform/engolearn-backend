@@ -21,6 +21,8 @@ import fit.iuh.engolearn.quota.contract.dto.UsageResultDto;
 import fit.iuh.engolearn.shared.messaging.MongoMessageTransactions;
 import fit.iuh.engolearn.shared.security.CurrentUserProvider;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Supplier;
@@ -189,19 +191,100 @@ class CompanionTurnServiceTest {
             value.setId("message-" + value.getSequence());
             return value;
         });
-        when(toolRegistry.execute(eq("getLatestAssessmentResult"), anyMap(), eq("learner-1")))
-                .thenReturn("{\"status\":\"SUCCESS\"}");
+        when(toolRegistry.execute(eq("getLatestAssessmentResult"), anyMap(), eq("learner-1"), any(Runnable.class)))
+                .thenAnswer(invocation -> {
+                    invocation.<Runnable>getArgument(3).run();
+                    return "{\"status\":\"SUCCESS\"}";
+                });
 
         var prepared = service.prepareTurn(conversationId, new CompanionTurnRequest(UUID.fromString(turnId), "How did I do?", false));
-        var result = service.streamPreparedTurn(prepared, observer());
+        List<CompanionTurnService.TurnStatus> statuses = new ArrayList<>();
+        var result = service.streamPreparedTurn(prepared, observer(statuses));
 
         assertEquals("Grounded advice", result.assistantMessage().content());
+        assertEquals(List.of(CompanionTurnService.TurnStatus.ASSESSMENT_LOOKUP), statuses);
         var requests = org.mockito.ArgumentCaptor.forClass(CompanionModelRequest.class);
         verify(model, times(2)).stream(requests.capture());
         assertEquals(continuation, requests.getAllValues().get(1).continuation());
         assertEquals(java.util.List.of(new CompanionToolResult("call-1", "getLatestAssessmentResult", "{\"status\":\"SUCCESS\"}")),
                 requests.getAllValues().get(1).toolResults());
         verify(quotaUsage).recordUsage(argThat(command -> command.amount() == 18));
+    }
+
+    @Test void assessmentStatusObserverFailureReleasesTurnWithoutPersistingOrCharging() {
+        stubPrompt();
+        String conversationId = "conversation-observer-failure";
+        String turnId = UUID.randomUUID().toString();
+        when(conversations.findOwned(conversationId, "learner-1"))
+                .thenReturn(Optional.of(conversation(conversationId, 0, 1, null, null)));
+        when(messages.findByTurnAndRole(conversationId, turnId, CompanionMessage.Role.USER)).thenReturn(Optional.empty());
+        when(messages.findByTurnAndRole(conversationId, turnId, CompanionMessage.Role.ASSISTANT)).thenReturn(Optional.empty());
+        when(conversations.admitNew(eq(conversationId), eq("learner-1"), eq(turnId), eq(1L), any(), any(), eq(100)))
+                .thenReturn(Optional.of(conversation(conversationId, 1, 2, turnId, 1L)));
+        when(messages.insert(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        when(model.stream(any())).thenReturn(Flux.just(
+                new CompanionModelEvent.ToolCalls(new CompanionModelContinuation() {}, List.of(
+                        new CompanionToolCall("call-1", "getLatestAssessmentResult", java.util.Map.of()))),
+                new CompanionModelEvent.RoundCompleted(new CompanionUsage(4))));
+        when(toolRegistry.execute(eq("getLatestAssessmentResult"), anyMap(), eq("learner-1"), any(Runnable.class)))
+                .thenAnswer(invocation -> {
+                    invocation.<Runnable>getArgument(3).run();
+                    return "{\"status\":\"SUCCESS\"}";
+                });
+        when(conversations.release(eq(conversationId), eq("learner-1"), eq(turnId), anyLong(), any())).thenReturn(true);
+        var prepared = service.prepareTurn(conversationId,
+                new CompanionTurnRequest(UUID.fromString(turnId), "How did I do?", false));
+        CompanionTurnService.TurnObserver observer = new CompanionTurnService.TurnObserver() {
+            @Override public void onDelta(String text) {}
+            @Override public boolean isCancelled() { return false; }
+            @Override public void onStatus(CompanionTurnService.TurnStatus status) {
+                throw new IllegalStateException("stream is closed");
+            }
+        };
+
+        assertThrows(CompanionException.class, () -> service.streamPreparedTurn(prepared, observer));
+
+        verify(conversations).release(eq(conversationId), eq("learner-1"), eq(turnId), anyLong(), any());
+        verify(conversations, never()).finish(anyString(), anyString(), anyString(), anyLong(), anyLong(), any());
+        verify(quotaUsage, never()).recordUsage(any());
+    }
+
+    @Test void assessmentCallSkippedByToolBudgetDoesNotEmitStatus() {
+        stubUsageRecording();
+        stubPrompt();
+        properties.setMaxToolCalls(1);
+        String conversationId = "conversation-budget";
+        String turnId = UUID.randomUUID().toString();
+        when(conversations.findOwned(conversationId, "learner-1"))
+                .thenReturn(Optional.of(conversation(conversationId, 0, 1, null, null)),
+                        Optional.of(conversation(conversationId, 2, 3, null, null)));
+        when(messages.findByTurnAndRole(conversationId, turnId, CompanionMessage.Role.USER)).thenReturn(Optional.empty());
+        when(messages.findByTurnAndRole(conversationId, turnId, CompanionMessage.Role.ASSISTANT)).thenReturn(Optional.empty());
+        when(conversations.admitNew(eq(conversationId), eq("learner-1"), eq(turnId), eq(1L), any(), any(), eq(100)))
+                .thenReturn(Optional.of(conversation(conversationId, 1, 2, turnId, 1L)));
+        when(messages.insert(any())).thenAnswer(invocation -> {
+            CompanionMessage value = invocation.getArgument(0);
+            value.setId("message-" + value.getSequence());
+            return value;
+        });
+        when(conversations.finish(eq(conversationId), eq("learner-1"), eq(turnId), eq(1L), eq(2L), any())).thenReturn(true);
+        var calls = List.of(new CompanionToolCall("call-1", "otherTool", java.util.Map.of()),
+                new CompanionToolCall("call-2", "getLatestAssessmentResult", java.util.Map.of()));
+        when(model.stream(any())).thenReturn(Flux.just(new CompanionModelEvent.ToolCalls(new CompanionModelContinuation() {}, calls),
+                        new CompanionModelEvent.RoundCompleted(new CompanionUsage(4))),
+                completedText("Answer", 3));
+        when(toolRegistry.execute(eq("otherTool"), anyMap(), eq("learner-1"), any(Runnable.class)))
+                .thenReturn("{\"status\":\"ERROR\"}");
+        var prepared = service.prepareTurn(conversationId,
+                new CompanionTurnRequest(UUID.fromString(turnId), "How did I do?", false));
+        List<CompanionTurnService.TurnStatus> statuses = new ArrayList<>();
+
+        var result = service.streamPreparedTurn(prepared, observer(statuses));
+
+        assertEquals("Answer", result.assistantMessage().content());
+        assertTrue(statuses.isEmpty());
+        verify(toolRegistry).execute(eq("otherTool"), anyMap(), eq("learner-1"), any(Runnable.class));
+        verify(toolRegistry, never()).execute(eq("getLatestAssessmentResult"), anyMap(), eq("learner-1"), any(Runnable.class));
     }
 
     @Test void missingAuthoritativeUsageFailsWithoutAssistantPersistenceOrCharge() {
@@ -256,6 +339,14 @@ class CompanionTurnServiceTest {
         return new CompanionTurnService.TurnObserver() {
             @Override public void onDelta(String text) {}
             @Override public boolean isCancelled() { return false; }
+        };
+    }
+
+    private CompanionTurnService.TurnObserver observer(List<CompanionTurnService.TurnStatus> statuses) {
+        return new CompanionTurnService.TurnObserver() {
+            @Override public void onDelta(String text) {}
+            @Override public boolean isCancelled() { return false; }
+            @Override public void onStatus(CompanionTurnService.TurnStatus status) { statuses.add(status); }
         };
     }
 

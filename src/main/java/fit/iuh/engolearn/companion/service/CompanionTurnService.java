@@ -8,9 +8,14 @@ public interface CompanionTurnService {
     void abandonPreparedTurn(PreparedTurn preparedTurn);
     default void cancelPreparedTurn(PreparedTurn preparedTurn) { abandonPreparedTurn(preparedTurn); }
 
+    enum TurnStatus {
+        ASSESSMENT_LOOKUP
+    }
+
     interface TurnObserver {
         void onDelta(String text);
         boolean isCancelled();
+        default void onStatus(TurnStatus status) {}
         default void setCancelAction(Runnable cancelAction) {}
     }
 

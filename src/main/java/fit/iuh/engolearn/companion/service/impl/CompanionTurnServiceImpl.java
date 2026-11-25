@@ -301,7 +301,8 @@ public class CompanionTurnServiceImpl implements CompanionTurnService {
         Duration timeout = remaining.compareTo(properties.getToolTimeout()) < 0 ? remaining : properties.getToolTimeout();
         Future<String> future;
         try {
-            future = companionToolExecutor.submit(() -> toolRegistry.execute(call.name(), call.arguments(), learnerId));
+            future = companionToolExecutor.submit(() -> toolRegistry.execute(call.name(), call.arguments(), learnerId,
+                    () -> notifyAssessmentLookup(observer)));
         } catch (RejectedExecutionException saturated) {
             return toolError("Assessment context is temporarily unavailable.");
         }
@@ -331,7 +332,19 @@ public class CompanionTurnServiceImpl implements CompanionTurnService {
             Thread.currentThread().interrupt();
             throw new TurnCancelledException();
         } catch (ExecutionException failure) {
+            if (failure.getCause() instanceof ObserverCallbackException callbackFailure) {
+                if (observer.isCancelled()) throw new TurnCancelledException();
+                throw callbackFailure;
+            }
             return toolError("Assessment context is temporarily unavailable.");
+        }
+    }
+
+    private static void notifyAssessmentLookup(TurnObserver observer) {
+        try {
+            observer.onStatus(TurnStatus.ASSESSMENT_LOOKUP);
+        } catch (RuntimeException failure) {
+            throw new ObserverCallbackException(failure);
         }
     }
 
@@ -408,4 +421,7 @@ public class CompanionTurnServiceImpl implements CompanionTurnService {
         private boolean completed;
     }
     private static final class TurnCancelledException extends RuntimeException {}
+    private static final class ObserverCallbackException extends RuntimeException {
+        private ObserverCallbackException(RuntimeException cause) { super(cause); }
+    }
 }

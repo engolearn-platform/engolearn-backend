@@ -30,10 +30,15 @@ public class CompanionToolRegistry {
     }
 
     public String execute(String name, Map<String, Object> arguments, String learnerId) {
+        return execute(name, arguments, learnerId, () -> {});
+    }
+
+    public String execute(String name, Map<String, Object> arguments, String learnerId, Runnable onAssessmentLookup) {
         if (!LATEST_ASSESSMENT.equals(name)) return result("ERROR", "The requested tool is unavailable.");
         if (learnerId == null || learnerId.isBlank()) return result("FORBIDDEN", "Assessment context is unavailable.");
         ToolArguments parsed = parseArguments(arguments);
         if (parsed == null) return result("INVALID_ARGUMENTS", "Tool arguments are invalid.");
+        onAssessmentLookup.run();
         try {
             AssessmentCompanionSummaryDto summary = assessments.latestForCompanion(learnerId).orElse(null);
             if (summary == null) return json(Map.of("status", "NO_DATA"));

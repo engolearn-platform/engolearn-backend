@@ -58,6 +58,7 @@ class CompanionTurnStreamControllerTest {
         when(turns.prepareTurn(eq("conversation-1"), any(CompanionTurnRequest.class))).thenReturn(prepared);
         doAnswer(invocation -> {
             CompanionTurnService.TurnObserver observer = invocation.getArgument(1);
+            observer.onStatus(CompanionTurnService.TurnStatus.ASSESSMENT_LOOKUP);
             observer.onDelta("Hello");
             return new CompanionTurnResult(turnId.toString(),
                     new MessageResponse("message-2", 2, "ASSISTANT", "Hello there", Instant.parse("2026-11-25T00:00:00Z")),
@@ -74,9 +75,16 @@ class CompanionTurnStreamControllerTest {
         mvc.perform(asyncDispatch(started))
                 .andExpect(status().isOk())
                 .andExpect(content().string(org.hamcrest.Matchers.containsString("event:delta")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("event:status")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("data:{\"code\":\"ASSESSMENT_LOOKUP\"}")))
                 .andExpect(content().string(org.hamcrest.Matchers.containsString("event:completed")))
                 .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("event:error"))))
-                .andExpect(result -> assertThat(occurrences(result.getResponse().getContentAsString(), "event:completed")).isEqualTo(1));
+                .andExpect(result -> {
+                    String body = result.getResponse().getContentAsString();
+                    assertThat(occurrences(body, "event:status")).isEqualTo(1);
+                    assertThat(body.indexOf("event:status")).isLessThan(body.indexOf("event:delta"));
+                    assertThat(occurrences(body, "event:completed")).isEqualTo(1);
+                });
     }
 
     @Test

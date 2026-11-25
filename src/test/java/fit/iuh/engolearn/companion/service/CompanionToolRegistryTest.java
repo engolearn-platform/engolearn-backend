@@ -14,6 +14,7 @@ import java.util.Map;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.InOrder;
 import tools.jackson.databind.json.JsonMapper;
 
 class CompanionToolRegistryTest {
@@ -59,6 +60,38 @@ class CompanionToolRegistryTest {
         String failure = registry.execute("getLatestAssessmentResult", Map.of("detail", "SKILLS"), "learner-1");
         assertTrue(failure.contains("\"status\":\"ERROR\""));
         assertFalse(failure.contains("sensitive internal error"));
+    }
+
+    @Test void assessmentLookupCallbackRunsAfterValidationAndImmediatelyBeforeAssessment() {
+        Runnable callback = mock(Runnable.class);
+        InOrder order = inOrder(callback, assessments);
+
+        String summary = registry.execute("getLatestAssessmentResult", Map.of(), "learner-1", callback);
+
+        assertTrue(summary.contains("\"status\":\"SUCCESS\""));
+        order.verify(callback).run();
+        order.verify(assessments).latestForCompanion("learner-1");
+    }
+
+    @Test void invalidOrOtherCallsDoNotEmitAssessmentLookup() {
+        Runnable callback = mock(Runnable.class);
+
+        assertTrue(registry.execute("otherTool", Map.of(), "learner-1", callback).contains("unavailable"));
+        assertTrue(registry.execute("getLatestAssessmentResult", Map.of("userId", "other"), "learner-1", callback)
+                .contains("INVALID_ARGUMENTS"));
+        assertTrue(registry.execute("getLatestAssessmentResult", Map.of(), " ", callback).contains("FORBIDDEN"));
+
+        verifyNoInteractions(callback, assessments);
+    }
+
+    @Test void statusObserverFailureDoesNotBecomeAnAssessmentToolResult() {
+        RuntimeException observerFailure = new IllegalStateException("stream is closed");
+
+        RuntimeException thrown = assertThrows(RuntimeException.class, () -> registry.execute(
+                "getLatestAssessmentResult", Map.of(), "learner-1", () -> { throw observerFailure; }));
+
+        assertSame(observerFailure, thrown);
+        verifyNoInteractions(assessments);
     }
 
     @Test void toolCanBeDisabledAndNoDataIsTyped() {

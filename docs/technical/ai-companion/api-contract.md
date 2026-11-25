@@ -34,8 +34,11 @@ SSE events are:
 | Event | Data |
 | --- | --- |
 | `delta` | `{"text":"..."}` |
+| `status` | `{"code":"ASSESSMENT_LOOKUP"}` |
 | `completed` | `{"turnId":"...","assistantMessage":{...},"messageCount":N,"maxMessages":N,"warning":false}` |
 | `error` | `{"turnId":"...","code":"...","detail":"...","retryable":false}` |
+
+`status` is a non-terminal progress event emitted immediately before the validated `getLatestAssessmentResult` tool invokes Assessment. It is not emitted for invalid or unavailable calls, budget-skipped calls, or other tool names. Its payload contains only the fixed code; it carries no arguments or assessment data.
 
 Successful streams emit deltas followed by exactly one `completed` event. A stream failure or deadline emits one safe `error` event. Admission, validation and ownership failures before the stream starts use RFC 7807 `ProblemDetail` with `code`, safe detail, and `retryable` where applicable. Statuses are 400 for invalid input, 404 for missing/foreign conversations, 409 for capacity or turn conflicts, 503 for unavailable storage/provider/stream capacity, and 504 for deadline expiry. Authentication and authorization failures remain 401/403.
 
@@ -43,4 +46,4 @@ The conversation cap reserves space for both user and assistant messages before 
 
 Quota availability is checked before inference and before the SSE stream starts. Exhausted policy or unavailable/missing quota policy is rejected through the existing safe `ProblemDetail` path. This adds no request fields or response fields. After a stream begins, missing or invalid authoritative token accounting fails the turn through the existing `error` event; the user message remains available for explicit retry, and no assistant completion is persisted or charged. Quota and provider details are not included in the event.
 
-The event names and JSON shapes above remain unchanged. `completed` is emitted only after the final assistant message and its usage record commit atomically.
+`completed` is emitted only after the final assistant message and its usage record commit atomically. The additive `status` event does not change request fields, terminal event shapes, persistence or quota behavior.

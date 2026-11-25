@@ -94,6 +94,13 @@ public class CompanionTurnStreamController {
                     }
 
                     @Override
+                    public void onStatus(CompanionTurnService.TurnStatus status) {
+                        if (status == CompanionTurnService.TurnStatus.ASSESSMENT_LOOKUP) {
+                            send(emitter, "status", Map.of("code", "ASSESSMENT_LOOKUP"), cancelled);
+                        }
+                    }
+
+                    @Override
                     public boolean isCancelled() {
                         return cancelled.get();
                     }
