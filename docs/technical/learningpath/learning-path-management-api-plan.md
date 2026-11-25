@@ -1,6 +1,6 @@
 # Learning Path passage management APIs
 
-Creation, listing and detail reads are implemented. The remaining APIs are planned and will be implemented
+Creation, listing, detail reads and DRAFT edits are implemented. The remaining APIs are planned and will be implemented
 one at a time with the owner. Business scope: workspace `AGENT.md`, sections 17.8–17.11.
 
 ## Passage API sequence
@@ -12,7 +12,7 @@ Base: `/api/management/learning-paths/passages`.
 | 1 | POST | base | Create a DRAFT passage, uploading audio for Listening | Implemented |
 | 2 | GET | base | List with pagination and keyword/skill/level/status filters | Implemented |
 | 3 | GET | `/{passageId}` | Read passage details and resolve audio for preview | Implemented |
-| 4 | PATCH | `/{passageId}` | Edit a DRAFT passage | Planned |
+| 4 | PATCH | `/{passageId}` | Edit a DRAFT passage | Implemented |
 | 5 | DELETE | `/{passageId}` | Delete a DRAFT with no referencing questions | Planned |
 
 Follow with passage validation/publication/retirement, then question management.
@@ -113,7 +113,7 @@ frontend implementation is part of this API change.
 
 Errors use ProblemDetail. A path-scoped `PassageMultipartExceptionResolver` handles the
 413 case because multipart parsing can fail before MVC has selected a controller and its
-scoped advice. It only handles POST to this passage endpoint; other controllers retain
+scoped advice. It only handles POST to the passage collection and PATCH to a single passage; other controllers retain
 their existing exception handling.
 
 | Status | Code | Meaning |
@@ -285,6 +285,76 @@ even if a legacy URL also exists, rather than silently playing different content
 Errors are ProblemDetail and omit provider/database diagnostics. Resolving a URL does not
 check actual playback or transcript accuracy. Provider playback remains a manual integration
 check. This API performs no content, revision, audit timestamp, status or learner-state writes.
+
+## PATCH: edit a DRAFT passage
+
+`PATCH /api/management/learning-paths/passages/{passageId}` requires the same trusted
+CONTENT_MANAGER authority (including ADMIN) at both HTTP and service entry points. ID
+validation matches detail reads. Content type is multipart/form-data with required JSON
+`passage` and optional `audio` file. Return HTTP 200 and the same metadata response shape
+as create, with the new revision and updatedAt; use GET detail for a preview URL.
+
+| JSON field | Meaning |
+| --- | --- |
+| `revision` | Required integer >= 1; revision last read by the editor |
+| `skill`, `level`, `title`, `text`, `transcript` | Optional partial changes; enums/length limits match create |
+
+An omitted or null optional field keeps its stored value. Supply at least one nonnull
+field or an audio file in addition to revision. A supplied blank title is invalid. Empty
+text/transcript may only clear fields irrelevant to the resulting skill; required content
+must remain nonblank. State, IDs, creator and timestamps are server-controlled, not editable
+through this request.
+
+```bash
+curl --request PATCH http://localhost:8080/api/management/learning-paths/passages/LP-PASS-example \
+  --cookie 'ACCESS_TOKEN=<valid-access-cookie>' \
+  --form 'passage={"revision":1,"title":"Updated title"};type=application/json'
+```
+
+To replace Listening audio, send JSON `{"revision":1}` (plus any metadata changes) and
+`audio=@replacement.mp3;type=audio/mpeg` in the same request. Upload limits, supported MIME
+types and Media signature validation match creation. An explicitly sent empty file is an
+error, not a request to retain/delete audio.
+
+The merged result must have valid content: Reading requires text and accepts no new audio
+or nonblank transcript; Listening requires transcript and either an existing audio
+reference or a valid replacement file. No audio part retains the current new/legacy audio
+reference without resolving a delivery URL. Changing Reading to Listening requires the
+resulting transcript and an audio reference/file; changing Listening to Reading requires
+text and removes old transcript/audio references. Irrelevant old content is cleared when
+changing skill, rather than copied into the new stimulus type. Assets are not deleted.
+
+When skill or level changes, inspect all Question Pool records referencing passage_id,
+regardless of question status. Reject the change if a referencing question would have a
+different/missing skill or level from the target passage. This also rejects incomplete
+reference data rather than guessing its classification. Editing title/content without
+changing classification leaves question documents unchanged.
+
+Read and validate DRAFT status/revision, content and references before upload. Save with an
+atomic Mongo predicate on passage_id + DRAFT + expected revision. Increment revision once,
+update updated_at/updated_by from the server, retain created_at/created_by and preserve
+unmapped fields. Existing legacy audio subdocuments are untouched when retaining audio;
+replacement unsets legacy audio and stores the new audio_media_id. There is no full-document
+replacement or write to learner paths, snapshots, results or questions.
+
+Both an initially stale revision/non-DRAFT status and a concurrent edit/publication that
+wins before the conditional write return 409 PASSAGE_UPDATE_CONFLICT. Refetch the passage
+and let the editor reconcile it; do not automatically retry with a newer revision. Missing
+passages return 404 PASSAGE_NOT_FOUND. Invalid metadata/content/audio returns 400, multipart
+limit violations 413, wrong content type 415, and Media/database failures 503 using the
+existing codes above. Incompatible question references also return 409 PASSAGE_UPDATE_CONFLICT.
+
+Media upload precedes the conditional write. Upload failure preserves the original passage.
+If upload succeeds but the database write fails or loses the revision race, an unreferenced
+new Media asset may remain; the original passage reference is retained. Replaced assets
+also remain in Media because its public contract has no delete/reference cleanup capability.
+The API does not claim an atomic transaction spanning Media and Learning Path.
+
+Reference validation and passage update are separate operations; no lock/transaction with
+future question authoring is introduced. When question create/edit/publication APIs are
+implemented they must enforce passage classification/status and coordinate concurrent
+reference changes. This endpoint alone cannot guarantee cross-document invariants against
+out-of-band database writers.
 
 ## Verification scope
 

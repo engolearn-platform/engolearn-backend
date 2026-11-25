@@ -39,4 +39,6 @@ public class QuestionPoolPassage extends BaseDocument {
     private int revision;
     @Field("created_by")
     private String createdBy;
+    @Field("updated_by")
+    private String updatedBy;
 }

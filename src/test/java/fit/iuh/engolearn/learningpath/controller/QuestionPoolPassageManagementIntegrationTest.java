@@ -2,6 +2,7 @@ package fit.iuh.engolearn.learningpath.controller;
 
 import fit.iuh.engolearn.config.AbstractMongoIntegrationTest;
 import fit.iuh.engolearn.learningpath.dto.request.CreateQuestionPoolPassageRequest;
+import fit.iuh.engolearn.learningpath.dto.request.UpdateQuestionPoolPassageRequest;
 import fit.iuh.engolearn.learningpath.dto.request.ListQuestionPoolPassagesRequest;
 import fit.iuh.engolearn.learningpath.model.enums.QuestionPoolSkill;
 import fit.iuh.engolearn.learningpath.repository.QuestionPoolPassageRepository;
@@ -497,6 +498,207 @@ class QuestionPoolPassageManagementIntegrationTest extends AbstractMongoIntegrat
         verifyNoInteractions(storage);
     }
 
+    @ParameterizedTest
+    @EnumSource(value = UserRole.class, names = {"CONTENT_MANAGER", "ADMIN"})
+    void patchReadingChangesOnlyProvidedFieldsAndPreservesAuditAndUnknownData(UserRole role) {
+        seedPassage("editable", "READING", "B1", "DRAFT", "Original title", "Original text", null, 0);
+        setAudio("editable", new Document("editor_notes", "Keep this unmapped field"));
+        var before = mongoTemplate.getCollection("question_pool_passages").find().first();
+        var result = patch("editable", "{\"revision\":1,\"title\":\" New title \"}", null, null, role);
+        assertThat(result.getStatusCode().value()).as(result.getBody()).isEqualTo(200);
+        var data = json.readTree(result.getBody()).path("data");
+        assertThat(data.path("title").asString()).isEqualTo("New title");
+        assertThat(data.path("text").asString()).isEqualTo("Original text");
+        assertThat(data.path("revision").asInt()).isEqualTo(2);
+        var after = mongoTemplate.getCollection("question_pool_passages").find().first();
+        assertThat(after.get("_id")).isEqualTo(before.get("_id"));
+        assertThat(after.getDate("created_at")).isEqualTo(before.getDate("created_at"));
+        assertThat(after.getString("created_by")).isEqualTo("another-editor");
+        assertThat(after.getString("updated_by")).isEqualTo("passage-editor");
+        assertThat(after.getString("editor_notes")).isEqualTo("Keep this unmapped field");
+        assertThat(after.getDate("updated_at")).isAfter(before.getDate("updated_at"));
+        verifyNoInteractions(storage);
+        assertNoLearnerWrites();
+    }
+
+    @Test
+    void patchListeningKeepsNewAndLegacyAudioWithoutUploadingOrResolving() {
+        String id = createListeningForDetail();
+        String mediaId = mongoTemplate.getCollection("question_pool_passages").find().first().getString("audio_media_id");
+        clearInvocations(storage);
+        assertThat(patch(id, "{\"revision\":1,\"transcript\":\"Updated transcript\"}", null, null, UserRole.ADMIN)
+                .getStatusCode().value()).isEqualTo(200);
+        assertThat(mongoTemplate.getCollection("question_pool_passages").find().first().getString("audio_media_id"))
+                .isEqualTo(mediaId);
+        seedPassage("legacy-edit", "LISTENING", "B1", "DRAFT", "Title", null, "Transcript", 0);
+        Document legacy = new Document("url", "/old.mp3").append("duration_sec", 47)
+                .append("format", "mp3").append("extra_metadata", "preserve");
+        setAudio("legacy-edit", new Document("audio", legacy));
+        assertThat(patch("legacy-edit", "{\"revision\":1,\"title\":\"New title\"}", null, null, UserRole.ADMIN)
+                .getStatusCode().value()).isEqualTo(200);
+        assertThat(mongoTemplate.getCollection("question_pool_passages").find(new Document("passage_id", "legacy-edit"))
+                .first().get("audio", Document.class)).isEqualTo(legacy);
+        verifyNoInteractions(storage);
+    }
+
+    @Test
+    void patchCanReplaceAudioAndKeepsOldMediaAsset() {
+        String id = createListeningForDetail();
+        String oldMediaId = mongoTemplate.getCollection("question_pool_passages").find().first().getString("audio_media_id");
+        setAudio(id, new Document("audio", new Document("url", "/outdated.mp3")));
+        var response = patch(id, "{\"revision\":1}", MP3, "audio/mpeg", UserRole.ADMIN);
+        assertThat(response.getStatusCode().value()).as(response.getBody()).isEqualTo(200);
+        String newMediaId = json.readTree(response.getBody()).path("data").path("audioMediaId").asString();
+        assertThat(newMediaId).isNotEqualTo(oldMediaId).isNotBlank();
+        var saved = mongoTemplate.getCollection("question_pool_passages").find().first();
+        assertThat(saved.getString("audio_media_id")).isEqualTo(newMediaId);
+        assertThat(saved.containsKey("audio")).isFalse();
+        assertThat(mongoTemplate.getCollection("media_assets").countDocuments()).isEqualTo(2);
+        verify(storage, never()).destroy(any());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"ACTIVE", "RETIRED"})
+    void patchRejectsNonDraftBeforeUpload(String state) {
+        seedPassage("immutable", "LISTENING", "B1", state, "Title", null, "Transcript", 0);
+        assertError(patch("immutable", "{\"revision\":1,\"title\":\"New\"}", MP3, "audio/mpeg", UserRole.ADMIN),
+                409, "PASSAGE_UPDATE_CONFLICT");
+        verifyNoInteractions(storage);
+    }
+
+    @Test
+    void patchMissingAndStaleRevisionDoNotUpload() {
+        seedPassage("editable", "READING", "B1", "DRAFT", "Title", "Text", null, 0);
+        assertError(patch("missing", "{\"revision\":1,\"title\":\"New\"}", MP3, "audio/mpeg", UserRole.ADMIN), 404, "PASSAGE_NOT_FOUND");
+        assertError(patch("editable", "{\"revision\":2,\"title\":\"New\"}", null, null, UserRole.ADMIN), 409, "PASSAGE_UPDATE_CONFLICT");
+        verifyNoInteractions(storage);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"DRAFT", "ACTIVE", "RETIRED"})
+    void patchRejectsClassificationChangesThatMismatchReferencingQuestions(String questionState) {
+        seedPassage("referenced", "READING", "B1", "DRAFT", "Title", "Text", null, 0);
+        mongoTemplate.getCollection("question_pool").insertOne(new Document("question_id", "ref")
+                .append("passage_id", "referenced").append("skill", "READING").append("level", "B1").append("status", questionState));
+        assertError(patch("referenced", "{\"revision\":1,\"level\":\"A2\"}", null, null, UserRole.ADMIN), 409, "PASSAGE_UPDATE_CONFLICT");
+        assertError(patch("referenced", "{\"revision\":1,\"skill\":\"LISTENING\",\"transcript\":\"Transcript\"}",
+                MP3, "audio/mpeg", UserRole.ADMIN), 409, "PASSAGE_UPDATE_CONFLICT");
+        assertThat(patch("referenced", "{\"revision\":1,\"title\":\"New title\"}", null, null, UserRole.ADMIN)
+                .getStatusCode().value()).isEqualTo(200);
+        assertThat(mongoTemplate.getCollection("question_pool").find().first().getString("level")).isEqualTo("B1");
+        verifyNoInteractions(storage);
+    }
+
+    @Test
+    void patchUnreferencedPassageCanChangeSkillAndLevelWithValidContent() {
+        seedPassage("switch", "READING", "B1", "DRAFT", "Title", "Reading text", null, 0);
+        var listening = patch("switch", "{\"revision\":1,\"skill\":\"LISTENING\",\"level\":\"A2\",\"transcript\":\"Transcript\"}",
+                MP3, "audio/mpeg", UserRole.ADMIN);
+        assertThat(listening.getStatusCode().value()).as(listening.getBody()).isEqualTo(200);
+        assertThat(json.readTree(listening.getBody()).path("data").path("text").isNull()).isTrue();
+        var reading = patch("switch", "{\"revision\":2,\"skill\":\"READING\",\"text\":\"New reading text\"}", null, null, UserRole.ADMIN);
+        assertThat(reading.getStatusCode().value()).as(reading.getBody()).isEqualTo(200);
+        var saved = mongoTemplate.getCollection("question_pool_passages").find().first();
+        assertThat(saved.containsKey("transcript")).isFalse();
+        assertThat(saved.containsKey("audio_media_id")).isFalse();
+        assertThat(saved.containsKey("audio")).isFalse();
+        assertThat(saved.getString("level")).isEqualTo("A2");
+        assertThat(saved.getInteger("revision")).isEqualTo(3);
+        assertThat(mongoTemplate.getCollection("media_assets").countDocuments()).isEqualTo(1);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"{}", "{\"revision\":0,\"title\":\"New\"}", "{\"revision\":1}",
+            "{\"revision\":1,\"title\":\"  \"}", "{\"revision\":1,\"text\":\" \"}",
+            "{\"revision\":1,\"skill\":\"SPEAKING\"}", "{\"revision\":1,\"level\":\"INVALID\"}",
+            "{\"revision\":1,\"transcript\":\"Wrong for Reading\"}"})
+    void patchRejectsInvalidRequestsWithoutChangingDraft(String body) {
+        seedPassage("editable", "READING", "B1", "DRAFT", "Title", "Text", null, 0);
+        assertThat(patch("editable", body, null, null, UserRole.ADMIN).getStatusCode().value()).isEqualTo(400);
+        assertThat(mongoTemplate.getCollection("question_pool_passages").find().first().getInteger("revision")).isEqualTo(1);
+        verifyNoInteractions(storage);
+    }
+
+    @Test
+    void patchUploadFailureLeavesOriginalReferenceAndRevision() {
+        String id = createListeningForDetail();
+        var before = mongoTemplate.getCollection("question_pool_passages").find().first();
+        doThrow(new MediaStorageUnavailableException("provider failed")).when(storage).upload(anyString(), any(), any(), any());
+        assertError(patch(id, "{\"revision\":1}", MP3, "audio/mpeg", UserRole.ADMIN), 503, "MEDIA_STORAGE_UNAVAILABLE");
+        assertThat(mongoTemplate.getCollection("question_pool_passages").find().first()).isEqualTo(before);
+    }
+
+    @Test
+    void patchConcurrentEditorsCannotOverwriteTheSameRevision() throws Exception {
+        seedPassage("concurrent", "READING", "B1", "DRAFT", "Title", "Text", null, 0);
+        var barrier = new java.util.concurrent.CyclicBarrier(2);
+        doAnswer(invocation -> {
+            barrier.await(15, java.util.concurrent.TimeUnit.SECONDS);
+            return invocation.callRealMethod();
+        }).when(passages).updateDraft(any(), eq(1), eq(false));
+        var first = java.util.concurrent.CompletableFuture.supplyAsync(() -> patch("concurrent",
+                "{\"revision\":1,\"title\":\"First\"}", null, null, UserRole.ADMIN));
+        var second = java.util.concurrent.CompletableFuture.supplyAsync(() -> patch("concurrent",
+                "{\"revision\":1,\"title\":\"Second\"}", null, null, UserRole.ADMIN));
+        assertThat(java.util.List.of(first.get(25, java.util.concurrent.TimeUnit.SECONDS).getStatusCode().value(),
+                second.get(25, java.util.concurrent.TimeUnit.SECONDS).getStatusCode().value())).containsExactlyInAnyOrder(200, 409);
+        assertThat(mongoTemplate.getCollection("question_pool_passages").find().first().getInteger("revision")).isEqualTo(2);
+    }
+
+    @Test
+    void patchPublicationRaceRejectsWriteAndMayLeaveNewMediaUnreferenced() {
+        String id = createListeningForDetail();
+        String oldMediaId = mongoTemplate.getCollection("question_pool_passages").find().first().getString("audio_media_id");
+        doAnswer(invocation -> {
+            mongoTemplate.getCollection("question_pool_passages").updateOne(new Document("passage_id", id),
+                    new Document("$set", new Document("status", "ACTIVE")));
+            return invocation.callRealMethod();
+        }).when(passages).updateDraft(any(), eq(1), eq(true));
+        assertError(patch(id, "{\"revision\":1}", MP3, "audio/mpeg", UserRole.ADMIN), 409, "PASSAGE_UPDATE_CONFLICT");
+        var saved = mongoTemplate.getCollection("question_pool_passages").find().first();
+        assertThat(saved.getString("status")).isEqualTo("ACTIVE");
+        assertThat(saved.getString("audio_media_id")).isEqualTo(oldMediaId);
+        assertThat(saved.getInteger("revision")).isEqualTo(1);
+        assertThat(mongoTemplate.getCollection("media_assets").countDocuments()).isEqualTo(2);
+    }
+
+    @Test
+    void patchRequiresManagerRoleAtHttpAndServiceBoundaries() {
+        seedPassage("editable", "READING", "B1", "DRAFT", "Title", "Text", null, 0);
+        assertError(patch("editable", "{\"revision\":1,\"title\":\"New\"}", null, null, null), 401, "AUTHENTICATION_REQUIRED");
+        assertError(patch("editable", "{\"revision\":1,\"title\":\"New\"}", null, null, UserRole.USER), 403, "ACCESS_DENIED");
+        var request = new UpdateQuestionPoolPassageRequest(1, null, null, "New", null, null);
+        try {
+            SecurityContextHolder.clearContext();
+            assertThatThrownBy(() -> service.update("editable", request, null, null, null, 0))
+                    .isInstanceOf(AuthenticationCredentialsNotFoundException.class);
+            authenticate(UserRole.USER);
+            assertThatThrownBy(() -> service.update("editable", request, null, null, null, 0)).isInstanceOf(AccessDeniedException.class);
+            authenticate(UserRole.CONTENT_MANAGER);
+            assertThat(service.update("editable", request, null, null, null, 0).revision()).isEqualTo(2);
+            authenticate(UserRole.ADMIN);
+            assertThat(service.update("editable", new UpdateQuestionPoolPassageRequest(2, null, null, "Again", null, null),
+                    null, null, null, 0).revision()).isEqualTo(3);
+        } finally {
+            SecurityContextHolder.clearContext();
+        }
+        verifyNoInteractions(storage);
+    }
+
+    @Test
+    void patchOversizedUploadReturns413() {
+        seedPassage("editable", "LISTENING", "B1", "DRAFT", "Title", null, "Transcript", 0);
+        byte[] oversized = new byte[70 * 1024];
+        assertError(patch("editable", "{\"revision\":1}", oversized, "audio/mpeg", UserRole.ADMIN), 413, "UPLOAD_TOO_LARGE");
+        verifyNoInteractions(storage);
+    }
+
+    private ResponseEntity<String> patch(String id, String metadata, byte[] audio, String type, UserRole role) {
+        java.net.URI uri = org.springframework.web.util.UriComponentsBuilder.fromUriString("http://localhost:" + port + BASE)
+                .path("/{passageId}").encode().buildAndExpand(id).toUri();
+        return multipart(HttpMethod.PATCH, uri, metadata, audio, type, role);
+    }
+
     private String createListeningForDetail() {
         var created = post(LISTENING, MP3, "audio/mpeg", UserRole.ADMIN);
         assertThat(created.getStatusCode().value()).isEqualTo(201);
@@ -550,6 +752,11 @@ class QuestionPoolPassageManagementIntegrationTest extends AbstractMongoIntegrat
     }
 
     private ResponseEntity<String> post(String metadata, byte[] audio, String type, UserRole role) {
+        return multipart(HttpMethod.POST, java.net.URI.create("http://localhost:" + port + BASE), metadata, audio, type, role);
+    }
+
+    private ResponseEntity<String> multipart(HttpMethod method, java.net.URI uri, String metadata,
+            byte[] audio, String type, UserRole role) {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.MULTIPART_FORM_DATA);
         headers.addAll(authHeaders(role));
@@ -567,7 +774,7 @@ class QuestionPoolPassageManagementIntegrationTest extends AbstractMongoIntegrat
             }, part));
         }
         try {
-            return restTemplate.exchange("http://localhost:" + port + BASE, HttpMethod.POST, new HttpEntity<>(parts, headers), String.class);
+            return restTemplate.exchange(uri, method, new HttpEntity<>(parts, headers), String.class);
         } catch (org.springframework.web.client.HttpStatusCodeException exception) {
             return new ResponseEntity<>(exception.getResponseBodyAsString(), exception.getResponseHeaders(), exception.getStatusCode());
         }

@@ -18,6 +18,9 @@ import fit.iuh.engolearn.learningpath.dto.response.QuestionPoolPassageListRespon
 import fit.iuh.engolearn.learningpath.dto.response.QuestionPoolPassageDetailResponse;
 import fit.iuh.engolearn.learningpath.dto.response.QuestionPoolPassageAudioResponse;
 import fit.iuh.engolearn.learningpath.exception.QuestionPoolPassageNotFoundException;
+import fit.iuh.engolearn.learningpath.dto.request.UpdateQuestionPoolPassageRequest;
+import fit.iuh.engolearn.learningpath.exception.PassageUpdateConflictException;
+import fit.iuh.engolearn.learningpath.repository.QuestionPoolRepository;
 import java.io.InputStream;
 import java.time.Instant;
 import java.util.Locale;
@@ -35,7 +38,59 @@ public class QuestionPoolPassageManagementServiceImpl implements QuestionPoolPas
             "audio/mpeg", "audio/wav", "audio/x-wav", "audio/wave", "audio/vnd.wave");
     private final QuestionPoolPassageRepository passages;
     private final MediaManagement media;
+    private final QuestionPoolRepository questions;
     private final CurrentUserProvider users;
+
+    @Override
+    @PreAuthorize("hasRole('CONTENT_MANAGER')")
+    public QuestionPoolPassageResponse update(String passageId, UpdateQuestionPoolPassageRequest request,
+            InputStream audio, String filename, String contentType, long sizeBytes) {
+        String actor = users.requireCurrentUserId();
+        QuestionPoolPassage passage = passages.findByPassageId(passageId)
+                .orElseThrow(QuestionPoolPassageNotFoundException::new);
+        if (passage.getStatus() != QuestionPoolContentStatus.DRAFT || passage.getRevision() != request.revision()) {
+            throw new PassageUpdateConflictException("Only the current revision of a DRAFT passage can be edited");
+        }
+        if (request.skill() == null && request.level() == null && request.title() == null
+                && request.text() == null && request.transcript() == null && audio == null) {
+            throw new InvalidPassageException("Supply at least one passage field or an audio file");
+        }
+        var skill = request.skill() == null ? passage.getSkill() : request.skill();
+        var level = request.level() == null ? passage.getLevel() : request.level();
+        boolean skillChanged = skill != passage.getSkill();
+        if ((skillChanged || level != passage.getLevel())
+                && questions.hasIncompatiblePassageReferences(passageId, skill.name(), level.name())) {
+            throw new PassageUpdateConflictException("Passage skill or level would mismatch referencing questions");
+        }
+        String title = request.title() == null ? passage.getTitle() : request.title();
+        String text = request.text() == null ? passage.getText() : request.text();
+        String transcript = request.transcript() == null ? passage.getTranscript() : request.transcript();
+        if (blank(title)) throw new InvalidPassageException("Passage title must not be blank");
+        if (skill == QuestionPoolSkill.LISTENING) {
+            if (blank(transcript) || (request.text() != null && !blank(request.text()))) {
+                throw new InvalidPassageException("Listening requires transcript and must not contain Reading text");
+            }
+            if (audio == null && blank(passage.getAudioMediaId())
+                    && (passage.getAudio() == null || blank(passage.getAudio().getUrl()))) {
+                throw new InvalidPassageException("Listening requires an existing audio reference or a new audio file");
+            }
+        } else if (blank(text) || audio != null || (request.transcript() != null && !blank(request.transcript()))) {
+            throw new InvalidPassageException("Reading requires text and must not contain audio or transcript");
+        }
+        boolean replaceAudio = audio != null || (skillChanged && skill == QuestionPoolSkill.READING);
+        if (audio != null) passage.setAudioMediaId(uploadAudio(audio, filename, contentType, sizeBytes));
+        else if (replaceAudio) passage.setAudioMediaId(null);
+        passage.setSkill(skill);
+        passage.setLevel(level);
+        passage.setTitle(title.strip());
+        passage.setText(skill == QuestionPoolSkill.READING ? text.strip() : null);
+        passage.setTranscript(skill == QuestionPoolSkill.LISTENING ? transcript.strip() : null);
+        passage.setUpdatedAt(Instant.now());
+        passage.setUpdatedBy(actor);
+        var saved = passages.updateDraft(passage, request.revision(), replaceAudio)
+                .orElseThrow(() -> new PassageUpdateConflictException("Passage changed while saving; reload before editing"));
+        return response(saved);
+    }
 
     @Override
     @PreAuthorize("hasRole('CONTENT_MANAGER')")
@@ -82,14 +137,7 @@ public class QuestionPoolPassageManagementServiceImpl implements QuestionPoolPas
             if (blank(request.transcript()) || !blank(request.text())) {
                 throw new InvalidPassageException("Listening requires transcript and must not contain Reading text");
             }
-            if (audio == null || sizeBytes <= 0 || sizeBytes > MAX_AUDIO_BYTES) {
-                throw new InvalidPassageException("Listening requires a non-empty audio file no larger than 25 MiB");
-            }
-            if (contentType == null || !AUDIO_TYPES.contains(contentType.toLowerCase(Locale.ROOT))) {
-                throw new InvalidPassageException("Audio must be MP3 or WAV");
-            }
-            mediaId = media.upload(new UploadMediaCommandDto("LEARNING_PATH_PASSAGE_AUDIO",
-                    MediaAccessPolicy.PROTECTED, filename, contentType, sizeBytes, audio)).mediaId();
+            mediaId = uploadAudio(audio, filename, contentType, sizeBytes);
         } else {
             if (blank(request.text()) || !blank(request.transcript()) || audio != null) {
                 throw new InvalidPassageException("Reading requires text and must not contain audio or transcript");
@@ -103,9 +151,24 @@ public class QuestionPoolPassageManagementServiceImpl implements QuestionPoolPas
                 .transcript(request.skill() == QuestionPoolSkill.LISTENING ? request.transcript().strip() : null)
                 .audioMediaId(mediaId).status(QuestionPoolContentStatus.DRAFT).revision(1)
                 .createdBy(actor).createdAt(now).updatedAt(now).build());
+        return response(saved);
+    }
+
+    private QuestionPoolPassageResponse response(QuestionPoolPassage saved) {
         return new QuestionPoolPassageResponse(saved.getPassageId(), saved.getSkill(), saved.getLevel(),
                 saved.getTitle(), saved.getText(), saved.getTranscript(), saved.getAudioMediaId(),
                 saved.getStatus(), saved.getRevision(), saved.getCreatedBy(), saved.getCreatedAt(), saved.getUpdatedAt());
+    }
+
+    private String uploadAudio(InputStream audio, String filename, String contentType, long sizeBytes) {
+        if (audio == null || sizeBytes <= 0 || sizeBytes > MAX_AUDIO_BYTES) {
+            throw new InvalidPassageException("Listening requires a non-empty audio file no larger than 25 MiB");
+        }
+        if (contentType == null || !AUDIO_TYPES.contains(contentType.toLowerCase(Locale.ROOT))) {
+            throw new InvalidPassageException("Audio must be MP3 or WAV");
+        }
+        return media.upload(new UploadMediaCommandDto("LEARNING_PATH_PASSAGE_AUDIO",
+                MediaAccessPolicy.PROTECTED, filename, contentType, sizeBytes, audio)).mediaId();
     }
 
     private static boolean blank(String value) { return value == null || value.isBlank(); }

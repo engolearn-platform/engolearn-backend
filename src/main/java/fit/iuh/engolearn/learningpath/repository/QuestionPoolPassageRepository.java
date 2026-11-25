@@ -7,6 +7,8 @@ import fit.iuh.engolearn.shared.enums.CefrLevel;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import org.springframework.data.mongodb.core.FindAndModifyOptions;
+import org.springframework.data.mongodb.core.query.Update;
 import java.util.regex.Pattern;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -52,6 +54,26 @@ public class QuestionPoolPassageRepository {
     public Optional<QuestionPoolPassage> findByPassageId(String passageId) {
         return Optional.ofNullable(mongo.findOne(Query.query(Criteria.where("passage_id").is(passageId)),
                 QuestionPoolPassage.class));
+    }
+
+    public Optional<QuestionPoolPassage> updateDraft(QuestionPoolPassage passage, int expectedRevision,
+            boolean replaceAudio) {
+        Query query = Query.query(Criteria.where("passage_id").is(passage.getPassageId())
+                .and("status").is(QuestionPoolContentStatus.DRAFT).and("revision").is(expectedRevision));
+        Update update = new Update().set("title", passage.getTitle()).set("skill", passage.getSkill())
+                .set("level", passage.getLevel()).set("updated_at", passage.getUpdatedAt())
+                .set("updated_by", passage.getUpdatedBy()).inc("revision", 1);
+        if (passage.getText() == null) update.unset("text");
+        else update.set("text", passage.getText());
+        if (passage.getTranscript() == null) update.unset("transcript");
+        else update.set("transcript", passage.getTranscript());
+        if (replaceAudio) {
+            update.unset("audio");
+            if (passage.getAudioMediaId() == null) update.unset("audio_media_id");
+            else update.set("audio_media_id", passage.getAudioMediaId());
+        }
+        return Optional.ofNullable(mongo.findAndModify(query, update,
+                FindAndModifyOptions.options().returnNew(true), QuestionPoolPassage.class));
     }
 
     public QuestionPoolPassage insert(QuestionPoolPassage passage) {

@@ -13,6 +13,8 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import org.springframework.web.bind.annotation.PathVariable;
+import fit.iuh.engolearn.learningpath.dto.request.UpdateQuestionPoolPassageRequest;
+import org.springframework.web.bind.annotation.PatchMapping;
 import jakarta.validation.Valid;
 import java.io.IOException;
 import lombok.RequiredArgsConstructor;
@@ -42,6 +44,18 @@ public class QuestionPoolPassageManagementController {
             @PathVariable @NotBlank @Size(max = 100) String passageId, HttpServletResponse response) {
         response.setHeader("Cache-Control", "no-store");
         return ApiResponse.ok(passages.detail(passageId));
+    }
+
+    @PatchMapping(value = "/{passageId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ApiResponse<QuestionPoolPassageResponse> update(
+            @PathVariable @NotBlank @Size(max = 100) String passageId,
+            @Valid @RequestPart("passage") UpdateQuestionPoolPassageRequest request,
+            @RequestPart(value = "audio", required = false) MultipartFile audio) throws IOException {
+        try (var input = audio == null ? null : audio.getInputStream()) {
+            return ApiResponse.ok(passages.update(passageId, request, input,
+                    audio == null ? null : audio.getOriginalFilename(),
+                    audio == null ? null : audio.getContentType(), audio == null ? 0 : audio.getSize()));
+        }
     }
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)

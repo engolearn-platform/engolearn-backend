@@ -25,9 +25,12 @@ public class PassageMultipartExceptionResolver implements HandlerExceptionResolv
     public ModelAndView resolveException(HttpServletRequest request, HttpServletResponse response,
             Object handler, Exception exception) {
         // Multipart parsing can fail before MVC selects a controller, so scoped advice cannot handle it.
-        if (!(exception instanceof MaxUploadSizeExceededException)
-                || !"/api/management/learning-paths/passages".equals(request.getRequestURI())
-                || !"POST".equals(request.getMethod())) {
+        String base = "/api/management/learning-paths/passages";
+        String path = request.getRequestURI();
+        boolean create = "POST".equals(request.getMethod()) && base.equals(path);
+        boolean update = "PATCH".equals(request.getMethod()) && path.startsWith(base + "/")
+                && !path.substring(base.length() + 1).isEmpty() && !path.substring(base.length() + 1).contains("/");
+        if (!(exception instanceof MaxUploadSizeExceededException) || (!create && !update)) {
             return null;
         }
         response.setStatus(413);
