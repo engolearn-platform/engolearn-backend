@@ -1,93 +1,124 @@
 package fit.iuh.engolearn.speaking.controller;
 
 import fit.iuh.engolearn.shared.web.ApiResponse;
-import fit.iuh.engolearn.speaking.dto.request.CreateSpeakingSessionRequest;
-import fit.iuh.engolearn.speaking.dto.request.SpeakingControlRequest;
-import fit.iuh.engolearn.speaking.dto.response.*;
-import fit.iuh.engolearn.speaking.model.SpeakingAudioAsset;
-import fit.iuh.engolearn.speaking.service.SpeakingSessionService;
+import fit.iuh.engolearn.speaking.dto.request.SpeakingRequests.*;
+import fit.iuh.engolearn.speaking.dto.response.SpeakingAssessmentResponse;
+import fit.iuh.engolearn.speaking.dto.response.SpeakingResponses.*;
+import fit.iuh.engolearn.speaking.service.SpeakingSessions;
+import fit.iuh.engolearn.speaking.service.SpeakingRealtime;
+import fit.iuh.engolearn.speaking.model.enums.SpeakingSessionStatus;
+import fit.iuh.engolearn.topic.contract.dto.SpeakingScopeDto;
+import fit.iuh.engolearn.topic.contract.enums.SpeakingScopeType;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotBlank;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/speaking")
+@RequiredArgsConstructor
 public class SpeakingController {
-    private final SpeakingSessionService service;
+    private final SpeakingSessions sessions;
+    private final SpeakingRealtime realtime;
 
-    public SpeakingController(SpeakingSessionService service) { this.service = service; }
-
-    @GetMapping("/items/{itemId}/config")
-    public ApiResponse<SpeakingItemConfigResponse> config(@PathVariable @NotBlank String itemId) {
-        return ApiResponse.ok(service.config(itemId));
-    }
-
-    @GetMapping("/sessions/current")
-    public ApiResponse<SpeakingSessionResponse> current() { return ApiResponse.ok(service.current()); }
-
-    @GetMapping("/sessions")
-    public ApiResponse<List<SpeakingSessionResponse>> history(
-            @RequestParam(required = false) String itemId) {
-        return ApiResponse.ok(service.history(itemId));
-    }
-
-    @GetMapping("/sessions/{id}")
-    public ApiResponse<SpeakingSessionResponse> get(@PathVariable String id) {
-        return ApiResponse.ok(service.get(id));
+    @GetMapping("/availability")
+    public ApiResponse<Availability> availability(@RequestParam(required = false) SpeakingScopeType scopeType,
+                                                  @RequestParam(required = false) String topicId,
+                                                  @RequestParam(required = false) String topicItemId) {
+        return ApiResponse.ok(sessions.availability(new SpeakingScopeDto(scopeType, topicId, topicItemId)));
     }
 
     @PostMapping("/sessions")
-    public ApiResponse<SpeakingSessionResponse> create(@Valid @RequestBody CreateSpeakingSessionRequest body) {
-        return ApiResponse.ok(service.create(body.itemId(), body.requestId(), false));
+    public ApiResponse<Session> create(@Valid @RequestBody Create request, HttpServletResponse response) {
+        var result = sessions.create(request);
+        beginOpening(result.session());
+        response.setStatus(result.created() ? 201 : 200);
+        return ApiResponse.ok(result.session());
     }
 
     @PostMapping("/sessions/replace")
-    public ApiResponse<SpeakingSessionResponse> replace(@Valid @RequestBody CreateSpeakingSessionRequest body) {
-        return ApiResponse.ok(service.create(body.itemId(), body.requestId(), true));
+    public ApiResponse<?> replace(@Valid @RequestBody Replace request, HttpServletResponse response) {
+        var result = sessions.replace(request);
+        realtime.sessionChanged(request.sessionId());
+        if (result.replacingSessionId() != null) {
+            response.setStatus(202);
+            return ApiResponse.ok(new Replacing("REPLACING", result.replacingSessionId()));
+        }
+        beginOpening(result.session());
+        response.setStatus(result.created() ? 201 : 200);
+        return ApiResponse.ok(result.session());
+    }
+
+    private void beginOpening(Session session) {
+        if (session.status() == SpeakingSessionStatus.INITIALIZING) realtime.openSession(session.sessionId());
+    }
+
+    @GetMapping("/sessions/{id}")
+    public ApiResponse<Session> read(@PathVariable String id) {
+        return ApiResponse.ok(sessions.read(id));
     }
 
     @PostMapping("/sessions/{id}/resume")
-    public ApiResponse<SpeakingSessionResponse> resume(@PathVariable String id,
-            @Valid @RequestBody SpeakingControlRequest body) {
-        return ApiResponse.ok(service.resume(id, body.requestId()));
-    }
-
-    @PostMapping("/sessions/{id}/end")
-    public ApiResponse<SpeakingSessionResponse> end(@PathVariable String id,
-            @Valid @RequestBody SpeakingControlRequest body) {
-        return ApiResponse.ok(service.end(id, body.controllerEpoch(), body.requestId()));
-    }
-
-    @PostMapping("/sessions/{id}/opening/retry")
-    public ApiResponse<SpeakingSessionResponse> retryOpening(@PathVariable String id,
-            @Valid @RequestBody SpeakingControlRequest body) {
-        return ApiResponse.ok(service.retryOpening(id, body.controllerEpoch(), body.requestId()));
-    }
-
-    @GetMapping("/sessions/{id}/opening/audio")
-    public ApiResponse<SpeakingAudioResponse> openingAudio(@PathVariable String id) {
-        return ApiResponse.ok(service.openingPlayback(id));
+    public ApiResponse<Session> resume(@PathVariable String id, @Valid @RequestBody Resume request) {
+        return ApiResponse.ok(sessions.resume(id, request));
     }
 
     @PostMapping("/sessions/{id}/socket-ticket")
-    public ApiResponse<SpeakingSocketTicketResponse> socketTicket(@PathVariable String id,
-            @Valid @RequestBody SpeakingControlRequest body) {
-        return ApiResponse.ok(service.ticket(id, body.controllerEpoch()));
+    public ApiResponse<Ticket> ticket(@PathVariable String id, @Valid @RequestBody Control request) {
+        return ApiResponse.ok(sessions.ticket(id, request.controllerEpoch()));
+    }
+
+    @PostMapping("/sessions/{id}/end")
+    public ApiResponse<Session> end(@PathVariable String id, @Valid @RequestBody Control request) {
+        var session = sessions.end(id, request.controllerEpoch());
+        realtime.sessionChanged(id);
+        return ApiResponse.ok(session);
+    }
+
+    @GetMapping("/sessions")
+    public ApiResponse<Page<Session>> history(@RequestParam(required = false) SpeakingScopeType scopeType,
+                                              @RequestParam(required = false) String topicId,
+                                              @RequestParam(required = false) String topicItemId,
+                                              @RequestParam(defaultValue = "0") int page,
+                                              @RequestParam(defaultValue = "20") int size) {
+        SpeakingScopeDto scope = scopeType == null && topicId == null && topicItemId == null
+                ? null : new SpeakingScopeDto(scopeType, topicId, topicItemId);
+        return ApiResponse.ok(sessions.history(scope, page, size));
+    }
+
+    @GetMapping("/sessions/{id}/turns")
+    public ApiResponse<Page<Turn>> turns(@PathVariable String id, @RequestParam(defaultValue = "0") int page,
+                                        @RequestParam(defaultValue = "20") int size) {
+        return ApiResponse.ok(sessions.turns(id, page, size));
+    }
+
+    @GetMapping("/sessions/{id}/assessment")
+    public ApiResponse<SpeakingAssessmentResponse> assessment(@PathVariable String id) {
+        return ApiResponse.ok(sessions.assessment(id));
     }
 
     @DeleteMapping("/sessions/{id}")
-    public ApiResponse<SpeakingSessionResponse> delete(@PathVariable String id) {
-        return ApiResponse.ok(service.delete(id));
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public ApiResponse<Void> delete(@PathVariable String id) {
+        sessions.delete(id);
+        return null;
     }
 
     @DeleteMapping("/sessions")
-    public ApiResponse<Integer> deleteAll() { return ApiResponse.ok(service.deleteAll()); }
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public ApiResponse<Void> deleteAll() {
+        sessions.deleteAll();
+        return null;
+    }
 
     @GetMapping("/sessions/{id}/turns/{turnId}/audio/{kind}")
-    public ApiResponse<SpeakingAudioResponse> playback(@PathVariable String id,
-            @PathVariable String turnId, @PathVariable SpeakingAudioAsset.Kind kind) {
-        return ApiResponse.ok(service.playback(id, turnId, kind));
+    public ApiResponse<Audio> turnAudio(@PathVariable String id, @PathVariable String turnId, @PathVariable String kind) {
+        return ApiResponse.ok(sessions.turnAudio(id, turnId, kind));
+    }
+
+    @GetMapping("/sessions/{id}/opening/audio")
+    public ApiResponse<Audio> openingAudio(@PathVariable String id) {
+        return ApiResponse.ok(sessions.openingAudio(id));
     }
 }
