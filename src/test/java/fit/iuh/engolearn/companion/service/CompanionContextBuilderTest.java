@@ -11,8 +11,6 @@ import fit.iuh.engolearn.user.contract.UserLevelLookup;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
-import org.springframework.ai.chat.messages.Message;
-import org.springframework.ai.chat.prompt.Prompt;
 
 class CompanionContextBuilderTest {
     private final UserLevelLookup userLevels = mock(UserLevelLookup.class);
@@ -27,10 +25,14 @@ class CompanionContextBuilderTest {
                 new CompanionHistoryMessage("ASSISTANT", "Earlier answer"),
                 new CompanionHistoryMessage("USER", "Recent question"));
 
-        Prompt prompt = builder.build("learner-1", history, "Current question");
+        List<CompanionPromptMessage> prompt = builder.build("learner-1", history, "Current question");
 
-        List<String> texts = prompt.getInstructions().stream().map(Message::getText).toList();
+        List<String> texts = prompt.stream().map(CompanionPromptMessage::text).toList();
         assertThat(texts).hasSize(5);
+        assertThat(prompt.stream().map(CompanionPromptMessage::role).toList()).containsExactly(
+                CompanionPromptMessage.Role.SYSTEM, CompanionPromptMessage.Role.USER,
+                CompanionPromptMessage.Role.ASSISTANT, CompanionPromptMessage.Role.USER,
+                CompanionPromptMessage.Role.USER);
         assertThat(texts.get(0)).contains("EngoLearn's English learning companion", "CEFR level is B1");
         assertThat(texts.subList(1, 4)).containsExactly("Earlier question", "Earlier answer", "Recent question");
         assertThat(texts.get(4)).isEqualTo("Current question");
@@ -46,9 +48,9 @@ class CompanionContextBuilderTest {
                 new CompanionHistoryMessage("ASSISTANT", "middle"),
                 new CompanionHistoryMessage("USER", "newest"));
 
-        Prompt prompt = builder.build("learner-1", history, "now");
+        List<CompanionPromptMessage> prompt = builder.build("learner-1", history, "now");
 
-        assertThat(prompt.getInstructions().stream().map(Message::getText).toList())
+        assertThat(prompt.stream().map(CompanionPromptMessage::text).toList())
                 .containsSubsequence("middle", "newest", "now")
                 .doesNotContain("older");
     }
@@ -62,9 +64,9 @@ class CompanionContextBuilderTest {
                 new CompanionHistoryMessage("USER", "old"),
                 new CompanionHistoryMessage("ASSISTANT", "new"));
 
-        Prompt prompt = builder.build("learner-2", history, "current");
+        List<CompanionPromptMessage> prompt = builder.build("learner-2", history, "current");
 
-        List<String> texts = prompt.getInstructions().stream().map(Message::getText).toList();
+        List<String> texts = prompt.stream().map(CompanionPromptMessage::text).toList();
         assertThat(texts.get(0)).contains("The learner's current CEFR level is unavailable. Do not assume or invent it.");
         assertThat(texts).contains("new", "current").doesNotContain("old");
     }

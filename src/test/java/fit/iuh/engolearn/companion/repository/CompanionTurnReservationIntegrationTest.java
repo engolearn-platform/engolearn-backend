@@ -4,8 +4,24 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import fit.iuh.engolearn.companion.model.CompanionConversation;
 import fit.iuh.engolearn.companion.model.CompanionMessage;
+import fit.iuh.engolearn.companion.exception.CompanionException;
+import fit.iuh.engolearn.companion.service.CompanionModel;
+import fit.iuh.engolearn.companion.service.CompanionModelEvent;
+import fit.iuh.engolearn.companion.service.CompanionPromptMessage;
+import fit.iuh.engolearn.companion.service.CompanionUsage;
+import fit.iuh.engolearn.companion.service.CompanionTurnService;
+import fit.iuh.engolearn.companion.service.impl.CompanionContextBuilder;
+import fit.iuh.engolearn.companion.service.impl.CompanionToolRegistry;
+import fit.iuh.engolearn.companion.service.impl.CompanionTurnServiceImpl;
+import fit.iuh.engolearn.config.CompanionProperties;
+import fit.iuh.engolearn.quota.contract.QuotaAvailability;
+import fit.iuh.engolearn.quota.contract.QuotaUsageRecording;
+import fit.iuh.engolearn.quota.contract.dto.AvailabilityResultDto;
+import fit.iuh.engolearn.quota.contract.dto.UsageCommandDto;
+import fit.iuh.engolearn.quota.contract.dto.UsageResultDto;
 import fit.iuh.engolearn.config.AbstractMongoIntegrationTest;
 import fit.iuh.engolearn.shared.messaging.MongoMessageTransactions;
+import fit.iuh.engolearn.shared.security.CurrentUserProvider;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -15,8 +31,11 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import org.bson.Document;
+import org.mockito.Mockito;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import reactor.core.publisher.Flux;
 import org.testcontainers.junit.jupiter.EnabledIfDockerAvailable;
 
 @EnabledIfDockerAvailable
@@ -24,6 +43,9 @@ class CompanionTurnReservationIntegrationTest extends AbstractMongoIntegrationTe
     @Autowired CompanionConversationRepository conversations;
     @Autowired CompanionMessageRepository messages;
     @Autowired MongoMessageTransactions transactions;
+    @Autowired CompanionContextBuilder contextBuilder;
+    @Autowired CompanionProperties properties;
+    @Autowired @org.springframework.beans.factory.annotation.Qualifier("companionToolExecutor") ExecutorService toolExecutor;
 
     @Test void simultaneousAdmissionAtCapHasOneWinnerAndNoOverflow() throws Exception {
         Instant now = Instant.now();
@@ -61,6 +83,59 @@ class CompanionTurnReservationIntegrationTest extends AbstractMongoIntegrationTe
                 afterRelease.getNextSequence(), now, now.plusSeconds(120), 100).orElseThrow());
         assertThat(admittedNext.getPendingTurnId()).isEqualTo(nextTurn);
         assertThat(admittedNext.getMessageCount()).isEqualTo(2);
+    }
+
+    @Test void assistantAndActualUsageCommitTogetherAndBothRollBackOnQuotaFailure() {
+        assertAtomicCompletion(false, true);
+        assertAtomicCompletion(true, false);
+    }
+
+    private void assertAtomicCompletion(boolean failQuota, boolean succeeds) {
+        mongoTemplate.dropCollection("companion_test_usage");
+        Instant now = Instant.now();
+        String learner = "accounting-learner";
+        CompanionConversation conversation = transactions.required(() -> conversations.insert(CompanionConversation.builder()
+                .learnerId(learner).messageCount(0).nextSequence(1).activeTurnGeneration(0)
+                .createdAt(now).updatedAt(now).build()));
+        CurrentUserProvider users = Mockito.mock(CurrentUserProvider.class);
+        Mockito.when(users.requireCurrentUserId()).thenReturn(learner);
+        CompanionModel model = request -> Flux.just(new CompanionModelEvent.TextDelta("Completed response"),
+                new CompanionModelEvent.RoundCompleted(new CompanionUsage(19)));
+        QuotaAvailability availability = (userId, quotaType) -> new AvailabilityResultDto(quotaType, 0, 100, 100,
+                "TOKEN", "DAILY", now, now.plusSeconds(86400), now, "AVAILABLE");
+        QuotaUsageRecording usage = command -> {
+            mongoTemplate.insert(new Document("_id", command.idempotencyKey()).append("amount", command.amount()),
+                    "companion_test_usage");
+            if (failQuota) throw new IllegalStateException("quota store unavailable");
+            return new UsageResultDto(true, "ledger-" + command.idempotencyKey(), command.amount(), now,
+                    "allowance-1", null);
+        };
+        CompanionToolRegistry tools = Mockito.mock(CompanionToolRegistry.class);
+        Mockito.when(tools.definitions(Mockito.anyBoolean())).thenReturn(List.of());
+        CompanionTurnService service = new CompanionTurnServiceImpl(users, conversations, messages, model, contextBuilder,
+                properties, transactions, availability, usage, tools, toolExecutor);
+        String turnId = UUID.randomUUID().toString();
+        var prepared = service.prepareTurn(conversation.getId(),
+                new fit.iuh.engolearn.companion.dto.request.CompanionTurnRequest(UUID.fromString(turnId), "Question", false));
+
+        if (succeeds) {
+            service.streamPreparedTurn(prepared, new CompanionTurnService.TurnObserver() {
+                @Override public void onDelta(String text) {}
+                @Override public boolean isCancelled() { return false; }
+            });
+        } else {
+            org.assertj.core.api.Assertions.assertThatThrownBy(() -> service.streamPreparedTurn(prepared,
+                    new CompanionTurnService.TurnObserver() {
+                        @Override public void onDelta(String text) {}
+                        @Override public boolean isCancelled() { return false; }
+                    })).isInstanceOf(CompanionException.class)
+                    .extracting(failure -> ((CompanionException) failure).getCode())
+                    .isEqualTo("COMPANION_QUOTA_UNAVAILABLE");
+        }
+        assertThat(messages.findByTurnAndRole(conversation.getId(), turnId, CompanionMessage.Role.USER)).isPresent();
+        assertThat(messages.findByTurnAndRole(conversation.getId(), turnId, CompanionMessage.Role.ASSISTANT).isPresent())
+                .isEqualTo(succeeds);
+        assertThat(mongoTemplate.getCollection("companion_test_usage").countDocuments()).isEqualTo(succeeds ? 1 : 0);
     }
 
     private boolean admit(String conversationId, String turnId, long sequence, Instant now) {

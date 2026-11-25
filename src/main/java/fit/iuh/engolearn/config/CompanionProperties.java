@@ -41,6 +41,13 @@ public class CompanionProperties {
     private int historyMessageLimit = 20;
     @Min(0)
     private int historyTokenBudget = 4000;
+    @Min(1)
+    @Max(5)
+    private int maxToolCalls = 5;
+    @Min(1)
+    @Max(5)
+    private int maxToolRounds = 5;
+    private Duration toolTimeout = Duration.ofSeconds(5);
     @Pattern(regexp = "[A-Za-z0-9._-]+")
     private String personaVersion = "v1";
 
@@ -48,6 +55,8 @@ public class CompanionProperties {
     public boolean isTimeoutConfigurationValid() {
         return inferenceTimeout != null && !inferenceTimeout.isZero() && !inferenceTimeout.isNegative()
                 && inferenceTimeout.toMillis() <= Integer.MAX_VALUE
-                && turnTimeout != null && !turnTimeout.isZero() && !turnTimeout.isNegative();
+                && turnTimeout != null && !turnTimeout.isZero() && !turnTimeout.isNegative()
+                && toolTimeout != null && !toolTimeout.isZero() && !toolTimeout.isNegative()
+                && toolTimeout.toMillis() <= Integer.MAX_VALUE;
     }
 }

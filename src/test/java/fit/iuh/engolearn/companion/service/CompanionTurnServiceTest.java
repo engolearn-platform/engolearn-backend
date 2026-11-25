@@ -12,23 +12,29 @@ import fit.iuh.engolearn.companion.repository.CompanionConversationRepository;
 import fit.iuh.engolearn.companion.repository.CompanionMessageRepository;
 import fit.iuh.engolearn.companion.service.impl.CompanionContextBuilder;
 import fit.iuh.engolearn.companion.service.impl.CompanionTurnServiceImpl;
+import fit.iuh.engolearn.companion.service.impl.CompanionToolRegistry;
 import fit.iuh.engolearn.config.CompanionProperties;
+import fit.iuh.engolearn.quota.contract.QuotaAvailability;
+import fit.iuh.engolearn.quota.contract.QuotaUsageRecording;
+import fit.iuh.engolearn.quota.contract.dto.AvailabilityResultDto;
+import fit.iuh.engolearn.quota.contract.dto.UsageResultDto;
 import fit.iuh.engolearn.shared.messaging.MongoMessageTransactions;
 import fit.iuh.engolearn.shared.security.CurrentUserProvider;
 import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Supplier;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.ai.chat.messages.UserMessage;
-import org.springframework.ai.chat.prompt.Prompt;
 import reactor.core.publisher.Flux;
 
 @ExtendWith(MockitoExtension.class)
@@ -39,22 +45,42 @@ class CompanionTurnServiceTest {
     @Mock CompanionModel model;
     @Mock CompanionContextBuilder contextBuilder;
     @Mock MongoMessageTransactions transactions;
+    @Mock QuotaAvailability quotaAvailability;
+    @Mock QuotaUsageRecording quotaUsage;
+    @Mock CompanionToolRegistry toolRegistry;
+    ExecutorService toolExecutor;
     CompanionProperties properties;
     CompanionTurnServiceImpl service;
 
     @BeforeEach void setUp() {
         properties = new CompanionProperties();
+        toolExecutor = Executors.newFixedThreadPool(2);
         when(users.requireCurrentUserId()).thenReturn("learner-1");
         when(transactions.required(any())).thenAnswer(invocation -> ((Supplier<?>) invocation.getArgument(0)).get());
-        service = new CompanionTurnServiceImpl(users, conversations, messages, model, contextBuilder, properties, transactions);
+        when(quotaAvailability.checkAvailability(anyString(), anyString()))
+                .thenReturn(new AvailabilityResultDto("AI_COMPANION_TOKEN_USAGE", 0, 100, 100, "TOKEN",
+                        "DAILY", Instant.now(), Instant.now().plusSeconds(86400), Instant.now(), "AVAILABLE"));
+        service = new CompanionTurnServiceImpl(users, conversations, messages, model, contextBuilder, properties,
+                transactions, quotaAvailability, quotaUsage, toolRegistry, toolExecutor);
+    }
+
+    @AfterEach void closeToolExecutor() { toolExecutor.shutdownNow(); }
+
+    private void stubUsageRecording() {
+        when(quotaUsage.recordUsage(any())).thenAnswer(invocation -> {
+            var command = invocation.<fit.iuh.engolearn.quota.contract.dto.UsageCommandDto>getArgument(0);
+            return new UsageResultDto(true, "ledger-1", command.amount(), Instant.now(), "allowance-1", null);
+        });
     }
 
     private void stubPrompt() {
         when(contextBuilder.build(anyString(), anyList(), anyString()))
-                .thenReturn(new Prompt(java.util.List.of(new UserMessage("prompt"))));
+                .thenReturn(java.util.List.of(new CompanionPromptMessage(CompanionPromptMessage.Role.SYSTEM, "prompt"),
+                        new CompanionPromptMessage(CompanionPromptMessage.Role.USER, "question")));
     }
 
     @Test void failedProviderAttemptCanRetryWithoutInsertingAnotherUserMessage() {
+        stubUsageRecording();
         stubPrompt();
         String conversationId = "conversation-1";
         String turnId = UUID.randomUUID().toString();
@@ -68,7 +94,7 @@ class CompanionTurnServiceTest {
                 .thenReturn(Optional.of(conversation(conversationId, 1, 2, turnId, 1L)));
         when(messages.insert(any())).thenAnswer(invocation -> invocation.getArgument(0));
         when(model.stream(any())).thenReturn(Flux.error(new CompanionException(503, "COMPANION_PROVIDER_UNAVAILABLE", "Unavailable", false)),
-                Flux.just("Hello"));
+                completedText("Hello", 3));
         when(conversations.claimRetry(eq(conversationId), eq("learner-1"), eq(turnId), any(), any(), eq(100)))
                 .thenReturn(Optional.of(CompanionConversation.builder().id(conversationId).learnerId("learner-1")
                         .messageCount(1).nextSequence(2).activeTurnGeneration(2).pendingTurnId(turnId)
@@ -88,6 +114,8 @@ class CompanionTurnServiceTest {
         var result = service.streamPreparedTurn(retry, observer());
 
         assertEquals("Hello", result.assistantMessage().content());
+        verify(quotaUsage).recordUsage(argThat(command -> command.amount() == 3
+                && command.idempotencyKey().equals("turn:" + conversationId + ":" + turnId)));
         verify(conversations).admitNew(eq(conversationId), eq("learner-1"), eq(turnId), eq(1L), any(), any(), eq(100));
         verify(messages, times(2)).insert(any());
         verify(conversations).claimRetry(eq(conversationId), eq("learner-1"), eq(turnId), any(), any(), eq(100));
@@ -119,7 +147,7 @@ class CompanionTurnServiceTest {
         AtomicInteger providerCancelled = new AtomicInteger();
         AtomicBoolean cancelled = new AtomicBoolean();
         AtomicReference<Runnable> cancelAction = new AtomicReference<>();
-        when(model.stream(any())).thenReturn(Flux.<String>never().doOnSubscribe(subscription -> {
+        when(model.stream(any())).thenReturn(Flux.<CompanionModelEvent>never().doOnSubscribe(subscription -> {
             cancelled.set(true);
             cancelAction.get().run();
         }).doOnCancel(providerCancelled::incrementAndGet));
@@ -136,6 +164,92 @@ class CompanionTurnServiceTest {
         assertThrows(CompanionException.class, () -> service.streamPreparedTurn(prepared, observer));
         assertEquals(1, providerCancelled.get());
         verify(conversations).release(eq("conversation-1"), eq("learner-1"), eq(turnId), anyLong(), any());
+    }
+
+    @Test void assessmentToolRoundTripsTypedResultsAndAggregatesUsageBeforeAtomicCompletion() {
+        stubUsageRecording();
+        stubPrompt();
+        String conversationId = "conversation-tools";
+        String turnId = UUID.randomUUID().toString();
+        when(conversations.findOwned(conversationId, "learner-1")).thenReturn(Optional.of(conversation(conversationId, 0, 1, null, null)),
+                Optional.of(conversation(conversationId, 2, 3, null, null)));
+        when(messages.findByTurnAndRole(conversationId, turnId, CompanionMessage.Role.USER)).thenReturn(Optional.empty());
+        when(messages.findByTurnAndRole(conversationId, turnId, CompanionMessage.Role.ASSISTANT)).thenReturn(Optional.empty());
+        when(conversations.admitNew(eq(conversationId), eq("learner-1"), eq(turnId), eq(1L), any(), any(), eq(100)))
+                .thenReturn(Optional.of(conversation(conversationId, 1, 2, turnId, 1L)));
+        when(messages.insert(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        var continuation = new CompanionModelContinuation() {};
+        var call = new CompanionToolCall("call-1", "getLatestAssessmentResult", java.util.Map.of("detail", "SUMMARY"));
+        when(model.stream(any())).thenReturn(Flux.just(new CompanionModelEvent.ToolCalls(continuation, java.util.List.of(call)),
+                        new CompanionModelEvent.RoundCompleted(new CompanionUsage(11))),
+                completedText("Grounded advice", 7));
+        when(conversations.finish(eq(conversationId), eq("learner-1"), eq(turnId), eq(1L), eq(2L), any())).thenReturn(true);
+        when(messages.insert(any())).thenAnswer(invocation -> {
+            CompanionMessage value = invocation.getArgument(0);
+            value.setId("message-" + value.getSequence());
+            return value;
+        });
+        when(toolRegistry.execute(eq("getLatestAssessmentResult"), anyMap(), eq("learner-1")))
+                .thenReturn("{\"status\":\"SUCCESS\"}");
+
+        var prepared = service.prepareTurn(conversationId, new CompanionTurnRequest(UUID.fromString(turnId), "How did I do?", false));
+        var result = service.streamPreparedTurn(prepared, observer());
+
+        assertEquals("Grounded advice", result.assistantMessage().content());
+        var requests = org.mockito.ArgumentCaptor.forClass(CompanionModelRequest.class);
+        verify(model, times(2)).stream(requests.capture());
+        assertEquals(continuation, requests.getAllValues().get(1).continuation());
+        assertEquals(java.util.List.of(new CompanionToolResult("call-1", "getLatestAssessmentResult", "{\"status\":\"SUCCESS\"}")),
+                requests.getAllValues().get(1).toolResults());
+        verify(quotaUsage).recordUsage(argThat(command -> command.amount() == 18));
+    }
+
+    @Test void missingAuthoritativeUsageFailsWithoutAssistantPersistenceOrCharge() {
+        stubPrompt();
+        String turnId = UUID.randomUUID().toString();
+        when(conversations.findOwned("conversation-1", "learner-1"))
+                .thenReturn(Optional.of(conversation("conversation-1", 0, 1, null, null)));
+        when(messages.findByTurnAndRole(eq("conversation-1"), eq(turnId), any())).thenReturn(Optional.empty());
+        when(conversations.admitNew(eq("conversation-1"), eq("learner-1"), eq(turnId), eq(1L), any(), any(), eq(100)))
+                .thenReturn(Optional.of(conversation("conversation-1", 1, 2, turnId, 1L)));
+        when(messages.insert(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        when(model.stream(any())).thenReturn(Flux.just(new CompanionModelEvent.TextDelta("Partial")));
+        when(conversations.release(eq("conversation-1"), eq("learner-1"), eq(turnId), anyLong(), any())).thenReturn(true);
+
+        var prepared = service.prepareTurn("conversation-1", new CompanionTurnRequest(UUID.fromString(turnId), "Hi", false));
+        var failure = assertThrows(CompanionException.class, () -> service.streamPreparedTurn(prepared, observer()));
+
+        assertEquals("COMPANION_USAGE_UNAVAILABLE", failure.getCode());
+        verify(messages, times(1)).insert(any());
+        verify(conversations, never()).finish(anyString(), anyString(), anyString(), anyLong(), anyLong(), any());
+        verify(quotaUsage, never()).recordUsage(any());
+    }
+
+    @Test void ownershipIsCheckedBeforeQuotaAndDepletedAllowanceRejectsAdmission() {
+        String turnId = UUID.randomUUID().toString();
+        when(conversations.findOwned("missing", "learner-1")).thenReturn(Optional.empty());
+        when(quotaAvailability.checkAvailability(anyString(), anyString())).thenReturn(
+                new AvailabilityResultDto("AI_COMPANION_TOKEN_USAGE", 1, 1, 0, "TOKEN", "DAILY",
+                        Instant.now(), Instant.now().plusSeconds(86400), Instant.now(), "EXHAUSTED"));
+
+        var missing = assertThrows(CompanionException.class, () -> service.prepareTurn("missing",
+                new CompanionTurnRequest(UUID.fromString(turnId), "Hi", false)));
+        assertEquals(404, missing.getStatus());
+        verify(quotaAvailability, never()).checkAvailability(anyString(), anyString());
+
+        when(conversations.findOwned("owned", "learner-1"))
+                .thenReturn(Optional.of(conversation("owned", 0, 1, null, null)));
+        when(messages.findByTurnAndRole(eq("owned"), eq(turnId), any())).thenReturn(Optional.empty());
+        var exhausted = assertThrows(CompanionException.class, () -> service.prepareTurn("owned",
+                new CompanionTurnRequest(UUID.fromString(turnId), "Hi", false)));
+        assertEquals(429, exhausted.getStatus());
+        assertEquals("COMPANION_QUOTA_EXHAUSTED", exhausted.getCode());
+        verify(conversations, never()).admitNew(eq("owned"), anyString(), anyString(), anyLong(), any(), any(), anyInt());
+    }
+
+    private Flux<CompanionModelEvent> completedText(String text, long totalTokens) {
+        return Flux.just(new CompanionModelEvent.TextDelta(text),
+                new CompanionModelEvent.RoundCompleted(new CompanionUsage(totalTokens)));
     }
 
     private CompanionTurnService.TurnObserver observer() {

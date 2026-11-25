@@ -1,5 +1,6 @@
 package fit.iuh.engolearn.config;
 
+import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadFactory;
@@ -21,5 +22,17 @@ public class CompanionStreamExecutorConfig {
         };
         return new ThreadPoolExecutor(0, properties.getMaxConcurrentStreams(), 60, TimeUnit.SECONDS,
                 new SynchronousQueue<>(), threadFactory, new ThreadPoolExecutor.AbortPolicy());
+    }
+
+    @Bean(name = "companionToolExecutor", destroyMethod = "shutdownNow")
+    public ExecutorService companionToolExecutor() {
+        AtomicInteger threadNumber = new AtomicInteger();
+        ThreadFactory threadFactory = task -> {
+            Thread thread = new Thread(task, "companion-tool-" + threadNumber.incrementAndGet());
+            thread.setDaemon(true);
+            return thread;
+        };
+        return new ThreadPoolExecutor(2, 4, 30, TimeUnit.SECONDS,
+                new ArrayBlockingQueue<>(16), threadFactory, new ThreadPoolExecutor.AbortPolicy());
     }
 }
