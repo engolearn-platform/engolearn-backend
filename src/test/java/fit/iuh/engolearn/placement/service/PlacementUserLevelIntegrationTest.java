@@ -46,7 +46,7 @@ import static org.assertj.core.api.Assertions.*;
 @EnabledIfDockerAvailable
 @ActiveProfiles("dev")
 @TestPropertySource(properties = {
-        "engolearn.placement.persistence.mode=mongo",
+        "engolearn.placement.persistence.mode=mongo", "engolearn.speaking.enabled=false", "engolearn.speaking.manager.enabled=false",
         "engolearn.placement.test-set.allow-draft=true",
         "engolearn.security.dev-auth.enabled=false",
         "engolearn.security.jwt.secret=placement-level-real-http-integration-secret-32-bytes",
@@ -62,6 +62,8 @@ class PlacementUserLevelIntegrationTest extends AbstractMongoIntegrationTest {
     @Autowired private PlacementAttemptService attempts;
     @Autowired private PlacementDeadlineService deadlines;
     @Autowired @Qualifier("mongoTransactionManager") private PlatformTransactionManager manager;
+    @Autowired private fit.iuh.engolearn.grammar.service.GrammarAdminService grammarAdmin;
+    @Autowired private fit.iuh.engolearn.placement.service.PlacementAdminQuestionService placementAdmin;
     private Map<String, String> canonicalAnswers;
 
     @BeforeEach
@@ -77,6 +79,36 @@ class PlacementUserLevelIntegrationTest extends AbstractMongoIntegrationTest {
         mongoTemplate.getCollection("placement_test_sets").insertMany(sets);
         canonicalAnswers = new HashMap<>();
         sets.getFirst().getList("items", Document.class).forEach(q -> canonicalAnswers.put(q.getString("id"), q.getString("correct_option_id")));
+    }
+
+    @Test
+    void profileApiAndPlacementUseSameUserProfileAndPreserveDisplayName() throws Exception {
+        Browser user = register();
+        request(user.client(), "PATCH", "/api/v1/profile/me", Map.of("displayName", "Placement Learner"), 200);
+        assertThat(request(user.client(), "GET", "/api/v1/profile/me", null, 200)
+                .path("cefrLevel").asText()).isEqualTo("A1");
+
+        String attempt = answeredAttempt(user.client());
+        request(user.client(), "POST", API + "/" + attempt + "/submit", null, 200);
+        JsonNode profile = request(user.client(), "GET", "/api/v1/profile/me", null, 200);
+        assertThat(profile.path("cefrLevel").asText()).isEqualTo("A2");
+        assertThat(profile.path("displayName").asText()).isEqualTo("Placement Learner");
+        // Registration exposes a String ID, while raw Mongo stores the generated ID as BSON ObjectId.
+        var storedId = new org.bson.types.ObjectId(user.id());
+        Document stored = mongoTemplate.getCollection("user_profiles").find(new Document("_id", storedId)).first();
+        assertThat(stored).isNotNull();
+        assertThat(stored.getString("cefr_level")).isEqualTo("A2");
+        assertThat(stored.getString("display_name")).isEqualTo("Placement Learner");
+        assertThat(mongoTemplate.getCollection("users").find(new Document("_id", storedId)).first())
+                .doesNotContainKeys("cefr_level", "cefrLevel");
+
+        JsonNode renamed = request(user.client(), "PATCH", "/api/v1/profile/me",
+                Map.of("displayName", "Updated Learner"), 200);
+        assertThat(renamed.path("cefrLevel").asText()).isEqualTo("A2");
+        assertThat(request(user.client(), "GET", "/api/v1/grammar/roadmap", null, 200)
+                .path("currentLevel").asText()).isEqualTo("A2");
+        assertThat(mongoTemplate.getCollection("user_profiles").find(new Document("_id", storedId)).first()
+                .getString("display_name")).isEqualTo("Updated Learner");
     }
 
     @Test
@@ -153,6 +185,147 @@ class PlacementUserLevelIntegrationTest extends AbstractMongoIntegrationTest {
         request(user.client(), "POST", API + "/" + id + "/submit", null, 422);
         assertThat(mongoTemplate.findById(id, PlacementAttempt.class).getStatus().name()).isEqualTo("IN_PROGRESS");
         assertThat(viewer(user.client())).isEqualTo("A1");
+    }
+
+    @Test
+    void realCookieRolesProtectPlacementAndGrammarWithInheritedAuthorities() throws Exception {
+        var guest = HttpClient.newHttpClient();
+        request(guest, "GET", "/api/v1/grammar/admin/topics", null, 401);
+        request(guest, "GET", "/api/v1/placement/admin/questions", null, 401);
+        Browser user = register();
+        request(user.client(), "GET", "/api/v1/grammar/admin/topics", null, 403);
+        request(user.client(), "GET", "/api/v1/placement/admin/questions", null, 403);
+        var account = mongoTemplate.findById(user.id(), User.class);
+        account.setRole(fit.iuh.engolearn.shared.enums.UserRole.CONTENT_MANAGER);
+        mongoTemplate.save(account);
+        request(user.client(), "GET", "/api/v1/grammar/admin/topics", null, 200);
+        request(user.client(), "GET", "/api/v1/grammar/roadmap", null, 200);
+        request(user.client(), "POST", API + "/not-an-attempt/learning", null, 404);
+        request(user.client(), "GET", "/api/v1/placement/admin/questions", null, 403);
+        account.setRole(fit.iuh.engolearn.shared.enums.UserRole.ADMIN);
+        mongoTemplate.save(account);
+        request(user.client(), "GET", "/api/v1/placement/admin/questions", null, 200);
+        request(user.client(), "GET", "/api/v1/grammar/admin/topics", null, 200);
+        request(user.client(), "GET", "/api/v1/grammar/roadmap", null, 200);
+        request(user.client(), "POST", API + "/not-an-attempt/learning", null, 404);
+        request(user.client(), "GET", "/api/v1/placement/admin/questions/media/preflight", null, 200);
+        account.setRole(fit.iuh.engolearn.shared.enums.UserRole.USER);
+        mongoTemplate.save(account);
+        request(user.client(), "GET", "/api/v1/grammar/admin/topics", null, 403);
+        request(user.client(), "GET", "/api/v1/placement/admin/questions/media/preflight", null, 403);
+    }
+
+    @Test
+    void springServiceProxiesRejectMissingAuthenticationBeforeReadingContent() {
+        assertThat(org.springframework.aop.support.AopUtils.isAopProxy(grammarAdmin)).isTrue();
+        assertThat(org.springframework.aop.support.AopUtils.isAopProxy(placementAdmin)).isTrue();
+        assertThatThrownBy(() -> grammarAdmin.list(null, null, null, 0, 20))
+                .isInstanceOf(org.springframework.security.authentication.AuthenticationCredentialsNotFoundException.class);
+        assertThatThrownBy(() -> placementAdmin.search("", "", "", "", 0, 20))
+                .isInstanceOf(org.springframework.security.authentication.AuthenticationCredentialsNotFoundException.class);
+    }
+
+    @Test
+    void grammarUsesRealPlacementLevelForDeepLinksWithoutCompletingLessons() throws Exception {
+        Browser user = register();
+        JsonNode initial = request(user.client(), "GET", "/api/v1/grammar/roadmap", null, 200);
+        assertThat(initial.path("currentLevel").asText()).isEqualTo("A1");
+        assertThat(initial.path("levels").get(1).path("unlocked").asBoolean()).isFalse();
+        String topicId = publishedCanonicalA2Topic(user);
+        request(user.client(), "GET", "/api/v1/grammar/topics/" + topicId, null, 403);
+        String attempt = answeredAttempt(user.client());
+        request(user.client(), "POST", API + "/" + attempt + "/submit", null, 200);
+        assertThat(viewer(user.client())).isEqualTo("A2");
+        // Open a deep link before roadmap has persisted the Placement-based grant.
+        JsonNode topic = request(user.client(), "GET", "/api/v1/grammar/topics/" + topicId, null, 200);
+        assertThat(topic.path("topic").path("completedLessons").asInt()).isZero();
+        assertThat(topic.path("lessons").get(0).path("unlocked").asBoolean()).isTrue();
+        assertThat(topic.path("lessons").get(1).path("unlocked").asBoolean()).isFalse();
+        JsonNode roadmap = request(user.client(), "GET", "/api/v1/grammar/roadmap", null, 200);
+        assertThat(roadmap.path("currentLevel").asText()).isEqualTo("A2");
+        assertThat(roadmap.path("levels").get(1).path("unlocked").asBoolean()).isTrue();
+        assertThat(roadmap.path("levels").get(2).path("unlocked").asBoolean()).isFalse();
+        assertThat(roadmap.path("newlyUnlockedLevels").toString()).contains("A2");
+        var grant = mongoTemplate.getCollection("grammar_level_unlocks")
+                .find(new Document("user_id", user.id()).append("level", "A2")).first();
+        assertThat(grant).isNotNull();
+        assertThat(grant.getString("reason")).isEqualTo("PLACEMENT");
+        assertThat(request(user.client(), "GET", "/api/v1/grammar/roadmap", null, 200)
+                .path("newlyUnlockedLevels").isEmpty()).isTrue();
+        assertThat(mongoTemplate.getCollection("grammar_lesson_progress")
+                .countDocuments(new Document("user_id", user.id()))).isZero();
+        assertThat(viewer(user.client())).isEqualTo("A2");
+    }
+
+    @Test
+    void grammarCapsAdvancedProfileAtB2WithoutChangingUserLevel() throws Exception {
+        Browser user = register();
+        transactions.execute(() -> promotion.promote(user.id(), CefrLevel.C1));
+        JsonNode roadmap = request(user.client(), "GET", "/api/v1/grammar/roadmap", null, 200);
+        assertThat(roadmap.path("currentLevel").asText()).isEqualTo("B2");
+        for (JsonNode level : roadmap.path("levels")) {
+            assertThat(level.path("unlocked").asBoolean()).isTrue();
+        }
+        assertThat(viewer(user.client())).isEqualTo("C1");
+        transactions.execute(() -> promotion.promote(user.id(), CefrLevel.C2));
+        assertThat(request(user.client(), "GET", "/api/v1/grammar/roadmap", null, 200)
+                .path("newlyUnlockedLevels").isEmpty()).isTrue();
+        assertThat(viewer(user.client())).isEqualTo("C2");
+    }
+
+    private String publishedCanonicalA2Topic(Browser user) throws Exception {
+        Document collections = Document.parse(Files.readString(Path.of(
+                "tools/mongo-json-importer/samples/grammar/grammar-cefr-a1-b2.v2.importer.json")))
+                .get("collections", Document.class);
+        Document topic = collections.getList("grammar_topics", Document.class).stream()
+                .filter(t -> "A2".equals(t.getString("level"))).findFirst().orElseThrow();
+        String topicId = topic.getString("_id");
+        mongoTemplate.getCollection("grammar_topics").insertOne(topic);
+        var lessons = collections.getList("grammar_lessons", Document.class).stream()
+                .filter(l -> topicId.equals(l.getString("topic_id"))).toList();
+        mongoTemplate.getCollection("grammar_lessons").insertMany(lessons);
+        var account = mongoTemplate.findById(user.id(), User.class);
+        account.setRole(fit.iuh.engolearn.shared.enums.UserRole.ADMIN);
+        mongoTemplate.save(account);
+        String path = "/api/v1/grammar/admin/topics/" + topicId;
+        for (Document lesson : lessons) {
+            String lessonPath = path + "/lessons/" + lesson.getString("_id");
+            JsonNode current = request(user.client(), "GET", lessonPath, null, 200);
+            request(user.client(), "POST", lessonPath + "/ready",
+                    Map.of("version", current.path("version").asLong()), 200);
+        }
+        JsonNode current = request(user.client(), "GET", path, null, 200);
+        request(user.client(), "POST", path + "/publish", Map.of("version", current.path("version").asLong()), 200);
+        account.setRole(fit.iuh.engolearn.shared.enums.UserRole.USER);
+        mongoTemplate.save(account);
+        return topicId;
+    }
+
+    @Test
+    void inheritedLearnerRolesCanSubmitAndReadOnlyTheirOwnPlacement() throws Exception {
+        var anonymous = HttpClient.newHttpClient();
+        for (var role : List.of(fit.iuh.engolearn.shared.enums.UserRole.CONTENT_MANAGER,
+                fit.iuh.engolearn.shared.enums.UserRole.ADMIN)) {
+            Browser learner = register();
+            var account = mongoTemplate.findById(learner.id(), User.class);
+            account.setRole(role);
+            mongoTemplate.save(account);
+            String id = answeredAttempt(learner.client());
+            request(learner.client(), "POST", API + "/" + id + "/submit", null, 200);
+            assertThat(viewer(learner.client())).isEqualTo("A2");
+            assertThat(request(learner.client(), "GET", API + "/" + id + "/result", null, 200)
+                    .path("placementLevel").asText()).isEqualTo("A2");
+            request(learner.client(), "GET", API + "/" + id + "/review", null, 200);
+            request(learner.client(), "POST", API + "/" + id + "/learning", null, 200);
+            request(anonymous, "GET", API + "/" + id + "/result", null, 401);
+            Browser foreign = register();
+            request(foreign.client(), "GET", API + "/" + id + "/result", null, 404);
+            // Even ADMIN inherits learner capability, never another account's attempt ownership.
+            var foreignAccount = mongoTemplate.findById(foreign.id(), User.class);
+            foreignAccount.setRole(fit.iuh.engolearn.shared.enums.UserRole.ADMIN);
+            mongoTemplate.save(foreignAccount);
+            request(foreign.client(), "GET", API + "/" + id + "/review", null, 404);
+        }
     }
 
     private Callable<CefrLevel> competing(String userId, CefrLevel target, CyclicBarrier barrier, AtomicInteger calls) {

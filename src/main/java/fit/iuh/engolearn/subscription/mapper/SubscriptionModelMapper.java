@@ -15,7 +15,7 @@ public final class SubscriptionModelMapper {
     private SubscriptionModelMapper() {}
 
     public static PlanCardResponse sortedPlanCard(PlanCardVo plan) {
-        return new PlanCardResponse(plan.getPlanCode().name(), plan.getDisplayName(), plan.getDescription(),
+        return new PlanCardResponse(plan.getPlanCode(), plan.getDisplayName(), plan.getDescription(),
                 plan.getBenefits().stream().sorted(Comparator.comparingInt(PlanBenefitVo::getSortOrder)
                         .thenComparing(PlanBenefitVo::getCode)).map(SubscriptionModelMapper::toDto).toList(),
                 plan.getBillingOptions().stream().map(SubscriptionModelMapper::toDto).toList());
@@ -33,6 +33,15 @@ public final class SubscriptionModelMapper {
             Instant effectiveAt, Instant validUntil) {
         return new EffectiveEntitlementDto(userId, entitlementVersion, scope, snapshotId, policyVersion,
                 activationSequence, effectiveAt, validUntil, toDto(snapshot));
+    }
+
+    public static EffectiveEntitlementDto entitlement(String userId, long entitlementVersion, String scope,
+            String snapshotId, long policyVersion, QuotaPolicySnapshotVo snapshot, long activationSequence,
+            Instant effectiveAt, Instant validUntil, CurrentBenefitsVo benefits, String planCode) {
+        return new EffectiveEntitlementDto(userId, entitlementVersion, scope, snapshotId, policyVersion,
+                activationSequence, effectiveAt, validUntil, toDto(snapshot), planCode,
+                benefits == null ? List.of() : benefits.getBenefits().stream().map(PlanBenefitVo::getCode).toList(),
+                benefits != null && benefits.isManagedProduct());
     }
 
     public static ConfigurationContentRequest adminContent(PolicyVersion policy, PlanVersion offer) {
@@ -83,6 +92,7 @@ public final class SubscriptionModelMapper {
                         .build())
                 .benefits(CurrentBenefitsVo.builder().planCode(benefits.getPlanCode())
                         .displayName(benefits.getDisplayName()).policySnapshotId(benefits.getPolicySnapshotId())
+                        .managedProduct(benefits.isManagedProduct())
                         .benefits(benefits.getBenefits().stream().map(b -> PlanBenefitVo.builder().code(b.getCode())
                                 .title(b.getTitle()).description(b.getDescription()).displayValue(b.getDisplayValue())
                                 .sortOrder(b.getSortOrder()).build()).toList()).build())
@@ -111,22 +121,22 @@ public final class SubscriptionModelMapper {
 
     public static PlanCardVo toVo(PlanCardResponse value) {
         if (value == null) return null;
-        return PlanCardVo.builder().planCode(PlanCode.valueOf(value.planCode())).displayName(value.displayName()).description(value.description()).benefits(value.benefits().stream().map(SubscriptionModelMapper::toVo).toList()).billingOptions(value.billingOptions().stream().map(SubscriptionModelMapper::toVo).toList()).build();
+        return PlanCardVo.builder().planCode(value.planCode()).displayName(value.displayName()).description(value.description()).benefits(value.benefits().stream().map(SubscriptionModelMapper::toVo).toList()).billingOptions(value.billingOptions().stream().map(SubscriptionModelMapper::toVo).toList()).build();
     }
 
     public static PlanCardResponse toDto(PlanCardVo value) {
         if (value == null) return null;
-        return new PlanCardResponse(value.getPlanCode().name(), value.getDisplayName(), value.getDescription(), value.getBenefits().stream().map(SubscriptionModelMapper::toDto).toList(), value.getBillingOptions().stream().map(SubscriptionModelMapper::toDto).toList());
+        return new PlanCardResponse(value.getPlanCode(), value.getDisplayName(), value.getDescription(), value.getBenefits().stream().map(SubscriptionModelMapper::toDto).toList(), value.getBillingOptions().stream().map(SubscriptionModelMapper::toDto).toList());
     }
 
     public static CurrentBenefitsVo toVo(CurrentBenefitsResponse value) {
         if (value == null) return null;
-        return CurrentBenefitsVo.builder().planCode(PlanCode.valueOf(value.planCode())).displayName(value.displayName()).policySnapshotId(value.policySnapshotId()).benefits(value.benefits().stream().map(SubscriptionModelMapper::toVo).toList()).build();
+        return CurrentBenefitsVo.builder().planCode(value.planCode()).displayName(value.displayName()).policySnapshotId(value.policySnapshotId()).benefits(value.benefits().stream().map(SubscriptionModelMapper::toVo).toList()).build();
     }
 
     public static CurrentBenefitsResponse toDto(CurrentBenefitsVo value) {
         if (value == null) return null;
-        return new CurrentBenefitsResponse(value.getPlanCode().name(), value.getDisplayName(), value.getPolicySnapshotId(), value.getBenefits().stream().map(SubscriptionModelMapper::toDto).toList());
+        return new CurrentBenefitsResponse(value.getPlanCode(), value.getDisplayName(), value.getPolicySnapshotId(), value.getBenefits().stream().map(SubscriptionModelMapper::toDto).toList());
     }
 
     public static QuotaRuleVo toVo(QuotaRuleDto value) {

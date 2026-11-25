@@ -575,6 +575,8 @@ class LearningPathIdHttpIntegrationTest extends AbstractMongoIntegrationTest {
     }
 
     private void seedAccount(String userId, UserRole role) {
+        mongoTemplate.getCollection("user_profiles").insertOne(new Document("_id", ObjectId.isValid(userId) ? new ObjectId(userId) : userId)
+                .append("cefr_level", "A2"));
         mongoTemplate.getCollection("users").insertOne(new Document("_id", ObjectId.isValid(userId) ? new ObjectId(userId) : userId)
                 .append("email", userId + "@example.com")
                 .append("password_hash", "unused")

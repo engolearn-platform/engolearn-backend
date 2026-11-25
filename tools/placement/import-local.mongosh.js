@@ -9,6 +9,7 @@
   const connection=new Mongo(process.env.MONGO_IMPORT_URI);
   if(!connection.getDB('admin').runCommand({hello:1}).setName) throw Error('Real registration requires a MongoDB replica set');
   const database=connection.getDB(name);
+  const revisedExplanations=JSON.parse(fs.readFileSync('/workspace/tools/placement/data/seed/placement_explanations.vi.json','utf8'));
   function sorted(value) {
     if(Array.isArray(value)) return value.map(sorted);
     if(value && typeof value==='object') return Object.fromEntries(Object.keys(value).sort().map(k=>[k,sorted(value[k])]));
@@ -31,6 +32,9 @@
       if(!stored) { missing++; continue; }
       existing++;
       const projected=Object.fromEntries(Object.keys(document).map(key=>[key,stored[key]]));
+      if(collection==='placement_questions' && projected.explanation===revisedExplanations[document._id]) {
+        projected.explanation=document.explanation;
+      }
       if(JSON.stringify(sorted(EJSON.serialize(projected)))!==JSON.stringify(sorted(EJSON.serialize(document)))) {
         throw Error('Existing content differs in '+collection+' / '+document._id+'; nothing will be replaced');
       }
@@ -41,5 +45,8 @@
   compare(false);
   process.env.MONGO_IMPORT_CONFLICT_POLICY='skip';
   load('/workspace/tools/mongo-json-importer/importer.mongosh.js');
-  if(process.env.MONGO_IMPORT_APPLY==='1') compare(true);
+  if(process.env.MONGO_IMPORT_APPLY==='1') {
+    compare(true);
+    load('/workspace/tools/placement/update-explanations.mongosh.js');
+  }
 })();

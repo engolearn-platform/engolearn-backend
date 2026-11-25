@@ -71,4 +71,4 @@ See the [F01/F02 contract](docs/technical/assessment.md). The Windows and Atlas 
 
 ## Placement local development
 
-See [fresh-clone Placement setup](docs/technical/placement-local-runtime.md) for shared data, bundled Listening media, safe import and explicit `dev` startup.
+See [fresh-clone Placement setup](docs/technical/placement/placement-local-runtime.md) for shared data, bundled Listening media, safe import and explicit `dev` startup.

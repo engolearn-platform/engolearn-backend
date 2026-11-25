@@ -42,7 +42,10 @@ mapping was explicitly confirmed by the user; Vietnamese display labels are not 
 Only these five Assessment codes currently have an agreed mapping; the pool's broader catalog
 does not define codes for Assessment. Unknown codes, duplicate/incomplete measured skills,
 missing level/band, invalid counts or inconsistent percentages return 409, without guessing
-an equivalent skill. Learning Path still uses the test's level when checking pool eligibility.
+an equivalent skill. Learning Path reads the current profile level through
+`user.contract.UserLevelLookup` for pool eligibility and creation. Missing profile/level
+returns 409 for a new recommendation. Existing paths return their stored level without
+requiring a current profile. Assessment level remains source metadata.
 
 ## List and search
 
@@ -74,7 +77,7 @@ Recommendation is read-only. It returns `state`, `level`, `durationWeeks=3`, `da
 `NO_ELIGIBLE_SKILLS`, and `ALREADY_CREATED` (including `existingPathId`).
 
 Only skills below 50% qualify. An occupied skill in an active path or one with fewer than
-30 ACTIVE pool questions at the Assessment level is excluded. Recommendation does not
+30 ACTIVE pool questions at the current user level is excluded. Recommendation does not
 sample questions, write snapshots, reserve skills or start a schedule. Returned score/band
 values come from Assessment; band names are `NEEDS_PRACTICE`, `MONITOR`, `MEETS_THRESHOLD`.
 
@@ -102,7 +105,14 @@ the native Mongo ID is an ObjectId. A unique partial index on the native source 
 concurrent duplicate creation; the active owner/micro-skill unique index prevents overlaps.
 Indexes are declared on `LearningPath` and initialized by `LearningPathIndexConfig`.
 
-Creation samples 30 distinct ACTIVE questions per eligible skill and builds all three weeks.
+Creation freezes the recalculated recommendation level, samples 30 distinct ACTIVE questions
+at that level per eligible skill and builds all three weeks. Later profile changes do not
+change existing paths or their question snapshots.
+
+The create request currently confirms skill names only; it does not carry the level shown
+in the dialog. A level change that leaves the same eligible skills therefore uses the
+recalculated level without a level-specific confirmation conflict. Adding that confirmation
+requires a coordinated request-contract and frontend change.
 It saves question snapshots first, then the path, without a cross-module transaction, so
 standalone local MongoDB can still create a path from an existing completed result. Failed
 or concurrent losing writes may leave orphaned snapshots; they are never used by the winning

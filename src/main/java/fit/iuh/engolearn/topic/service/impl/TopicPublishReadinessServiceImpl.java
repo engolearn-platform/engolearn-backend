@@ -1,5 +1,8 @@
 package fit.iuh.engolearn.topic.service.impl;
 
+import fit.iuh.engolearn.topic.contract.dto.SpeakingScopeDto;
+import fit.iuh.engolearn.topic.contract.enums.SpeakingScopeType;
+import fit.iuh.engolearn.topic.service.TopicSpeakingProfileService;
 import fit.iuh.engolearn.topic.dto.response.TopicManagementItemDetail;
 import fit.iuh.engolearn.topic.dto.response.TopicManagementItemSummary;
 import fit.iuh.engolearn.topic.dto.response.TopicManagementResponse;
@@ -24,6 +27,7 @@ import java.util.Map;
 @PreAuthorize("hasRole('CONTENT_MANAGER')")
 public class TopicPublishReadinessServiceImpl implements TopicPublishReadinessService {
     private final TopicManagementReadService readService;
+    private final TopicSpeakingProfileService speakingProfiles;
 
     @Override
     public TopicPublishReadinessResponse readiness(String topicId) {
@@ -35,6 +39,8 @@ public class TopicPublishReadinessServiceImpl implements TopicPublishReadinessSe
         required(violations, "topic.category", topic.category());
         required(violations, "topic.description", topic.description());
         required(violations, "topic.coverUrl", topic.coverUrl());
+        violations.addAll(speakingProfiles.draftViolations(
+                new SpeakingScopeDto(SpeakingScopeType.TOPIC, topicId, null), "topic.speakingProfile"));
 
         List<TopicManagementItemSummary> visible = readService.items(topicId).stream()
                 .filter(item -> item.status() != ContentStatus.HIDDEN).toList();
@@ -44,6 +50,9 @@ public class TopicPublishReadinessServiceImpl implements TopicPublishReadinessSe
         for (TopicManagementItemSummary summary : visible) {
             TopicManagementItemDetail item = readService.item(topicId, summary.id());
             validateItem(item, violations);
+            violations.addAll(speakingProfiles.draftViolations(
+                    new SpeakingScopeDto(SpeakingScopeType.TOPIC_ITEM, topicId, summary.id()),
+                    "items[" + summary.id() + "].speakingProfile"));
         }
         return new TopicPublishReadinessResponse(violations.isEmpty(), violations);
     }

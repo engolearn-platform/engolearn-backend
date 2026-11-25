@@ -1,66 +1,54 @@
-# Speaking AI module contract
+# Speaking V2 module contract
 
-## Provider and integration boundaries
-
-See the [module map](module-map.md) for component ownership and the [runtime flows](runtime-flows.md) for processing order. Speaking reads Topic through [`SpeakingItemLookup`](../../../src/main/java/fit/iuh/engolearn/topic/contract/SpeakingItemLookup.java) and stores private audio through shared [`MediaStorage`](../../../src/main/java/fit/iuh/engolearn/shared/media/MediaStorage.java). Cloudinary currently stores media through its authenticated private-storage adapter. Speaking persists the provider public ID and format with its audio metadata. Media ID resolution through `MediaManagement` is not yet integrated. Daily usage is accounted for inside Speaking. The current session path has no Quota or Subscription integration.
-
-`SpeechStreamPort` and `SpeechSynthesisPort` separate STT and TTS from orchestration. AssemblyAI handles streaming recognition. Cartesia synthesizes both opening and turn replies. Opening uses the separate `SpeakingOpeningGenerator` port and Gemini adapter. Conversation evaluation follows `SpeakingConversationComposer` → `GeminiSpeakingAiGateway` → `SpeakingDraftValidator` → `ConversationManager`.
-
-The gateway calls Gemini's `generateContent` API in JSON response mode using the configured model. The `SpeakingDraftValidator` validates the `speaking.ai.draft.v2` schema before producing a proposal for `ConversationManager`. V2 filters goal evidence by pinned, unique, unachieved goal IDs and requires nonblank quotes. The model judges whether those quotes support a goal. Resource evidence and corrections still have transcript checks. See [`SpeakingDraftValidatorContractTest`](../../../src/test/java/fit/iuh/engolearn/speaking/service/SpeakingDraftValidatorContractTest.java) for the distinction between V1 and V2.
-
-Malformed provider wrappers, HTTP or transport errors, schema-invalid drafts and `UNCERTAIN` proposals produce evaluation failures. An `INVALID` proposal produces an invalid turn. Provider failures remain explicit evaluation failures and do not select another evaluator or mock provider. API keys and tokens must not be logged.
+Speaking resolves learner eligibility and released context through `TopicSpeakingAccess`, reads admission through `QuotaAvailability`, records measured usage through `QuotaUsageRecording`, and writes and authorizes protected audio through `MediaManagement`. Topic owns profile drafts, publication and content access.
 
 ## Runtime configuration
 
-Speaking is a normal business module in both supported application profiles, `dev` and `prod`. The managed conversation beans are registered in both. There is no Speaking-specific runtime profile, evaluator-selection switch or availability gate. Authentication, ownership checks and the ticket-authenticated WebSocket handshake continue to govern access.
+Mongo indexes and scheduled recovery default to enabled through `engolearn.speaking.indexes.enabled` and `engolearn.speaking.recovery.enabled`. Tests can disable recovery to control timing.
 
-The shared [application.yaml](../../../src/main/resources/application.yaml) owns the provider defaults. Each property below starts with `engolearn.speaking.` and applies in both runtime profiles. Each API key defaults to empty and is required when its capability is called.
+| Property under `engolearn.speaking` | Default |
+| --- | --- |
+| `session.max-turns` | 30 finalized attempts |
+| `session.max-duration` | 20m |
+| `session.max-turn-audio` | 120s |
+| `session.closing-grace` | 15s |
+| `realtime.workers` | 4 provider work threads |
+| `realtime.queue-capacity` | 24 waiting work or recording reservations |
+| `realtime.max-connections` | 128 sockets per instance |
+| `realtime.max-frames-per-second` | 160 audio frames per socket |
+| `realtime.max-commands-per-second` | 16 text frames per socket |
+| `azure.enabled` | true |
+| `assessment.audio-workers` | 1 |
+| `assessment.audio-queue-capacity` | 50 waiting jobs |
+| `assessment.audio-timeout` | 20s per attempt |
+| `assessment.audio-transient-retries` | 1 |
+| `assessment.audio-deadline` | 30s after the session ends |
+| `assessment.language-enabled` | true |
+| `assessment.language-timeout` | 30s |
 
-| Property | Environment input | Default |
-| --- | --- | --- |
-| `assemblyai.api-key` | `ASSEMBLYAI_API_KEY` | Empty |
-| `assemblyai.endpoint` | `SPEAKING_ASSEMBLYAI_ENDPOINT` | `wss://streaming.assemblyai.com/v3/ws` |
-| `assemblyai.model` | `SPEAKING_ASSEMBLYAI_MODEL` | `universal-3-6-pro` |
-| `assemblyai.connect-timeout` | `SPEAKING_ASSEMBLYAI_CONNECT_TIMEOUT` | 10s |
-| `assemblyai.finalization-timeout` | `SPEAKING_ASSEMBLYAI_FINALIZATION_TIMEOUT` | 6s |
-| `gemini.api-key` | `GEMINI_API_KEY` | Empty |
-| `gemini.endpoint` | `SPEAKING_GEMINI_ENDPOINT` | `https://generativelanguage.googleapis.com/v1beta/models` |
-| `gemini.model` | `SPEAKING_GEMINI_MODEL` | `gemini-3.5-flash-lite` |
-| `gemini.conversation-timeout` | `SPEAKING_GEMINI_CONVERSATION_TIMEOUT` | 12s |
-| `gemini.opening-timeout` | `SPEAKING_GEMINI_OPENING_TIMEOUT` | 10s |
-| `cartesia.api-key` | `CARTESIA_API_KEY` | Empty |
-| `cartesia.endpoint` | `SPEAKING_CARTESIA_ENDPOINT` | `https://api.cartesia.ai/tts/bytes` |
-| `cartesia.model` | `SPEAKING_CARTESIA_MODEL` | `sonic-3.6` |
-| `cartesia.voice` | `CARTESIA_VOICE_ID` | `db6b0ed5-d5d3-463d-ae85-518a07d3c2b4` |
-| `cartesia.api-version` | `SPEAKING_CARTESIA_API_VERSION` | `2026-08-14` |
-| `cartesia.timeout` | `SPEAKING_CARTESIA_TIMEOUT` | 20s |
-| `indexes.enabled` | `ENGOLEARN_SPEAKING_INDEXES_ENABLED` | true |
-| `recovery.enabled` | `ENGOLEARN_SPEAKING_RECOVERY_ENABLED` | true |
+Allowed socket Origins come from `engolearn.cors.allowed-origins` as exact origin strings. Tickets expire after 30 seconds. Protected references are eligible for 30 days. MediaManagement signs playback URLs for up to 60 seconds.
 
-The opening service also limits the entire generation stage to 10s and the TTS plus storage stage to 20s. Request-time expiry checks still apply when the startup recovery and expiry runner is disabled.
+[application.yaml](../../../src/main/resources/application.yaml) owns the AssemblyAI, Gemini, Cartesia and Azure inputs. Clients initialize lazily and require keys only when called. Configure Azure through `AZURE_SPEECH_KEY` and `AZURE_SPEECH_REGION`. Google GenAI runs through Spring AI 2.0.2 with native JSON schemas and explicit timeouts. The application allows one explicit conversation retry using the stored transcript for an eligible failed turn. Language assessment uses its own Gemini request and reuses the same externally supplied credential.
 
-Private upload and signed playback require shared `engolearn.media.cloudinary.url` (`CLOUDINARY_URL`) or all three of `cloud-name`, `api-key` and `api-secret` under the same prefix (`CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY` and `CLOUDINARY_API_SECRET`). These inputs default to empty. The storage bean reports missing credentials on the first storage operation.
+The Cartesia adapter requests raw mono 24 kHz PCM16 and writes a WAV header after receiving the audio. The header uses the completed payload size for WebSocket delivery and protected playback.
 
-## Local startup and content import
+## Acoustic assessment policy
 
-From the backend repository root, configure local Mongo/auth settings and the provider credentials required by the capability being exercised through `.env` or process environment. See [the environment template](../../../.env.example).
+Policy `azure-v2.2` assesses eligible learner audio through the existing 120-second limit. The worker sends the full prepared PCM in one Azure SDK Continuous Recognition stream per attempt. Each learner turn has one logical acoustic sample across attempts. The recognition cap is 50 segments. The existing 20-second attempt timeout and 30-second post-session audio deadline still apply.
+
+- **Delta to Artifact 04.** Assess the full prepared clip through 120 seconds. A single native segment keeps its Azure scores. Multiple segments retain word-weighted pronunciation and use a duration-weighted fluency estimate over valid Azure scores with reliable recognized timing. Missing fluency timing cannot supply a weight. The estimated fluency does not fully account for pauses between native segments. [Artifact 04 baseline](https://github.com/engolearn-platform/engolearn-business-docs-and-tools/blob/fc68b0d895c391ecd9fae85df8fa8536a7a1ebfb/docs/usecase_spec/speaking-with-AI/v2-rebuild/04-audio-assessment.md)
+- **Delta to Artifact 05.** Session fluency and acoustic duration thresholds use assessed timing evidence. Session pronunciation continues to use recognized words as weights. The turn remains the unit for minimum sample counts. Missing evidence keeps a nullable score, and prior finalized results remain immutable. [Artifact 05 baseline](https://github.com/engolearn-platform/engolearn-business-docs-and-tools/blob/fc68b0d895c391ecd9fae85df8fa8536a7a1ebfb/docs/usecase_spec/speaking-with-AI/v2-rebuild/05-session-rubric.md)
+
+At each aggregation level, pronunciation is `sum(score × assessed words) / sum(assessed words)`. Fluency is `sum(score × qualifying assessed duration) / sum(qualifying assessed duration)`. A valid zero contributes normally. Excluded fluency evidence contributes neither a score nor duration. The session still requires three eligible turns per acoustic criterion, with at least 20 words and 15 seconds for pronunciation and at least 20 seconds for fluency.
+
+See the [runtime flows](runtime-flows.md#assessment) for processing order and the [P6 runbook](../../../../docs/implementation/speaking-v2-p6-runbook.md) for pending 120-second runtime verification.
+
+## Local verification
+
+Run the focused suites from the backend root with Docker and loopback available. The Gemini HTTP test uses a local fake endpoint.
 
 ```powershell
-docker compose up -d mongodb
-.\mvnw.cmd spring-boot:run "-Dspring-boot.run.profiles=dev"
+.\mvnw.cmd -ntp "-Dtest=SpeakingAssessmentMongoIntegrationTest,SpeakingAssessmentPolicyTest,SpeakingRealtimeMongoIntegrationTest,SpeakingFoundationMongoIntegrationTest,SpeakingConversationTest,SpeakingFramesTest,GeminiSpeakingGenerationTest,AssemblyAiSpeechStreamTest,CartesiaSpeechSynthesisTest,SecurityIntegrationTest,ArchitectureTest" test
 ```
 
-The [café config pack](../../../tools/mongo-json-importer/samples/speaking-ai-cafe-opening-configs.json) adds Speaking configs for already present café item versions; it does not create Topic items. Use the [importer](../../../tools/mongo-json-importer/README.md) with that specific file and `-DryRun` before importing.
-
-## Verification
-
-From the backend root, run the focused provider, lifecycle, profile and security checks, then the change-level build. Docker enables the database-backed suites.
-
-```powershell
-.\mvnw.cmd "-Dtest=*Speaking*,Conversation*,*Speech*,Gemini*,PromptV2BuilderTest,RuntimeProfilesTest,SecurityIntegrationTest" test
-.\mvnw.cmd verify
-```
-
-## Accepted design and runtime limits
-
-Session locks and tickets are local to a JVM. The [shared v0.8.2](../../../../docs/system-design/speaking-demo-contract-v0.8.2-addendum.md) and [v0.8.3](../../../../docs/system-design/speaking-demo-contract-v0.8.3-addendum.md) addenda preserve accepted historical design and dev/demo semantics. They do not control the current evaluator path. Durable payload recovery and aggregate CAS/outbox remain unimplemented. Multi-instance coordination is not available. Shared Media integration is incomplete because Speaking still stores Cloudinary public IDs and format rather than resolving persisted media IDs through `MediaManagement`. Real provider, database, storage, authorization and multi-instance smoke tests remain necessary before production readiness can be claimed. See the [business mapping](../../features/speaking-with-ai/README.md) for coverage and lifecycle gaps.
+The [runtime configuration contract](../../architecture/runtime-configuration.md) governs local and deployed inputs.

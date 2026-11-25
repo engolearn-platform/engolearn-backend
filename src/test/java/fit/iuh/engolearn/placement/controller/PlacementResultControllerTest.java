@@ -92,7 +92,7 @@ class PlacementResultControllerTest {
         for (String endpoint : new String[]{"result", "review"}) {
             mvc.perform(get(ROOT + "/{id}/" + endpoint, id).cookie(cookie))
                     .andExpect(status().isUnauthorized()).andExpect(header().string("Cache-Control", "no-store"))
-                    .andExpect(jsonPath("$.code").value("PLACEMENT_AUTHENTICATION_REQUIRED"));
+                    .andExpect(jsonPath("$.code").value("AUTHENTICATION_REQUIRED"));
             mvc.perform(get(ROOT + "/{id}/" + endpoint, id).cookie(cookie, other))
                     .andExpect(status().isNotFound())
                     .andExpect(jsonPath("$.code").value("PLACEMENT_ATTEMPT_NOT_FOUND"));
@@ -158,6 +158,7 @@ class PlacementResultControllerTest {
 
     @TestConfiguration
     static class ClockConfig {
+        @Bean fit.iuh.engolearn.placement.service.PlacementAudioDelivery sampleAudioDelivery() { return source -> source; }
         @Bean MutableClock placementTestClock() { return new MutableClock(); }
     }
 

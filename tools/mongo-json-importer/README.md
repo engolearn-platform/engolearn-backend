@@ -238,5 +238,26 @@ the unmodified generic importer with skip; different content aborts without
 replacement. It selects only questions + V2 and never resets attempts. Do not use
 the default all-samples import just to enable Placement.
 
-See [Placement local runtime](../../docs/technical/placement-local-runtime.md)
+See [Placement local runtime](../../docs/technical/placement/placement-local-runtime.md)
 for prerequisites, fresh-clone setup, environment isolation and legacy V1 audio.
+
+## Shared Placement/Grammar demo state
+
+Optional module-owned setup after the generic importer; requires Node22.18+ and a running BE. Generic importer behavior/settings stay unchanged. The shared target is7 Placement Published/9 Draft forms and39 Grammar Published/4 Draft-ready Topics (99 Published/7 Draft-ready Lessons), defined by the existing catalog and Grammar metadata.demo_state.
+
+From the backend root, with the existing datasets imported:
+
+```powershell
+# Read-only preflight (prompts for an existing app ADMIN; password is not saved)
+.\tools\mongo-json-importer\setup-placement-grammar-demo.ps1
+# Only after reviewing the target and preflight, type DEMO when prompted
+.\tools\mongo-json-importer\setup-placement-grammar-demo.ps1 -Apply
+```
+
+Default API base is http://localhost:8080/api/v1. Override -ApiBaseUrl when necessary; non-local targets require -AllowRemote and explicit environment review. Credentials go to the selected app API, not Mongo. Remote APIs require HTTPS; the tool does not downgrade secure cookies. Login may create an Auth session; dry-run changes no curriculum/progress, and the tool logs out its own session on completion. Automation can use process-only ENGOLEARN_DEMO_EMAIL / ENGOLEARN_DEMO_PASSWORD with the Node script; never commit filled values.
+
+The tool preflights the entire canonical curriculum before the first content write, refuses missing/mismatching content, pending drafts, unexpected archives or a demo-reserved Topic already Published, and uses normal Grammar Ready/Publish APIs with current version tokens. Placement is verification-only: exact7/9 status, snapshot/live question content and Cloudinary public_id/format must match the approved catalog before any Grammar write. It never imports, deletes, overwrites content, unpublishes, or resets personal learning data. Publication creates immutable revisions and audits through BE. All149 Grammar roots and16 current forms must match the shared IDs/content/order; existing extra content and historical versions are left alone.
+
+Actions are atomic per existing API transaction, not one transaction across all Topics. If another editor changes data or a request fails, the tool stops; previous completed publications remain. Review and rerun dry-run to continue, never restore an older seed over progress. Already matching state yields0 actions. Equal publication status does not mean identical historical revision numbers/timestamps between machines.
+
+For the exact files and empty-namespace import prerequisites, see [Grammar](samples/grammar/README.md) and [Placement](samples/placement/README.md). Pulling code or starting the app never silently runs setup.

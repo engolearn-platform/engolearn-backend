@@ -1,0 +1,3085 @@
+{
+  "metadata": {
+    "name": "Placement shared Cloudinary audio",
+    "version": 1,
+    "description": "Import alongside the canonical Placement question/test-set samples; then run the authenticated Placement media migration. No credentials, learner records, attempt results or delivery URLs are included."
+  },
+  "collections": {
+    "media_assets": [
+      {
+        "_id": "03ffe33a-64f1-441a-84f6-5833553574ab",
+        "purpose": "PLACEMENT_LISTENING",
+        "access_policy": "PUBLIC",
+        "original_filename": "ff333c5c747a4d97f9d59f6fa6133cfda5b48ff7f532a3f22c71cd70d3807b98.wav",
+        "content_type": "audio/wav",
+        "size_bytes": 491638,
+        "storage": {
+          "provider": "CLOUDINARY",
+          "asset_id": "56129bb98bfca18dfcd7bd7b9f29e862",
+          "public_id": "engolearn/media/03ffe33a-64f1-441a-84f6-5833553574ab",
+          "resource_type": "VIDEO",
+          "delivery_type": "UPLOAD",
+          "format": "wav",
+          "version": 1795420829
+        },
+        "updated_at": {
+          "$date": "2026-11-23T08:00:30.268Z"
+        },
+        "_class": "fit.iuh.engolearn.media.model.MediaAsset"
+      },
+      {
+        "_id": "06979d98-cf69-4fe7-ba76-15fe58a8d8fd",
+        "purpose": "PLACEMENT_LISTENING",
+        "access_policy": "PUBLIC",
+        "original_filename": "acc841ec657dee7968968bde097f2f1080a484af1b84daeeb4b6064c5ab61717.wav",
+        "content_type": "audio/wav",
+        "size_bytes": 479980,
+        "storage": {
+          "provider": "CLOUDINARY",
+          "asset_id": "1f7254abcc3ccd7c4cd87d374439de29",
+          "public_id": "engolearn/media/06979d98-cf69-4fe7-ba76-15fe58a8d8fd",
+          "resource_type": "VIDEO",
+          "delivery_type": "UPLOAD",
+          "format": "wav",
+          "version": 1795420680
+        },
+        "updated_at": {
+          "$date": "2026-11-23T07:58:01.684Z"
+        },
+        "_class": "fit.iuh.engolearn.media.model.MediaAsset"
+      },
+      {
+        "_id": "09a3c249-4ffa-4b07-b64a-259e522270a5",
+        "purpose": "PLACEMENT_LISTENING",
+        "access_policy": "PUBLIC",
+        "original_filename": "47fc12644a64fc93712b87360261b59cdcd2e2bcd0bd91fc2075f79e37706dbc.wav",
+        "content_type": "audio/wav",
+        "size_bytes": 587336,
+        "storage": {
+          "provider": "CLOUDINARY",
+          "asset_id": "ab0b09b1e3f9026a35ae8d78ed14e10a",
+          "public_id": "engolearn/media/09a3c249-4ffa-4b07-b64a-259e522270a5",
+          "resource_type": "VIDEO",
+          "delivery_type": "UPLOAD",
+          "format": "wav",
+          "version": 1795420479
+        },
+        "updated_at": {
+          "$date": "2026-11-23T07:54:40.760Z"
+        },
+        "_class": "fit.iuh.engolearn.media.model.MediaAsset"
+      },
+      {
+        "_id": "0c31ccd8-7cf2-418a-a2be-90e9a7f0d6bc",
+        "purpose": "PLACEMENT_LISTENING",
+        "access_policy": "PUBLIC",
+        "original_filename": "9857eecbceab788f52bc117c03e4c454e8d716cd327238fb3fc5b863e31d5b76.wav",
+        "content_type": "audio/wav",
+        "size_bytes": 475770,
+        "storage": {
+          "provider": "CLOUDINARY",
+          "asset_id": "fc7f148ad6ac90eda5f00f54c78602fb",
+          "public_id": "engolearn/media/0c31ccd8-7cf2-418a-a2be-90e9a7f0d6bc",
+          "resource_type": "VIDEO",
+          "delivery_type": "UPLOAD",
+          "format": "wav",
+          "version": 1795420651
+        },
+        "updated_at": {
+          "$date": "2026-11-23T07:57:32.904Z"
+        },
+        "_class": "fit.iuh.engolearn.media.model.MediaAsset"
+      },
+      {
+        "_id": "0d9c4b7f-3f5e-4961-b96f-09ed0d62f9fe",
+        "purpose": "PLACEMENT_LISTENING",
+        "access_policy": "PUBLIC",
+        "original_filename": "c31c51ec5cc4f823eefdaf8b3d2197f5bb3568d5472eebf03c87754928f4cbb5.wav",
+        "content_type": "audio/wav",
+        "size_bytes": 446018,
+        "storage": {
+          "provider": "CLOUDINARY",
+          "asset_id": "c907056817663f12c0f61e2dc86222ce",
+          "public_id": "engolearn/media/0d9c4b7f-3f5e-4961-b96f-09ed0d62f9fe",
+          "resource_type": "VIDEO",
+          "delivery_type": "UPLOAD",
+          "format": "wav",
+          "version": 1795420735
+        },
+        "updated_at": {
+          "$date": "2026-11-23T07:58:56.778Z"
+        },
+        "_class": "fit.iuh.engolearn.media.model.MediaAsset"
+      },
+      {
+        "_id": "0e921724-8b4f-4107-bab1-e33fc84808e9",
+        "purpose": "PLACEMENT_LISTENING",
+        "access_policy": "PUBLIC",
+        "original_filename": "328e450f474721b4d132e8f98ba46677a48ab9d94a57dc0e8a6202d579dcdef1.wav",
+        "content_type": "audio/wav",
+        "size_bytes": 419996,
+        "storage": {
+          "provider": "CLOUDINARY",
+          "asset_id": "16a79f631afa909061e4cd477c16c1f5",
+          "public_id": "engolearn/media/0e921724-8b4f-4107-bab1-e33fc84808e9",
+          "resource_type": "VIDEO",
+          "delivery_type": "UPLOAD",
+          "format": "wav",
+          "version": 1795420430
+        },
+        "updated_at": {
+          "$date": "2026-11-23T07:53:51.260Z"
+        },
+        "_class": "fit.iuh.engolearn.media.model.MediaAsset"
+      },
+      {
+        "_id": "1106210b-5400-48bb-8135-3233181b458d",
+        "purpose": "PLACEMENT_LISTENING",
+        "access_policy": "PUBLIC",
+        "original_filename": "649caf340f896ee537192721f0935fefa9859395cf665595b1e315482a14e302.wav",
+        "content_type": "audio/wav",
+        "size_bytes": 529568,
+        "storage": {
+          "provider": "CLOUDINARY",
+          "asset_id": "ed028cf64bffb3a7db2be778a6313038",
+          "public_id": "engolearn/media/1106210b-5400-48bb-8135-3233181b458d",
+          "resource_type": "VIDEO",
+          "delivery_type": "UPLOAD",
+          "format": "wav",
+          "version": 1795420552
+        },
+        "updated_at": {
+          "$date": "2026-11-23T07:55:53.920Z"
+        },
+        "_class": "fit.iuh.engolearn.media.model.MediaAsset"
+      },
+      {
+        "_id": "15372b9f-532e-4b0b-a83c-e8f7b66f0ff4",
+        "purpose": "PLACEMENT_LISTENING",
+        "access_policy": "PUBLIC",
+        "original_filename": "42958102680517082c1367dc64dbe67d4c10cf2080f4764e4d52450f23621c9f.wav",
+        "content_type": "audio/wav",
+        "size_bytes": 232186,
+        "storage": {
+          "provider": "CLOUDINARY",
+          "asset_id": "59f662c8cf8e60ecce953d5e2c9c1592",
+          "public_id": "engolearn/media/15372b9f-532e-4b0b-a83c-e8f7b66f0ff4",
+          "resource_type": "VIDEO",
+          "delivery_type": "UPLOAD",
+          "format": "wav",
+          "version": 1795420470
+        },
+        "updated_at": {
+          "$date": "2026-11-23T07:54:31.503Z"
+        },
+        "_class": "fit.iuh.engolearn.media.model.MediaAsset"
+      },
+      {
+        "_id": "208da0cd-66a8-48a4-9b2e-e9409dcba3f9",
+        "purpose": "PLACEMENT_LISTENING",
+        "access_policy": "PUBLIC",
+        "original_filename": "9cde8853492aa2e269c2de4ab19e4c0d2fb8f69425c3c4154ab4b76ca6fc343a.wav",
+        "content_type": "audio/wav",
+        "size_bytes": 635600,
+        "storage": {
+          "provider": "CLOUDINARY",
+          "asset_id": "5f5e75a7d70846882ce0b29dd350565f",
+          "public_id": "engolearn/media/208da0cd-66a8-48a4-9b2e-e9409dcba3f9",
+          "resource_type": "VIDEO",
+          "delivery_type": "UPLOAD",
+          "format": "wav",
+          "version": 1795420661
+        },
+        "updated_at": {
+          "$date": "2026-11-23T07:57:42.623Z"
+        },
+        "_class": "fit.iuh.engolearn.media.model.MediaAsset"
+      },
+      {
+        "_id": "24e27ace-e59a-42c0-9273-b3e9ba372ff9",
+        "purpose": "PLACEMENT_LISTENING",
+        "access_policy": "PUBLIC",
+        "original_filename": "c1c9e8965466e29bfaaad06eb6ffdfae6e1cbcea213967b182653aa480a9afef.wav",
+        "content_type": "audio/wav",
+        "size_bytes": 596806,
+        "storage": {
+          "provider": "CLOUDINARY",
+          "asset_id": "19238caa3a31c62504a3e7c9c43a56eb",
+          "public_id": "engolearn/media/24e27ace-e59a-42c0-9273-b3e9ba372ff9",
+          "resource_type": "VIDEO",
+          "delivery_type": "UPLOAD",
+          "format": "wav",
+          "version": 1795420730
+        },
+        "updated_at": {
+          "$date": "2026-11-23T07:58:51.925Z"
+        },
+        "_class": "fit.iuh.engolearn.media.model.MediaAsset"
+      },
+      {
+        "_id": "25fcc80c-1325-443d-a516-219646d0ad4f",
+        "purpose": "PLACEMENT_LISTENING",
+        "access_policy": "PUBLIC",
+        "original_filename": "5f4bbdf60923397f1901c3badb45905006e09af7ae78f11e322d222e5ddcef46.wav",
+        "content_type": "audio/wav",
+        "size_bytes": 486346,
+        "storage": {
+          "provider": "CLOUDINARY",
+          "asset_id": "d5aac491afc387db0f008d727c5ff184",
+          "public_id": "engolearn/media/25fcc80c-1325-443d-a516-219646d0ad4f",
+          "resource_type": "VIDEO",
+          "delivery_type": "UPLOAD",
+          "format": "wav",
+          "version": 1795420534
+        },
+        "updated_at": {
+          "$date": "2026-11-23T07:55:35.432Z"
+        },
+        "_class": "fit.iuh.engolearn.media.model.MediaAsset"
+      },
+      {
+        "_id": "26e0bbff-d0ee-4d26-9b52-56e1268eb1b4",
+        "purpose": "PLACEMENT_LISTENING",
+        "access_policy": "PUBLIC",
+        "original_filename": "16e36fda34836407c8d3ec95b0fe7c8d933804974ea600eda4c9ba3728b2c1f4.wav",
+        "content_type": "audio/wav",
+        "size_bytes": 583350,
+        "storage": {
+          "provider": "CLOUDINARY",
+          "asset_id": "fc303363afcb05b97b02f2c7c33310ca",
+          "public_id": "engolearn/media/26e0bbff-d0ee-4d26-9b52-56e1268eb1b4",
+          "resource_type": "VIDEO",
+          "delivery_type": "UPLOAD",
+          "format": "wav",
+          "version": 1795420396
+        },
+        "updated_at": {
+          "$date": "2026-11-23T07:53:17.351Z"
+        },
+        "_class": "fit.iuh.engolearn.media.model.MediaAsset"
+      },
+      {
+        "_id": "27890d38-77ee-41bc-97b3-203c5e47c741",
+        "purpose": "PLACEMENT_LISTENING",
+        "access_policy": "PUBLIC",
+        "original_filename": "f229740dd34e09081fb1bbf0e891568650d8163b5c64495c067d67b5d553286d.wav",
+        "content_type": "audio/wav",
+        "size_bytes": 633824,
+        "storage": {
+          "provider": "CLOUDINARY",
+          "asset_id": "f7f16e5609e27fe59f9340f15348ddd5",
+          "public_id": "engolearn/media/27890d38-77ee-41bc-97b3-203c5e47c741",
+          "resource_type": "VIDEO",
+          "delivery_type": "UPLOAD",
+          "format": "wav",
+          "version": 1795420812
+        },
+        "updated_at": {
+          "$date": "2026-11-23T08:00:14.462Z"
+        },
+        "_class": "fit.iuh.engolearn.media.model.MediaAsset"
+      },
+      {
+        "_id": "2bd15603-1b9e-47fb-a022-17b4d2288e04",
+        "purpose": "PLACEMENT_LISTENING",
+        "access_policy": "PUBLIC",
+        "original_filename": "50b4ee294b2ea557ac2e2df7c85a41940755f7c21cad13d0b2d6d284efe018c1.wav",
+        "content_type": "audio/wav",
+        "size_bytes": 673524,
+        "storage": {
+          "provider": "CLOUDINARY",
+          "asset_id": "bbcac4567a655a158d6cf8f534f3b38e",
+          "public_id": "engolearn/media/2bd15603-1b9e-47fb-a022-17b4d2288e04",
+          "resource_type": "VIDEO",
+          "delivery_type": "UPLOAD",
+          "format": "wav",
+          "version": 1795420495
+        },
+        "updated_at": {
+          "$date": "2026-11-23T07:54:56.447Z"
+        },
+        "_class": "fit.iuh.engolearn.media.model.MediaAsset"
+      },
+      {
+        "_id": "2c5bc1d7-f036-4737-b467-26d8e7c9ddbf",
+        "purpose": "PLACEMENT_LISTENING",
+        "access_policy": "PUBLIC",
+        "original_filename": "64698d5d40d543db15528482d7fdde1829f047ee87bf1321763f0f59b389ed40.wav",
+        "content_type": "audio/wav",
+        "size_bytes": 640888,
+        "storage": {
+          "provider": "CLOUDINARY",
+          "asset_id": "fbecc374aed9bf8d276cf2c25bf88b33",
+          "public_id": "engolearn/media/2c5bc1d7-f036-4737-b467-26d8e7c9ddbf",
+          "resource_type": "VIDEO",
+          "delivery_type": "UPLOAD",
+          "format": "wav",
+          "version": 1795420548
+        },
+        "updated_at": {
+          "$date": "2026-11-23T07:55:49.263Z"
+        },
+        "_class": "fit.iuh.engolearn.media.model.MediaAsset"
+      },
+      {
+        "_id": "2ffc85d1-c661-45af-acf5-30b99dde5889",
+        "purpose": "PLACEMENT_LISTENING",
+        "access_policy": "PUBLIC",
+        "original_filename": "846acdec564858cf8c2201f2bc452c275eb84acff802dfd4652b692b94a47aa4.wav",
+        "content_type": "audio/wav",
+        "size_bytes": 582912,
+        "storage": {
+          "provider": "CLOUDINARY",
+          "asset_id": "6fd754603cfe374172e3101696c157db",
+          "public_id": "engolearn/media/2ffc85d1-c661-45af-acf5-30b99dde5889",
+          "resource_type": "VIDEO",
+          "delivery_type": "UPLOAD",
+          "format": "wav",
+          "version": 1795420603
+        },
+        "updated_at": {
+          "$date": "2026-11-23T07:56:46.070Z"
+        },
+        "_class": "fit.iuh.engolearn.media.model.MediaAsset"
+      },
+      {
+        "_id": "3cf78f04-a775-4907-8c00-1829fe0a251a",
+        "purpose": "PLACEMENT_LISTENING",
+        "access_policy": "PUBLIC",
+        "original_filename": "ecf4e19a7ea624855296bf1e1ce6792cd4efc40c645674f6c9143c5c10ae9052.wav",
+        "content_type": "audio/wav",
+        "size_bytes": 260176,
+        "storage": {
+          "provider": "CLOUDINARY",
+          "asset_id": "43518c5d837e938fa8a260013c113bac",
+          "public_id": "engolearn/media/3cf78f04-a775-4907-8c00-1829fe0a251a",
+          "resource_type": "VIDEO",
+          "delivery_type": "UPLOAD",
+          "format": "wav",
+          "version": 1795420802
+        },
+        "updated_at": {
+          "$date": "2026-11-23T08:00:03.537Z"
+        },
+        "_class": "fit.iuh.engolearn.media.model.MediaAsset"
+      },
+      {
+        "_id": "3f8f4f5f-c5bb-4941-9d22-fd86f96055dd",
+        "purpose": "PLACEMENT_LISTENING",
+        "access_policy": "PUBLIC",
+        "original_filename": "81e61627b6fba5ba81aa5bbcc451a018f4d835187fe7da373a0d02201370f8c6.wav",
+        "content_type": "audio/wav",
+        "size_bytes": 560436,
+        "storage": {
+          "provider": "CLOUDINARY",
+          "asset_id": "94c3f9036d19a05ca460c6285f0e2a7c",
+          "public_id": "engolearn/media/3f8f4f5f-c5bb-4941-9d22-fd86f96055dd",
+          "resource_type": "VIDEO",
+          "delivery_type": "UPLOAD",
+          "format": "wav",
+          "version": 1795420599
+        },
+        "updated_at": {
+          "$date": "2026-11-23T07:56:40.160Z"
+        },
+        "_class": "fit.iuh.engolearn.media.model.MediaAsset"
+      },
+      {
+        "_id": "41ca740a-788d-48a9-b347-d9cf017a33ab",
+        "purpose": "PLACEMENT_LISTENING",
+        "access_policy": "PUBLIC",
+        "original_filename": "19c73d68efd07b778c6ce9d4ebe325e5120216fe565ac36ebffbca0fbca3563e.wav",
+        "content_type": "audio/wav",
+        "size_bytes": 498264,
+        "storage": {
+          "provider": "CLOUDINARY",
+          "asset_id": "b5309d65a407b0838efe54ab38ca6cf8",
+          "public_id": "engolearn/media/41ca740a-788d-48a9-b347-d9cf017a33ab",
+          "resource_type": "VIDEO",
+          "delivery_type": "UPLOAD",
+          "format": "wav",
+          "version": 1795420406
+        },
+        "updated_at": {
+          "$date": "2026-11-23T07:53:27.356Z"
+        },
+        "_class": "fit.iuh.engolearn.media.model.MediaAsset"
+      },
+      {
+        "_id": "47352058-1083-4030-ac42-bb45019746bd",
+        "purpose": "PLACEMENT_LISTENING",
+        "access_policy": "PUBLIC",
+        "original_filename": "887db207f09471879daab8b066476149338054a9e1e70e841e602b88b42c51f4.wav",
+        "content_type": "audio/wav",
+        "size_bytes": 499138,
+        "storage": {
+          "provider": "CLOUDINARY",
+          "asset_id": "1ed0babb1c923478c3d27309b1641ec4",
+          "public_id": "engolearn/media/47352058-1083-4030-ac42-bb45019746bd",
+          "resource_type": "VIDEO",
+          "delivery_type": "UPLOAD",
+          "format": "wav",
+          "version": 1795420614
+        },
+        "updated_at": {
+          "$date": "2026-11-23T07:56:55.631Z"
+        },
+        "_class": "fit.iuh.engolearn.media.model.MediaAsset"
+      },
+      {
+        "_id": "4c366956-8942-41b2-9ebc-543e8f8aa782",
+        "purpose": "PLACEMENT_LISTENING",
+        "access_policy": "PUBLIC",
+        "original_filename": "ad42d2ed8e5205c4a4801e7a243305a33d1dd9465edf1bdd0d5afb6ee77923bc.wav",
+        "content_type": "audio/wav",
+        "size_bytes": 322122,
+        "storage": {
+          "provider": "CLOUDINARY",
+          "asset_id": "fe3f5556063269cdbfed103a7c908f04",
+          "public_id": "engolearn/media/4c366956-8942-41b2-9ebc-543e8f8aa782",
+          "resource_type": "VIDEO",
+          "delivery_type": "UPLOAD",
+          "format": "wav",
+          "version": 1795420685
+        },
+        "updated_at": {
+          "$date": "2026-11-23T07:58:06.688Z"
+        },
+        "_class": "fit.iuh.engolearn.media.model.MediaAsset"
+      },
+      {
+        "_id": "4d05e1ff-261e-4aec-b957-54eb08601f7d",
+        "purpose": "PLACEMENT_LISTENING",
+        "access_policy": "PUBLIC",
+        "original_filename": "17033f09286629953a1c85ed3d26e74a84d0f3b8d07ccec01f2b2ba61d9fd63d.wav",
+        "content_type": "audio/wav",
+        "size_bytes": 682134,
+        "storage": {
+          "provider": "CLOUDINARY",
+          "asset_id": "9812e152542e8adf582a5ceba0783302",
+          "public_id": "engolearn/media/4d05e1ff-261e-4aec-b957-54eb08601f7d",
+          "resource_type": "VIDEO",
+          "delivery_type": "UPLOAD",
+          "format": "wav",
+          "version": 1795420401
+        },
+        "updated_at": {
+          "$date": "2026-11-23T07:53:22.170Z"
+        },
+        "_class": "fit.iuh.engolearn.media.model.MediaAsset"
+      },
+      {
+        "_id": "4d5419af-1fef-48c7-9121-d15566665a45",
+        "purpose": "PLACEMENT_LISTENING",
+        "access_policy": "PUBLIC",
+        "original_filename": "af0ae2a7ccc17bbace5173a60bf08d21a7d46588ab1c545b912c6f862842643b.wav",
+        "content_type": "audio/wav",
+        "size_bytes": 381200,
+        "storage": {
+          "provider": "CLOUDINARY",
+          "asset_id": "230902d0ad860ef2bf55ec9e2fa45cf0",
+          "public_id": "engolearn/media/4d5419af-1fef-48c7-9121-d15566665a45",
+          "resource_type": "VIDEO",
+          "delivery_type": "UPLOAD",
+          "format": "wav",
+          "version": 1795420695
+        },
+        "updated_at": {
+          "$date": "2026-11-23T07:58:16.712Z"
+        },
+        "_class": "fit.iuh.engolearn.media.model.MediaAsset"
+      },
+      {
+        "_id": "4e1f64f4-463a-4b22-809e-e1830179667f",
+        "purpose": "PLACEMENT_LISTENING",
+        "access_policy": "PUBLIC",
+        "original_filename": "af92dc4666cddfbd804a5e6f00a8ab48de545f253624a000d8cde89b03d6ada0.wav",
+        "content_type": "audio/wav",
+        "size_bytes": 559106,
+        "storage": {
+          "provider": "CLOUDINARY",
+          "asset_id": "e27c0026aa6398b80a14e47ed83afb43",
+          "public_id": "engolearn/media/4e1f64f4-463a-4b22-809e-e1830179667f",
+          "resource_type": "VIDEO",
+          "delivery_type": "UPLOAD",
+          "format": "wav",
+          "version": 1795420700
+        },
+        "updated_at": {
+          "$date": "2026-11-23T07:58:21.822Z"
+        },
+        "_class": "fit.iuh.engolearn.media.model.MediaAsset"
+      },
+      {
+        "_id": "504f5e34-4734-4b1a-b235-e01e54163f23",
+        "purpose": "PLACEMENT_LISTENING",
+        "access_policy": "PUBLIC",
+        "original_filename": "ea0cc5807e4da496cdbca31953ca7d5c5b0f9bf950be3d4b829fb0a6717dc522.wav",
+        "content_type": "audio/wav",
+        "size_bytes": 465624,
+        "storage": {
+          "provider": "CLOUDINARY",
+          "asset_id": "e421dd2fbd8a7a45c5d9f07f7d96eb8d",
+          "public_id": "engolearn/media/504f5e34-4734-4b1a-b235-e01e54163f23",
+          "resource_type": "VIDEO",
+          "delivery_type": "UPLOAD",
+          "format": "wav",
+          "version": 1795420788
+        },
+        "updated_at": {
+          "$date": "2026-11-23T07:59:48.931Z"
+        },
+        "_class": "fit.iuh.engolearn.media.model.MediaAsset"
+      },
+      {
+        "_id": "5376c861-1868-4d6d-8447-03d6dfa12a1b",
+        "purpose": "PLACEMENT_LISTENING",
+        "access_policy": "PUBLIC",
+        "original_filename": "761d166f84f7340960168226ca3dcea14721d714c8b13b359e49ac251e73192f.wav",
+        "content_type": "audio/wav",
+        "size_bytes": 451756,
+        "storage": {
+          "provider": "CLOUDINARY",
+          "asset_id": "5fec79b4053089af9e69bd2721a18dd4",
+          "public_id": "engolearn/media/5376c861-1868-4d6d-8447-03d6dfa12a1b",
+          "resource_type": "VIDEO",
+          "delivery_type": "UPLOAD",
+          "format": "wav",
+          "version": 1795420589
+        },
+        "updated_at": {
+          "$date": "2026-11-23T07:56:30.823Z"
+        },
+        "_class": "fit.iuh.engolearn.media.model.MediaAsset"
+      },
+      {
+        "_id": "53a5011c-7a21-41dc-9aba-930cf8161a6f",
+        "purpose": "PLACEMENT_LISTENING",
+        "access_policy": "PUBLIC",
+        "original_filename": "9700556c8c132ac9a0e1d2ebb52a6d7c6dc89c0de5d5c24ba7feced14a89dce7.wav",
+        "content_type": "audio/wav",
+        "size_bytes": 584238,
+        "storage": {
+          "provider": "CLOUDINARY",
+          "asset_id": "453c92273f3b9bb9af06ce49a3a971e7",
+          "public_id": "engolearn/media/53a5011c-7a21-41dc-9aba-930cf8161a6f",
+          "resource_type": "VIDEO",
+          "delivery_type": "UPLOAD",
+          "format": "wav",
+          "version": 1795420647
+        },
+        "updated_at": {
+          "$date": "2026-11-23T07:57:28.238Z"
+        },
+        "_class": "fit.iuh.engolearn.media.model.MediaAsset"
+      },
+      {
+        "_id": "552ba422-c2d0-49c3-97a1-d0dd7fb2ecd1",
+        "purpose": "PLACEMENT_LISTENING",
+        "access_policy": "PUBLIC",
+        "original_filename": "000bd752de10c39da248e546fb45b6f2c6d425bc1f638496ee24c4473ffbc59d.wav",
+        "content_type": "audio/wav",
+        "size_bytes": 499154,
+        "storage": {
+          "provider": "CLOUDINARY",
+          "asset_id": "b6aa9b201651f94cfd558749200e8aea",
+          "public_id": "engolearn/media/552ba422-c2d0-49c3-97a1-d0dd7fb2ecd1",
+          "resource_type": "VIDEO",
+          "delivery_type": "UPLOAD",
+          "format": "wav",
+          "version": 1795420357
+        },
+        "updated_at": {
+          "$date": "2026-11-23T07:52:38.134Z"
+        },
+        "_class": "fit.iuh.engolearn.media.model.MediaAsset"
+      },
+      {
+        "_id": "58fd939a-d40d-48ac-84ed-eeeba196ed6f",
+        "purpose": "PLACEMENT_LISTENING",
+        "access_policy": "PUBLIC",
+        "original_filename": "60907e67330035a62b205353743de27e86354eac57455821adc7bf87c72bfeec.wav",
+        "content_type": "audio/wav",
+        "size_bytes": 396634,
+        "storage": {
+          "provider": "CLOUDINARY",
+          "asset_id": "a6392ce1d18460e07fec46b3eaa6ff73",
+          "public_id": "engolearn/media/58fd939a-d40d-48ac-84ed-eeeba196ed6f",
+          "resource_type": "VIDEO",
+          "delivery_type": "UPLOAD",
+          "format": "wav",
+          "version": 1795420539
+        },
+        "updated_at": {
+          "$date": "2026-11-23T07:55:39.948Z"
+        },
+        "_class": "fit.iuh.engolearn.media.model.MediaAsset"
+      },
+      {
+        "_id": "5a3faf30-efc4-402d-8abb-0b41a7453995",
+        "purpose": "PLACEMENT_LISTENING",
+        "access_policy": "PUBLIC",
+        "original_filename": "38ae6cfb8b30d5a33ef26e661efbc44e283154cde59dd8da2ba481b1b56b42eb.wav",
+        "content_type": "audio/wav",
+        "size_bytes": 453518,
+        "storage": {
+          "provider": "CLOUDINARY",
+          "asset_id": "193d117f88edf6e7bcb41a6dce91c130",
+          "public_id": "engolearn/media/5a3faf30-efc4-402d-8abb-0b41a7453995",
+          "resource_type": "VIDEO",
+          "delivery_type": "UPLOAD",
+          "format": "wav",
+          "version": 1795420456
+        },
+        "updated_at": {
+          "$date": "2026-11-23T07:54:17.636Z"
+        },
+        "_class": "fit.iuh.engolearn.media.model.MediaAsset"
+      },
+      {
+        "_id": "5a89e20b-9004-417b-a00e-ef270c8dcbf6",
+        "purpose": "PLACEMENT_LISTENING",
+        "access_policy": "PUBLIC",
+        "original_filename": "b655c8abea76e1f8050ab2a16b1485650ce2d2bc7fb3c9af041254248a0adb4d.wav",
+        "content_type": "audio/wav",
+        "size_bytes": 469596,
+        "storage": {
+          "provider": "CLOUDINARY",
+          "asset_id": "89a2b3619e67b110c4709d6a3dab5612",
+          "public_id": "engolearn/media/5a89e20b-9004-417b-a00e-ef270c8dcbf6",
+          "resource_type": "VIDEO",
+          "delivery_type": "UPLOAD",
+          "format": "wav",
+          "version": 1795420710
+        },
+        "updated_at": {
+          "$date": "2026-11-23T07:58:31.712Z"
+        },
+        "_class": "fit.iuh.engolearn.media.model.MediaAsset"
+      },
+      {
+        "_id": "5e667a4d-3017-4b54-8b18-a9ae3bc6870a",
+        "purpose": "PLACEMENT_LISTENING",
+        "access_policy": "PUBLIC",
+        "original_filename": "8728ca94122508a9cc9b3545ea76e5cd5afb8d1fdf7289439ab361da64b562b1.wav",
+        "content_type": "audio/wav",
+        "size_bytes": 637150,
+        "storage": {
+          "provider": "CLOUDINARY",
+          "asset_id": "3de970383ecf1332d8e835881e6fbedb",
+          "public_id": "engolearn/media/5e667a4d-3017-4b54-8b18-a9ae3bc6870a",
+          "resource_type": "VIDEO",
+          "delivery_type": "UPLOAD",
+          "format": "wav",
+          "version": 1795420609
+        },
+        "updated_at": {
+          "$date": "2026-11-23T07:56:51.050Z"
+        },
+        "_class": "fit.iuh.engolearn.media.model.MediaAsset"
+      },
+      {
+        "_id": "6012dcc1-bcf7-4f85-9066-5d4809f236b2",
+        "purpose": "PLACEMENT_LISTENING",
+        "access_policy": "PUBLIC",
+        "original_filename": "035cd8e71db26d1049ed8b6d92c06f472776c7769584c8e0317350a84bb2f273.wav",
+        "content_type": "audio/wav",
+        "size_bytes": 640894,
+        "storage": {
+          "provider": "CLOUDINARY",
+          "asset_id": "ed400cf85a38b3370f6561ebde78eb03",
+          "public_id": "engolearn/media/6012dcc1-bcf7-4f85-9066-5d4809f236b2",
+          "resource_type": "VIDEO",
+          "delivery_type": "UPLOAD",
+          "format": "wav",
+          "version": 1795420367
+        },
+        "updated_at": {
+          "$date": "2026-11-23T07:52:48.780Z"
+        },
+        "_class": "fit.iuh.engolearn.media.model.MediaAsset"
+      },
+      {
+        "_id": "61668890-125b-4167-ba5a-f9320bb8a015",
+        "purpose": "PLACEMENT_LISTENING",
+        "access_policy": "PUBLIC",
+        "original_filename": "ebcecc6d055f94022adca12b5bc884f4b47e6cc70b530a2a6e5c44d976f9e262.wav",
+        "content_type": "audio/wav",
+        "size_bytes": 611792,
+        "storage": {
+          "provider": "CLOUDINARY",
+          "asset_id": "d87d0455f51331a4c8cd06ebf422a03c",
+          "public_id": "engolearn/media/61668890-125b-4167-ba5a-f9320bb8a015",
+          "resource_type": "VIDEO",
+          "delivery_type": "UPLOAD",
+          "format": "wav",
+          "version": 1795420797
+        },
+        "updated_at": {
+          "$date": "2026-11-23T07:59:58.870Z"
+        },
+        "_class": "fit.iuh.engolearn.media.model.MediaAsset"
+      },
+      {
+        "_id": "653a7e9b-8b48-4db5-81eb-911442f0d41d",
+        "purpose": "PLACEMENT_LISTENING",
+        "access_policy": "PUBLIC",
+        "original_filename": "e6e46ded0ae36d96dd45d86a88aba29a3e1b3dbb1f327645f264de1473cfc30e.wav",
+        "content_type": "audio/wav",
+        "size_bytes": 616414,
+        "storage": {
+          "provider": "CLOUDINARY",
+          "asset_id": "555d8c8deec71deb026845febbb488e1",
+          "public_id": "engolearn/media/653a7e9b-8b48-4db5-81eb-911442f0d41d",
+          "resource_type": "VIDEO",
+          "delivery_type": "UPLOAD",
+          "format": "wav",
+          "version": 1795420774
+        },
+        "updated_at": {
+          "$date": "2026-11-23T07:59:35.086Z"
+        },
+        "_class": "fit.iuh.engolearn.media.model.MediaAsset"
+      },
+      {
+        "_id": "6625a711-bfc1-4991-ade3-a8c5c4d7c793",
+        "purpose": "PLACEMENT_LISTENING",
+        "access_policy": "PUBLIC",
+        "original_filename": "bfcb713f5787a018a7f4e91c98c3c2866843af9fb8db6ac1d34b780767449f64.wav",
+        "content_type": "audio/wav",
+        "size_bytes": 240556,
+        "storage": {
+          "provider": "CLOUDINARY",
+          "asset_id": "ac56d93dd501668f0bee44ab84ecc43a",
+          "public_id": "engolearn/media/6625a711-bfc1-4991-ade3-a8c5c4d7c793",
+          "resource_type": "VIDEO",
+          "delivery_type": "UPLOAD",
+          "format": "wav",
+          "version": 1795420725
+        },
+        "updated_at": {
+          "$date": "2026-11-23T07:58:46.847Z"
+        },
+        "_class": "fit.iuh.engolearn.media.model.MediaAsset"
+      },
+      {
+        "_id": "69fa3a63-eaa4-490f-bc73-18f9b468a0e2",
+        "purpose": "PLACEMENT_LISTENING",
+        "access_policy": "PUBLIC",
+        "original_filename": "5900b90048f5f30165f8a6f791a9c3d5179acf36fede54b66dfffd0a9c3b747b.wav",
+        "content_type": "audio/wav",
+        "size_bytes": 561082,
+        "storage": {
+          "provider": "CLOUDINARY",
+          "asset_id": "f05501a0cd34f60381b5a713bc8211b6",
+          "public_id": "engolearn/media/69fa3a63-eaa4-490f-bc73-18f9b468a0e2",
+          "resource_type": "VIDEO",
+          "delivery_type": "UPLOAD",
+          "format": "wav",
+          "version": 1795420514
+        },
+        "updated_at": {
+          "$date": "2026-11-23T07:55:15.858Z"
+        },
+        "_class": "fit.iuh.engolearn.media.model.MediaAsset"
+      },
+      {
+        "_id": "6b8125cb-6a10-4075-b26c-02f55465f6b5",
+        "purpose": "PLACEMENT_LISTENING",
+        "access_policy": "PUBLIC",
+        "original_filename": "5d0c07c44038edf8383f83604efee6fab381ecb2fa48109ae6403a3ed3a55e54.wav",
+        "content_type": "audio/wav",
+        "size_bytes": 226008,
+        "storage": {
+          "provider": "CLOUDINARY",
+          "asset_id": "b229bbe94d5c6df4604c4dfd53ca328d",
+          "public_id": "engolearn/media/6b8125cb-6a10-4075-b26c-02f55465f6b5",
+          "resource_type": "VIDEO",
+          "delivery_type": "UPLOAD",
+          "format": "wav",
+          "version": 1795420524
+        },
+        "updated_at": {
+          "$date": "2026-11-23T07:55:25.280Z"
+        },
+        "_class": "fit.iuh.engolearn.media.model.MediaAsset"
+      },
+      {
+        "_id": "6c802d4a-4af7-4158-9b60-67f61d448aa3",
+        "purpose": "PLACEMENT_LISTENING",
+        "access_policy": "PUBLIC",
+        "original_filename": "b8744096eda2f18d2e95c6159d1f7d321b0e64194c77af30e9410122ae5f6f89.wav",
+        "content_type": "audio/wav",
+        "size_bytes": 646196,
+        "storage": {
+          "provider": "CLOUDINARY",
+          "asset_id": "522ec5769f6ade28b90e89be3abc152e",
+          "public_id": "engolearn/media/6c802d4a-4af7-4158-9b60-67f61d448aa3",
+          "resource_type": "VIDEO",
+          "delivery_type": "UPLOAD",
+          "format": "wav",
+          "version": 1795420715
+        },
+        "updated_at": {
+          "$date": "2026-11-23T07:58:36.539Z"
+        },
+        "_class": "fit.iuh.engolearn.media.model.MediaAsset"
+      },
+      {
+        "_id": "7080476d-3310-41e1-84b5-db07e466c681",
+        "purpose": "PLACEMENT_LISTENING",
+        "access_policy": "PUBLIC",
+        "original_filename": "359f56646db1bad818989cf2f08302d298aee110b5be6f86fb666f8a528bba69.wav",
+        "content_type": "audio/wav",
+        "size_bytes": 317056,
+        "storage": {
+          "provider": "CLOUDINARY",
+          "asset_id": "284259f74e4f5d0d7ed620d7d70ce427",
+          "public_id": "engolearn/media/7080476d-3310-41e1-84b5-db07e466c681",
+          "resource_type": "VIDEO",
+          "delivery_type": "UPLOAD",
+          "format": "wav",
+          "version": 1795420446
+        },
+        "updated_at": {
+          "$date": "2026-11-23T07:54:07.706Z"
+        },
+        "_class": "fit.iuh.engolearn.media.model.MediaAsset"
+      },
+      {
+        "_id": "74e41859-5e10-4a9b-bdb7-60d3db2a6c6d",
+        "purpose": "PLACEMENT_LISTENING",
+        "access_policy": "PUBLIC",
+        "original_filename": "3f0c9067358cb93d7ec3a78d4c58f5d14c6a7c1dd14428564ecf1fc8a993a17a.wav",
+        "content_type": "audio/wav",
+        "size_bytes": 598120,
+        "storage": {
+          "provider": "CLOUDINARY",
+          "asset_id": "1e4bd0947a22dad11cfe3c9ef63b58d4",
+          "public_id": "engolearn/media/74e41859-5e10-4a9b-bdb7-60d3db2a6c6d",
+          "resource_type": "VIDEO",
+          "delivery_type": "UPLOAD",
+          "format": "wav",
+          "version": 1795420461
+        },
+        "updated_at": {
+          "$date": "2026-11-23T07:54:22.438Z"
+        },
+        "_class": "fit.iuh.engolearn.media.model.MediaAsset"
+      },
+      {
+        "_id": "77894a5e-c8b3-4fba-aecd-f75f565ab9c1",
+        "purpose": "PLACEMENT_LISTENING",
+        "access_policy": "PUBLIC",
+        "original_filename": "0dabb34c94766b0607e4857967a2c065beccbb50c6f4ac76ee3f3756da494c45.wav",
+        "content_type": "audio/wav",
+        "size_bytes": 296338,
+        "storage": {
+          "provider": "CLOUDINARY",
+          "asset_id": "5b6ba3f4139746726506f9a251ba3cfe",
+          "public_id": "engolearn/media/77894a5e-c8b3-4fba-aecd-f75f565ab9c1",
+          "resource_type": "VIDEO",
+          "delivery_type": "UPLOAD",
+          "format": "wav",
+          "version": 1795420386
+        },
+        "updated_at": {
+          "$date": "2026-11-23T07:53:07.853Z"
+        },
+        "_class": "fit.iuh.engolearn.media.model.MediaAsset"
+      },
+      {
+        "_id": "781190fe-aceb-41f6-bccd-cfe74b109075",
+        "purpose": "PLACEMENT_LISTENING",
+        "access_policy": "PUBLIC",
+        "original_filename": "8b43233c2faecb313487b11e12d09aee45113e8be26fe93a56d1e75237d70778.wav",
+        "content_type": "audio/wav",
+        "size_bytes": 300092,
+        "storage": {
+          "provider": "CLOUDINARY",
+          "asset_id": "96a684c7b9551703e381d1856f63835a",
+          "public_id": "engolearn/media/781190fe-aceb-41f6-bccd-cfe74b109075",
+          "resource_type": "VIDEO",
+          "delivery_type": "UPLOAD",
+          "format": "wav",
+          "version": 1795420619
+        },
+        "updated_at": {
+          "$date": "2026-11-23T07:57:00.069Z"
+        },
+        "_class": "fit.iuh.engolearn.media.model.MediaAsset"
+      },
+      {
+        "_id": "7b903a14-cac0-48b5-af35-91ee519c217d",
+        "purpose": "PLACEMENT_LISTENING",
+        "access_policy": "PUBLIC",
+        "original_filename": "e3f9d135c4c016a8765b46bbe9be3311ec987b96c2763df00f0b8ec3914f0946.wav",
+        "content_type": "audio/wav",
+        "size_bytes": 490320,
+        "storage": {
+          "provider": "CLOUDINARY",
+          "asset_id": "286ed7e5ce815b38bb7a6769f94625b4",
+          "public_id": "engolearn/media/7b903a14-cac0-48b5-af35-91ee519c217d",
+          "resource_type": "VIDEO",
+          "delivery_type": "UPLOAD",
+          "format": "wav",
+          "version": 1795420769
+        },
+        "updated_at": {
+          "$date": "2026-11-23T07:59:30.413Z"
+        },
+        "_class": "fit.iuh.engolearn.media.model.MediaAsset"
+      },
+      {
+        "_id": "7c373f5e-4429-4d70-9cc6-f405a48b7cbd",
+        "purpose": "PLACEMENT_LISTENING",
+        "access_policy": "PUBLIC",
+        "original_filename": "4165847377724df3463ab9bf5f8cbabe1b54a44bad99f564d6e21f2528394f65.wav",
+        "content_type": "audio/wav",
+        "size_bytes": 329406,
+        "storage": {
+          "provider": "CLOUDINARY",
+          "asset_id": "ecb833daf626821881ee45c9a3f2c0c9",
+          "public_id": "engolearn/media/7c373f5e-4429-4d70-9cc6-f405a48b7cbd",
+          "resource_type": "VIDEO",
+          "delivery_type": "UPLOAD",
+          "format": "wav",
+          "version": 1795420465
+        },
+        "updated_at": {
+          "$date": "2026-11-23T07:54:27.175Z"
+        },
+        "_class": "fit.iuh.engolearn.media.model.MediaAsset"
+      },
+      {
+        "_id": "7e4a1df6-267b-4abd-9f10-fa3dcb88e866",
+        "purpose": "PLACEMENT_LISTENING",
+        "access_policy": "PUBLIC",
+        "original_filename": "5893df2e014d02af62423b0ea4e88577cea48e4550e5012f42b6c45470f0149f.wav",
+        "content_type": "audio/wav",
+        "size_bytes": 299868,
+        "storage": {
+          "provider": "CLOUDINARY",
+          "asset_id": "bd493539f967e497a155736aa29cf6ba",
+          "public_id": "engolearn/media/7e4a1df6-267b-4abd-9f10-fa3dcb88e866",
+          "resource_type": "VIDEO",
+          "delivery_type": "UPLOAD",
+          "format": "wav",
+          "version": 1795420509
+        },
+        "updated_at": {
+          "$date": "2026-11-23T07:55:11.050Z"
+        },
+        "_class": "fit.iuh.engolearn.media.model.MediaAsset"
+      },
+      {
+        "_id": "878354e1-0899-4257-ba5e-9826f1654a64",
+        "purpose": "PLACEMENT_LISTENING",
+        "access_policy": "PUBLIC",
+        "original_filename": "8d6681c5193c200796d35c389ab49cfb2bda3f5c869ba972a4ee88774bfc15d7.wav",
+        "content_type": "audio/wav",
+        "size_bytes": 770308,
+        "storage": {
+          "provider": "CLOUDINARY",
+          "asset_id": "efef80f36eecbb134a05e46f8c3e3a45",
+          "public_id": "engolearn/media/878354e1-0899-4257-ba5e-9826f1654a64",
+          "resource_type": "VIDEO",
+          "delivery_type": "UPLOAD",
+          "format": "wav",
+          "version": 1795420624
+        },
+        "updated_at": {
+          "$date": "2026-11-23T07:57:05.152Z"
+        },
+        "_class": "fit.iuh.engolearn.media.model.MediaAsset"
+      },
+      {
+        "_id": "8c2acfa0-5451-44d9-8082-21ed44cd7127",
+        "purpose": "PLACEMENT_LISTENING",
+        "access_policy": "PUBLIC",
+        "original_filename": "6eec73459666e216e2626fb299ed380815a5de607624dea2f0b671a22e655788.wav",
+        "content_type": "audio/wav",
+        "size_bytes": 543454,
+        "storage": {
+          "provider": "CLOUDINARY",
+          "asset_id": "6360178a377395594deb6455bad63eee",
+          "public_id": "engolearn/media/8c2acfa0-5451-44d9-8082-21ed44cd7127",
+          "resource_type": "VIDEO",
+          "delivery_type": "UPLOAD",
+          "format": "wav",
+          "version": 1795420571
+        },
+        "updated_at": {
+          "$date": "2026-11-23T07:56:12.518Z"
+        },
+        "_class": "fit.iuh.engolearn.media.model.MediaAsset"
+      },
+      {
+        "_id": "8debecd3-b176-4f3f-93e6-f512ac384d03",
+        "purpose": "PLACEMENT_LISTENING",
+        "access_policy": "PUBLIC",
+        "original_filename": "f176057501b4c37958215491475a92476e41d50a81217d2095db7e53f7189d6a.wav",
+        "content_type": "audio/wav",
+        "size_bytes": 523840,
+        "storage": {
+          "provider": "CLOUDINARY",
+          "asset_id": "90920ea8b6b9207cbcc86df9ddc4d85b",
+          "public_id": "engolearn/media/8debecd3-b176-4f3f-93e6-f512ac384d03",
+          "resource_type": "VIDEO",
+          "delivery_type": "UPLOAD",
+          "format": "wav",
+          "version": 1795420807
+        },
+        "updated_at": {
+          "$date": "2026-11-23T08:00:08.296Z"
+        },
+        "_class": "fit.iuh.engolearn.media.model.MediaAsset"
+      },
+      {
+        "_id": "8e3868d9-dd52-41b7-880e-76c79222a98d",
+        "purpose": "PLACEMENT_LISTENING",
+        "access_policy": "PUBLIC",
+        "original_filename": "c6b10025f99cacd0e830e4dc26da487c47aadaa85ee773525f99fa5d8fad14d3.wav",
+        "content_type": "audio/wav",
+        "size_bytes": 554028,
+        "storage": {
+          "provider": "CLOUDINARY",
+          "asset_id": "6b70eacc5e33bbabb7e88ed72734e112",
+          "public_id": "engolearn/media/8e3868d9-dd52-41b7-880e-76c79222a98d",
+          "resource_type": "VIDEO",
+          "delivery_type": "UPLOAD",
+          "format": "wav",
+          "version": 1795420740
+        },
+        "updated_at": {
+          "$date": "2026-11-23T07:59:01.686Z"
+        },
+        "_class": "fit.iuh.engolearn.media.model.MediaAsset"
+      },
+      {
+        "_id": "8e62400b-c016-4f53-90fa-6666bfba3198",
+        "purpose": "PLACEMENT_LISTENING",
+        "access_policy": "PUBLIC",
+        "original_filename": "228cd6ef13d431dff6e477f38aa3c72b40f98dbdf1694b7b778a611fbec5f0fb.wav",
+        "content_type": "audio/wav",
+        "size_bytes": 673752,
+        "storage": {
+          "provider": "CLOUDINARY",
+          "asset_id": "91cf57c0993dc6b6f8cef07e0f51817d",
+          "public_id": "engolearn/media/8e62400b-c016-4f53-90fa-6666bfba3198",
+          "resource_type": "VIDEO",
+          "delivery_type": "UPLOAD",
+          "format": "wav",
+          "version": 1795420420
+        },
+        "updated_at": {
+          "$date": "2026-11-23T07:53:41.323Z"
+        },
+        "_class": "fit.iuh.engolearn.media.model.MediaAsset"
+      },
+      {
+        "_id": "8f840b22-98d9-4ad8-9098-f394838d8a52",
+        "purpose": "PLACEMENT_LISTENING",
+        "access_policy": "PUBLIC",
+        "original_filename": "e802c9bb66514bc5e15294dbda40a0ddb0079a89cd399af8d508037dfb38aadd.wav",
+        "content_type": "audio/wav",
+        "size_bytes": 484812,
+        "storage": {
+          "provider": "CLOUDINARY",
+          "asset_id": "cd77d7fcc06dbb002e847edfefd610aa",
+          "public_id": "engolearn/media/8f840b22-98d9-4ad8-9098-f394838d8a52",
+          "resource_type": "VIDEO",
+          "delivery_type": "UPLOAD",
+          "format": "wav",
+          "version": 1795420783
+        },
+        "updated_at": {
+          "$date": "2026-11-23T07:59:44.327Z"
+        },
+        "_class": "fit.iuh.engolearn.media.model.MediaAsset"
+      },
+      {
+        "_id": "91d2aa6b-32bc-4b64-998a-44ac1eda7a33",
+        "purpose": "PLACEMENT_LISTENING",
+        "access_policy": "PUBLIC",
+        "original_filename": "952c91f5e758a2c27628716d88daab397441c63c7e6aab4e3356a5f73a9d1d3f.wav",
+        "content_type": "audio/wav",
+        "size_bytes": 485260,
+        "storage": {
+          "provider": "CLOUDINARY",
+          "asset_id": "0d8dbf95a1bb38c39fde976c735e944d",
+          "public_id": "engolearn/media/91d2aa6b-32bc-4b64-998a-44ac1eda7a33",
+          "resource_type": "VIDEO",
+          "delivery_type": "UPLOAD",
+          "format": "wav",
+          "version": 1795420638
+        },
+        "updated_at": {
+          "$date": "2026-11-23T07:57:19.169Z"
+        },
+        "_class": "fit.iuh.engolearn.media.model.MediaAsset"
+      },
+      {
+        "_id": "91d7091c-4b41-4d3c-8d5d-3e1a0c3fe6b8",
+        "purpose": "PLACEMENT_LISTENING",
+        "access_policy": "PUBLIC",
+        "original_filename": "1c4d84cc56f4a96e1ae5718dca1bea7c492d90d870641fe56771d73c2e546e14.wav",
+        "content_type": "audio/wav",
+        "size_bytes": 544988,
+        "storage": {
+          "provider": "CLOUDINARY",
+          "asset_id": "2999965c933c05b71e7639596e208b40",
+          "public_id": "engolearn/media/91d7091c-4b41-4d3c-8d5d-3e1a0c3fe6b8",
+          "resource_type": "VIDEO",
+          "delivery_type": "UPLOAD",
+          "format": "wav",
+          "version": 1795420411
+        },
+        "updated_at": {
+          "$date": "2026-11-23T07:53:31.980Z"
+        },
+        "_class": "fit.iuh.engolearn.media.model.MediaAsset"
+      },
+      {
+        "_id": "940a46d4-f0c7-4de8-b38b-196276e95ddc",
+        "purpose": "PLACEMENT_LISTENING",
+        "access_policy": "PUBLIC",
+        "original_filename": "eab4b4fe05a8e840668f3f5039a3008147b6b21a183f71502a44728f112a3714.wav",
+        "content_type": "audio/wav",
+        "size_bytes": 595250,
+        "storage": {
+          "provider": "CLOUDINARY",
+          "asset_id": "c9318c445fcfd50858c047336b81b9f5",
+          "public_id": "engolearn/media/940a46d4-f0c7-4de8-b38b-196276e95ddc",
+          "resource_type": "VIDEO",
+          "delivery_type": "UPLOAD",
+          "format": "wav",
+          "version": 1795420793
+        },
+        "updated_at": {
+          "$date": "2026-11-23T07:59:54.045Z"
+        },
+        "_class": "fit.iuh.engolearn.media.model.MediaAsset"
+      },
+      {
+        "_id": "94378879-b407-4c77-9a31-e9659d110b06",
+        "purpose": "PLACEMENT_LISTENING",
+        "access_policy": "PUBLIC",
+        "original_filename": "7ab9e69c1f8a078333833b6ed1fbcf3585f0ede822949b95686f8a16410498cd.wav",
+        "content_type": "audio/wav",
+        "size_bytes": 246504,
+        "storage": {
+          "provider": "CLOUDINARY",
+          "asset_id": "908d69c243aa40972a38f8335fd3c840",
+          "public_id": "engolearn/media/94378879-b407-4c77-9a31-e9659d110b06",
+          "resource_type": "VIDEO",
+          "delivery_type": "UPLOAD",
+          "format": "wav",
+          "version": 1795420594
+        },
+        "updated_at": {
+          "$date": "2026-11-23T07:56:35.336Z"
+        },
+        "_class": "fit.iuh.engolearn.media.model.MediaAsset"
+      },
+      {
+        "_id": "95fa07aa-4e32-4c8e-b80e-de1f77a65a27",
+        "purpose": "PLACEMENT_LISTENING",
+        "access_policy": "PUBLIC",
+        "original_filename": "defbd36ae4b23f61d1915ae2ab58a4d451d0d056349103dee88af511daf5ea48.wav",
+        "content_type": "audio/wav",
+        "size_bytes": 479974,
+        "storage": {
+          "provider": "CLOUDINARY",
+          "asset_id": "f51697494e1d33d5bfea1e3999127758",
+          "public_id": "engolearn/media/95fa07aa-4e32-4c8e-b80e-de1f77a65a27",
+          "resource_type": "VIDEO",
+          "delivery_type": "UPLOAD",
+          "format": "wav",
+          "version": 1795420764
+        },
+        "updated_at": {
+          "$date": "2026-11-23T07:59:25.638Z"
+        },
+        "_class": "fit.iuh.engolearn.media.model.MediaAsset"
+      },
+      {
+        "_id": "97343027-202d-4283-862a-50dc67b7791b",
+        "purpose": "PLACEMENT_LISTENING",
+        "access_policy": "PUBLIC",
+        "original_filename": "047b8e567ce04b15a1544b4b5ddc9fb60c45a7b141a10674b33fc1bb6441e80f.wav",
+        "content_type": "audio/wav",
+        "size_bytes": 512808,
+        "storage": {
+          "provider": "CLOUDINARY",
+          "asset_id": "dbe1887908caa16809a50f9f8f2a5555",
+          "public_id": "engolearn/media/97343027-202d-4283-862a-50dc67b7791b",
+          "resource_type": "VIDEO",
+          "delivery_type": "UPLOAD",
+          "format": "wav",
+          "version": 1795420372
+        },
+        "updated_at": {
+          "$date": "2026-11-23T07:52:53.665Z"
+        },
+        "_class": "fit.iuh.engolearn.media.model.MediaAsset"
+      },
+      {
+        "_id": "97783a1f-672a-44ea-8cdd-11228f3243fe",
+        "purpose": "PLACEMENT_LISTENING",
+        "access_policy": "PUBLIC",
+        "original_filename": "45d465e430376e6e501b04dc3d18d7d00df283ae66ddfd3d1a3bb725a63c6944.wav",
+        "content_type": "audio/wav",
+        "size_bytes": 344398,
+        "storage": {
+          "provider": "CLOUDINARY",
+          "asset_id": "31dc99d8bf5082dae04f560511075708",
+          "public_id": "engolearn/media/97783a1f-672a-44ea-8cdd-11228f3243fe",
+          "resource_type": "VIDEO",
+          "delivery_type": "UPLOAD",
+          "format": "wav",
+          "version": 1795420474
+        },
+        "updated_at": {
+          "$date": "2026-11-23T07:54:36.023Z"
+        },
+        "_class": "fit.iuh.engolearn.media.model.MediaAsset"
+      },
+      {
+        "_id": "9925fabd-f287-4b74-8a9e-bd7dc1d78431",
+        "purpose": "PLACEMENT_LISTENING",
+        "access_policy": "PUBLIC",
+        "original_filename": "56344385f704e6c30bc9d9af540c5aa63fc35bd8b77d83d018c216c91626b21b.wav",
+        "content_type": "audio/wav",
+        "size_bytes": 471160,
+        "storage": {
+          "provider": "CLOUDINARY",
+          "asset_id": "e73ac84e54a7c63f2865c861dcba620f",
+          "public_id": "engolearn/media/9925fabd-f287-4b74-8a9e-bd7dc1d78431",
+          "resource_type": "VIDEO",
+          "delivery_type": "UPLOAD",
+          "format": "wav",
+          "version": 1795420505
+        },
+        "updated_at": {
+          "$date": "2026-11-23T07:55:06.399Z"
+        },
+        "_class": "fit.iuh.engolearn.media.model.MediaAsset"
+      },
+      {
+        "_id": "995960cb-aa3a-4742-af68-9b647dae3392",
+        "purpose": "PLACEMENT_LISTENING",
+        "access_policy": "PUBLIC",
+        "original_filename": "aed5122e5d4fa59fa6b7fa54982e66d6ea1fa31d994cbed89bd79f44af40d57c.wav",
+        "content_type": "audio/wav",
+        "size_bytes": 628324,
+        "storage": {
+          "provider": "CLOUDINARY",
+          "asset_id": "07828d4f64f0f4d89c50123c828e861d",
+          "public_id": "engolearn/media/995960cb-aa3a-4742-af68-9b647dae3392",
+          "resource_type": "VIDEO",
+          "delivery_type": "UPLOAD",
+          "format": "wav",
+          "version": 1795420691
+        },
+        "updated_at": {
+          "$date": "2026-11-23T07:58:12.090Z"
+        },
+        "_class": "fit.iuh.engolearn.media.model.MediaAsset"
+      },
+      {
+        "_id": "9e69e067-7f1b-4977-922a-e813192f5751",
+        "purpose": "PLACEMENT_LISTENING",
+        "access_policy": "PUBLIC",
+        "original_filename": "aa6a50dd9db60c766223bbaa2e8e040ccc3fb1bc72f22984e1a5f7bb693140c3.wav",
+        "content_type": "audio/wav",
+        "size_bytes": 556668,
+        "storage": {
+          "provider": "CLOUDINARY",
+          "asset_id": "8c7317baedcef125040e8aef5b8896e3",
+          "public_id": "engolearn/media/9e69e067-7f1b-4977-922a-e813192f5751",
+          "resource_type": "VIDEO",
+          "delivery_type": "UPLOAD",
+          "format": "wav",
+          "version": 1795420675
+        },
+        "updated_at": {
+          "$date": "2026-11-23T07:57:56.895Z"
+        },
+        "_class": "fit.iuh.engolearn.media.model.MediaAsset"
+      },
+      {
+        "_id": "9fd710e5-295b-45d6-a19b-8849d8fa78df",
+        "purpose": "PLACEMENT_LISTENING",
+        "access_policy": "PUBLIC",
+        "original_filename": "95329356616e131faf23d3daad22beb2471c9c8c5e5671fc8738395d8e37b66b.wav",
+        "content_type": "audio/wav",
+        "size_bytes": 255764,
+        "storage": {
+          "provider": "CLOUDINARY",
+          "asset_id": "8425eb3a3252c0c60c74f97890be5839",
+          "public_id": "engolearn/media/9fd710e5-295b-45d6-a19b-8849d8fa78df",
+          "resource_type": "VIDEO",
+          "delivery_type": "UPLOAD",
+          "format": "wav",
+          "version": 1795420642
+        },
+        "updated_at": {
+          "$date": "2026-11-23T07:57:23.515Z"
+        },
+        "_class": "fit.iuh.engolearn.media.model.MediaAsset"
+      },
+      {
+        "_id": "a18e4107-a029-4694-b023-158c37cac5ab",
+        "purpose": "PLACEMENT_LISTENING",
+        "access_policy": "PUBLIC",
+        "original_filename": "d07c8d64aaf50fb1cd8f9921b7ce2958e2d46c0d004806171be0a13541198ef8.wav",
+        "content_type": "audio/wav",
+        "size_bytes": 659202,
+        "storage": {
+          "provider": "CLOUDINARY",
+          "asset_id": "720967ac6e1172ace98783d066e6b1f4",
+          "public_id": "engolearn/media/a18e4107-a029-4694-b023-158c37cac5ab",
+          "resource_type": "VIDEO",
+          "delivery_type": "UPLOAD",
+          "format": "wav",
+          "version": 1795420745
+        },
+        "updated_at": {
+          "$date": "2026-11-23T07:59:06.524Z"
+        },
+        "_class": "fit.iuh.engolearn.media.model.MediaAsset"
+      },
+      {
+        "_id": "a7fb4ead-dad3-4ce8-a856-b8cec78c63ba",
+        "purpose": "PLACEMENT_LISTENING",
+        "access_policy": "PUBLIC",
+        "original_filename": "49f1c82bbf7448998654f98a9db2209686811d00070a1855e56242d40a5dd40a.wav",
+        "content_type": "audio/wav",
+        "size_bytes": 246504,
+        "storage": {
+          "provider": "CLOUDINARY",
+          "asset_id": "91c03088266d2376d1dfdef98c9464f1",
+          "public_id": "engolearn/media/a7fb4ead-dad3-4ce8-a856-b8cec78c63ba",
+          "resource_type": "VIDEO",
+          "delivery_type": "UPLOAD",
+          "format": "wav",
+          "version": 1795420490
+        },
+        "updated_at": {
+          "$date": "2026-11-23T07:54:51.710Z"
+        },
+        "_class": "fit.iuh.engolearn.media.model.MediaAsset"
+      },
+      {
+        "_id": "b438737b-8528-40e2-835d-8f47d7073833",
+        "purpose": "PLACEMENT_LISTENING",
+        "access_policy": "PUBLIC",
+        "original_filename": "5a33bc3b49f129cdbceed87d890739c6396c30587e0db3b466ddb7b4ffdc58cd.wav",
+        "content_type": "audio/wav",
+        "size_bytes": 556682,
+        "storage": {
+          "provider": "CLOUDINARY",
+          "asset_id": "c7e74576a6cb3db99bdddc878a3b92ea",
+          "public_id": "engolearn/media/b438737b-8528-40e2-835d-8f47d7073833",
+          "resource_type": "VIDEO",
+          "delivery_type": "UPLOAD",
+          "format": "wav",
+          "version": 1795420519
+        },
+        "updated_at": {
+          "$date": "2026-11-23T07:55:20.791Z"
+        },
+        "_class": "fit.iuh.engolearn.media.model.MediaAsset"
+      },
+      {
+        "_id": "b4861f2a-b643-4860-aee5-fed7cb564e61",
+        "purpose": "PLACEMENT_LISTENING",
+        "access_policy": "PUBLIC",
+        "original_filename": "9fc18a4e6b0c7e6a653a669619f01373e5e340776669ea011714e4be040d454c.wav",
+        "content_type": "audio/wav",
+        "size_bytes": 675284,
+        "storage": {
+          "provider": "CLOUDINARY",
+          "asset_id": "d43f1db9fc86070dd4c3c53d11a3bb5b",
+          "public_id": "engolearn/media/b4861f2a-b643-4860-aee5-fed7cb564e61",
+          "resource_type": "VIDEO",
+          "delivery_type": "UPLOAD",
+          "format": "wav",
+          "version": 1795420671
+        },
+        "updated_at": {
+          "$date": "2026-11-23T07:57:52.149Z"
+        },
+        "_class": "fit.iuh.engolearn.media.model.MediaAsset"
+      },
+      {
+        "_id": "b4a06738-f901-4e11-ada4-14265230dcab",
+        "purpose": "PLACEMENT_LISTENING",
+        "access_policy": "PUBLIC",
+        "original_filename": "650bf7462f4d83f2ec6aab6755c872e441a61bb5aade6016399f1d536bdc14ad.wav",
+        "content_type": "audio/wav",
+        "size_bytes": 451298,
+        "storage": {
+          "provider": "CLOUDINARY",
+          "asset_id": "360ebc72245bbd18047b011acb4d3f8d",
+          "public_id": "engolearn/media/b4a06738-f901-4e11-ada4-14265230dcab",
+          "resource_type": "VIDEO",
+          "delivery_type": "UPLOAD",
+          "format": "wav",
+          "version": 1795420557
+        },
+        "updated_at": {
+          "$date": "2026-11-23T07:55:58.545Z"
+        },
+        "_class": "fit.iuh.engolearn.media.model.MediaAsset"
+      },
+      {
+        "_id": "b6a1fc9e-4f4a-4b3c-a514-be8dea56025d",
+        "purpose": "PLACEMENT_LISTENING",
+        "access_policy": "PUBLIC",
+        "original_filename": "72755abb653636c3bdd538bc7869c053816924ad2c604729866c15b633d4bdfd.wav",
+        "content_type": "audio/wav",
+        "size_bytes": 617088,
+        "storage": {
+          "provider": "CLOUDINARY",
+          "asset_id": "4f70b3aa7330f0818c8021cf16e9dbc1",
+          "public_id": "engolearn/media/b6a1fc9e-4f4a-4b3c-a514-be8dea56025d",
+          "resource_type": "VIDEO",
+          "delivery_type": "UPLOAD",
+          "format": "wav",
+          "version": 1795420577
+        },
+        "updated_at": {
+          "$date": "2026-11-23T07:56:18.640Z"
+        },
+        "_class": "fit.iuh.engolearn.media.model.MediaAsset"
+      },
+      {
+        "_id": "b85ab880-4f71-4874-bf0a-1ce91a364096",
+        "purpose": "PLACEMENT_LISTENING",
+        "access_policy": "PUBLIC",
+        "original_filename": "e7f071b41f6d8f852f9c40c4c7b0bc1c5df9f18394814288edc58705f1fdd32a.wav",
+        "content_type": "audio/wav",
+        "size_bytes": 284208,
+        "storage": {
+          "provider": "CLOUDINARY",
+          "asset_id": "b5eccfa38afbc5d3cde3b95399f2bc5d",
+          "public_id": "engolearn/media/b85ab880-4f71-4874-bf0a-1ce91a364096",
+          "resource_type": "VIDEO",
+          "delivery_type": "UPLOAD",
+          "format": "wav",
+          "version": 1795420778
+        },
+        "updated_at": {
+          "$date": "2026-11-23T07:59:39.650Z"
+        },
+        "_class": "fit.iuh.engolearn.media.model.MediaAsset"
+      },
+      {
+        "_id": "b8f32081-e1cb-4930-b006-7cfc5ed09177",
+        "purpose": "PLACEMENT_LISTENING",
+        "access_policy": "PUBLIC",
+        "original_filename": "fbbecc2cd8f2dd69d4e2f54acd35b1821936d3a48655e0844921e8ea91d3614b.wav",
+        "content_type": "audio/wav",
+        "size_bytes": 534850,
+        "storage": {
+          "provider": "CLOUDINARY",
+          "asset_id": "ee8cd423a0bcbc9e22e0cbd4f28d82ec",
+          "public_id": "engolearn/media/b8f32081-e1cb-4930-b006-7cfc5ed09177",
+          "resource_type": "VIDEO",
+          "delivery_type": "UPLOAD",
+          "format": "wav",
+          "version": 1795420823
+        },
+        "updated_at": {
+          "$date": "2026-11-23T08:00:25.167Z"
+        },
+        "_class": "fit.iuh.engolearn.media.model.MediaAsset"
+      },
+      {
+        "_id": "b9373cdc-180b-4958-a333-e456c2ab5612",
+        "purpose": "PLACEMENT_LISTENING",
+        "access_policy": "PUBLIC",
+        "original_filename": "31a7cd91d01d6785e7b712114290ae68cfe222679314a3f65469fdc7497d294c.wav",
+        "content_type": "audio/wav",
+        "size_bytes": 531330,
+        "storage": {
+          "provider": "CLOUDINARY",
+          "asset_id": "4277380588660c529924f7dc28807a2e",
+          "public_id": "engolearn/media/b9373cdc-180b-4958-a333-e456c2ab5612",
+          "resource_type": "VIDEO",
+          "delivery_type": "UPLOAD",
+          "format": "wav",
+          "version": 1795420425
+        },
+        "updated_at": {
+          "$date": "2026-11-23T07:53:46.347Z"
+        },
+        "_class": "fit.iuh.engolearn.media.model.MediaAsset"
+      },
+      {
+        "_id": "b962890c-852e-4e32-894d-ccbb6ef96a74",
+        "purpose": "PLACEMENT_LISTENING",
+        "access_policy": "PUBLIC",
+        "original_filename": "615f9c3f02d250ab8aa46413189c894b05d6acc0a7fe20144f41233289f046d2.wav",
+        "content_type": "audio/wav",
+        "size_bytes": 283978,
+        "storage": {
+          "provider": "CLOUDINARY",
+          "asset_id": "4ed7efbe42962f96b291f740057e1ffe",
+          "public_id": "engolearn/media/b962890c-852e-4e32-894d-ccbb6ef96a74",
+          "resource_type": "VIDEO",
+          "delivery_type": "UPLOAD",
+          "format": "wav",
+          "version": 1795420543
+        },
+        "updated_at": {
+          "$date": "2026-11-23T07:55:44.593Z"
+        },
+        "_class": "fit.iuh.engolearn.media.model.MediaAsset"
+      },
+      {
+        "_id": "b96fa303-e4f7-49a3-a840-6c506f228e1a",
+        "purpose": "PLACEMENT_LISTENING",
+        "access_policy": "PUBLIC",
+        "original_filename": "b9f4770c1cb9107ffb2a2a515bb9ff8d61cfd86874750e4833ceac06fe88d76a.wav",
+        "content_type": "audio/wav",
+        "size_bytes": 616856,
+        "storage": {
+          "provider": "CLOUDINARY",
+          "asset_id": "f5632c1784888d37a3f64c5690e71e8a",
+          "public_id": "engolearn/media/b96fa303-e4f7-49a3-a840-6c506f228e1a",
+          "resource_type": "VIDEO",
+          "delivery_type": "UPLOAD",
+          "format": "wav",
+          "version": 1795420720
+        },
+        "updated_at": {
+          "$date": "2026-11-23T07:58:41.823Z"
+        },
+        "_class": "fit.iuh.engolearn.media.model.MediaAsset"
+      },
+      {
+        "_id": "bd4abba0-4f29-402e-8b92-d6e6c74ee58e",
+        "purpose": "PLACEMENT_LISTENING",
+        "access_policy": "PUBLIC",
+        "original_filename": "027657a1fcaac0abff60a933c55b3fd7f476ce21a0cf060be6e34098d1766683.wav",
+        "content_type": "audio/wav",
+        "size_bytes": 464086,
+        "storage": {
+          "provider": "CLOUDINARY",
+          "asset_id": "4ab3578bd81c893e63b41888e1d2bcce",
+          "public_id": "engolearn/media/bd4abba0-4f29-402e-8b92-d6e6c74ee58e",
+          "resource_type": "VIDEO",
+          "delivery_type": "UPLOAD",
+          "format": "wav",
+          "version": 1795420363
+        },
+        "updated_at": {
+          "$date": "2026-11-23T07:52:44.071Z"
+        },
+        "_class": "fit.iuh.engolearn.media.model.MediaAsset"
+      },
+      {
+        "_id": "bf86850d-8efc-47c7-804a-bfd00403cf27",
+        "purpose": "PLACEMENT_LISTENING",
+        "access_policy": "PUBLIC",
+        "original_filename": "920d1311bcdd810778fd87eb6af2b9ea50252c9b36898ace28ca164a23ad00c7.wav",
+        "content_type": "audio/wav",
+        "size_bytes": 523608,
+        "storage": {
+          "provider": "CLOUDINARY",
+          "asset_id": "b47c5d5b259d3d4b7ea8901e9f87d79c",
+          "public_id": "engolearn/media/bf86850d-8efc-47c7-804a-bfd00403cf27",
+          "resource_type": "VIDEO",
+          "delivery_type": "UPLOAD",
+          "format": "wav",
+          "version": 1795420633
+        },
+        "updated_at": {
+          "$date": "2026-11-23T07:57:14.465Z"
+        },
+        "_class": "fit.iuh.engolearn.media.model.MediaAsset"
+      },
+      {
+        "_id": "c64edd03-98ee-43f0-844e-415da2e3c36c",
+        "purpose": "PLACEMENT_LISTENING",
+        "access_policy": "PUBLIC",
+        "original_filename": "360ecdc64dec194e34927d48fd320a51d0d5aac6febc5ff13fe9253c6c339061.wav",
+        "content_type": "audio/wav",
+        "size_bytes": 652564,
+        "storage": {
+          "provider": "CLOUDINARY",
+          "asset_id": "d3e104495a6e5b56ea13e93770c83fc6",
+          "public_id": "engolearn/media/c64edd03-98ee-43f0-844e-415da2e3c36c",
+          "resource_type": "VIDEO",
+          "delivery_type": "UPLOAD",
+          "format": "wav",
+          "version": 1795420451
+        },
+        "updated_at": {
+          "$date": "2026-11-23T07:54:12.427Z"
+        },
+        "_class": "fit.iuh.engolearn.media.model.MediaAsset"
+      },
+      {
+        "_id": "c9a8f5f3-a232-4e5d-a482-4e6e1103d7b3",
+        "purpose": "PLACEMENT_LISTENING",
+        "access_policy": "PUBLIC",
+        "original_filename": "b4215a46ec642bdaca8d23c55b22e633992608bc385487d11c5f68dc1dff12e6.wav",
+        "content_type": "audio/wav",
+        "size_bytes": 586436,
+        "storage": {
+          "provider": "CLOUDINARY",
+          "asset_id": "963b8269df7b252dd4d7481e7160eb2f",
+          "public_id": "engolearn/media/c9a8f5f3-a232-4e5d-a482-4e6e1103d7b3",
+          "resource_type": "VIDEO",
+          "delivery_type": "UPLOAD",
+          "format": "wav",
+          "version": 1795420705
+        },
+        "updated_at": {
+          "$date": "2026-11-23T07:58:26.650Z"
+        },
+        "_class": "fit.iuh.engolearn.media.model.MediaAsset"
+      },
+      {
+        "_id": "ca62170d-e007-475d-bbf3-0888e5ac4ba6",
+        "purpose": "PLACEMENT_LISTENING",
+        "access_policy": "PUBLIC",
+        "original_filename": "65a3da5347489f6e245c6675bfa51ccc4538c76604f21b32a4b3915d39e76317.wav",
+        "content_type": "audio/wav",
+        "size_bytes": 652362,
+        "storage": {
+          "provider": "CLOUDINARY",
+          "asset_id": "f74034e61c04de36417565f7fcd5a8c9",
+          "public_id": "engolearn/media/ca62170d-e007-475d-bbf3-0888e5ac4ba6",
+          "resource_type": "VIDEO",
+          "delivery_type": "UPLOAD",
+          "format": "wav",
+          "version": 1795420565
+        },
+        "updated_at": {
+          "$date": "2026-11-23T07:56:06.660Z"
+        },
+        "_class": "fit.iuh.engolearn.media.model.MediaAsset"
+      },
+      {
+        "_id": "cc231a3b-0c4b-42d4-b4b3-1fe361ac94b8",
+        "purpose": "PLACEMENT_LISTENING",
+        "access_policy": "PUBLIC",
+        "original_filename": "5e98c361100e01b3ee610caa2718dc4cfc4d070b38fc9307feb07b0a2a673416.wav",
+        "content_type": "audio/wav",
+        "size_bytes": 523826,
+        "storage": {
+          "provider": "CLOUDINARY",
+          "asset_id": "8978b1fa5032bfd736f2db8c4bb816b8",
+          "public_id": "engolearn/media/cc231a3b-0c4b-42d4-b4b3-1fe361ac94b8",
+          "resource_type": "VIDEO",
+          "delivery_type": "UPLOAD",
+          "format": "wav",
+          "version": 1795420529
+        },
+        "updated_at": {
+          "$date": "2026-11-23T07:55:30.468Z"
+        },
+        "_class": "fit.iuh.engolearn.media.model.MediaAsset"
+      },
+      {
+        "_id": "cc38a81a-0362-4c13-97df-54462145afa2",
+        "purpose": "PLACEMENT_LISTENING",
+        "access_policy": "PUBLIC",
+        "original_filename": "5456f6e5d2cb81a49e413e56cfc770c71dd9992bb68692714f577d9f2c3b6a92.wav",
+        "content_type": "audio/wav",
+        "size_bytes": 503980,
+        "storage": {
+          "provider": "CLOUDINARY",
+          "asset_id": "b469476e711b3d2f5a9a88538319b85e",
+          "public_id": "engolearn/media/cc38a81a-0362-4c13-97df-54462145afa2",
+          "resource_type": "VIDEO",
+          "delivery_type": "UPLOAD",
+          "format": "wav",
+          "version": 1795420500
+        },
+        "updated_at": {
+          "$date": "2026-11-23T07:55:01.543Z"
+        },
+        "_class": "fit.iuh.engolearn.media.model.MediaAsset"
+      },
+      {
+        "_id": "cf516e91-4345-4e94-ba9c-5a7f2acfb3c7",
+        "purpose": "PLACEMENT_LISTENING",
+        "access_policy": "PUBLIC",
+        "original_filename": "0bc9e8574089a5fce63eeea2c5ee9f0476a5dee71f7046771c77dd9a30e18373.wav",
+        "content_type": "audio/wav",
+        "size_bytes": 736130,
+        "storage": {
+          "provider": "CLOUDINARY",
+          "asset_id": "b40a08da948ed497390776321c68c5a1",
+          "public_id": "engolearn/media/cf516e91-4345-4e94-ba9c-5a7f2acfb3c7",
+          "resource_type": "VIDEO",
+          "delivery_type": "UPLOAD",
+          "format": "wav",
+          "version": 1795420382
+        },
+        "updated_at": {
+          "$date": "2026-11-23T07:53:03.331Z"
+        },
+        "_class": "fit.iuh.engolearn.media.model.MediaAsset"
+      },
+      {
+        "_id": "d57d39b9-4116-4f1c-a9de-bf3b7b1f98bf",
+        "purpose": "PLACEMENT_LISTENING",
+        "access_policy": "PUBLIC",
+        "original_filename": "f3c755609a437bfbf53e0242e8d621c45898caefa653b2a341f57c0ca1211d01.wav",
+        "content_type": "audio/wav",
+        "size_bytes": 403234,
+        "storage": {
+          "provider": "CLOUDINARY",
+          "asset_id": "e78a204214bc10eaeaa22440ee389355",
+          "public_id": "engolearn/media/d57d39b9-4116-4f1c-a9de-bf3b7b1f98bf",
+          "resource_type": "VIDEO",
+          "delivery_type": "UPLOAD",
+          "format": "wav",
+          "version": 1795420818
+        },
+        "updated_at": {
+          "$date": "2026-11-23T08:00:19.806Z"
+        },
+        "_class": "fit.iuh.engolearn.media.model.MediaAsset"
+      },
+      {
+        "_id": "d88ba1d7-75e8-41b2-827c-5e06e0a43b79",
+        "purpose": "PLACEMENT_LISTENING",
+        "access_policy": "PUBLIC",
+        "original_filename": "1d41396e4bd053103b1b7a1c3ed454bb02b87fc3339f7a19aaa76ad0db8e017b.wav",
+        "content_type": "audio/wav",
+        "size_bytes": 393544,
+        "storage": {
+          "provider": "CLOUDINARY",
+          "asset_id": "dbda85d5bbe1a62b3203d19304fec1b9",
+          "public_id": "engolearn/media/d88ba1d7-75e8-41b2-827c-5e06e0a43b79",
+          "resource_type": "VIDEO",
+          "delivery_type": "UPLOAD",
+          "format": "wav",
+          "version": 1795420415
+        },
+        "updated_at": {
+          "$date": "2026-11-23T07:53:36.596Z"
+        },
+        "_class": "fit.iuh.engolearn.media.model.MediaAsset"
+      },
+      {
+        "_id": "d9cb9b2b-b763-459d-b6e2-9cbf4926310d",
+        "purpose": "PLACEMENT_LISTENING",
+        "access_policy": "PUBLIC",
+        "original_filename": "dc4024c4a0b2fce2e2679be3a0bb60539681deb2b502abc7eee3fc11bbde04f6.wav",
+        "content_type": "audio/wav",
+        "size_bytes": 535762,
+        "storage": {
+          "provider": "CLOUDINARY",
+          "asset_id": "77f5cefc848a79ba973ca789eebfdb13",
+          "public_id": "engolearn/media/d9cb9b2b-b763-459d-b6e2-9cbf4926310d",
+          "resource_type": "VIDEO",
+          "delivery_type": "UPLOAD",
+          "format": "wav",
+          "version": 1795420755
+        },
+        "updated_at": {
+          "$date": "2026-11-23T07:59:16.140Z"
+        },
+        "_class": "fit.iuh.engolearn.media.model.MediaAsset"
+      },
+      {
+        "_id": "db35a7fc-c97c-4391-a782-c3869aaa2d77",
+        "purpose": "PLACEMENT_LISTENING",
+        "access_policy": "PUBLIC",
+        "original_filename": "34c63e05c8eed246e1ca06307728f8826f592d71ebb3cd24951bdd94d0ad089f.wav",
+        "content_type": "audio/wav",
+        "size_bytes": 656982,
+        "storage": {
+          "provider": "CLOUDINARY",
+          "asset_id": "4416f0b6b836bad8106f2082eba7674b",
+          "public_id": "engolearn/media/db35a7fc-c97c-4391-a782-c3869aaa2d77",
+          "resource_type": "VIDEO",
+          "delivery_type": "UPLOAD",
+          "format": "wav",
+          "version": 1795420435
+        },
+        "updated_at": {
+          "$date": "2026-11-23T07:53:56.298Z"
+        },
+        "_class": "fit.iuh.engolearn.media.model.MediaAsset"
+      },
+      {
+        "_id": "dd8907ac-ce9a-4b24-8fb4-7f181e5d5030",
+        "purpose": "PLACEMENT_LISTENING",
+        "access_policy": "PUBLIC",
+        "original_filename": "76102028977be6eefaeebc572525d433d70d2650a8bfe68ae1bcf51a11dcd8c4.wav",
+        "content_type": "audio/wav",
+        "size_bytes": 668438,
+        "storage": {
+          "provider": "CLOUDINARY",
+          "asset_id": "dd3bdeb04bf3b2197d64ad11056682db",
+          "public_id": "engolearn/media/dd8907ac-ce9a-4b24-8fb4-7f181e5d5030",
+          "resource_type": "VIDEO",
+          "delivery_type": "UPLOAD",
+          "format": "wav",
+          "version": 1795420584
+        },
+        "updated_at": {
+          "$date": "2026-11-23T07:56:25.293Z"
+        },
+        "_class": "fit.iuh.engolearn.media.model.MediaAsset"
+      },
+      {
+        "_id": "ddf9f574-0adf-48e7-a930-86a5376173ae",
+        "purpose": "PLACEMENT_LISTENING",
+        "access_policy": "PUBLIC",
+        "original_filename": "ddf18df6a61028e3bb856e2dd6141fc946fd2027a940f64a9334fadd98642bf4.wav",
+        "content_type": "audio/wav",
+        "size_bytes": 568586,
+        "storage": {
+          "provider": "CLOUDINARY",
+          "asset_id": "60bbee5652fdc5ad9c27b33afb770684",
+          "public_id": "engolearn/media/ddf9f574-0adf-48e7-a930-86a5376173ae",
+          "resource_type": "VIDEO",
+          "delivery_type": "UPLOAD",
+          "format": "wav",
+          "version": 1795420759
+        },
+        "updated_at": {
+          "$date": "2026-11-23T07:59:20.948Z"
+        },
+        "_class": "fit.iuh.engolearn.media.model.MediaAsset"
+      },
+      {
+        "_id": "de97bb3a-b91a-4be5-9965-e97a437af3fc",
+        "purpose": "PLACEMENT_LISTENING",
+        "access_policy": "PUBLIC",
+        "original_filename": "353db74174a4201a9a6ac915ae58e92d968fcbabfa65bdf387c638da20776ad0.wav",
+        "content_type": "audio/wav",
+        "size_bytes": 585114,
+        "storage": {
+          "provider": "CLOUDINARY",
+          "asset_id": "2b6ecc4a5a347e2341f20db8c6c73e37",
+          "public_id": "engolearn/media/de97bb3a-b91a-4be5-9965-e97a437af3fc",
+          "resource_type": "VIDEO",
+          "delivery_type": "UPLOAD",
+          "format": "wav",
+          "version": 1795420441
+        },
+        "updated_at": {
+          "$date": "2026-11-23T07:54:03.333Z"
+        },
+        "_class": "fit.iuh.engolearn.media.model.MediaAsset"
+      },
+      {
+        "_id": "e2a67a4b-6e91-4f15-ac8e-9881d64e9df7",
+        "purpose": "PLACEMENT_LISTENING",
+        "access_policy": "PUBLIC",
+        "original_filename": "8e85e7697bab21fde3ea1dfb60db063f90878b4e012f752bb1734de4fc99f0ff.wav",
+        "content_type": "audio/wav",
+        "size_bytes": 468496,
+        "storage": {
+          "provider": "CLOUDINARY",
+          "asset_id": "8d2cff2ad22a761efd152742793c84f8",
+          "public_id": "engolearn/media/e2a67a4b-6e91-4f15-ac8e-9881d64e9df7",
+          "resource_type": "VIDEO",
+          "delivery_type": "UPLOAD",
+          "format": "wav",
+          "version": 1795420628
+        },
+        "updated_at": {
+          "$date": "2026-11-23T07:57:09.852Z"
+        },
+        "_class": "fit.iuh.engolearn.media.model.MediaAsset"
+      },
+      {
+        "_id": "eb43b668-95d3-47fc-90fd-36fcaf770c69",
+        "purpose": "PLACEMENT_LISTENING",
+        "access_policy": "PUBLIC",
+        "original_filename": "d27830b70a8ef73fe5da43adeb29f6c893b3506e07008652302db6166c071af2.wav",
+        "content_type": "audio/wav",
+        "size_bytes": 526916,
+        "storage": {
+          "provider": "CLOUDINARY",
+          "asset_id": "a28887d35832391bbb96828a8963af62",
+          "public_id": "engolearn/media/eb43b668-95d3-47fc-90fd-36fcaf770c69",
+          "resource_type": "VIDEO",
+          "delivery_type": "UPLOAD",
+          "format": "wav",
+          "version": 1795420750
+        },
+        "updated_at": {
+          "$date": "2026-11-23T07:59:11.440Z"
+        },
+        "_class": "fit.iuh.engolearn.media.model.MediaAsset"
+      },
+      {
+        "_id": "eecde903-f24a-4f8f-b6b2-f9fe1639f1e4",
+        "purpose": "PLACEMENT_LISTENING",
+        "access_policy": "PUBLIC",
+        "original_filename": "15d81573c5b4db73b47c61a5b1f919198866f44c2b39ca098b8675d264c5160a.wav",
+        "content_type": "audio/wav",
+        "size_bytes": 530236,
+        "storage": {
+          "provider": "CLOUDINARY",
+          "asset_id": "77ba07a1a7bacecdf82bded176c8fc36",
+          "public_id": "engolearn/media/eecde903-f24a-4f8f-b6b2-f9fe1639f1e4",
+          "resource_type": "VIDEO",
+          "delivery_type": "UPLOAD",
+          "format": "wav",
+          "version": 1795420391
+        },
+        "updated_at": {
+          "$date": "2026-11-23T07:53:12.595Z"
+        },
+        "_class": "fit.iuh.engolearn.media.model.MediaAsset"
+      },
+      {
+        "_id": "f2424eb0-1b9f-4fa2-a218-541f88bb5f93",
+        "purpose": "PLACEMENT_LISTENING",
+        "access_policy": "PUBLIC",
+        "original_filename": "996161f87a491839d7b1361ffa21dbf1806bf2e215c40e3439f3dd5238e4632a.wav",
+        "content_type": "audio/wav",
+        "size_bytes": 446016,
+        "storage": {
+          "provider": "CLOUDINARY",
+          "asset_id": "b05cee64cadb4b87ced4b8f1b0ff90a6",
+          "public_id": "engolearn/media/f2424eb0-1b9f-4fa2-a218-541f88bb5f93",
+          "resource_type": "VIDEO",
+          "delivery_type": "UPLOAD",
+          "format": "wav",
+          "version": 1795420656
+        },
+        "updated_at": {
+          "$date": "2026-11-23T07:57:37.773Z"
+        },
+        "_class": "fit.iuh.engolearn.media.model.MediaAsset"
+      },
+      {
+        "_id": "f3f363e7-fc3b-4e53-b83d-f74ccb0d21d3",
+        "purpose": "PLACEMENT_LISTENING",
+        "access_policy": "PUBLIC",
+        "original_filename": "493e66bdb31a0c723df06aff8b4a02bd10bad87206a0c5eb1b0e8bb540e886fb.wav",
+        "content_type": "audio/wav",
+        "size_bytes": 464744,
+        "storage": {
+          "provider": "CLOUDINARY",
+          "asset_id": "1d355255c0be0021477909e049a6769f",
+          "public_id": "engolearn/media/f3f363e7-fc3b-4e53-b83d-f74ccb0d21d3",
+          "resource_type": "VIDEO",
+          "delivery_type": "UPLOAD",
+          "format": "wav",
+          "version": 1795420484
+        },
+        "updated_at": {
+          "$date": "2026-11-23T07:54:45.504Z"
+        },
+        "_class": "fit.iuh.engolearn.media.model.MediaAsset"
+      },
+      {
+        "_id": "f65f82cf-2539-4337-858a-2092408097e7",
+        "purpose": "PLACEMENT_LISTENING",
+        "access_policy": "PUBLIC",
+        "original_filename": "9db6fd1c75232b1867a3af81d121aaced3eeb49db63c4b01dc04615661a63cf1.wav",
+        "content_type": "audio/wav",
+        "size_bytes": 471812,
+        "storage": {
+          "provider": "CLOUDINARY",
+          "asset_id": "e0f14baf67088284b02bfaf5eac5ae42",
+          "public_id": "engolearn/media/f65f82cf-2539-4337-858a-2092408097e7",
+          "resource_type": "VIDEO",
+          "delivery_type": "UPLOAD",
+          "format": "wav",
+          "version": 1795420666
+        },
+        "updated_at": {
+          "$date": "2026-11-23T07:57:47.403Z"
+        },
+        "_class": "fit.iuh.engolearn.media.model.MediaAsset"
+      },
+      {
+        "_id": "ff19104b-8611-4968-ac91-aa687018f5e7",
+        "purpose": "PLACEMENT_LISTENING",
+        "access_policy": "PUBLIC",
+        "original_filename": "0828992c5a9bd3e2ff06c0cde01d63ffb517b816cddb241f26dbb6ab186b17cc.wav",
+        "content_type": "audio/wav",
+        "size_bytes": 546780,
+        "storage": {
+          "provider": "CLOUDINARY",
+          "asset_id": "c0407dba419cd1d1325e55172dc185e1",
+          "public_id": "engolearn/media/ff19104b-8611-4968-ac91-aa687018f5e7",
+          "resource_type": "VIDEO",
+          "delivery_type": "UPLOAD",
+          "format": "wav",
+          "version": 1795420377
+        },
+        "updated_at": {
+          "$date": "2026-11-23T07:52:58.297Z"
+        },
+        "_class": "fit.iuh.engolearn.media.model.MediaAsset"
+      }
+    ],
+    "placement_audio_assets": [
+      {
+        "_id": "000bd752de10c39da248e546fb45b6f2c6d425bc1f638496ee24c4473ffbc59d",
+        "status": "READY",
+        "duration_seconds": 11.31764172335601,
+        "title": "000bd752de10c39da248e546fb45b6f2c6d425bc1f638496ee24c4473ffbc59d.wav",
+        "updated_at": {
+          "$date": "2026-11-23T07:52:38.144Z"
+        },
+        "_class": "fit.iuh.engolearn.placement.model.PlacementAudioAsset",
+        "media_id": "552ba422-c2d0-49c3-97a1-d0dd7fb2ecd1"
+      },
+      {
+        "_id": "027657a1fcaac0abff60a933c55b3fd7f476ce21a0cf060be6e34098d1766683",
+        "status": "READY",
+        "duration_seconds": 10.522448979591836,
+        "title": "027657a1fcaac0abff60a933c55b3fd7f476ce21a0cf060be6e34098d1766683.wav",
+        "updated_at": {
+          "$date": "2026-11-23T07:52:44.081Z"
+        },
+        "_class": "fit.iuh.engolearn.placement.model.PlacementAudioAsset",
+        "media_id": "bd4abba0-4f29-402e-8b92-d6e6c74ee58e"
+      },
+      {
+        "_id": "035cd8e71db26d1049ed8b6d92c06f472776c7769584c8e0317350a84bb2f273",
+        "status": "READY",
+        "duration_seconds": 14.53170068027211,
+        "title": "035cd8e71db26d1049ed8b6d92c06f472776c7769584c8e0317350a84bb2f273.wav",
+        "updated_at": {
+          "$date": "2026-11-23T07:52:48.790Z"
+        },
+        "_class": "fit.iuh.engolearn.placement.model.PlacementAudioAsset",
+        "media_id": "6012dcc1-bcf7-4f85-9066-5d4809f236b2"
+      },
+      {
+        "_id": "047b8e567ce04b15a1544b4b5ddc9fb60c45a7b141a10674b33fc1bb6441e80f",
+        "status": "READY",
+        "duration_seconds": 11.627256235827664,
+        "title": "047b8e567ce04b15a1544b4b5ddc9fb60c45a7b141a10674b33fc1bb6441e80f.wav",
+        "updated_at": {
+          "$date": "2026-11-23T07:52:53.670Z"
+        },
+        "_class": "fit.iuh.engolearn.placement.model.PlacementAudioAsset",
+        "media_id": "97343027-202d-4283-862a-50dc67b7791b"
+      },
+      {
+        "_id": "0828992c5a9bd3e2ff06c0cde01d63ffb517b816cddb241f26dbb6ab186b17cc",
+        "status": "READY",
+        "duration_seconds": 12.397596371882086,
+        "title": "0828992c5a9bd3e2ff06c0cde01d63ffb517b816cddb241f26dbb6ab186b17cc.wav",
+        "updated_at": {
+          "$date": "2026-11-23T07:52:58.302Z"
+        },
+        "_class": "fit.iuh.engolearn.placement.model.PlacementAudioAsset",
+        "media_id": "ff19104b-8611-4968-ac91-aa687018f5e7"
+      },
+      {
+        "_id": "0bc9e8574089a5fce63eeea2c5ee9f0476a5dee71f7046771c77dd9a30e18373",
+        "status": "READY",
+        "duration_seconds": 16.69124716553288,
+        "title": "0bc9e8574089a5fce63eeea2c5ee9f0476a5dee71f7046771c77dd9a30e18373.wav",
+        "updated_at": {
+          "$date": "2026-11-23T07:53:03.341Z"
+        },
+        "_class": "fit.iuh.engolearn.placement.model.PlacementAudioAsset",
+        "media_id": "cf516e91-4345-4e94-ba9c-5a7f2acfb3c7"
+      },
+      {
+        "_id": "0dabb34c94766b0607e4857967a2c065beccbb50c6f4ac76ee3f3756da494c45",
+        "status": "READY",
+        "duration_seconds": 6.718639455782313,
+        "title": "0dabb34c94766b0607e4857967a2c065beccbb50c6f4ac76ee3f3756da494c45.wav",
+        "updated_at": {
+          "$date": "2026-11-23T07:53:07.860Z"
+        },
+        "_class": "fit.iuh.engolearn.placement.model.PlacementAudioAsset",
+        "media_id": "77894a5e-c8b3-4fba-aecd-f75f565ab9c1"
+      },
+      {
+        "_id": "15d81573c5b4db73b47c61a5b1f919198866f44c2b39ca098b8675d264c5160a",
+        "status": "READY",
+        "duration_seconds": 12.022448979591836,
+        "title": "15d81573c5b4db73b47c61a5b1f919198866f44c2b39ca098b8675d264c5160a.wav",
+        "updated_at": {
+          "$date": "2026-11-23T07:53:12.609Z"
+        },
+        "_class": "fit.iuh.engolearn.placement.model.PlacementAudioAsset",
+        "media_id": "eecde903-f24a-4f8f-b6b2-f9fe1639f1e4"
+      },
+      {
+        "_id": "16e36fda34836407c8d3ec95b0fe7c8d933804974ea600eda4c9ba3728b2c1f4",
+        "status": "READY",
+        "duration_seconds": 13.226848072562358,
+        "title": "16e36fda34836407c8d3ec95b0fe7c8d933804974ea600eda4c9ba3728b2c1f4.wav",
+        "updated_at": {
+          "$date": "2026-11-23T07:53:17.361Z"
+        },
+        "_class": "fit.iuh.engolearn.placement.model.PlacementAudioAsset",
+        "media_id": "26e0bbff-d0ee-4d26-9b52-56e1268eb1b4"
+      },
+      {
+        "_id": "17033f09286629953a1c85ed3d26e74a84d0f3b8d07ccec01f2b2ba61d9fd63d",
+        "status": "READY",
+        "duration_seconds": 15.466848072562358,
+        "title": "17033f09286629953a1c85ed3d26e74a84d0f3b8d07ccec01f2b2ba61d9fd63d.wav",
+        "updated_at": {
+          "$date": "2026-11-23T07:53:22.178Z"
+        },
+        "_class": "fit.iuh.engolearn.placement.model.PlacementAudioAsset",
+        "media_id": "4d05e1ff-261e-4aec-b957-54eb08601f7d"
+      },
+      {
+        "_id": "19c73d68efd07b778c6ce9d4ebe325e5120216fe565ac36ebffbca0fbca3563e",
+        "status": "READY",
+        "duration_seconds": 11.297460317460317,
+        "title": "19c73d68efd07b778c6ce9d4ebe325e5120216fe565ac36ebffbca0fbca3563e.wav",
+        "updated_at": {
+          "$date": "2026-11-23T07:53:27.366Z"
+        },
+        "_class": "fit.iuh.engolearn.placement.model.PlacementAudioAsset",
+        "media_id": "41ca740a-788d-48a9-b347-d9cf017a33ab"
+      },
+      {
+        "_id": "1c4d84cc56f4a96e1ae5718dca1bea7c492d90d870641fe56771d73c2e546e14",
+        "status": "READY",
+        "duration_seconds": 12.356961451247166,
+        "title": "1c4d84cc56f4a96e1ae5718dca1bea7c492d90d870641fe56771d73c2e546e14.wav",
+        "updated_at": {
+          "$date": "2026-11-23T07:53:31.990Z"
+        },
+        "_class": "fit.iuh.engolearn.placement.model.PlacementAudioAsset",
+        "media_id": "91d7091c-4b41-4d3c-8d5d-3e1a0c3fe6b8"
+      },
+      {
+        "_id": "1d41396e4bd053103b1b7a1c3ed454bb02b87fc3339f7a19aaa76ad0db8e017b",
+        "status": "READY",
+        "duration_seconds": 8.922857142857143,
+        "title": "1d41396e4bd053103b1b7a1c3ed454bb02b87fc3339f7a19aaa76ad0db8e017b.wav",
+        "updated_at": {
+          "$date": "2026-11-23T07:53:36.602Z"
+        },
+        "_class": "fit.iuh.engolearn.placement.model.PlacementAudioAsset",
+        "media_id": "d88ba1d7-75e8-41b2-827c-5e06e0a43b79"
+      },
+      {
+        "_id": "228cd6ef13d431dff6e477f38aa3c72b40f98dbdf1694b7b778a611fbec5f0fb",
+        "status": "READY",
+        "duration_seconds": 15.276780045351474,
+        "title": "228cd6ef13d431dff6e477f38aa3c72b40f98dbdf1694b7b778a611fbec5f0fb.wav",
+        "updated_at": {
+          "$date": "2026-11-23T07:53:41.332Z"
+        },
+        "_class": "fit.iuh.engolearn.placement.model.PlacementAudioAsset",
+        "media_id": "8e62400b-c016-4f53-90fa-6666bfba3198"
+      },
+      {
+        "_id": "31a7cd91d01d6785e7b712114290ae68cfe222679314a3f65469fdc7497d294c",
+        "status": "READY",
+        "duration_seconds": 12.047256235827664,
+        "title": "31a7cd91d01d6785e7b712114290ae68cfe222679314a3f65469fdc7497d294c.wav",
+        "updated_at": {
+          "$date": "2026-11-23T07:53:46.363Z"
+        },
+        "_class": "fit.iuh.engolearn.placement.model.PlacementAudioAsset",
+        "media_id": "b9373cdc-180b-4958-a333-e456c2ab5612"
+      },
+      {
+        "_id": "328e450f474721b4d132e8f98ba46677a48ab9d94a57dc0e8a6202d579dcdef1",
+        "status": "READY",
+        "duration_seconds": 9.522675736961451,
+        "title": "328e450f474721b4d132e8f98ba46677a48ab9d94a57dc0e8a6202d579dcdef1.wav",
+        "updated_at": {
+          "$date": "2026-11-23T07:53:51.267Z"
+        },
+        "_class": "fit.iuh.engolearn.placement.model.PlacementAudioAsset",
+        "media_id": "0e921724-8b4f-4107-bab1-e33fc84808e9"
+      },
+      {
+        "_id": "34c63e05c8eed246e1ca06307728f8826f592d71ebb3cd24951bdd94d0ad089f",
+        "status": "READY",
+        "duration_seconds": 14.896507936507936,
+        "title": "34c63e05c8eed246e1ca06307728f8826f592d71ebb3cd24951bdd94d0ad089f.wav",
+        "updated_at": {
+          "$date": "2026-11-23T07:53:56.310Z"
+        },
+        "_class": "fit.iuh.engolearn.placement.model.PlacementAudioAsset",
+        "media_id": "db35a7fc-c97c-4391-a782-c3869aaa2d77"
+      },
+      {
+        "_id": "353db74174a4201a9a6ac915ae58e92d968fcbabfa65bdf387c638da20776ad0",
+        "status": "READY",
+        "duration_seconds": 13.266848072562357,
+        "title": "353db74174a4201a9a6ac915ae58e92d968fcbabfa65bdf387c638da20776ad0.wav",
+        "updated_at": {
+          "$date": "2026-11-23T07:54:03.344Z"
+        },
+        "_class": "fit.iuh.engolearn.placement.model.PlacementAudioAsset",
+        "media_id": "de97bb3a-b91a-4be5-9965-e97a437af3fc"
+      },
+      {
+        "_id": "359f56646db1bad818989cf2f08302d298aee110b5be6f86fb666f8a528bba69",
+        "status": "READY",
+        "duration_seconds": 7.18843537414966,
+        "title": "359f56646db1bad818989cf2f08302d298aee110b5be6f86fb666f8a528bba69.wav",
+        "updated_at": {
+          "$date": "2026-11-23T07:54:07.712Z"
+        },
+        "_class": "fit.iuh.engolearn.placement.model.PlacementAudioAsset",
+        "media_id": "7080476d-3310-41e1-84b5-db07e466c681"
+      },
+      {
+        "_id": "360ecdc64dec194e34927d48fd320a51d0d5aac6febc5ff13fe9253c6c339061",
+        "status": "READY",
+        "duration_seconds": 14.796326530612244,
+        "title": "360ecdc64dec194e34927d48fd320a51d0d5aac6febc5ff13fe9253c6c339061.wav",
+        "updated_at": {
+          "$date": "2026-11-23T07:54:12.438Z"
+        },
+        "_class": "fit.iuh.engolearn.placement.model.PlacementAudioAsset",
+        "media_id": "c64edd03-98ee-43f0-844e-415da2e3c36c"
+      },
+      {
+        "_id": "38ae6cfb8b30d5a33ef26e661efbc44e283154cde59dd8da2ba481b1b56b42eb",
+        "status": "READY",
+        "duration_seconds": 10.282811791383219,
+        "title": "38ae6cfb8b30d5a33ef26e661efbc44e283154cde59dd8da2ba481b1b56b42eb.wav",
+        "updated_at": {
+          "$date": "2026-11-23T07:54:17.653Z"
+        },
+        "_class": "fit.iuh.engolearn.placement.model.PlacementAudioAsset",
+        "media_id": "5a3faf30-efc4-402d-8abb-0b41a7453995"
+      },
+      {
+        "_id": "3f0c9067358cb93d7ec3a78d4c58f5d14c6a7c1dd14428564ecf1fc8a993a17a",
+        "status": "READY",
+        "duration_seconds": 13.561768707482994,
+        "title": "3f0c9067358cb93d7ec3a78d4c58f5d14c6a7c1dd14428564ecf1fc8a993a17a.wav",
+        "updated_at": {
+          "$date": "2026-11-23T07:54:22.447Z"
+        },
+        "_class": "fit.iuh.engolearn.placement.model.PlacementAudioAsset",
+        "media_id": "74e41859-5e10-4a9b-bdb7-60d3db2a6c6d"
+      },
+      {
+        "_id": "4165847377724df3463ab9bf5f8cbabe1b54a44bad99f564d6e21f2528394f65",
+        "status": "READY",
+        "duration_seconds": 7.468480725623583,
+        "title": "4165847377724df3463ab9bf5f8cbabe1b54a44bad99f564d6e21f2528394f65.wav",
+        "updated_at": {
+          "$date": "2026-11-23T07:54:27.185Z"
+        },
+        "_class": "fit.iuh.engolearn.placement.model.PlacementAudioAsset",
+        "media_id": "7c373f5e-4429-4d70-9cc6-f405a48b7cbd"
+      },
+      {
+        "_id": "42958102680517082c1367dc64dbe67d4c10cf2080f4764e4d52450f23621c9f",
+        "status": "READY",
+        "duration_seconds": 5.263945578231293,
+        "title": "42958102680517082c1367dc64dbe67d4c10cf2080f4764e4d52450f23621c9f.wav",
+        "updated_at": {
+          "$date": "2026-11-23T07:54:31.518Z"
+        },
+        "_class": "fit.iuh.engolearn.placement.model.PlacementAudioAsset",
+        "media_id": "15372b9f-532e-4b0b-a83c-e8f7b66f0ff4"
+      },
+      {
+        "_id": "45d465e430376e6e501b04dc3d18d7d00df283ae66ddfd3d1a3bb725a63c6944",
+        "status": "READY",
+        "duration_seconds": 7.80843537414966,
+        "title": "45d465e430376e6e501b04dc3d18d7d00df283ae66ddfd3d1a3bb725a63c6944.wav",
+        "updated_at": {
+          "$date": "2026-11-23T07:54:36.029Z"
+        },
+        "_class": "fit.iuh.engolearn.placement.model.PlacementAudioAsset",
+        "media_id": "97783a1f-672a-44ea-8cdd-11228f3243fe"
+      },
+      {
+        "_id": "47fc12644a64fc93712b87360261b59cdcd2e2bcd0bd91fc2075f79e37706dbc",
+        "status": "READY",
+        "duration_seconds": 13.317233560090703,
+        "title": "47fc12644a64fc93712b87360261b59cdcd2e2bcd0bd91fc2075f79e37706dbc.wav",
+        "updated_at": {
+          "$date": "2026-11-23T07:54:40.769Z"
+        },
+        "_class": "fit.iuh.engolearn.placement.model.PlacementAudioAsset",
+        "media_id": "09a3c249-4ffa-4b07-b64a-259e522270a5"
+      },
+      {
+        "_id": "493e66bdb31a0c723df06aff8b4a02bd10bad87206a0c5eb1b0e8bb540e886fb",
+        "status": "READY",
+        "duration_seconds": 10.537369614512471,
+        "title": "493e66bdb31a0c723df06aff8b4a02bd10bad87206a0c5eb1b0e8bb540e886fb.wav",
+        "updated_at": {
+          "$date": "2026-11-23T07:54:45.513Z"
+        },
+        "_class": "fit.iuh.engolearn.placement.model.PlacementAudioAsset",
+        "media_id": "f3f363e7-fc3b-4e53-b83d-f74ccb0d21d3"
+      },
+      {
+        "_id": "49f1c82bbf7448998654f98a9db2209686811d00070a1855e56242d40a5dd40a",
+        "status": "READY",
+        "duration_seconds": 5.588616780045352,
+        "title": "49f1c82bbf7448998654f98a9db2209686811d00070a1855e56242d40a5dd40a.wav",
+        "updated_at": {
+          "$date": "2026-11-23T07:54:51.719Z"
+        },
+        "_class": "fit.iuh.engolearn.placement.model.PlacementAudioAsset",
+        "media_id": "a7fb4ead-dad3-4ce8-a856-b8cec78c63ba"
+      },
+      {
+        "_id": "50b4ee294b2ea557ac2e2df7c85a41940755f7c21cad13d0b2d6d284efe018c1",
+        "status": "READY",
+        "duration_seconds": 15.271609977324262,
+        "title": "50b4ee294b2ea557ac2e2df7c85a41940755f7c21cad13d0b2d6d284efe018c1.wav",
+        "updated_at": {
+          "$date": "2026-11-23T07:54:56.453Z"
+        },
+        "_class": "fit.iuh.engolearn.placement.model.PlacementAudioAsset",
+        "media_id": "2bd15603-1b9e-47fb-a022-17b4d2288e04"
+      },
+      {
+        "_id": "5456f6e5d2cb81a49e413e56cfc770c71dd9992bb68692714f577d9f2c3b6a92",
+        "status": "READY",
+        "duration_seconds": 11.427074829931973,
+        "title": "5456f6e5d2cb81a49e413e56cfc770c71dd9992bb68692714f577d9f2c3b6a92.wav",
+        "updated_at": {
+          "$date": "2026-11-23T07:55:01.556Z"
+        },
+        "_class": "fit.iuh.engolearn.placement.model.PlacementAudioAsset",
+        "media_id": "cc38a81a-0362-4c13-97df-54462145afa2"
+      },
+      {
+        "_id": "56344385f704e6c30bc9d9af540c5aa63fc35bd8b77d83d018c216c91626b21b",
+        "status": "READY",
+        "duration_seconds": 10.682857142857143,
+        "title": "56344385f704e6c30bc9d9af540c5aa63fc35bd8b77d83d018c216c91626b21b.wav",
+        "updated_at": {
+          "$date": "2026-11-23T07:55:06.407Z"
+        },
+        "_class": "fit.iuh.engolearn.placement.model.PlacementAudioAsset",
+        "media_id": "9925fabd-f287-4b74-8a9e-bd7dc1d78431"
+      },
+      {
+        "_id": "5893df2e014d02af62423b0ea4e88577cea48e4550e5012f42b6c45470f0149f",
+        "status": "READY",
+        "duration_seconds": 6.798684807256236,
+        "title": "5893df2e014d02af62423b0ea4e88577cea48e4550e5012f42b6c45470f0149f.wav",
+        "updated_at": {
+          "$date": "2026-11-23T07:55:11.065Z"
+        },
+        "_class": "fit.iuh.engolearn.placement.model.PlacementAudioAsset",
+        "media_id": "7e4a1df6-267b-4abd-9f10-fa3dcb88e866"
+      },
+      {
+        "_id": "5900b90048f5f30165f8a6f791a9c3d5179acf36fede54b66dfffd0a9c3b747b",
+        "status": "READY",
+        "duration_seconds": 12.721904761904762,
+        "title": "5900b90048f5f30165f8a6f791a9c3d5179acf36fede54b66dfffd0a9c3b747b.wav",
+        "updated_at": {
+          "$date": "2026-11-23T07:55:15.870Z"
+        },
+        "_class": "fit.iuh.engolearn.placement.model.PlacementAudioAsset",
+        "media_id": "69fa3a63-eaa4-490f-bc73-18f9b468a0e2"
+      },
+      {
+        "_id": "5a33bc3b49f129cdbceed87d890739c6396c30587e0db3b466ddb7b4ffdc58cd",
+        "status": "READY",
+        "duration_seconds": 12.622131519274376,
+        "title": "5a33bc3b49f129cdbceed87d890739c6396c30587e0db3b466ddb7b4ffdc58cd.wav",
+        "updated_at": {
+          "$date": "2026-11-23T07:55:20.799Z"
+        },
+        "_class": "fit.iuh.engolearn.placement.model.PlacementAudioAsset",
+        "media_id": "b438737b-8528-40e2-835d-8f47d7073833"
+      },
+      {
+        "_id": "5d0c07c44038edf8383f83604efee6fab381ecb2fa48109ae6403a3ed3a55e54",
+        "status": "READY",
+        "duration_seconds": 5.123854875283446,
+        "title": "5d0c07c44038edf8383f83604efee6fab381ecb2fa48109ae6403a3ed3a55e54.wav",
+        "updated_at": {
+          "$date": "2026-11-23T07:55:25.290Z"
+        },
+        "_class": "fit.iuh.engolearn.placement.model.PlacementAudioAsset",
+        "media_id": "6b8125cb-6a10-4075-b26c-02f55465f6b5"
+      },
+      {
+        "_id": "5e98c361100e01b3ee610caa2718dc4cfc4d070b38fc9307feb07b0a2a673416",
+        "status": "READY",
+        "duration_seconds": 11.877097505668933,
+        "title": "5e98c361100e01b3ee610caa2718dc4cfc4d070b38fc9307feb07b0a2a673416.wav",
+        "updated_at": {
+          "$date": "2026-11-23T07:55:30.480Z"
+        },
+        "_class": "fit.iuh.engolearn.placement.model.PlacementAudioAsset",
+        "media_id": "cc231a3b-0c4b-42d4-b4b3-1fe361ac94b8"
+      },
+      {
+        "_id": "5f4bbdf60923397f1901c3badb45905006e09af7ae78f11e322d222e5ddcef46",
+        "status": "READY",
+        "duration_seconds": 11.02721088435374,
+        "title": "5f4bbdf60923397f1901c3badb45905006e09af7ae78f11e322d222e5ddcef46.wav",
+        "updated_at": {
+          "$date": "2026-11-23T07:55:35.438Z"
+        },
+        "_class": "fit.iuh.engolearn.placement.model.PlacementAudioAsset",
+        "media_id": "25fcc80c-1325-443d-a516-219646d0ad4f"
+      },
+      {
+        "_id": "60907e67330035a62b205353743de27e86354eac57455821adc7bf87c72bfeec",
+        "status": "READY",
+        "duration_seconds": 8.992925170068027,
+        "title": "60907e67330035a62b205353743de27e86354eac57455821adc7bf87c72bfeec.wav",
+        "updated_at": {
+          "$date": "2026-11-23T07:55:39.958Z"
+        },
+        "_class": "fit.iuh.engolearn.placement.model.PlacementAudioAsset",
+        "media_id": "58fd939a-d40d-48ac-84ed-eeeba196ed6f"
+      },
+      {
+        "_id": "615f9c3f02d250ab8aa46413189c894b05d6acc0a7fe20144f41233289f046d2",
+        "status": "READY",
+        "duration_seconds": 6.438367346938776,
+        "title": "615f9c3f02d250ab8aa46413189c894b05d6acc0a7fe20144f41233289f046d2.wav",
+        "updated_at": {
+          "$date": "2026-11-23T07:55:44.599Z"
+        },
+        "_class": "fit.iuh.engolearn.placement.model.PlacementAudioAsset",
+        "media_id": "b962890c-852e-4e32-894d-ccbb6ef96a74"
+      },
+      {
+        "_id": "64698d5d40d543db15528482d7fdde1829f047ee87bf1321763f0f59b389ed40",
+        "status": "READY",
+        "duration_seconds": 14.53156462585034,
+        "title": "64698d5d40d543db15528482d7fdde1829f047ee87bf1321763f0f59b389ed40.wav",
+        "updated_at": {
+          "$date": "2026-11-23T07:55:49.273Z"
+        },
+        "_class": "fit.iuh.engolearn.placement.model.PlacementAudioAsset",
+        "media_id": "2c5bc1d7-f036-4737-b467-26d8e7c9ddbf"
+      },
+      {
+        "_id": "649caf340f896ee537192721f0935fefa9859395cf665595b1e315482a14e302",
+        "status": "READY",
+        "duration_seconds": 12.007301587301587,
+        "title": "649caf340f896ee537192721f0935fefa9859395cf665595b1e315482a14e302.wav",
+        "updated_at": {
+          "$date": "2026-11-23T07:55:53.926Z"
+        },
+        "_class": "fit.iuh.engolearn.placement.model.PlacementAudioAsset",
+        "media_id": "1106210b-5400-48bb-8135-3233181b458d"
+      },
+      {
+        "_id": "650bf7462f4d83f2ec6aab6755c872e441a61bb5aade6016399f1d536bdc14ad",
+        "status": "READY",
+        "duration_seconds": 10.232471655328798,
+        "title": "650bf7462f4d83f2ec6aab6755c872e441a61bb5aade6016399f1d536bdc14ad.wav",
+        "updated_at": {
+          "$date": "2026-11-23T07:55:58.551Z"
+        },
+        "_class": "fit.iuh.engolearn.placement.model.PlacementAudioAsset",
+        "media_id": "b4a06738-f901-4e11-ada4-14265230dcab"
+      },
+      {
+        "_id": "65a3da5347489f6e245c6675bfa51ccc4538c76604f21b32a4b3915d39e76317",
+        "status": "READY",
+        "duration_seconds": 14.791746031746031,
+        "title": "65a3da5347489f6e245c6675bfa51ccc4538c76604f21b32a4b3915d39e76317.wav",
+        "updated_at": {
+          "$date": "2026-11-23T07:56:06.669Z"
+        },
+        "_class": "fit.iuh.engolearn.placement.model.PlacementAudioAsset",
+        "media_id": "ca62170d-e007-475d-bbf3-0888e5ac4ba6"
+      },
+      {
+        "_id": "6eec73459666e216e2626fb299ed380815a5de607624dea2f0b671a22e655788",
+        "status": "READY",
+        "duration_seconds": 12.322176870748299,
+        "title": "6eec73459666e216e2626fb299ed380815a5de607624dea2f0b671a22e655788.wav",
+        "updated_at": {
+          "$date": "2026-11-23T07:56:12.527Z"
+        },
+        "_class": "fit.iuh.engolearn.placement.model.PlacementAudioAsset",
+        "media_id": "8c2acfa0-5451-44d9-8082-21ed44cd7127"
+      },
+      {
+        "_id": "72755abb653636c3bdd538bc7869c053816924ad2c604729866c15b633d4bdfd",
+        "status": "READY",
+        "duration_seconds": 13.9918820861678,
+        "title": "72755abb653636c3bdd538bc7869c053816924ad2c604729866c15b633d4bdfd.wav",
+        "updated_at": {
+          "$date": "2026-11-23T07:56:18.647Z"
+        },
+        "_class": "fit.iuh.engolearn.placement.model.PlacementAudioAsset",
+        "media_id": "b6a1fc9e-4f4a-4b3c-a514-be8dea56025d"
+      },
+      {
+        "_id": "76102028977be6eefaeebc572525d433d70d2650a8bfe68ae1bcf51a11dcd8c4",
+        "status": "READY",
+        "duration_seconds": 15.156281179138322,
+        "title": "76102028977be6eefaeebc572525d433d70d2650a8bfe68ae1bcf51a11dcd8c4.wav",
+        "updated_at": {
+          "$date": "2026-11-23T07:56:25.306Z"
+        },
+        "_class": "fit.iuh.engolearn.placement.model.PlacementAudioAsset",
+        "media_id": "dd8907ac-ce9a-4b24-8fb4-7f181e5d5030"
+      },
+      {
+        "_id": "761d166f84f7340960168226ca3dcea14721d714c8b13b359e49ac251e73192f",
+        "status": "READY",
+        "duration_seconds": 10.242857142857142,
+        "title": "761d166f84f7340960168226ca3dcea14721d714c8b13b359e49ac251e73192f.wav",
+        "updated_at": {
+          "$date": "2026-11-23T07:56:30.833Z"
+        },
+        "_class": "fit.iuh.engolearn.placement.model.PlacementAudioAsset",
+        "media_id": "5376c861-1868-4d6d-8447-03d6dfa12a1b"
+      },
+      {
+        "_id": "7ab9e69c1f8a078333833b6ed1fbcf3585f0ede822949b95686f8a16410498cd",
+        "status": "READY",
+        "duration_seconds": 5.588616780045352,
+        "title": "7ab9e69c1f8a078333833b6ed1fbcf3585f0ede822949b95686f8a16410498cd.wav",
+        "updated_at": {
+          "$date": "2026-11-23T07:56:35.343Z"
+        },
+        "_class": "fit.iuh.engolearn.placement.model.PlacementAudioAsset",
+        "media_id": "94378879-b407-4c77-9a31-e9659d110b06"
+      },
+      {
+        "_id": "81e61627b6fba5ba81aa5bbcc451a018f4d835187fe7da373a0d02201370f8c6",
+        "status": "READY",
+        "duration_seconds": 12.707256235827664,
+        "title": "81e61627b6fba5ba81aa5bbcc451a018f4d835187fe7da373a0d02201370f8c6.wav",
+        "updated_at": {
+          "$date": "2026-11-23T07:56:40.175Z"
+        },
+        "_class": "fit.iuh.engolearn.placement.model.PlacementAudioAsset",
+        "media_id": "3f8f4f5f-c5bb-4941-9d22-fd86f96055dd"
+      },
+      {
+        "_id": "846acdec564858cf8c2201f2bc452c275eb84acff802dfd4652b692b94a47aa4",
+        "status": "READY",
+        "duration_seconds": 13.216916099773243,
+        "title": "846acdec564858cf8c2201f2bc452c275eb84acff802dfd4652b692b94a47aa4.wav",
+        "updated_at": {
+          "$date": "2026-11-23T07:56:46.078Z"
+        },
+        "_class": "fit.iuh.engolearn.placement.model.PlacementAudioAsset",
+        "media_id": "2ffc85d1-c661-45af-acf5-30b99dde5889"
+      },
+      {
+        "_id": "8728ca94122508a9cc9b3545ea76e5cd5afb8d1fdf7289439ab361da64b562b1",
+        "status": "READY",
+        "duration_seconds": 14.446802721088435,
+        "title": "8728ca94122508a9cc9b3545ea76e5cd5afb8d1fdf7289439ab361da64b562b1.wav",
+        "updated_at": {
+          "$date": "2026-11-23T07:56:51.056Z"
+        },
+        "_class": "fit.iuh.engolearn.placement.model.PlacementAudioAsset",
+        "media_id": "5e667a4d-3017-4b54-8b18-a9ae3bc6870a"
+      },
+      {
+        "_id": "887db207f09471879daab8b066476149338054a9e1e70e841e602b88b42c51f4",
+        "status": "READY",
+        "duration_seconds": 11.317278911564626,
+        "title": "887db207f09471879daab8b066476149338054a9e1e70e841e602b88b42c51f4.wav",
+        "updated_at": {
+          "$date": "2026-11-23T07:56:55.643Z"
+        },
+        "_class": "fit.iuh.engolearn.placement.model.PlacementAudioAsset",
+        "media_id": "47352058-1083-4030-ac42-bb45019746bd"
+      },
+      {
+        "_id": "8b43233c2faecb313487b11e12d09aee45113e8be26fe93a56d1e75237d70778",
+        "status": "READY",
+        "duration_seconds": 6.803764172335601,
+        "title": "8b43233c2faecb313487b11e12d09aee45113e8be26fe93a56d1e75237d70778.wav",
+        "updated_at": {
+          "$date": "2026-11-23T07:57:00.075Z"
+        },
+        "_class": "fit.iuh.engolearn.placement.model.PlacementAudioAsset",
+        "media_id": "781190fe-aceb-41f6-bccd-cfe74b109075"
+      },
+      {
+        "_id": "8d6681c5193c200796d35c389ab49cfb2bda3f5c869ba972a4ee88774bfc15d7",
+        "status": "READY",
+        "duration_seconds": 17.46625850340136,
+        "title": "8d6681c5193c200796d35c389ab49cfb2bda3f5c869ba972a4ee88774bfc15d7.wav",
+        "updated_at": {
+          "$date": "2026-11-23T07:57:05.167Z"
+        },
+        "_class": "fit.iuh.engolearn.placement.model.PlacementAudioAsset",
+        "media_id": "878354e1-0899-4257-ba5e-9826f1654a64"
+      },
+      {
+        "_id": "8e85e7697bab21fde3ea1dfb60db063f90878b4e012f752bb1734de4fc99f0ff",
+        "status": "READY",
+        "duration_seconds": 10.622448979591837,
+        "title": "8e85e7697bab21fde3ea1dfb60db063f90878b4e012f752bb1734de4fc99f0ff.wav",
+        "updated_at": {
+          "$date": "2026-11-23T07:57:09.858Z"
+        },
+        "_class": "fit.iuh.engolearn.placement.model.PlacementAudioAsset",
+        "media_id": "e2a67a4b-6e91-4f15-ac8e-9881d64e9df7"
+      },
+      {
+        "_id": "920d1311bcdd810778fd87eb6af2b9ea50252c9b36898ace28ca164a23ad00c7",
+        "status": "READY",
+        "duration_seconds": 11.872154195011339,
+        "title": "920d1311bcdd810778fd87eb6af2b9ea50252c9b36898ace28ca164a23ad00c7.wav",
+        "updated_at": {
+          "$date": "2026-11-23T07:57:14.471Z"
+        },
+        "_class": "fit.iuh.engolearn.placement.model.PlacementAudioAsset",
+        "media_id": "bf86850d-8efc-47c7-804a-bfd00403cf27"
+      },
+      {
+        "_id": "952c91f5e758a2c27628716d88daab397441c63c7e6aab4e3356a5f73a9d1d3f",
+        "status": "READY",
+        "duration_seconds": 11.002585034013606,
+        "title": "952c91f5e758a2c27628716d88daab397441c63c7e6aab4e3356a5f73a9d1d3f.wav",
+        "updated_at": {
+          "$date": "2026-11-23T07:57:19.181Z"
+        },
+        "_class": "fit.iuh.engolearn.placement.model.PlacementAudioAsset",
+        "media_id": "91d2aa6b-32bc-4b64-998a-44ac1eda7a33"
+      },
+      {
+        "_id": "95329356616e131faf23d3daad22beb2471c9c8c5e5671fc8738395d8e37b66b",
+        "status": "READY",
+        "duration_seconds": 5.79859410430839,
+        "title": "95329356616e131faf23d3daad22beb2471c9c8c5e5671fc8738395d8e37b66b.wav",
+        "updated_at": {
+          "$date": "2026-11-23T07:57:23.523Z"
+        },
+        "_class": "fit.iuh.engolearn.placement.model.PlacementAudioAsset",
+        "media_id": "9fd710e5-295b-45d6-a19b-8849d8fa78df"
+      },
+      {
+        "_id": "9700556c8c132ac9a0e1d2ebb52a6d7c6dc89c0de5d5c24ba7feced14a89dce7",
+        "status": "READY",
+        "duration_seconds": 13.246984126984128,
+        "title": "9700556c8c132ac9a0e1d2ebb52a6d7c6dc89c0de5d5c24ba7feced14a89dce7.wav",
+        "updated_at": {
+          "$date": "2026-11-23T07:57:28.249Z"
+        },
+        "_class": "fit.iuh.engolearn.placement.model.PlacementAudioAsset",
+        "media_id": "53a5011c-7a21-41dc-9aba-930cf8161a6f"
+      },
+      {
+        "_id": "9857eecbceab788f52bc117c03e4c454e8d716cd327238fb3fc5b863e31d5b76",
+        "status": "READY",
+        "duration_seconds": 10.787392290249434,
+        "title": "9857eecbceab788f52bc117c03e4c454e8d716cd327238fb3fc5b863e31d5b76.wav",
+        "updated_at": {
+          "$date": "2026-11-23T07:57:32.915Z"
+        },
+        "_class": "fit.iuh.engolearn.placement.model.PlacementAudioAsset",
+        "media_id": "0c31ccd8-7cf2-418a-a2be-90e9a7f0d6bc"
+      },
+      {
+        "_id": "996161f87a491839d7b1361ffa21dbf1806bf2e215c40e3439f3dd5238e4632a",
+        "status": "READY",
+        "duration_seconds": 10.112698412698412,
+        "title": "996161f87a491839d7b1361ffa21dbf1806bf2e215c40e3439f3dd5238e4632a.wav",
+        "updated_at": {
+          "$date": "2026-11-23T07:57:37.782Z"
+        },
+        "_class": "fit.iuh.engolearn.placement.model.PlacementAudioAsset",
+        "media_id": "f2424eb0-1b9f-4fa2-a218-541f88bb5f93"
+      },
+      {
+        "_id": "9cde8853492aa2e269c2de4ab19e4c0d2fb8f69425c3c4154ab4b76ca6fc343a",
+        "status": "READY",
+        "duration_seconds": 14.411655328798187,
+        "title": "9cde8853492aa2e269c2de4ab19e4c0d2fb8f69425c3c4154ab4b76ca6fc343a.wav",
+        "updated_at": {
+          "$date": "2026-11-23T07:57:42.631Z"
+        },
+        "_class": "fit.iuh.engolearn.placement.model.PlacementAudioAsset",
+        "media_id": "208da0cd-66a8-48a4-9b2e-e9409dcba3f9"
+      },
+      {
+        "_id": "9db6fd1c75232b1867a3af81d121aaced3eeb49db63c4b01dc04615661a63cf1",
+        "status": "READY",
+        "duration_seconds": 10.697641723356009,
+        "title": "9db6fd1c75232b1867a3af81d121aaced3eeb49db63c4b01dc04615661a63cf1.wav",
+        "updated_at": {
+          "$date": "2026-11-23T07:57:47.418Z"
+        },
+        "_class": "fit.iuh.engolearn.placement.model.PlacementAudioAsset",
+        "media_id": "f65f82cf-2539-4337-858a-2092408097e7"
+      },
+      {
+        "_id": "9fc18a4e6b0c7e6a653a669619f01373e5e340776669ea011714e4be040d454c",
+        "status": "READY",
+        "duration_seconds": 15.311519274376417,
+        "title": "9fc18a4e6b0c7e6a653a669619f01373e5e340776669ea011714e4be040d454c.wav",
+        "updated_at": {
+          "$date": "2026-11-23T07:57:52.157Z"
+        },
+        "_class": "fit.iuh.engolearn.placement.model.PlacementAudioAsset",
+        "media_id": "b4861f2a-b643-4860-aee5-fed7cb564e61"
+      },
+      {
+        "_id": "aa6a50dd9db60c766223bbaa2e8e040ccc3fb1bc72f22984e1a5f7bb693140c3",
+        "status": "READY",
+        "duration_seconds": 12.621814058956916,
+        "title": "aa6a50dd9db60c766223bbaa2e8e040ccc3fb1bc72f22984e1a5f7bb693140c3.wav",
+        "updated_at": {
+          "$date": "2026-11-23T07:57:56.902Z"
+        },
+        "_class": "fit.iuh.engolearn.placement.model.PlacementAudioAsset",
+        "media_id": "9e69e067-7f1b-4977-922a-e813192f5751"
+      },
+      {
+        "_id": "acc841ec657dee7968968bde097f2f1080a484af1b84daeeb4b6064c5ab61717",
+        "status": "READY",
+        "duration_seconds": 10.882857142857143,
+        "title": "acc841ec657dee7968968bde097f2f1080a484af1b84daeeb4b6064c5ab61717.wav",
+        "updated_at": {
+          "$date": "2026-11-23T07:58:01.692Z"
+        },
+        "_class": "fit.iuh.engolearn.placement.model.PlacementAudioAsset",
+        "media_id": "06979d98-cf69-4fe7-ba76-15fe58a8d8fd"
+      },
+      {
+        "_id": "ad42d2ed8e5205c4a4801e7a243305a33d1dd9465edf1bdd0d5afb6ee77923bc",
+        "status": "READY",
+        "duration_seconds": 7.303310657596372,
+        "title": "ad42d2ed8e5205c4a4801e7a243305a33d1dd9465edf1bdd0d5afb6ee77923bc.wav",
+        "updated_at": {
+          "$date": "2026-11-23T07:58:06.697Z"
+        },
+        "_class": "fit.iuh.engolearn.placement.model.PlacementAudioAsset",
+        "media_id": "4c366956-8942-41b2-9ebc-543e8f8aa782"
+      },
+      {
+        "_id": "aed5122e5d4fa59fa6b7fa54982e66d6ea1fa31d994cbed89bd79f44af40d57c",
+        "status": "READY",
+        "duration_seconds": 14.246666666666666,
+        "title": "aed5122e5d4fa59fa6b7fa54982e66d6ea1fa31d994cbed89bd79f44af40d57c.wav",
+        "updated_at": {
+          "$date": "2026-11-23T07:58:12.109Z"
+        },
+        "_class": "fit.iuh.engolearn.placement.model.PlacementAudioAsset",
+        "media_id": "995960cb-aa3a-4742-af68-9b647dae3392"
+      },
+      {
+        "_id": "af0ae2a7ccc17bbace5173a60bf08d21a7d46588ab1c545b912c6f862842643b",
+        "status": "READY",
+        "duration_seconds": 8.642947845804988,
+        "title": "af0ae2a7ccc17bbace5173a60bf08d21a7d46588ab1c545b912c6f862842643b.wav",
+        "updated_at": {
+          "$date": "2026-11-23T07:58:16.718Z"
+        },
+        "_class": "fit.iuh.engolearn.placement.model.PlacementAudioAsset",
+        "media_id": "4d5419af-1fef-48c7-9121-d15566665a45"
+      },
+      {
+        "_id": "af92dc4666cddfbd804a5e6f00a8ab48de545f253624a000d8cde89b03d6ada0",
+        "status": "READY",
+        "duration_seconds": 12.677097505668934,
+        "title": "af92dc4666cddfbd804a5e6f00a8ab48de545f253624a000d8cde89b03d6ada0.wav",
+        "updated_at": {
+          "$date": "2026-11-23T07:58:21.832Z"
+        },
+        "_class": "fit.iuh.engolearn.placement.model.PlacementAudioAsset",
+        "media_id": "4e1f64f4-463a-4b22-809e-e1830179667f"
+      },
+      {
+        "_id": "b4215a46ec642bdaca8d23c55b22e633992608bc385487d11c5f68dc1dff12e6",
+        "status": "READY",
+        "duration_seconds": 13.296825396825398,
+        "title": "b4215a46ec642bdaca8d23c55b22e633992608bc385487d11c5f68dc1dff12e6.wav",
+        "updated_at": {
+          "$date": "2026-11-23T07:58:26.660Z"
+        },
+        "_class": "fit.iuh.engolearn.placement.model.PlacementAudioAsset",
+        "media_id": "c9a8f5f3-a232-4e5d-a482-4e6e1103d7b3"
+      },
+      {
+        "_id": "b655c8abea76e1f8050ab2a16b1485650ce2d2bc7fb3c9af041254248a0adb4d",
+        "status": "READY",
+        "duration_seconds": 10.647392290249433,
+        "title": "b655c8abea76e1f8050ab2a16b1485650ce2d2bc7fb3c9af041254248a0adb4d.wav",
+        "updated_at": {
+          "$date": "2026-11-23T07:58:31.725Z"
+        },
+        "_class": "fit.iuh.engolearn.placement.model.PlacementAudioAsset",
+        "media_id": "5a89e20b-9004-417b-a00e-ef270c8dcbf6"
+      },
+      {
+        "_id": "b8744096eda2f18d2e95c6159d1f7d321b0e64194c77af30e9410122ae5f6f89",
+        "status": "READY",
+        "duration_seconds": 14.651927437641723,
+        "title": "b8744096eda2f18d2e95c6159d1f7d321b0e64194c77af30e9410122ae5f6f89.wav",
+        "updated_at": {
+          "$date": "2026-11-23T07:58:36.547Z"
+        },
+        "_class": "fit.iuh.engolearn.placement.model.PlacementAudioAsset",
+        "media_id": "6c802d4a-4af7-4158-9b60-67f61d448aa3"
+      },
+      {
+        "_id": "b9f4770c1cb9107ffb2a2a515bb9ff8d61cfd86874750e4833ceac06fe88d76a",
+        "status": "READY",
+        "duration_seconds": 13.986621315192744,
+        "title": "b9f4770c1cb9107ffb2a2a515bb9ff8d61cfd86874750e4833ceac06fe88d76a.wav",
+        "updated_at": {
+          "$date": "2026-11-23T07:58:41.838Z"
+        },
+        "_class": "fit.iuh.engolearn.placement.model.PlacementAudioAsset",
+        "media_id": "b96fa303-e4f7-49a3-a840-6c506f228e1a"
+      },
+      {
+        "_id": "bfcb713f5787a018a7f4e91c98c3c2866843af9fb8db6ac1d34b780767449f64",
+        "status": "READY",
+        "duration_seconds": 5.4537414965986395,
+        "title": "bfcb713f5787a018a7f4e91c98c3c2866843af9fb8db6ac1d34b780767449f64.wav",
+        "updated_at": {
+          "$date": "2026-11-23T07:58:46.855Z"
+        },
+        "_class": "fit.iuh.engolearn.placement.model.PlacementAudioAsset",
+        "media_id": "6625a711-bfc1-4991-ade3-a8c5c4d7c793"
+      },
+      {
+        "_id": "c1c9e8965466e29bfaaad06eb6ffdfae6e1cbcea213967b182653aa480a9afef",
+        "status": "READY",
+        "duration_seconds": 13.531972789115645,
+        "title": "c1c9e8965466e29bfaaad06eb6ffdfae6e1cbcea213967b182653aa480a9afef.wav",
+        "updated_at": {
+          "$date": "2026-11-23T07:58:51.932Z"
+        },
+        "_class": "fit.iuh.engolearn.placement.model.PlacementAudioAsset",
+        "media_id": "24e27ace-e59a-42c0-9273-b3e9ba372ff9"
+      },
+      {
+        "_id": "c31c51ec5cc4f823eefdaf8b3d2197f5bb3568d5472eebf03c87754928f4cbb5",
+        "status": "READY",
+        "duration_seconds": 10.112743764172336,
+        "title": "c31c51ec5cc4f823eefdaf8b3d2197f5bb3568d5472eebf03c87754928f4cbb5.wav",
+        "updated_at": {
+          "$date": "2026-11-23T07:58:56.789Z"
+        },
+        "_class": "fit.iuh.engolearn.placement.model.PlacementAudioAsset",
+        "media_id": "0d9c4b7f-3f5e-4961-b96f-09ed0d62f9fe"
+      },
+      {
+        "_id": "c6b10025f99cacd0e830e4dc26da487c47aadaa85ee773525f99fa5d8fad14d3",
+        "status": "READY",
+        "duration_seconds": 12.561950113378686,
+        "title": "c6b10025f99cacd0e830e4dc26da487c47aadaa85ee773525f99fa5d8fad14d3.wav",
+        "updated_at": {
+          "$date": "2026-11-23T07:59:01.693Z"
+        },
+        "_class": "fit.iuh.engolearn.placement.model.PlacementAudioAsset",
+        "media_id": "8e3868d9-dd52-41b7-880e-76c79222a98d"
+      },
+      {
+        "_id": "d07c8d64aaf50fb1cd8f9921b7ce2958e2d46c0d004806171be0a13541198ef8",
+        "status": "READY",
+        "duration_seconds": 14.946848072562359,
+        "title": "d07c8d64aaf50fb1cd8f9921b7ce2958e2d46c0d004806171be0a13541198ef8.wav",
+        "updated_at": {
+          "$date": "2026-11-23T07:59:06.534Z"
+        },
+        "_class": "fit.iuh.engolearn.placement.model.PlacementAudioAsset",
+        "media_id": "a18e4107-a029-4694-b023-158c37cac5ab"
+      },
+      {
+        "_id": "d27830b70a8ef73fe5da43adeb29f6c893b3506e07008652302db6166c071af2",
+        "status": "READY",
+        "duration_seconds": 11.947165532879819,
+        "title": "d27830b70a8ef73fe5da43adeb29f6c893b3506e07008652302db6166c071af2.wav",
+        "updated_at": {
+          "$date": "2026-11-23T07:59:11.454Z"
+        },
+        "_class": "fit.iuh.engolearn.placement.model.PlacementAudioAsset",
+        "media_id": "eb43b668-95d3-47fc-90fd-36fcaf770c69"
+      },
+      {
+        "_id": "dc4024c4a0b2fce2e2679be3a0bb60539681deb2b502abc7eee3fc11bbde04f6",
+        "status": "READY",
+        "duration_seconds": 12.147755102040817,
+        "title": "dc4024c4a0b2fce2e2679be3a0bb60539681deb2b502abc7eee3fc11bbde04f6.wav",
+        "updated_at": {
+          "$date": "2026-11-23T07:59:16.148Z"
+        },
+        "_class": "fit.iuh.engolearn.placement.model.PlacementAudioAsset",
+        "media_id": "d9cb9b2b-b763-459d-b6e2-9cbf4926310d"
+      },
+      {
+        "_id": "ddf18df6a61028e3bb856e2dd6141fc946fd2027a940f64a9334fadd98642bf4",
+        "status": "READY",
+        "duration_seconds": 12.892063492063492,
+        "title": "ddf18df6a61028e3bb856e2dd6141fc946fd2027a940f64a9334fadd98642bf4.wav",
+        "updated_at": {
+          "$date": "2026-11-23T07:59:20.954Z"
+        },
+        "_class": "fit.iuh.engolearn.placement.model.PlacementAudioAsset",
+        "media_id": "ddf9f574-0adf-48e7-a930-86a5376173ae"
+      },
+      {
+        "_id": "defbd36ae4b23f61d1915ae2ab58a4d451d0d056349103dee88af511daf5ea48",
+        "status": "READY",
+        "duration_seconds": 10.882721088435375,
+        "title": "defbd36ae4b23f61d1915ae2ab58a4d451d0d056349103dee88af511daf5ea48.wav",
+        "updated_at": {
+          "$date": "2026-11-23T07:59:25.649Z"
+        },
+        "_class": "fit.iuh.engolearn.placement.model.PlacementAudioAsset",
+        "media_id": "95fa07aa-4e32-4c8e-b80e-de1f77a65a27"
+      },
+      {
+        "_id": "e3f9d135c4c016a8765b46bbe9be3311ec987b96c2763df00f0b8ec3914f0946",
+        "status": "READY",
+        "duration_seconds": 11.11732426303855,
+        "title": "e3f9d135c4c016a8765b46bbe9be3311ec987b96c2763df00f0b8ec3914f0946.wav",
+        "updated_at": {
+          "$date": "2026-11-23T07:59:30.421Z"
+        },
+        "_class": "fit.iuh.engolearn.placement.model.PlacementAudioAsset",
+        "media_id": "7b903a14-cac0-48b5-af35-91ee519c217d"
+      },
+      {
+        "_id": "e6e46ded0ae36d96dd45d86a88aba29a3e1b3dbb1f327645f264de1473cfc30e",
+        "status": "READY",
+        "duration_seconds": 13.976598639455782,
+        "title": "e6e46ded0ae36d96dd45d86a88aba29a3e1b3dbb1f327645f264de1473cfc30e.wav",
+        "updated_at": {
+          "$date": "2026-11-23T07:59:35.093Z"
+        },
+        "_class": "fit.iuh.engolearn.placement.model.PlacementAudioAsset",
+        "media_id": "653a7e9b-8b48-4db5-81eb-911442f0d41d"
+      },
+      {
+        "_id": "e7f071b41f6d8f852f9c40c4c7b0bc1c5df9f18394814288edc58705f1fdd32a",
+        "status": "READY",
+        "duration_seconds": 6.443582766439909,
+        "title": "e7f071b41f6d8f852f9c40c4c7b0bc1c5df9f18394814288edc58705f1fdd32a.wav",
+        "updated_at": {
+          "$date": "2026-11-23T07:59:39.663Z"
+        },
+        "_class": "fit.iuh.engolearn.placement.model.PlacementAudioAsset",
+        "media_id": "b85ab880-4f71-4874-bf0a-1ce91a364096"
+      },
+      {
+        "_id": "e802c9bb66514bc5e15294dbda40a0ddb0079a89cd399af8d508037dfb38aadd",
+        "status": "READY",
+        "duration_seconds": 10.992426303854876,
+        "title": "e802c9bb66514bc5e15294dbda40a0ddb0079a89cd399af8d508037dfb38aadd.wav",
+        "updated_at": {
+          "$date": "2026-11-23T07:59:44.338Z"
+        },
+        "_class": "fit.iuh.engolearn.placement.model.PlacementAudioAsset",
+        "media_id": "8f840b22-98d9-4ad8-9098-f394838d8a52"
+      },
+      {
+        "_id": "ea0cc5807e4da496cdbca31953ca7d5c5b0f9bf950be3d4b829fb0a6717dc522",
+        "status": "READY",
+        "duration_seconds": 10.557324263038549,
+        "title": "ea0cc5807e4da496cdbca31953ca7d5c5b0f9bf950be3d4b829fb0a6717dc522.wav",
+        "updated_at": {
+          "$date": "2026-11-23T07:59:48.937Z"
+        },
+        "_class": "fit.iuh.engolearn.placement.model.PlacementAudioAsset",
+        "media_id": "504f5e34-4734-4b1a-b235-e01e54163f23"
+      },
+      {
+        "_id": "eab4b4fe05a8e840668f3f5039a3008147b6b21a183f71502a44728f112a3714",
+        "status": "READY",
+        "duration_seconds": 13.496689342403629,
+        "title": "eab4b4fe05a8e840668f3f5039a3008147b6b21a183f71502a44728f112a3714.wav",
+        "updated_at": {
+          "$date": "2026-11-23T07:59:54.056Z"
+        },
+        "_class": "fit.iuh.engolearn.placement.model.PlacementAudioAsset",
+        "media_id": "940a46d4-f0c7-4de8-b38b-196276e95ddc"
+      },
+      {
+        "_id": "ebcecc6d055f94022adca12b5bc884f4b47e6cc70b530a2a6e5c44d976f9e262",
+        "status": "READY",
+        "duration_seconds": 13.871791383219955,
+        "title": "ebcecc6d055f94022adca12b5bc884f4b47e6cc70b530a2a6e5c44d976f9e262.wav",
+        "updated_at": {
+          "$date": "2026-11-23T07:59:58.875Z"
+        },
+        "_class": "fit.iuh.engolearn.placement.model.PlacementAudioAsset",
+        "media_id": "61668890-125b-4167-ba5a-f9320bb8a015"
+      },
+      {
+        "_id": "ecf4e19a7ea624855296bf1e1ce6792cd4efc40c645674f6c9143c5c10ae9052",
+        "status": "READY",
+        "duration_seconds": 5.8986394557823125,
+        "title": "ecf4e19a7ea624855296bf1e1ce6792cd4efc40c645674f6c9143c5c10ae9052.wav",
+        "updated_at": {
+          "$date": "2026-11-23T08:00:03.545Z"
+        },
+        "_class": "fit.iuh.engolearn.placement.model.PlacementAudioAsset",
+        "media_id": "3cf78f04-a775-4907-8c00-1829fe0a251a"
+      },
+      {
+        "_id": "f176057501b4c37958215491475a92476e41d50a81217d2095db7e53f7189d6a",
+        "status": "READY",
+        "duration_seconds": 11.877414965986395,
+        "title": "f176057501b4c37958215491475a92476e41d50a81217d2095db7e53f7189d6a.wav",
+        "updated_at": {
+          "$date": "2026-11-23T08:00:08.302Z"
+        },
+        "_class": "fit.iuh.engolearn.placement.model.PlacementAudioAsset",
+        "media_id": "8debecd3-b176-4f3f-93e6-f512ac384d03"
+      },
+      {
+        "_id": "f229740dd34e09081fb1bbf0e891568650d8163b5c64495c067d67b5d553286d",
+        "status": "READY",
+        "duration_seconds": 14.371383219954648,
+        "title": "f229740dd34e09081fb1bbf0e891568650d8163b5c64495c067d67b5d553286d.wav",
+        "updated_at": {
+          "$date": "2026-11-23T08:00:14.467Z"
+        },
+        "_class": "fit.iuh.engolearn.placement.model.PlacementAudioAsset",
+        "media_id": "27890d38-77ee-41bc-97b3-203c5e47c741"
+      },
+      {
+        "_id": "f3c755609a437bfbf53e0242e8d621c45898caefa653b2a341f57c0ca1211d01",
+        "status": "READY",
+        "duration_seconds": 9.142585034013605,
+        "title": "f3c755609a437bfbf53e0242e8d621c45898caefa653b2a341f57c0ca1211d01.wav",
+        "updated_at": {
+          "$date": "2026-11-23T08:00:19.815Z"
+        },
+        "_class": "fit.iuh.engolearn.placement.model.PlacementAudioAsset",
+        "media_id": "d57d39b9-4116-4f1c-a9de-bf3b7b1f98bf"
+      },
+      {
+        "_id": "fbbecc2cd8f2dd69d4e2f54acd35b1821936d3a48655e0844921e8ea91d3614b",
+        "status": "READY",
+        "duration_seconds": 12.127074829931972,
+        "title": "fbbecc2cd8f2dd69d4e2f54acd35b1821936d3a48655e0844921e8ea91d3614b.wav",
+        "updated_at": {
+          "$date": "2026-11-23T08:00:25.177Z"
+        },
+        "_class": "fit.iuh.engolearn.placement.model.PlacementAudioAsset",
+        "media_id": "b8f32081-e1cb-4930-b006-7cfc5ed09177"
+      },
+      {
+        "_id": "ff333c5c747a4d97f9d59f6fa6133cfda5b48ff7f532a3f22c71cd70d3807b98",
+        "status": "READY",
+        "duration_seconds": 11.147210884353742,
+        "title": "ff333c5c747a4d97f9d59f6fa6133cfda5b48ff7f532a3f22c71cd70d3807b98.wav",
+        "updated_at": {
+          "$date": "2026-11-23T08:00:30.276Z"
+        },
+        "_class": "fit.iuh.engolearn.placement.model.PlacementAudioAsset",
+        "media_id": "03ffe33a-64f1-441a-84f6-5833553574ab"
+      }
+    ]
+  }
+}

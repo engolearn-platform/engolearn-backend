@@ -81,6 +81,25 @@ public class MongoSubscriptionRepository implements SubscriptionRepository {
         return mongo.updateFirst(Query.query(Criteria.where("_id").is(old.getId()).and("revision").is(old.getRevision()).and("pending_version_id").is(null)),
             new Update().set("pending_version_id",next.getId()).set("pending_effective_at",next.getEffectiveAt()).inc("revision",1),PolicyState.class).getModifiedCount()==1;
     }
+    public boolean replacePendingPolicy(PolicyState old, PolicyVersion next) {
+        return mongo.updateFirst(Query.query(Criteria.where("_id").is(old.getId()).and("revision").is(old.getRevision())
+                        .and("pending_version_id").is(old.getPendingVersionId()).and("pending_effective_at").is(old.getPendingEffectiveAt())),
+                new Update().set("pending_version_id", next.getId()).set("pending_effective_at", next.getEffectiveAt())
+                        .inc("revision", 1), PolicyState.class).getModifiedCount() == 1;
+    }
+    public boolean cancelPendingPolicy(PolicyState old) {
+        return mongo.updateFirst(Query.query(Criteria.where("_id").is(old.getId()).and("revision").is(old.getRevision())
+                        .and("pending_version_id").is(old.getPendingVersionId()).and("pending_effective_at").is(old.getPendingEffectiveAt())),
+                new Update().unset("pending_version_id").unset("pending_effective_at").inc("revision", 1),
+                PolicyState.class).getModifiedCount() == 1;
+    }
+    public boolean replacePendingWithActive(PolicyState old, PolicyVersion next) {
+        return mongo.updateFirst(Query.query(Criteria.where("_id").is(old.getId()).and("revision").is(old.getRevision())
+                        .and("pending_version_id").is(old.getPendingVersionId()).and("pending_effective_at").is(old.getPendingEffectiveAt())),
+                new Update().set("active_version_id", next.getId()).unset("pending_version_id")
+                        .unset("pending_effective_at").inc("activation_sequence", 1).inc("revision", 1),
+                PolicyState.class).getModifiedCount() == 1;
+    }
     public PublicationReceipt findManifestPublicationReceipt(String manifestId) {
         return mongo.findById(manifestId, PublicationReceipt.class);
     }
@@ -88,10 +107,14 @@ public class MongoSubscriptionRepository implements SubscriptionRepository {
     public void ensurePublicationStorage() {
         for (Class<?> type : new Class<?>[]{AdminConfigurationState.class, AdminPublicationReceipt.class,
                 PlanVersion.class, PolicyVersion.class, SubscriptionAccount.class, SubscriptionPeriod.class,
-                TrialReceipt.class, PolicyState.class, PublicationReceipt.class})
+                TrialReceipt.class, PolicyState.class, PublicationReceipt.class, SubscriptionProduct.class,
+                SubscriptionProductVersion.class, SubscriptionProductPublicationReceipt.class})
             if (!mongo.collectionExists(type)) mongo.createCollection(type);
         var resolver = new org.springframework.data.mongodb.core.index.MongoPersistentEntityIndexResolver(mongo.getConverter().getMappingContext());
         for (Class<?> type : new Class<?>[]{PlanVersion.class, PolicyVersion.class, SubscriptionPeriod.class, TrialReceipt.class, AdminPublicationReceipt.class})
+            resolver.resolveIndexFor(type).forEach(index -> mongo.indexOps(type).createIndex(index));
+        for (Class<?> type : new Class<?>[]{SubscriptionProduct.class, SubscriptionProductVersion.class,
+                SubscriptionProductPublicationReceipt.class})
             resolver.resolveIndexFor(type).forEach(index -> mongo.indexOps(type).createIndex(index));
         mongo.upsert(Query.query(Criteria.where("_id").is("GLOBAL")),
             new Update().setOnInsert("revision", 0L), AdminConfigurationState.class);
