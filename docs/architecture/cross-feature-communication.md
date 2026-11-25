@@ -57,7 +57,7 @@ A new dependency needs an explicit reason and approval. Keep this table in sync 
 | Feature | May depend on, through contract |
 |---|---|
 | `assessment` | `subscription.contract` (effective entitlements), `quota.contract` (atomic consumption) |
-| `learningpath` | `assessment.contract.AssessmentResults` for owner-scoped READY results and batch source validation; no direct Assessment collection access; `user.contract.UserLevelLookup` for current practice level (user-approved learning-path level fix) |
+| `learningpath` | `assessment.contract.AssessmentResults` for owner-scoped READY results and batch source validation; no direct Assessment collection access; `user.contract.UserLevelLookup` for current practice level (user-approved learning-path level fix); `media.contract.MediaManagement` for protected passage audio upload and authorized preview resolution (owner-approved admin passage flows) |
 | `dictionary` | None |
 | `topic` | `dictionary`, `user.contract`, `media.contract.MediaManagement` for Topic-owned protected content media |
 | `user` | `subscription.contract.SubscriptionAccountInitialization` for new-account enrollment in the registration Mongo transaction |
