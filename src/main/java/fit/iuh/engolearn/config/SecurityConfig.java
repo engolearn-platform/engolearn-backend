@@ -21,6 +21,8 @@ import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.context.RequestAttributeSecurityContextRepository;
+import org.springframework.security.web.context.SecurityContextRepository;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -50,12 +52,14 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http,
                                                    Environment environment,
                                                    AccessCookieAuthFilter accessCookieAuthFilter,
+                                                   SecurityContextRepository securityContextRepository,
                                                    AuthenticationEntryPoint authenticationEntryPoint,
                                                    AccessDeniedHandler accessDeniedHandler) throws Exception {
         http
                 .csrf(AbstractHttpConfigurer::disable)
                 .cors(Customizer.withDefaults())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .securityContext(context -> context.securityContextRepository(securityContextRepository))
                 .exceptionHandling(ex -> ex
                         .authenticationEntryPoint(authenticationEntryPoint)
                         .accessDeniedHandler(accessDeniedHandler))
@@ -70,6 +74,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/placement/admin", "/api/v1/placement/admin/**").hasRole("ADMIN")
                         .requestMatchers("/api/v1/grammar/admin", "/api/v1/grammar/admin/**").hasRole("CONTENT_MANAGER")
                         .requestMatchers("/api/v1/grammar", "/api/v1/grammar/**").hasRole("USER")
+                        .requestMatchers("/api/v1/companion", "/api/v1/companion/**").hasRole("USER")
                         .requestMatchers("/api/v1/placement/attempts/*/result", "/api/v1/placement/attempts/*/review",
                                 "/api/v1/placement/attempts/*/learning").hasRole("USER")
                         .requestMatchers("/api/v1/subscription/me", "/api/v1/subscription/me/**", "/api/v1/quota/me/**").authenticated()
@@ -98,6 +103,11 @@ public class SecurityConfig {
 
         http.addFilterBefore(accessCookieAuthFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();
+    }
+
+    @Bean
+    public SecurityContextRepository securityContextRepository() {
+        return new RequestAttributeSecurityContextRepository();
     }
 
     @Bean
@@ -139,6 +149,7 @@ public class SecurityConfig {
                 || path.startsWith("/api/v1/subscription/") || path.startsWith("/api/v1/quota/")
                 || path.startsWith("/api/v1/auth/") || path.startsWith("/api/v1/profile/") || path.startsWith("/api/v1/speaking/")
                 || path.startsWith("/api/v1/grammar/") || path.startsWith("/api/v1/placement/")
+                || path.equals("/api/v1/companion") || path.startsWith("/api/v1/companion/")
                 || path.equals("/api/learning-paths") || path.startsWith("/api/learning-paths/")
                 || path.equals("/api/management/topics") || path.startsWith("/api/management/topics/")) {
             problemDetail.setDetail(status == HttpStatus.UNAUTHORIZED ? "Authentication is required" : "Access is denied");

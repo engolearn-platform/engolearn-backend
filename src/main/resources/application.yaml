@@ -67,6 +67,19 @@ engolearn:
       enabled: true
     recovery:
       enabled: true
+  ai-companion:
+    api-key: ${AI_COMPANION_GEMINI_API_KEY:}
+    model: ${AI_COMPANION_GEMINI_MODEL:gemini-3.5-flash-lite}
+    temperature: ${AI_COMPANION_GEMINI_TEMPERATURE:0.7}
+    max-output-tokens: ${AI_COMPANION_GEMINI_MAX_OUTPUT_TOKENS:2048}
+    inference-timeout: ${AI_COMPANION_INFERENCE_TIMEOUT:30s}
+    turn-timeout: ${AI_COMPANION_TURN_TIMEOUT:90s}
+    max-messages: ${AI_COMPANION_MAX_MESSAGES:100}
+    max-concurrent-streams: ${AI_COMPANION_MAX_CONCURRENT_STREAMS:16}
+    warning-percent: ${AI_COMPANION_WARNING_PERCENT:90}
+    history-message-limit: ${AI_COMPANION_HISTORY_MESSAGE_LIMIT:20}
+    history-token-budget: ${AI_COMPANION_HISTORY_TOKEN_BUDGET:4000}
+    persona-version: ${AI_COMPANION_PERSONA_VERSION:v1}
 
   payment:
     dev-reset:
