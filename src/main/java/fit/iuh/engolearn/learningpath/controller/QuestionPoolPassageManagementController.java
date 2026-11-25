@@ -1,0 +1,36 @@
+package fit.iuh.engolearn.learningpath.controller;
+
+import fit.iuh.engolearn.learningpath.dto.request.CreateQuestionPoolPassageRequest;
+import fit.iuh.engolearn.learningpath.dto.response.QuestionPoolPassageResponse;
+import fit.iuh.engolearn.learningpath.service.QuestionPoolPassageManagementService;
+import fit.iuh.engolearn.shared.web.ApiResponse;
+import jakarta.validation.Valid;
+import java.io.IOException;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestPart;
+import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
+
+@RestController
+@RequestMapping("/api/management/learning-paths/passages")
+@RequiredArgsConstructor
+public class QuestionPoolPassageManagementController {
+    private final QuestionPoolPassageManagementService passages;
+
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @ResponseStatus(HttpStatus.CREATED)
+    public ApiResponse<QuestionPoolPassageResponse> create(
+            @Valid @RequestPart("passage") CreateQuestionPoolPassageRequest request,
+            @RequestPart(value = "audio", required = false) MultipartFile audio) throws IOException {
+        try (var input = audio == null ? null : audio.getInputStream()) {
+            return ApiResponse.ok(passages.create(request, input,
+                    audio == null ? null : audio.getOriginalFilename(),
+                    audio == null ? null : audio.getContentType(), audio == null ? 0 : audio.getSize()));
+        }
+    }
+}
