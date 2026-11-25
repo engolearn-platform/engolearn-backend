@@ -693,6 +693,172 @@ class QuestionPoolPassageManagementIntegrationTest extends AbstractMongoIntegrat
         verifyNoInteractions(storage);
     }
 
+    @ParameterizedTest
+    @EnumSource(value = UserRole.class, names = {"CONTENT_MANAGER", "ADMIN"})
+    void deleteUnreferencedDraftRemovesOnlyThatPassage(UserRole role) {
+        seedPassage("remove", "READING", "B1", "DRAFT", "Title", "Text", null, 0);
+        seedPassage("keep", "READING", "B1", "DRAFT", "Other", "Other text", null, 0);
+        mongoTemplate.getCollection("question_pool").insertOne(new Document("question_id", "other-question")
+                .append("passage_id", "keep").append("status", "DRAFT"));
+        var response = delete("remove", "revision=1", role);
+        assertThat(response.getStatusCode().value()).as(response.getBody()).isEqualTo(200);
+        var data = json.readTree(response.getBody()).path("data");
+        assertThat(data.path("passageId").asString()).isEqualTo("remove");
+        assertThat(data.path("deleted").asBoolean()).isTrue();
+        assertThat(mongoTemplate.getCollection("question_pool_passages").countDocuments()).isEqualTo(1);
+        assertThat(mongoTemplate.getCollection("question_pool_passages").find().first().getString("passage_id")).isEqualTo("keep");
+        assertThat(mongoTemplate.getCollection("question_pool").countDocuments()).isEqualTo(1);
+        assertError(detail("remove", role), 404, "PASSAGE_NOT_FOUND");
+        assertError(delete("remove", "revision=1", role), 404, "PASSAGE_NOT_FOUND");
+        verifyNoInteractions(storage);
+        assertNoLearnerWrites();
+    }
+
+    @Test
+    void deleteListeningDraftKeepsMediaAndExistingLearnerSnapshots() {
+        String id = createListeningForDetail();
+        var originalMedia = mongoTemplate.getCollection("media_assets").find().first();
+        Document snapshot = new Document("_id", "immutable-snapshot")
+                .append("passage", new Document("passage_id", id).append("text", "Frozen snapshot content"));
+        Document path = new Document("_id", "immutable-path").append("status", "COMPLETED");
+        mongoTemplate.getCollection("learning_path_questions").insertOne(snapshot);
+        mongoTemplate.getCollection("learning_paths").insertOne(path);
+        clearInvocations(storage);
+        assertThat(delete(id, "revision=1", UserRole.ADMIN).getStatusCode().value()).isEqualTo(200);
+        assertThat(mongoTemplate.getCollection("question_pool_passages").countDocuments()).isZero();
+        assertThat(mongoTemplate.getCollection("media_assets").find().first()).isEqualTo(originalMedia);
+        assertThat(mongoTemplate.getCollection("learning_path_questions").find().first()).isEqualTo(snapshot);
+        assertThat(mongoTemplate.getCollection("learning_paths").find().first()).isEqualTo(path);
+        verifyNoInteractions(storage);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"DRAFT", "ACTIVE", "RETIRED", "MISSING"})
+    void deleteRejectsEveryQuestionReferenceRegardlessOfStatusOrClassification(String state) {
+        seedPassage("referenced", "READING", "B1", "DRAFT", "Title", "Text", null, 0);
+        Document question = new Document("question_id", "reference").append("passage_id", "referenced");
+        if (!state.equals("MISSING")) question.append("status", state);
+        mongoTemplate.getCollection("question_pool").insertOne(question);
+        var before = mongoTemplate.getCollection("question_pool_passages").find().first();
+        assertError(delete("referenced", "revision=1", UserRole.ADMIN), 409, "PASSAGE_DELETE_CONFLICT");
+        assertThat(mongoTemplate.getCollection("question_pool_passages").find().first()).isEqualTo(before);
+        assertThat(mongoTemplate.getCollection("question_pool").find().first()).isEqualTo(question);
+        verifyNoInteractions(storage);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"ACTIVE", "RETIRED"})
+    void deleteRejectsNonDraftPassages(String state) {
+        seedPassage("published", "READING", "B1", state, "Title", "Text", null, 0);
+        assertError(delete("published", "revision=1", UserRole.ADMIN), 409, "PASSAGE_DELETE_CONFLICT");
+        assertThat(mongoTemplate.getCollection("question_pool_passages").countDocuments()).isEqualTo(1);
+    }
+
+    @Test
+    void deleteRejectsStaleRevisionAndLooksUpPassageIdRatherThanMongoId() {
+        seedPassage("internal", "READING", "B1", "DRAFT", "Title", "Text", null, 0);
+        mongoTemplate.getCollection("question_pool_passages").updateOne(new Document("_id", "internal"),
+                new Document("$set", new Document("passage_id", "external")));
+        assertError(delete("external", "revision=2", UserRole.ADMIN), 409, "PASSAGE_DELETE_CONFLICT");
+        assertError(delete("internal", "revision=1", UserRole.ADMIN), 404, "PASSAGE_NOT_FOUND");
+        assertError(delete("missing", "revision=1", UserRole.ADMIN), 404, "PASSAGE_NOT_FOUND");
+        assertThat(mongoTemplate.getCollection("question_pool_passages").countDocuments()).isEqualTo(1);
+        assertThat(delete("external", "revision=1", UserRole.ADMIN).getStatusCode().value()).isEqualTo(200);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"", "revision=", "revision=0", "revision=-1", "revision=abc", "revision=2147483648"})
+    void deleteRejectsMissingOrInvalidRevision(String query) {
+        seedPassage("valid", "READING", "B1", "DRAFT", "Title", "Text", null, 0);
+        assertError(delete("valid", query, UserRole.ADMIN), 400, "INVALID_PASSAGE_REQUEST");
+        assertThat(mongoTemplate.getCollection("question_pool_passages").countDocuments()).isEqualTo(1);
+    }
+
+    @Test
+    void deleteRejectsBlankAndOverlongPassageIds() {
+        assertError(delete(" ", "revision=1", UserRole.ADMIN), 400, "INVALID_PASSAGE_REQUEST");
+        assertError(delete("x".repeat(101), "revision=1", UserRole.ADMIN), 400, "INVALID_PASSAGE_REQUEST");
+    }
+
+    @Test
+    void deleteRequiresManagerAuthorityAtHttpAndServiceBoundaries() {
+        seedPassage("first", "READING", "B1", "DRAFT", "Title", "Text", null, 0);
+        seedPassage("second", "READING", "B1", "DRAFT", "Title", "Text", null, 0);
+        assertError(delete("first", "revision=1", null), 401, "AUTHENTICATION_REQUIRED");
+        assertError(delete("first", "revision=1", UserRole.USER), 403, "ACCESS_DENIED");
+        assertError(delete("missing", "revision=1", UserRole.USER), 403, "ACCESS_DENIED");
+        try {
+            SecurityContextHolder.clearContext();
+            assertThatThrownBy(() -> service.delete("first", 1)).isInstanceOf(AuthenticationCredentialsNotFoundException.class);
+            authenticate(UserRole.USER);
+            assertThatThrownBy(() -> service.delete("first", 1)).isInstanceOf(AccessDeniedException.class);
+            authenticate(UserRole.CONTENT_MANAGER);
+            assertThat(service.delete("first", 1).deleted()).isTrue();
+            authenticate(UserRole.ADMIN);
+            assertThat(service.delete("second", 1).deleted()).isTrue();
+        } finally {
+            SecurityContextHolder.clearContext();
+        }
+        assertThat(mongoTemplate.getCollection("question_pool_passages").countDocuments()).isZero();
+        verifyNoInteractions(storage);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"ACTIVE", "RETIRED", "EDITED"})
+    void deleteConditionalWritePreservesConcurrentPublicationOrEdit(String state) {
+        seedPassage("race", "READING", "B1", "DRAFT", "Title", "Text", null, 0);
+        doAnswer(invocation -> {
+            Document change = state.equals("EDITED") ? new Document("revision", 2).append("title", "New content")
+                    : new Document("status", state);
+            mongoTemplate.getCollection("question_pool_passages").updateOne(new Document("passage_id", "race"),
+                    new Document("$set", change));
+            return invocation.callRealMethod();
+        }).when(passages).deleteDraft("race", 1);
+        assertError(delete("race", "revision=1", UserRole.ADMIN), 409, "PASSAGE_DELETE_CONFLICT");
+        var remaining = mongoTemplate.getCollection("question_pool_passages").find().first();
+        assertThat(remaining).isNotNull();
+        if (state.equals("EDITED")) {
+            assertThat(remaining.getInteger("revision")).isEqualTo(2);
+            assertThat(remaining.getString("title")).isEqualTo("New content");
+        } else assertThat(remaining.getString("status")).isEqualTo(state);
+    }
+
+    @Test
+    void concurrentDeletesReturnOnlyOneSuccess() throws Exception {
+        seedPassage("race", "READING", "B1", "DRAFT", "Title", "Text", null, 0);
+        var barrier = new java.util.concurrent.CyclicBarrier(2);
+        doAnswer(invocation -> {
+            barrier.await(15, java.util.concurrent.TimeUnit.SECONDS);
+            return invocation.callRealMethod();
+        }).when(passages).deleteDraft("race", 1);
+        var first = java.util.concurrent.CompletableFuture.supplyAsync(() -> delete("race", "revision=1", UserRole.ADMIN));
+        var second = java.util.concurrent.CompletableFuture.supplyAsync(() -> delete("race", "revision=1", UserRole.ADMIN));
+        assertThat(java.util.List.of(first.get(25, java.util.concurrent.TimeUnit.SECONDS).getStatusCode().value(),
+                second.get(25, java.util.concurrent.TimeUnit.SECONDS).getStatusCode().value())).containsExactlyInAnyOrder(200, 409);
+        assertThat(mongoTemplate.getCollection("question_pool_passages").countDocuments()).isZero();
+    }
+
+    @Test
+    void deleteDatabaseFailurePreservesPassageAndReturns503() {
+        seedPassage("failure", "READING", "B1", "DRAFT", "Title", "Text", null, 0);
+        doThrow(new DataAccessResourceFailureException("private database diagnostic")).when(passages).deleteDraft("failure", 1);
+        var response = delete("failure", "revision=1", UserRole.ADMIN);
+        assertError(response, 503, "PASSAGE_STORAGE_UNAVAILABLE");
+        assertThat(response.getBody()).doesNotContain("private database diagnostic");
+        assertThat(mongoTemplate.getCollection("question_pool_passages").countDocuments()).isEqualTo(1);
+        verifyNoInteractions(storage);
+    }
+
+    private ResponseEntity<String> delete(String id, String query, UserRole role) {
+        java.net.URI uri = org.springframework.web.util.UriComponentsBuilder.fromUriString("http://localhost:" + port + BASE)
+                .path("/{passageId}").query(query).encode().buildAndExpand(id).toUri();
+        try {
+            return restTemplate.exchange(uri, HttpMethod.DELETE, new HttpEntity<>(authHeaders(role)), String.class);
+        } catch (org.springframework.web.client.HttpStatusCodeException exception) {
+            return new ResponseEntity<>(exception.getResponseBodyAsString(), exception.getResponseHeaders(), exception.getStatusCode());
+        }
+    }
+
     private ResponseEntity<String> patch(String id, String metadata, byte[] audio, String type, UserRole role) {
         java.net.URI uri = org.springframework.web.util.UriComponentsBuilder.fromUriString("http://localhost:" + port + BASE)
                 .path("/{passageId}").encode().buildAndExpand(id).toUri();

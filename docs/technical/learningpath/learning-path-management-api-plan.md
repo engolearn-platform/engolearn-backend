@@ -1,7 +1,7 @@
 # Learning Path passage management APIs
 
-Creation, listing, detail reads and DRAFT edits are implemented. The remaining APIs are planned and will be implemented
-one at a time with the owner. Business scope: workspace `AGENT.md`, sections 17.8–17.11.
+All five passage management APIs below are implemented. Validation, publication and
+retirement endpoints will be agreed and implemented separately with the owner. Business scope: workspace `AGENT.md`, sections 17.8–17.11.
 
 ## Passage API sequence
 
@@ -13,7 +13,7 @@ Base: `/api/management/learning-paths/passages`.
 | 2 | GET | base | List with pagination and keyword/skill/level/status filters | Implemented |
 | 3 | GET | `/{passageId}` | Read passage details and resolve audio for preview | Implemented |
 | 4 | PATCH | `/{passageId}` | Edit a DRAFT passage | Implemented |
-| 5 | DELETE | `/{passageId}` | Delete a DRAFT with no referencing questions | Planned |
+| 5 | DELETE | `/{passageId}` | Delete a DRAFT with no referencing questions | Implemented |
 
 Follow with passage validation/publication/retirement, then question management.
 Coverage dashboards and an operation-history screen are deferred business scope.
@@ -355,6 +355,66 @@ future question authoring is introduced. When question create/edit/publication A
 implemented they must enforce passage classification/status and coordinate concurrent
 reference changes. This endpoint alone cannot guarantee cross-document invariants against
 out-of-band database writers.
+
+## DELETE: remove an unreferenced DRAFT passage
+
+`DELETE /api/management/learning-paths/passages/{passageId}?revision=<current revision>`
+requires CONTENT_MANAGER authority (inherited by ADMIN), independently enforced at the
+HTTP namespace and the Spring-managed delete service. The caller is obtained from the
+trusted CurrentUserProvider. This is a management operation across editors, not creator-only
+access. The ID is the opaque passage_id, nonblank and at most 100 characters.
+
+The `revision` query parameter is required and must be an integer >= 1. Use the revision
+returned by list/detail/create/update; this protects an editor's delete action from removing
+content changed since it was viewed. There is no request body.
+
+```bash
+curl --request DELETE \
+  'http://localhost:8080/api/management/learning-paths/passages/LP-PASS-example?revision=1' \
+  --cookie 'ACCESS_TOKEN=<valid-access-cookie>'
+```
+
+Processing:
+
+1. Authorize the management operation and load the passage by passage_id.
+2. Require DRAFT and the expected revision.
+3. Check question_pool for any passage_id reference, regardless of question status,
+   skill/level validity or whether that question is currently selectable.
+4. Atomically remove one passage with a predicate on passage_id + DRAFT + expected revision.
+   A concurrent edit/publication/removal that invalidates this predicate returns a conflict.
+5. Return HTTP 200 with the shared ApiResponse envelope:
+
+```json
+{
+  "data": {"passageId": "LP-PASS-example", "deleted": true},
+  "timestamp": "2026-11-25T05:00:00Z"
+}
+```
+
+Only the passage document is removed. No Media upload/resolve/delete call is made; existing
+Media asset metadata/files and legacy URLs are not deleted. Existing learner paths,
+question snapshots, results and Question Pool questions are not modified. This is physical
+DRAFT deletion, not retirement of ACTIVE content and not a soft-delete workflow.
+
+| Status | Code | Meaning |
+| --- | --- | --- |
+| 400 | INVALID_PASSAGE_REQUEST | Missing/noninteger/nonpositive revision, or invalid ID |
+| 401 | AUTHENTICATION_REQUIRED | No valid trusted session |
+| 403 | ACCESS_DENIED | Authenticated caller lacks management authority |
+| 404 | PASSAGE_NOT_FOUND | Passage absent at the initial lookup |
+| 409 | PASSAGE_DELETE_CONFLICT | Not DRAFT, stale revision, remaining question references or failed conditional delete |
+| 503 | PASSAGE_STORAGE_UNAVAILABLE | Passage/reference lookup or delete failed |
+
+Errors use ProblemDetail. After a 409, refetch/reconcile instead of automatically retrying
+with the latest revision. A later DELETE after a completed deletion returns 404. If two
+requests both read the same DRAFT before removal, only one conditional delete can succeed;
+the losing request returns 409.
+
+Reference checking and conditional removal are separate operations, with no cross-document
+transaction/lock. As with PATCH, future question-authoring operations must coordinate
+reference changes with passage revision/lifecycle. This endpoint does not guarantee against
+out-of-band question inserts between the reference check and removal. No automatic Media
+cleanup or operation-history screen is introduced.
 
 ## Verification scope
 

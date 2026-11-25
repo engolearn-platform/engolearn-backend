@@ -21,6 +21,8 @@ import fit.iuh.engolearn.learningpath.exception.QuestionPoolPassageNotFoundExcep
 import fit.iuh.engolearn.learningpath.dto.request.UpdateQuestionPoolPassageRequest;
 import fit.iuh.engolearn.learningpath.exception.PassageUpdateConflictException;
 import fit.iuh.engolearn.learningpath.repository.QuestionPoolRepository;
+import fit.iuh.engolearn.learningpath.dto.response.DeleteQuestionPoolPassageResponse;
+import fit.iuh.engolearn.learningpath.exception.PassageDeleteConflictException;
 import java.io.InputStream;
 import java.time.Instant;
 import java.util.Locale;
@@ -40,6 +42,24 @@ public class QuestionPoolPassageManagementServiceImpl implements QuestionPoolPas
     private final MediaManagement media;
     private final QuestionPoolRepository questions;
     private final CurrentUserProvider users;
+
+    @Override
+    @PreAuthorize("hasRole('CONTENT_MANAGER')")
+    public DeleteQuestionPoolPassageResponse delete(String passageId, int revision) {
+        users.requireCurrentUserId();
+        QuestionPoolPassage passage = passages.findByPassageId(passageId)
+                .orElseThrow(QuestionPoolPassageNotFoundException::new);
+        if (passage.getStatus() != QuestionPoolContentStatus.DRAFT || passage.getRevision() != revision) {
+            throw new PassageDeleteConflictException("Only the current revision of a DRAFT passage can be deleted");
+        }
+        if (questions.hasPassageReferences(passageId)) {
+            throw new PassageDeleteConflictException("Passage is still referenced by questions");
+        }
+        if (!passages.deleteDraft(passageId, revision)) {
+            throw new PassageDeleteConflictException("Passage changed while deleting; reload before retrying");
+        }
+        return new DeleteQuestionPoolPassageResponse(passageId, true);
+    }
 
     @Override
     @PreAuthorize("hasRole('CONTENT_MANAGER')")

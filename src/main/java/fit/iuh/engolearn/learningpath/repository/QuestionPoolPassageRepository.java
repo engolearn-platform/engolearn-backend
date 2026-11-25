@@ -76,6 +76,12 @@ public class QuestionPoolPassageRepository {
                 FindAndModifyOptions.options().returnNew(true), QuestionPoolPassage.class));
     }
 
+    public boolean deleteDraft(String passageId, int expectedRevision) {
+        Query query = Query.query(Criteria.where("passage_id").is(passageId)
+                .and("status").is(QuestionPoolContentStatus.DRAFT).and("revision").is(expectedRevision));
+        return mongo.findAndRemove(query, QuestionPoolPassage.class) != null;
+    }
+
     public QuestionPoolPassage insert(QuestionPoolPassage passage) {
         return mongo.insert(passage);
     }

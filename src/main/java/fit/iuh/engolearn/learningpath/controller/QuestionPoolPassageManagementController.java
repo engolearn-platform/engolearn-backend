@@ -15,6 +15,9 @@ import jakarta.validation.constraints.Size;
 import org.springframework.web.bind.annotation.PathVariable;
 import fit.iuh.engolearn.learningpath.dto.request.UpdateQuestionPoolPassageRequest;
 import org.springframework.web.bind.annotation.PatchMapping;
+import fit.iuh.engolearn.learningpath.dto.request.DeleteQuestionPoolPassageRequest;
+import fit.iuh.engolearn.learningpath.dto.response.DeleteQuestionPoolPassageResponse;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import jakarta.validation.Valid;
 import java.io.IOException;
 import lombok.RequiredArgsConstructor;
@@ -44,6 +47,13 @@ public class QuestionPoolPassageManagementController {
             @PathVariable @NotBlank @Size(max = 100) String passageId, HttpServletResponse response) {
         response.setHeader("Cache-Control", "no-store");
         return ApiResponse.ok(passages.detail(passageId));
+    }
+
+    @DeleteMapping("/{passageId}")
+    public ApiResponse<DeleteQuestionPoolPassageResponse> delete(
+            @PathVariable @NotBlank @Size(max = 100) String passageId,
+            @Valid @ModelAttribute DeleteQuestionPoolPassageRequest request) {
+        return ApiResponse.ok(passages.delete(passageId, request.revision()));
     }
 
     @PatchMapping(value = "/{passageId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)

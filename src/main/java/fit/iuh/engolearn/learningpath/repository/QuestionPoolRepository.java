@@ -24,6 +24,10 @@ public class QuestionPoolRepository {
         this.mongoTemplate = mongoTemplate;
     }
 
+    public boolean hasPassageReferences(String passageId) {
+        return mongoTemplate.exists(Query.query(Criteria.where("passage_id").is(passageId)), "question_pool");
+    }
+
     public boolean hasIncompatiblePassageReferences(String passageId, String skill, String level) {
         Criteria criteria = new Criteria().andOperator(Criteria.where("passage_id").is(passageId),
                 new Criteria().orOperator(Criteria.where("skill").ne(skill), Criteria.where("level").ne(level)));
