@@ -8,7 +8,7 @@ Topic contracts cover [management reads](topic/management-read-api.md), [authori
 
 Learning Path documentation covers [list/recommendation/creation](learningpath/learning-path-list-api.md), [day practice](learningpath/learning-path-day-practice-api.md) and the [lifecycle job](learningpath/learning-path-lifecycle-job.md).
 
-Learning Path management: [passage API contract and implementation sequence](learningpath/learning-path-management-api-plan.md). Creating DRAFT passages with Listening audio and listing/filtering passages are implemented; detail/edit/delete are planned.
+Learning Path management: [passage API contract and implementation sequence](learningpath/learning-path-management-api-plan.md). Creating DRAFT passages with Listening audio, listing/filtering, and detail/audio preview are implemented; edit/delete are planned.
 
 The [old folder router](subscription-quota/README.md) preserves compatibility. Architectural decisions remain in ADRs; earlier implementation documents and verification records are available in Git history under `docs/technical/subscription-quota/`. Other modules remain under the existing paths linked from the [documentation index](../README.md).
 

@@ -51,7 +51,8 @@ import static org.mockito.Mockito.*;
 
 @EnabledIfDockerAvailable
 @org.springframework.test.context.TestPropertySource(properties = {
-        "spring.servlet.multipart.max-file-size=64KB", "spring.servlet.multipart.max-request-size=1MB"})
+        "spring.servlet.multipart.max-file-size=64KB", "spring.servlet.multipart.max-request-size=1MB",
+        "engolearn.media.protected-url-lifetime=60s"})
 class QuestionPoolPassageManagementIntegrationTest extends AbstractMongoIntegrationTest {
     private static final String BASE = "/api/management/learning-paths/passages";
     private static final String READING = "{\"skill\":\"READING\",\"level\":\"B1\",\"title\":\"  Library hours  \",\"text\":\"The library opens at nine.\"}";
@@ -341,6 +342,174 @@ class QuestionPoolPassageManagementIntegrationTest extends AbstractMongoIntegrat
             assertThat(service.list(request).totalElements()).isZero();
         } finally {
             SecurityContextHolder.clearContext();
+        }
+    }
+
+    @ParameterizedTest
+    @EnumSource(value = UserRole.class, names = {"CONTENT_MANAGER", "ADMIN"})
+    void detailReturnsCompleteReadingContentWithoutChangingPassage(UserRole role) {
+        var created = post(READING, null, null, role);
+        assertThat(created.getStatusCode().value()).isEqualTo(201);
+        JsonNode original = json.readTree(created.getBody()).path("data");
+        String id = original.path("passageId").asString();
+        Document before = mongoTemplate.getCollection("question_pool_passages").find().first();
+        var response = detail(id, role);
+        assertThat(response.getStatusCode().value()).isEqualTo(200);
+        assertThat(response.getHeaders().getCacheControl()).isEqualTo("no-store");
+        JsonNode data = json.readTree(response.getBody()).path("data");
+        for (String field : new String[]{"passageId", "skill", "level", "title", "text", "transcript",
+                "audioMediaId", "status", "revision", "createdBy"}) {
+            assertThat(data.path(field)).as(field).isEqualTo(original.path(field));
+        }
+        assertThat(Instant.parse(data.path("createdAt").asString())).isEqualTo(before.getDate("created_at").toInstant());
+        assertThat(Instant.parse(data.path("updatedAt").asString())).isEqualTo(before.getDate("updated_at").toInstant());
+        assertThat(data.path("audio").isNull()).isTrue();
+        assertThat(mongoTemplate.getCollection("question_pool_passages").find().first()).isEqualTo(before);
+        verifyNoInteractions(storage);
+        assertNoLearnerWrites();
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"DRAFT", "ACTIVE", "RETIRED"})
+    void detailReadsLegacyListeningAudioAcrossContentStates(String state) {
+        seedPassage("legacy", "LISTENING", "B1", state, "Old recording", null, "Complete transcript", 0);
+        setAudio("legacy", new Document("audio", new Document("url", "/learning-path-audio/legacy.mp3")
+                .append("duration_sec", 47).append("format", "mp3")));
+        var response = detail("legacy", UserRole.CONTENT_MANAGER);
+        assertThat(response.getStatusCode().value()).isEqualTo(200);
+        JsonNode data = json.readTree(response.getBody()).path("data");
+        assertThat(data.path("status").asString()).isEqualTo(state);
+        assertThat(data.path("transcript").asString()).isEqualTo("Complete transcript");
+        assertThat(data.path("audio").path("url").asString()).isEqualTo("/learning-path-audio/legacy.mp3");
+        assertThat(data.path("audio").path("durationSec").asInt()).isEqualTo(47);
+        assertThat(data.path("audio").path("format").asString()).isEqualTo("mp3");
+        assertThat(data.path("audio").path("expiresAt").isNull()).isTrue();
+        assertThat(data.path("audio").path("contentType").isNull()).isTrue();
+        verifyNoInteractions(storage);
+    }
+
+    @Test
+    void detailResolvesProtectedMediaAndCanBeRequestedAgainWithoutPersistingUrls() {
+        String id = createListeningForDetail();
+        setAudio(id, new Document("audio", new Document("url", "/stale-legacy.mp3")));
+        Document before = mongoTemplate.getCollection("question_pool_passages").find().first();
+        var counter = new java.util.concurrent.atomic.AtomicInteger();
+        when(storage.privateDownloadUrl(any(), any())).thenAnswer(invocation ->
+                java.net.URI.create("https://media.example.test/preview.mp3?request=" + counter.incrementAndGet()));
+        clearInvocations(storage);
+        var first = detail(id, UserRole.ADMIN);
+        var second = detail(id, UserRole.CONTENT_MANAGER);
+        assertThat(first.getStatusCode().value()).isEqualTo(200);
+        assertThat(second.getStatusCode().value()).isEqualTo(200);
+        assertThat(first.getHeaders().getCacheControl()).isEqualTo("no-store");
+        JsonNode audio = json.readTree(first.getBody()).path("data").path("audio");
+        assertThat(audio.path("url").asString()).isEqualTo("https://media.example.test/preview.mp3?request=1");
+        assertThat(audio.path("contentType").asString()).isEqualTo("audio/mpeg");
+        assertThat(audio.path("durationSec").isNull()).isTrue();
+        assertThat(audio.path("format").isNull()).isTrue();
+        Instant expiry = Instant.parse(audio.path("expiresAt").asString());
+        assertThat(expiry).isAfter(Instant.now()).isBefore(Instant.now().plusSeconds(61));
+        assertThat(json.readTree(second.getBody()).path("data").path("audio").path("url").asString())
+                .isEqualTo("https://media.example.test/preview.mp3?request=2");
+        verify(storage, times(2)).privateDownloadUrl(any(), any());
+        verify(storage, never()).upload(anyString(), any(), any(), any());
+        verify(storage, never()).publicUrl(any());
+        assertThat(mongoTemplate.getCollection("question_pool_passages").find().first()).isEqualTo(before);
+        assertNoLearnerWrites();
+    }
+
+    @Test
+    void detailMissingPassageIs404AndUsesPassageIdRatherThanMongoId() {
+        seedPassage("internal-id", "READING", "B1", "DRAFT", "Title", "Text", null, 0);
+        mongoTemplate.getCollection("question_pool_passages").updateOne(new Document("_id", "internal-id"),
+                new Document("$set", new Document("passage_id", "external-passage-id")));
+        assertError(detail("missing", UserRole.ADMIN), 404, "PASSAGE_NOT_FOUND");
+        assertError(detail("internal-id", UserRole.ADMIN), 404, "PASSAGE_NOT_FOUND");
+        assertThat(detail("external-passage-id", UserRole.ADMIN).getStatusCode().value()).isEqualTo(200);
+        verifyNoInteractions(storage);
+    }
+
+    @Test
+    void detailMissingMediaIs404WithoutFallingBackToLegacyAudio() {
+        seedPassage("broken", "LISTENING", "B1", "DRAFT", "Title", null, "Transcript", 0);
+        setAudio("broken", new Document("audio_media_id", UUID.randomUUID().toString())
+                .append("audio", new Document("url", "/old.mp3")));
+        assertError(detail("broken", UserRole.ADMIN), 404, "MEDIA_NOT_FOUND");
+        verifyNoInteractions(storage);
+    }
+
+    @Test
+    void detailMediaProviderFailureIs503AndDoesNotExposeProviderError() {
+        String id = createListeningForDetail();
+        doThrow(new MediaStorageUnavailableException("private provider diagnostic"))
+                .when(storage).privateDownloadUrl(any(), any());
+        var response = detail(id, UserRole.ADMIN);
+        assertError(response, 503, "MEDIA_STORAGE_UNAVAILABLE");
+        assertThat(response.getBody()).doesNotContain("private provider diagnostic");
+    }
+
+    @Test
+    void detailWithoutAudioReturnsNullRatherThanInventingARecording() {
+        seedPassage("incomplete", "LISTENING", "B1", "DRAFT", "Incomplete legacy draft", null, null, 0);
+        var response = detail("incomplete", UserRole.ADMIN);
+        assertThat(response.getStatusCode().value()).isEqualTo(200);
+        assertThat(json.readTree(response.getBody()).path("data").path("audio").isNull()).isTrue();
+        verifyNoInteractions(storage);
+    }
+
+    @Test
+    void detailAuthorizesBeforeLookupAndMediaResolutionAtHttpAndServiceBoundaries() {
+        String id = createListeningForDetail();
+        clearInvocations(storage);
+        assertError(detail(id, null), 401, "AUTHENTICATION_REQUIRED");
+        assertError(detail(id, UserRole.USER), 403, "ACCESS_DENIED");
+        assertError(detail("missing", UserRole.USER), 403, "ACCESS_DENIED");
+        try {
+            SecurityContextHolder.clearContext();
+            assertThatThrownBy(() -> service.detail(id)).isInstanceOf(AuthenticationCredentialsNotFoundException.class);
+            authenticate(UserRole.USER);
+            assertThatThrownBy(() -> service.detail(id)).isInstanceOf(AccessDeniedException.class);
+            authenticate(UserRole.CONTENT_MANAGER);
+            assertThatThrownBy(() -> service.detail("missing")).isInstanceOf(
+                    fit.iuh.engolearn.learningpath.exception.QuestionPoolPassageNotFoundException.class);
+            authenticate(UserRole.ADMIN);
+            assertThatThrownBy(() -> service.detail("missing")).isInstanceOf(
+                    fit.iuh.engolearn.learningpath.exception.QuestionPoolPassageNotFoundException.class);
+        } finally {
+            SecurityContextHolder.clearContext();
+        }
+        verifyNoInteractions(storage);
+    }
+
+    @Test
+    void detailRejectsBlankAndOverlongIdentifiers() {
+        assertError(detail(" ", UserRole.ADMIN), 400, "INVALID_PASSAGE_REQUEST");
+        assertError(detail("x".repeat(101), UserRole.ADMIN), 400, "INVALID_PASSAGE_REQUEST");
+    }
+
+    @Test
+    void detailDatabaseFailureIs503() {
+        doThrow(new DataAccessResourceFailureException("internal database diagnostic"))
+                .when(passages).findByPassageId(anyString());
+        var response = detail("any-id", UserRole.ADMIN);
+        assertError(response, 503, "PASSAGE_STORAGE_UNAVAILABLE");
+        assertThat(response.getBody()).doesNotContain("internal database diagnostic");
+        verifyNoInteractions(storage);
+    }
+
+    private String createListeningForDetail() {
+        var created = post(LISTENING, MP3, "audio/mpeg", UserRole.ADMIN);
+        assertThat(created.getStatusCode().value()).isEqualTo(201);
+        return json.readTree(created.getBody()).path("data").path("passageId").asString();
+    }
+
+    private ResponseEntity<String> detail(String id, UserRole role) {
+        java.net.URI uri = org.springframework.web.util.UriComponentsBuilder
+                .fromUriString("http://localhost:" + port + BASE).path("/{passageId}").encode().buildAndExpand(id).toUri();
+        try {
+            return restTemplate.exchange(uri, HttpMethod.GET, new HttpEntity<>(authHeaders(role)), String.class);
+        } catch (org.springframework.web.client.HttpStatusCodeException exception) {
+            return new ResponseEntity<>(exception.getResponseBodyAsString(), exception.getResponseHeaders(), exception.getStatusCode());
         }
     }
 

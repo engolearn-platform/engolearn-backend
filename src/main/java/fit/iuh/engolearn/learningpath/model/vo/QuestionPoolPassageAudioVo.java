@@ -16,4 +16,8 @@ import org.springframework.data.mongodb.core.mapping.Field;
 public class QuestionPoolPassageAudioVo implements EmbeddedDocument {
     @Field("url")
     private String url;
+    @Field("duration_sec")
+    private Integer durationSec;
+    @Field("format")
+    private String format;
 }

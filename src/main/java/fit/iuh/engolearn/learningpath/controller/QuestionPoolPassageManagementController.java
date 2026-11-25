@@ -8,6 +8,11 @@ import fit.iuh.engolearn.learningpath.dto.request.ListQuestionPoolPassagesReques
 import fit.iuh.engolearn.learningpath.dto.response.QuestionPoolPassageListResponse;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
+import fit.iuh.engolearn.learningpath.dto.response.QuestionPoolPassageDetailResponse;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
+import org.springframework.web.bind.annotation.PathVariable;
 import jakarta.validation.Valid;
 import java.io.IOException;
 import lombok.RequiredArgsConstructor;
@@ -30,6 +35,13 @@ public class QuestionPoolPassageManagementController {
     public ApiResponse<QuestionPoolPassageListResponse> list(
             @Valid @ModelAttribute ListQuestionPoolPassagesRequest request) {
         return ApiResponse.ok(passages.list(request));
+    }
+
+    @GetMapping("/{passageId}")
+    public ApiResponse<QuestionPoolPassageDetailResponse> detail(
+            @PathVariable @NotBlank @Size(max = 100) String passageId, HttpServletResponse response) {
+        response.setHeader("Cache-Control", "no-store");
+        return ApiResponse.ok(passages.detail(passageId));
     }
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)

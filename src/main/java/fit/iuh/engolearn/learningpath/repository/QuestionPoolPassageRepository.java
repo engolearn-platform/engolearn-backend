@@ -6,6 +6,7 @@ import fit.iuh.engolearn.learningpath.model.enums.QuestionPoolSkill;
 import fit.iuh.engolearn.shared.enums.CefrLevel;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.regex.Pattern;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -46,6 +47,11 @@ public class QuestionPoolPassageRepository {
         query.fields().include("passage_id", "title", "skill", "level", "status", "revision",
                 "created_at", "updated_at", "audio_media_id", "audio.url");
         return new PageImpl<>(mongo.find(query, QuestionPoolPassage.class), pagination, total);
+    }
+
+    public Optional<QuestionPoolPassage> findByPassageId(String passageId) {
+        return Optional.ofNullable(mongo.findOne(Query.query(Criteria.where("passage_id").is(passageId)),
+                QuestionPoolPassage.class));
     }
 
     public QuestionPoolPassage insert(QuestionPoolPassage passage) {

@@ -4,6 +4,8 @@ import fit.iuh.engolearn.learningpath.controller.QuestionPoolPassageManagementCo
 import fit.iuh.engolearn.learningpath.exception.InvalidPassageException;
 import fit.iuh.engolearn.media.contract.exception.MediaUploadRejectedException;
 import fit.iuh.engolearn.media.contract.exception.MediaStorageUnavailableException;
+import fit.iuh.engolearn.learningpath.exception.QuestionPoolPassageNotFoundException;
+import fit.iuh.engolearn.media.contract.exception.MediaNotFoundException;
 import java.io.IOException;
 import org.springframework.dao.DataAccessException;
 import org.springframework.http.HttpStatus;
@@ -34,6 +36,16 @@ public class QuestionPoolPassageManagementExceptionHandler {
     @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
     public ProblemDetail unsupported(HttpMediaTypeNotSupportedException exception) {
         return problem(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "UNSUPPORTED_MEDIA_TYPE", "Use multipart/form-data with a JSON passage part");
+    }
+
+    @ExceptionHandler(QuestionPoolPassageNotFoundException.class)
+    public ProblemDetail passageMissing(QuestionPoolPassageNotFoundException exception) {
+        return problem(HttpStatus.NOT_FOUND, "PASSAGE_NOT_FOUND", "Passage was not found");
+    }
+
+    @ExceptionHandler(MediaNotFoundException.class)
+    public ProblemDetail mediaMissing(MediaNotFoundException exception) {
+        return problem(HttpStatus.NOT_FOUND, "MEDIA_NOT_FOUND", "Passage audio was not found");
     }
 
     @ExceptionHandler(MediaStorageUnavailableException.class)

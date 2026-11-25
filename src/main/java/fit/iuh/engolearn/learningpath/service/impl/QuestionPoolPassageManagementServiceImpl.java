@@ -15,6 +15,9 @@ import fit.iuh.engolearn.shared.security.CurrentUserProvider;
 import fit.iuh.engolearn.learningpath.dto.request.ListQuestionPoolPassagesRequest;
 import fit.iuh.engolearn.learningpath.dto.response.QuestionPoolPassageListItemResponse;
 import fit.iuh.engolearn.learningpath.dto.response.QuestionPoolPassageListResponse;
+import fit.iuh.engolearn.learningpath.dto.response.QuestionPoolPassageDetailResponse;
+import fit.iuh.engolearn.learningpath.dto.response.QuestionPoolPassageAudioResponse;
+import fit.iuh.engolearn.learningpath.exception.QuestionPoolPassageNotFoundException;
 import java.io.InputStream;
 import java.time.Instant;
 import java.util.Locale;
@@ -33,6 +36,27 @@ public class QuestionPoolPassageManagementServiceImpl implements QuestionPoolPas
     private final QuestionPoolPassageRepository passages;
     private final MediaManagement media;
     private final CurrentUserProvider users;
+
+    @Override
+    @PreAuthorize("hasRole('CONTENT_MANAGER')")
+    public QuestionPoolPassageDetailResponse detail(String passageId) {
+        QuestionPoolPassage passage = passages.findByPassageId(passageId)
+                .orElseThrow(QuestionPoolPassageNotFoundException::new);
+        QuestionPoolPassageAudioResponse audio = null;
+        if (!blank(passage.getAudioMediaId())) {
+            var delivery = media.resolve(passage.getAudioMediaId());
+            audio = new QuestionPoolPassageAudioResponse(delivery.url().toString(), delivery.expiresAt(),
+                    delivery.contentType(), null, null);
+        } else if (passage.getAudio() != null && !blank(passage.getAudio().getUrl())) {
+            var legacy = passage.getAudio();
+            audio = new QuestionPoolPassageAudioResponse(legacy.getUrl(), null, null,
+                    legacy.getDurationSec(), legacy.getFormat());
+        }
+        return new QuestionPoolPassageDetailResponse(passage.getPassageId(), passage.getSkill(),
+                passage.getLevel(), passage.getTitle(), passage.getText(), passage.getTranscript(),
+                passage.getAudioMediaId(), audio, passage.getStatus(), passage.getRevision(),
+                passage.getCreatedBy(), passage.getCreatedAt(), passage.getUpdatedAt());
+    }
 
     @Override
     @PreAuthorize("hasRole('CONTENT_MANAGER')")

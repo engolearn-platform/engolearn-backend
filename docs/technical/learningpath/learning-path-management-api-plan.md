@@ -1,6 +1,6 @@
 # Learning Path passage management APIs
 
-Creation and listing are implemented. The remaining APIs are planned and will be implemented
+Creation, listing and detail reads are implemented. The remaining APIs are planned and will be implemented
 one at a time with the owner. Business scope: workspace `AGENT.md`, sections 17.8–17.11.
 
 ## Passage API sequence
@@ -11,7 +11,7 @@ Base: `/api/management/learning-paths/passages`.
 | --- | --- | --- | --- | --- |
 | 1 | POST | base | Create a DRAFT passage, uploading audio for Listening | Implemented |
 | 2 | GET | base | List with pagination and keyword/skill/level/status filters | Implemented |
-| 3 | GET | `/{passageId}` | Read passage details and resolve audio for preview | Planned |
+| 3 | GET | `/{passageId}` | Read passage details and resolve audio for preview | Implemented |
 | 4 | PATCH | `/{passageId}` | Edit a DRAFT passage | Planned |
 | 5 | DELETE | `/{passageId}` | Delete a DRAFT with no referencing questions | Planned |
 
@@ -105,7 +105,7 @@ in the request. Return HTTP 201 and the shared ApiResponse envelope:
 ```
 
 The response contains the stored media reference, not a provider URL. Authorized preview
-URL resolution belongs to the planned detail API; no generic public Media endpoint is added.
+URL resolution belongs to the detail API below; no generic public Media endpoint is added.
 Creating from a question editor must preserve unsaved question data on the frontend; no
 frontend implementation is part of this API change.
 
@@ -139,9 +139,8 @@ fields, adding `audio_media_id` and `created_by`; `_id` and inherited timestamps
 Spring Data mappings. Existing documents are not rewritten or reset. Legacy `audio.url`
 remains in existing passages. New DRAFT documents store a Media reference instead.
 
-This create-only API cannot publish DRAFT content. Before adding publication for uploaded
-Listening passages, implement authorized Media resolution in management previews and
-snapshot/practice delivery. Existing learner snapshot code expects legacy `audio.url`;
+This create-only API cannot publish DRAFT content. Management preview resolution is implemented in the detail API below. Before adding
+publication for uploaded Listening passages, implement Media-aware snapshot/practice delivery. Existing learner snapshot code expects legacy `audio.url`;
 never manually mark these new Media-backed drafts ACTIVE. Existing paths/snapshots,
 recommendation and learner progress are untouched by passage creation.
 
@@ -215,6 +214,77 @@ Invalid enums, noninteger pagination, out-of-range values and an overlong keywor
 Database failures return 503 PASSAGE_STORAGE_UNAVAILABLE. This API adds no index or database
 reset. Literal substring searches over content may scan the collection; assess real dataset
 performance before introducing an index/search strategy.
+
+## GET: passage detail and audio preview
+
+`GET /api/management/learning-paths/passages/{passageId}` reads by the exact `passage_id`
+value returned by create/list, not MongoDB `_id`. IDs are opaque, nonblank and at most 100
+characters. The existing namespace policy and the Spring-managed detail service require
+CONTENT_MANAGER authority (ADMIN inherits it), before passage lookup or Media resolution.
+Managers may inspect passages created by other editors and all DRAFT/ACTIVE/RETIRED states.
+
+Return HTTP 200 with `Cache-Control: no-store` and ApiResponse containing the full passage:
+
+```json
+{
+  "data": {
+    "passageId": "LP-PASS-<uuid>",
+    "skill": "LISTENING",
+    "level": "A2",
+    "title": "Bus timetable",
+    "text": null,
+    "transcript": "The bus arrives at ten.",
+    "audioMediaId": "<Media-owned UUID>",
+    "audio": {
+      "url": "https://<provider>/<temporary-audio-url>",
+      "expiresAt": "2026-11-25T05:01:00Z",
+      "contentType": "audio/mpeg",
+      "durationSec": null,
+      "format": null
+    },
+    "status": "DRAFT",
+    "revision": 1,
+    "createdBy": "<trusted account ID>",
+    "createdAt": "2026-11-25T05:00:00Z",
+    "updatedAt": "2026-11-25T05:00:00Z"
+  },
+  "timestamp": "2026-11-25T05:00:00Z"
+}
+```
+
+This is a distinct response DTO; the create response and list summaries are unchanged.
+Audio resolution follows the stored passage, never a media identifier supplied separately
+by the browser:
+
+- A nonblank audio_media_id takes precedence. After management authorization, call the
+  public MediaManagement.resolve capability and return its URL, expiresAt and contentType.
+  The Media-owned protected URL lifetime is configured there (default 60 seconds). To
+  obtain another URL after expiry, refetch this same authorized detail endpoint. URLs are
+  returned in the response only, never written into the passage or snapshot.
+- Without a media reference, return a nonblank legacy audio.url unchanged, including relative
+  URLs, and preserve stored audio.duration_sec/audio.format. expiresAt and contentType are
+  null because the legacy document does not provide them. This does not guarantee the URL
+  is available or has no external expiry.
+- Without either reference, audio is null. Incomplete imported drafts can still be inspected;
+  this endpoint neither invents content nor publishes it.
+
+No duration/format is fabricated for new Media assets; those fields are null because the
+current MediaDeliveryDto does not expose them. A stale new reference fails explicitly,
+even if a legacy URL also exists, rather than silently playing different content.
+
+| Status | Code | Meaning |
+| --- | --- | --- |
+| 400 | INVALID_PASSAGE_REQUEST | Blank or overlong passage ID |
+| 401 | AUTHENTICATION_REQUIRED | Missing/invalid trusted session |
+| 403 | ACCESS_DENIED | Authenticated caller lacks management authority |
+| 404 | PASSAGE_NOT_FOUND | No passage with this passage_id |
+| 404 | MEDIA_NOT_FOUND | The passage's Media reference no longer exists |
+| 503 | MEDIA_STORAGE_UNAVAILABLE | Media cannot produce a delivery URL |
+| 503 | PASSAGE_STORAGE_UNAVAILABLE | Passage lookup failed |
+
+Errors are ProblemDetail and omit provider/database diagnostics. Resolving a URL does not
+check actual playback or transcript accuracy. Provider playback remains a manual integration
+check. This API performs no content, revision, audit timestamp, status or learner-state writes.
 
 ## Verification scope
 
