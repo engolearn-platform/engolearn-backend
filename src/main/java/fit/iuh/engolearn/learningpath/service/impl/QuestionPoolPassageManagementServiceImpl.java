@@ -12,6 +12,9 @@ import fit.iuh.engolearn.media.contract.MediaManagement;
 import fit.iuh.engolearn.media.contract.dto.UploadMediaCommandDto;
 import fit.iuh.engolearn.media.contract.enums.MediaAccessPolicy;
 import fit.iuh.engolearn.shared.security.CurrentUserProvider;
+import fit.iuh.engolearn.learningpath.dto.request.ListQuestionPoolPassagesRequest;
+import fit.iuh.engolearn.learningpath.dto.response.QuestionPoolPassageListItemResponse;
+import fit.iuh.engolearn.learningpath.dto.response.QuestionPoolPassageListResponse;
 import java.io.InputStream;
 import java.time.Instant;
 import java.util.Locale;
@@ -30,6 +33,20 @@ public class QuestionPoolPassageManagementServiceImpl implements QuestionPoolPas
     private final QuestionPoolPassageRepository passages;
     private final MediaManagement media;
     private final CurrentUserProvider users;
+
+    @Override
+    @PreAuthorize("hasRole('CONTENT_MANAGER')")
+    public QuestionPoolPassageListResponse list(ListQuestionPoolPassagesRequest request) {
+        var page = passages.search(request.keyword(), request.skill(), request.level(), request.status(),
+                request.page(), request.size());
+        var items = page.getContent().stream().map(passage -> new QuestionPoolPassageListItemResponse(
+                passage.getPassageId(), passage.getTitle(), passage.getSkill(), passage.getLevel(),
+                passage.getStatus(), passage.getRevision(), !blank(passage.getAudioMediaId())
+                        || (passage.getAudio() != null && !blank(passage.getAudio().getUrl())),
+                passage.getCreatedAt(), passage.getUpdatedAt())).toList();
+        return new QuestionPoolPassageListResponse(items, request.page(), request.size(),
+                page.getTotalElements(), page.getTotalPages());
+    }
 
     @Override
     @PreAuthorize("hasRole('CONTENT_MANAGER')")

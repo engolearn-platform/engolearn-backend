@@ -1,6 +1,6 @@
 # Learning Path passage management APIs
 
-The first API below is implemented. The remaining APIs are planned and will be implemented
+Creation and listing are implemented. The remaining APIs are planned and will be implemented
 one at a time with the owner. Business scope: workspace `AGENT.md`, sections 17.8–17.11.
 
 ## Passage API sequence
@@ -10,7 +10,7 @@ Base: `/api/management/learning-paths/passages`.
 | Order | Method | Path | Purpose | Status |
 | --- | --- | --- | --- | --- |
 | 1 | POST | base | Create a DRAFT passage, uploading audio for Listening | Implemented |
-| 2 | GET | base | List with pagination and keyword/skill/level/status filters | Planned |
+| 2 | GET | base | List with pagination and keyword/skill/level/status filters | Implemented |
 | 3 | GET | `/{passageId}` | Read passage details and resolve audio for preview | Planned |
 | 4 | PATCH | `/{passageId}` | Edit a DRAFT passage | Planned |
 | 5 | DELETE | `/{passageId}` | Delete a DRAFT with no referencing questions | Planned |
@@ -144,6 +144,77 @@ Listening passages, implement authorized Media resolution in management previews
 snapshot/practice delivery. Existing learner snapshot code expects legacy `audio.url`;
 never manually mark these new Media-backed drafts ACTIVE. Existing paths/snapshots,
 recommendation and learner progress are untouched by passage creation.
+
+## GET: list passages
+
+`GET /api/management/learning-paths/passages` returns HTTP 200 in the shared ApiResponse
+envelope. Both the existing namespace security rule and the Spring-managed list service
+require CONTENT_MANAGER authority, inherited by ADMIN. Managers can list the content pool
+across creators; this is not a learner-owned resource list.
+
+| Query parameter | Rules |
+| --- | --- |
+| `keyword` | Optional, maximum 200 characters; trimmed, blank means no keyword filter |
+| `skill` | Optional: READING or LISTENING |
+| `level` | Optional: A1, A2, B1, B2, C1 or C2 |
+| `status` | Optional: DRAFT, ACTIVE or RETIRED |
+| `page` | Zero-based integer, minimum 0; omitted/blank defaults to 0 |
+| `size` | Integer 1–100; omitted/blank defaults to 20 |
+
+Omitted filters impose no restriction; unfiltered lists include all statuses. Supplied
+filters combine with AND. Keyword matches a substring of title OR Reading text OR
+Listening transcript, case-insensitively. It is a literal string, not a client regex;
+regex metacharacters are escaped. Accent folding, stemming and relevance ranking are not
+implemented.
+
+Sort is fixed: updated_at descending, then _id descending for ties. Missing legacy timestamps
+are left as null and follow MongoDB's normal sort behavior. Offset pagination returns an
+empty items array for a page beyond the last page while preserving filtered totals. No
+matches returns items=[], totalElements=0 and totalPages=0. Count and page reads use the
+same filter but are separate database reads; concurrent edits can affect consistency across
+requests. No transaction or fixed result snapshot is promised.
+
+```http
+GET /api/management/learning-paths/passages?keyword=bus&skill=LISTENING&level=A2&status=DRAFT&page=0&size=20
+```
+
+Example response:
+
+```json
+{
+  "data": {
+    "items": [{
+      "passageId": "LP-PASS-<uuid>",
+      "title": "Bus timetable",
+      "skill": "LISTENING",
+      "level": "A2",
+      "status": "DRAFT",
+      "revision": 1,
+      "hasAudio": true,
+      "createdAt": "2026-11-25T05:00:00Z",
+      "updatedAt": "2026-11-25T05:00:00Z"
+    }],
+    "page": 0,
+    "size": 20,
+    "totalElements": 1,
+    "totalPages": 1
+  },
+  "timestamp": "2026-11-25T05:00:00Z"
+}
+```
+
+Items are summaries: full text, transcript, creator, media ID and audio URLs are omitted.
+`hasAudio` is true when either audio_media_id or legacy audio.url is nonblank; it describes
+a stored reference, not file availability or editorial approval. Listing never calls Media
+to upload or resolve a URL. The model now maps the existing legacy audio.url field for
+reading only; existing documents and schema are not migrated or rewritten. The database
+page query projects summary fields instead of loading full passage text/transcripts.
+
+Invalid enums, noninteger pagination, out-of-range values and an overlong keyword return
+400 ProblemDetail with code INVALID_PASSAGE_REQUEST. The existing 401/403 contracts apply.
+Database failures return 503 PASSAGE_STORAGE_UNAVAILABLE. This API adds no index or database
+reset. Literal substring searches over content may scan the collection; assess real dataset
+performance before introducing an index/search strategy.
 
 ## Verification scope
 

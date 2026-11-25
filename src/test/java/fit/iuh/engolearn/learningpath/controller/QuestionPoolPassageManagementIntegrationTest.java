@@ -2,6 +2,7 @@ package fit.iuh.engolearn.learningpath.controller;
 
 import fit.iuh.engolearn.config.AbstractMongoIntegrationTest;
 import fit.iuh.engolearn.learningpath.dto.request.CreateQuestionPoolPassageRequest;
+import fit.iuh.engolearn.learningpath.dto.request.ListQuestionPoolPassagesRequest;
 import fit.iuh.engolearn.learningpath.model.enums.QuestionPoolSkill;
 import fit.iuh.engolearn.learningpath.repository.QuestionPoolPassageRepository;
 import fit.iuh.engolearn.learningpath.service.QuestionPoolPassageManagementService;
@@ -204,19 +205,185 @@ class QuestionPoolPassageManagementIntegrationTest extends AbstractMongoIntegrat
         verifyNoInteractions(storage);
     }
 
+    @Test
+    void listDefaultsIncludeAllStatusesAndReturnSummariesWithoutMediaResolution() {
+        seedPassage("a", "READING", "B1", "DRAFT", "Reading title", "Passage text", null, 0);
+        seedPassage("b", "LISTENING", "A2", "ACTIVE", "Listening title", null, "Transcript", 1);
+        seedPassage("c", "READING", "C1", "RETIRED", "Retired title", "Retired text", null, 2);
+        var response = list("", UserRole.CONTENT_MANAGER);
+        assertThat(response.getStatusCode().value()).isEqualTo(200);
+        JsonNode data = json.readTree(response.getBody()).path("data");
+        assertThat(data.path("page").asInt()).isZero();
+        assertThat(data.path("size").asInt()).isEqualTo(20);
+        assertThat(data.path("totalElements").asInt()).isEqualTo(3);
+        assertThat(data.path("totalPages").asInt()).isEqualTo(1);
+        assertIds(data, "c", "b", "a");
+        JsonNode item = data.path("items").get(0);
+        assertThat(item.path("title").asString()).isEqualTo("Retired title");
+        assertThat(item.path("skill").asString()).isEqualTo("READING");
+        assertThat(item.path("level").asString()).isEqualTo("C1");
+        assertThat(item.path("status").asString()).isEqualTo("RETIRED");
+        assertThat(item.path("revision").asInt()).isEqualTo(1);
+        assertThat(item.path("hasAudio").asBoolean()).isFalse();
+        assertThat(item.path("createdAt").asString()).isNotBlank();
+        assertThat(item.path("updatedAt").asString()).isNotBlank();
+        for (JsonNode row : data.path("items")) {
+            for (String privateField : new String[]{"text", "transcript", "audio", "audioMediaId", "createdBy"}) {
+                assertThat(row.has(privateField)).as(privateField).isFalse();
+            }
+        }
+        verifyNoInteractions(storage);
+        assertNoLearnerWrites();
+        assertThat(mongoTemplate.getCollection("question_pool_passages").countDocuments()).isEqualTo(3);
+    }
+
+    @Test
+    void listCombinesFiltersAndSearchesTitleTextAndTranscriptCaseInsensitively() {
+        seedPassage("title", "READING", "B1", "DRAFT", "LiBrArY title", "Other text", null, 0);
+        seedPassage("text", "READING", "B1", "DRAFT", "Other title", "LIBRARY in text", null, 1);
+        seedPassage("transcript", "LISTENING", "B1", "ACTIVE", "Other title", null, "library in transcript", 2);
+        seedPassage("wrong-level", "READING", "A2", "DRAFT", "Library", "Text", null, 3);
+        seedPassage("wrong-status", "READING", "B1", "RETIRED", "Library", "Text", null, 4);
+        seedPassage("unmatched", "READING", "B1", "DRAFT", "Other title", "Other text", null, 5);
+        JsonNode all = listData("keyword= library ");
+        assertIds(all, "wrong-status", "wrong-level", "transcript", "text", "title");
+        JsonNode filtered = listData("keyword=LIBRARY&skill=READING&level=B1&status=DRAFT&size=1&page=0");
+        assertIds(filtered, "text");
+        assertThat(filtered.path("totalElements").asInt()).isEqualTo(2);
+        assertThat(filtered.path("totalPages").asInt()).isEqualTo(2);
+        assertIds(listData("keyword=library&skill=READING&level=B1&status=DRAFT&size=1&page=1"), "title");
+        assertIds(listData("skill=LISTENING&level=B1&status=ACTIVE"), "transcript");
+        verifyNoInteractions(storage);
+    }
+
+    @Test
+    void searchTreatsRegexSymbolsAsLiteralText() {
+        seedPassage("literal", "READING", "B1", "DRAFT", "Literal .* and [", "Text", null, 0);
+        seedPassage("ordinary", "READING", "B1", "DRAFT", "Ordinary title", "Text", null, 1);
+        assertIds(listData("keyword=.*"), "literal");
+        assertIds(listData("keyword=["), "literal");
+        assertThat(listData("keyword=   ").path("totalElements").asInt()).isEqualTo(2);
+    }
+
+    @Test
+    void pagingUsesIdAsTieBreakerAndKeepsTotalsForOutOfRangePages() {
+        for (int index = 0; index < 5; index++) {
+            seedPassage("same-" + index, "READING", "B1", "DRAFT", "Title", "Text", null, 0);
+        }
+        assertIds(listData("size=2&page=0"), "same-4", "same-3");
+        assertIds(listData("size=2&page=1"), "same-2", "same-1");
+        assertIds(listData("size=2&page=2"), "same-0");
+        JsonNode outside = listData("size=2&page=3");
+        assertThat(outside.path("items").size()).isZero();
+        assertThat(outside.path("totalElements").asInt()).isEqualTo(5);
+        assertThat(outside.path("totalPages").asInt()).isEqualTo(3);
+        assertThat(listData("size=100&page=2147483647").path("items").size()).isZero();
+    }
+
+    @Test
+    void emptyListAndNoMatchesReturn200WithZeroTotals() {
+        JsonNode empty = listData("");
+        assertThat(empty.path("items").size()).isZero();
+        assertThat(empty.path("totalElements").asInt()).isZero();
+        assertThat(empty.path("totalPages").asInt()).isZero();
+        seedPassage("a", "READING", "B1", "DRAFT", "Title", "Text", null, 0);
+        JsonNode unmatched = listData("keyword=no-match");
+        assertThat(unmatched.path("items").size()).isZero();
+        assertThat(unmatched.path("totalElements").asInt()).isZero();
+        assertThat(unmatched.path("totalPages").asInt()).isZero();
+    }
+
+    @Test
+    void audioFlagRecognizesNewAndLegacyReferencesWithoutReturningUrls() {
+        for (String id : new String[]{"new", "old", "none", "blank", "fallback"}) {
+            seedPassage(id, "LISTENING", "B1", "DRAFT", "Title", null, "Transcript", 0);
+        }
+        setAudio("new", new Document("audio_media_id", "media-uuid"));
+        setAudio("old", new Document("audio", new Document("url", "/legacy.mp3")));
+        setAudio("blank", new Document("audio_media_id", " ").append("audio", new Document("url", " ")));
+        setAudio("fallback", new Document("audio_media_id", "").append("audio", new Document("url", "/fallback.mp3")));
+        JsonNode items = listData("").path("items");
+        for (JsonNode item : items) {
+            boolean expected = java.util.Set.of("new", "old", "fallback").contains(item.path("passageId").asString());
+            assertThat(item.path("hasAudio").asBoolean()).as(item.toString()).isEqualTo(expected);
+        }
+        verifyNoInteractions(storage);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"page=-1", "page=abc", "page=2147483648", "size=0", "size=101", "size=abc",
+            "skill=SPEAKING", "level=INVALID", "status=PUBLISHED"})
+    void listRejectsInvalidFiltersAndPagination(String query) {
+        assertError(list(query, UserRole.ADMIN), 400, "INVALID_PASSAGE_REQUEST");
+        assertNoPassageOrMedia();
+    }
+
+    @Test
+    void listRejectsAnOverlongKeyword() {
+        assertError(list("keyword=" + "x".repeat(201), UserRole.ADMIN), 400, "INVALID_PASSAGE_REQUEST");
+    }
+
+    @Test
+    void listRequiresManagerAuthorityAtHttpAndServiceBoundaries() {
+        assertError(list("", null), 401, "AUTHENTICATION_REQUIRED");
+        assertError(list("", UserRole.USER), 403, "ACCESS_DENIED");
+        assertThat(list("", UserRole.CONTENT_MANAGER).getStatusCode().value()).isEqualTo(200);
+        assertThat(list("", UserRole.ADMIN).getStatusCode().value()).isEqualTo(200);
+        var request = new ListQuestionPoolPassagesRequest(null, null, null, null, null, null);
+        try {
+            SecurityContextHolder.clearContext();
+            assertThatThrownBy(() -> service.list(request)).isInstanceOf(AuthenticationCredentialsNotFoundException.class);
+            authenticate(UserRole.USER);
+            assertThatThrownBy(() -> service.list(request)).isInstanceOf(AccessDeniedException.class);
+            authenticate(UserRole.CONTENT_MANAGER);
+            assertThat(service.list(request).totalElements()).isZero();
+            authenticate(UserRole.ADMIN);
+            assertThat(service.list(request).totalElements()).isZero();
+        } finally {
+            SecurityContextHolder.clearContext();
+        }
+    }
+
+    private void seedPassage(String id, String skill, String level, String status,
+            String title, String text, String transcript, int minute) {
+        Instant created = Instant.parse("2026-11-25T00:00:00Z");
+        mongoTemplate.getCollection("question_pool_passages").insertOne(new Document("_id", id)
+                .append("passage_id", id).append("skill", skill).append("level", level)
+                .append("status", status).append("title", title).append("text", text)
+                .append("transcript", transcript).append("revision", 1).append("created_by", "another-editor")
+                .append("created_at", Date.from(created)).append("updated_at", Date.from(created.plusSeconds(minute * 60L))));
+    }
+
+    private void setAudio(String id, Document fields) {
+        mongoTemplate.getCollection("question_pool_passages").updateOne(new Document("_id", id), new Document("$set", fields));
+    }
+
+    private JsonNode listData(String query) {
+        var response = list(query, UserRole.ADMIN);
+        assertThat(response.getStatusCode().value()).as(response.getBody()).isEqualTo(200);
+        return json.readTree(response.getBody()).path("data");
+    }
+
+    private void assertIds(JsonNode data, String... ids) {
+        java.util.List<String> actual = new java.util.ArrayList<>();
+        for (JsonNode item : data.path("items")) actual.add(item.path("passageId").asString());
+        assertThat(actual).containsExactly(ids);
+    }
+
+    private ResponseEntity<String> list(String query, UserRole role) {
+        java.net.URI uri = org.springframework.web.util.UriComponentsBuilder
+                .fromUriString("http://localhost:" + port + BASE).query(query).build().encode().toUri();
+        try {
+            return restTemplate.exchange(uri, HttpMethod.GET, new HttpEntity<>(authHeaders(role)), String.class);
+        } catch (org.springframework.web.client.HttpStatusCodeException exception) {
+            return new ResponseEntity<>(exception.getResponseBodyAsString(), exception.getResponseHeaders(), exception.getStatusCode());
+        }
+    }
+
     private ResponseEntity<String> post(String metadata, byte[] audio, String type, UserRole role) {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.MULTIPART_FORM_DATA);
-        if (role != null) {
-            String id = "passage-editor";
-            mongoTemplate.getCollection("users").replaceOne(new Document("_id", id),
-                    new Document("_id", id).append("email", "passage@example.test").append("password_hash", "unused")
-                            .append("role", role.name()).append("locked", false), new com.mongodb.client.model.ReplaceOptions().upsert(true));
-            String session = UUID.randomUUID().toString();
-            mongoTemplate.getCollection("refresh_sessions").insertOne(new Document("session_id", session)
-                    .append("account_id", id).append("expires_at", Date.from(Instant.now().plusSeconds(3600))).append("revoked", false));
-            headers.add(HttpHeaders.COOKIE, "ACCESS_TOKEN=" + tokens.create(id, session, "access", 900));
-        }
+        headers.addAll(authHeaders(role));
         MultiValueMap<String, Object> parts = new LinkedMultiValueMap<>();
         if (metadata != null) {
             HttpHeaders part = new HttpHeaders();
@@ -235,6 +402,21 @@ class QuestionPoolPassageManagementIntegrationTest extends AbstractMongoIntegrat
         } catch (org.springframework.web.client.HttpStatusCodeException exception) {
             return new ResponseEntity<>(exception.getResponseBodyAsString(), exception.getResponseHeaders(), exception.getStatusCode());
         }
+    }
+
+    private HttpHeaders authHeaders(UserRole role) {
+        HttpHeaders headers = new HttpHeaders();
+        if (role != null) {
+            String id = "passage-editor";
+            mongoTemplate.getCollection("users").replaceOne(new Document("_id", id),
+                    new Document("_id", id).append("email", "passage@example.test").append("password_hash", "unused")
+                            .append("role", role.name()).append("locked", false), new com.mongodb.client.model.ReplaceOptions().upsert(true));
+            String session = UUID.randomUUID().toString();
+            mongoTemplate.getCollection("refresh_sessions").insertOne(new Document("session_id", session)
+                    .append("account_id", id).append("expires_at", Date.from(Instant.now().plusSeconds(3600))).append("revoked", false));
+            headers.add(HttpHeaders.COOKIE, "ACCESS_TOKEN=" + tokens.create(id, session, "access", 900));
+        }
+        return headers;
     }
 
     private void authenticate(UserRole role) {

@@ -4,6 +4,10 @@ import fit.iuh.engolearn.learningpath.dto.request.CreateQuestionPoolPassageReque
 import fit.iuh.engolearn.learningpath.dto.response.QuestionPoolPassageResponse;
 import fit.iuh.engolearn.learningpath.service.QuestionPoolPassageManagementService;
 import fit.iuh.engolearn.shared.web.ApiResponse;
+import fit.iuh.engolearn.learningpath.dto.request.ListQuestionPoolPassagesRequest;
+import fit.iuh.engolearn.learningpath.dto.response.QuestionPoolPassageListResponse;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import jakarta.validation.Valid;
 import java.io.IOException;
 import lombok.RequiredArgsConstructor;
@@ -21,6 +25,12 @@ import org.springframework.web.multipart.MultipartFile;
 @RequiredArgsConstructor
 public class QuestionPoolPassageManagementController {
     private final QuestionPoolPassageManagementService passages;
+
+    @GetMapping
+    public ApiResponse<QuestionPoolPassageListResponse> list(
+            @Valid @ModelAttribute ListQuestionPoolPassagesRequest request) {
+        return ApiResponse.ok(passages.list(request));
+    }
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @ResponseStatus(HttpStatus.CREATED)

@@ -10,7 +10,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.HttpMediaTypeNotSupportedException;
-import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.validation.BindException;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.method.annotation.HandlerMethodValidationException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.multipart.support.MissingServletRequestPartException;
@@ -22,7 +24,8 @@ public class QuestionPoolPassageManagementExceptionHandler {
         return problem(HttpStatus.BAD_REQUEST, "INVALID_PASSAGE", exception.getMessage());
     }
 
-    @ExceptionHandler({MethodArgumentNotValidException.class, HttpMessageNotReadableException.class,
+    @ExceptionHandler({BindException.class, MethodArgumentTypeMismatchException.class,
+            HandlerMethodValidationException.class, HttpMessageNotReadableException.class,
             MissingServletRequestPartException.class, IOException.class})
     public ProblemDetail malformed(Exception exception) {
         return problem(HttpStatus.BAD_REQUEST, "INVALID_PASSAGE_REQUEST", "Passage request is missing or invalid");
@@ -40,7 +43,7 @@ public class QuestionPoolPassageManagementExceptionHandler {
 
     @ExceptionHandler(DataAccessException.class)
     public ProblemDetail persistenceUnavailable(DataAccessException exception) {
-        return problem(HttpStatus.SERVICE_UNAVAILABLE, "PASSAGE_STORAGE_UNAVAILABLE", "Passage could not be saved");
+        return problem(HttpStatus.SERVICE_UNAVAILABLE, "PASSAGE_STORAGE_UNAVAILABLE", "Passage storage is temporarily unavailable");
     }
 
     private static ProblemDetail problem(HttpStatus status, String code, String detail) {
