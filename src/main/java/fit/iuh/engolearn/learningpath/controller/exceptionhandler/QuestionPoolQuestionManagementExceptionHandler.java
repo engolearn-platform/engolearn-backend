@@ -5,6 +5,7 @@ import fit.iuh.engolearn.learningpath.exception.QuestionPoolQuestionNotFoundExce
 import fit.iuh.engolearn.learningpath.exception.InvalidQuestionException;
 import fit.iuh.engolearn.learningpath.exception.QuestionMutationConflictException;
 import fit.iuh.engolearn.learningpath.exception.QuestionWriteUnavailableException;
+import fit.iuh.engolearn.learningpath.exception.QuestionPublicationRejectedException;
 import fit.iuh.engolearn.media.contract.exception.MediaNotFoundException;
 import fit.iuh.engolearn.media.contract.exception.MediaStorageUnavailableException;
 import org.springframework.dao.DataAccessException;
@@ -20,6 +21,12 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 
 @RestControllerAdvice(assignableTypes = QuestionPoolQuestionManagementController.class)
 public class QuestionPoolQuestionManagementExceptionHandler {
+    @ExceptionHandler(QuestionPublicationRejectedException.class)
+    public ProblemDetail publicationRejected(QuestionPublicationRejectedException exception) {
+        var problem = problem(HttpStatus.UNPROCESSABLE_CONTENT, exception.getCode(), exception.getMessage());
+        problem.setProperty("readiness", exception.getReadiness());
+        return problem;
+    }
     @ExceptionHandler({BindException.class, HandlerMethodValidationException.class, MethodArgumentTypeMismatchException.class,
             HttpMessageNotReadableException.class})
     public ProblemDetail malformed(Exception exception) {

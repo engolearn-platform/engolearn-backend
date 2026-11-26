@@ -11,7 +11,7 @@ public record QuestionPoolQuestionDetailResponse(
         String passageId, String prompt, List<QuestionPoolQuestionOptionResponse> options,
         String correctOptionId, String explanation, QuestionPoolContentStatus status, Integer revision,
         String createdBy, String updatedBy, Instant createdAt, Instant updatedAt,
-        QuestionPoolPassageDetailResponse passage) {
+        QuestionPoolPassageDetailResponse passage, QuestionPoolQuestionPublicationReviewResponse publicationReview) {
     public QuestionPoolQuestionDetailResponse {
         options = options == null ? null : java.util.Collections.unmodifiableList(new java.util.ArrayList<>(options));
     }

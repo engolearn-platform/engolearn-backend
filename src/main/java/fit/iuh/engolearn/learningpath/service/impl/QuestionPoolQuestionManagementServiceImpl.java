@@ -4,6 +4,11 @@ import fit.iuh.engolearn.learningpath.dto.request.ListQuestionPoolQuestionsReque
 import fit.iuh.engolearn.learningpath.dto.request.CreateQuestionPoolQuestionRequest;
 import fit.iuh.engolearn.learningpath.dto.request.UpdateQuestionPoolQuestionRequest;
 import fit.iuh.engolearn.learningpath.dto.request.QuestionPoolQuestionOptionRequest;
+import fit.iuh.engolearn.learningpath.dto.request.PublishQuestionPoolQuestionRequest;
+import fit.iuh.engolearn.learningpath.exception.QuestionPublicationRejectedException;
+import fit.iuh.engolearn.learningpath.model.vo.QuestionPublicationReviewVo;
+import fit.iuh.engolearn.learningpath.service.QuestionPoolQuestionReadinessService;
+import fit.iuh.engolearn.learningpath.utils.QuestionPoolMicroSkills;
 import fit.iuh.engolearn.learningpath.dto.response.*;
 import fit.iuh.engolearn.learningpath.exception.QuestionPoolPassageNotFoundException;
 import fit.iuh.engolearn.learningpath.exception.QuestionPoolQuestionNotFoundException;
@@ -18,7 +23,6 @@ import fit.iuh.engolearn.learningpath.repository.QuestionPoolPassageRepository;
 import fit.iuh.engolearn.shared.security.CurrentUserProvider;
 import java.time.Instant;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Supplier;
@@ -37,22 +41,49 @@ import org.springframework.transaction.support.TransactionTemplate;
 @Service
 @RequiredArgsConstructor
 public class QuestionPoolQuestionManagementServiceImpl implements QuestionPoolQuestionManagementService {
-    private static final Map<String, QuestionPoolSkill> MICRO_SKILLS = Map.of(
-            "Listening for Gist", QuestionPoolSkill.LISTENING,
-            "Listening for Specific Information", QuestionPoolSkill.LISTENING,
-            "Listening for Detail & Relationship", QuestionPoolSkill.LISTENING,
-            "Listening for Inference", QuestionPoolSkill.LISTENING,
-            "Listening for Attitude / Purpose", QuestionPoolSkill.LISTENING,
-            "Reading for Gist", QuestionPoolSkill.READING,
-            "Reading for Specific Information", QuestionPoolSkill.READING,
-            "Reading for Detail & Relationship", QuestionPoolSkill.READING,
-            "Vocabulary in Context", QuestionPoolSkill.READING,
-            "Inference & Author's View", QuestionPoolSkill.READING);
     private final QuestionPoolQuestionRepository questions;
     private final QuestionPoolPassageManagementService passages;
     private final QuestionPoolPassageRepository passageRepository;
     private final CurrentUserProvider users;
     private final ObjectProvider<MongoTransactionManager> transactions;
+    private final QuestionPoolQuestionReadinessService readiness;
+
+    @Override
+    @PreAuthorize("hasRole('CONTENT_MANAGER')")
+    public PublishQuestionPoolQuestionResponse publish(String questionId, PublishQuestionPoolQuestionRequest request) {
+        String actor = users.requireCurrentUserId();
+        return write(() -> {
+            var source = questions.findReadinessSource(questionId).orElseThrow(QuestionPoolQuestionNotFoundException::new);
+            if (!"DRAFT".equals(source.status()) || !request.revision().equals(source.revision()) || request.revision() == Integer.MAX_VALUE) {
+                throw new QuestionMutationConflictException("Only the current revision of a DRAFT question can be published");
+            }
+            var evaluation = readiness.check(questionId);
+            if (!"DRAFT".equals(evaluation.status()) || !request.revision().equals(evaluation.revision())) {
+                throw new QuestionMutationConflictException("Question changed during evaluation; reload before publishing");
+            }
+            if (!evaluation.structurallyValid()) {
+                throw new QuestionPublicationRejectedException("QUESTION_NOT_READY", "Question has publication blockers", evaluation);
+            }
+            if (!request.confirmedReviewChecks().equals(Set.copyOf(evaluation.requiredReviewChecks()))) {
+                throw new QuestionPublicationRejectedException("QUESTION_REVIEW_REQUIRED", "Confirm exactly the required checks for this question revision", evaluation);
+            }
+            Instant now = Instant.now();
+            if (evaluation.passageId() != null && !evaluation.passageId().isBlank()) {
+                if (!passageRepository.fenceQuestionPublication(evaluation.passageId(), evaluation.passageRevision(), source.skill(), source.level(), actor, now)) {
+                    throw new QuestionMutationConflictException("Passage changed while publishing; reload before retrying");
+                }
+            }
+            var review = QuestionPublicationReviewVo.builder().sourceRevision(request.revision())
+                    .passageId(evaluation.passageId()).passageRevision(evaluation.passageRevision())
+                    .confirmedChecks(evaluation.requiredReviewChecks()).reviewedBy(actor).reviewedAt(now).build();
+            var saved = questions.publishDraft(questionId, request.revision(), review).orElseThrow(() ->
+                    new QuestionMutationConflictException("Question changed while publishing; reload before retrying"));
+            var recorded = saved.getPublicationReview();
+            return new PublishQuestionPoolQuestionResponse(saved.getQuestionId(), saved.getStatus(), saved.getRevision(),
+                    recorded.getSourceRevision(), recorded.getPassageId(), recorded.getPassageRevision(), recorded.getReviewedBy(),
+                    recorded.getReviewedAt(), recorded.getConfirmedChecks(), evaluation.warnings());
+        });
+    }
 
     @Override
     @PreAuthorize("hasRole('CONTENT_MANAGER')")
@@ -151,7 +182,7 @@ public class QuestionPoolQuestionManagementServiceImpl implements QuestionPoolQu
 
     private void validateContent(QuestionPoolQuestion question) {
         if (question.getSkill() == null || question.getLevel() == null || question.getMicroSkill() == null
-                || MICRO_SKILLS.get(question.getMicroSkill()) != question.getSkill()) {
+                || !QuestionPoolMicroSkills.belongsTo(question.getMicroSkill(), question.getSkill().name())) {
             throw new InvalidQuestionException("Use a supported canonical micro-skill belonging to the selected skill");
         }
         if (blank(question.getPrompt()) || question.getPrompt().length() > 50000
@@ -250,9 +281,12 @@ public class QuestionPoolQuestionManagementServiceImpl implements QuestionPoolQu
         }
         var options = question.getOptions() == null ? null : question.getOptions().stream()
                 .map(option -> option == null ? null : new QuestionPoolQuestionOptionResponse(option.getOptionId(), option.getText())).toList();
+        var review = question.getPublicationReview();
+        var publicationReview = review == null ? null : new QuestionPoolQuestionPublicationReviewResponse(
+                review.getSourceRevision(), review.getPassageId(), review.getPassageRevision(), review.getConfirmedChecks(), review.getReviewedBy(), review.getReviewedAt());
         return new QuestionPoolQuestionDetailResponse(question.getQuestionId(), question.getSkill(), question.getMicroSkill(),
                 question.getLevel(), question.getPassageId(), question.getPrompt(), options, question.getCorrectOptionId(),
                 question.getExplanation(), question.getStatus(), question.getRevision(), question.getCreatedBy(), question.getUpdatedBy(),
-                question.getCreatedAt(), question.getUpdatedAt(), passage);
+                question.getCreatedAt(), question.getUpdatedAt(), passage, publicationReview);
     }
 }

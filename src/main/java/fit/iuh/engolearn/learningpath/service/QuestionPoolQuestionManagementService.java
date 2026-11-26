@@ -3,12 +3,15 @@ package fit.iuh.engolearn.learningpath.service;
 import fit.iuh.engolearn.learningpath.dto.request.ListQuestionPoolQuestionsRequest;
 import fit.iuh.engolearn.learningpath.dto.request.CreateQuestionPoolQuestionRequest;
 import fit.iuh.engolearn.learningpath.dto.request.UpdateQuestionPoolQuestionRequest;
+import fit.iuh.engolearn.learningpath.dto.request.PublishQuestionPoolQuestionRequest;
+import fit.iuh.engolearn.learningpath.dto.response.PublishQuestionPoolQuestionResponse;
 import fit.iuh.engolearn.learningpath.dto.response.QuestionPoolQuestionMutationResponse;
 import fit.iuh.engolearn.learningpath.dto.response.DeleteQuestionPoolQuestionResponse;
 import fit.iuh.engolearn.learningpath.dto.response.QuestionPoolQuestionDetailResponse;
 import fit.iuh.engolearn.learningpath.dto.response.QuestionPoolQuestionListResponse;
 
 public interface QuestionPoolQuestionManagementService {
+    PublishQuestionPoolQuestionResponse publish(String questionId, PublishQuestionPoolQuestionRequest request);
     QuestionPoolQuestionMutationResponse create(CreateQuestionPoolQuestionRequest request);
     QuestionPoolQuestionMutationResponse update(String questionId, UpdateQuestionPoolQuestionRequest request);
     DeleteQuestionPoolQuestionResponse delete(String questionId, int revision);

@@ -22,7 +22,7 @@ Base: `/api/management/learning-paths/passages`.
 [Question list/detail and passage-reference lookup](learning-path-question-management-api.md)
 are implemented. [Question DRAFT authoring](learning-path-question-management-api.md#passage-reference-consistency)
 also coordinates passage references transactionally through passage revision guards.
-Question publication/retirement/replacement remain pending.
+Question readiness/publication are also implemented; retirement/replacement remain pending.
 Coverage dashboards and an operation-history screen are deferred business scope.
 
 ## POST: create a passage DRAFT
@@ -393,7 +393,8 @@ Reference validation and passage update remain separate operations in this endpo
 [Question DRAFT authoring](learning-path-question-management-api.md#passage-reference-consistency)
 now fences reference writes transactionally through the passage revision, so concurrent
 classification edits cannot win against an incompatible new DRAFT reference. Future
-question publication must also enforce the passage lifecycle. Out-of-band writers that
+question replacement must also enforce the passage lifecycle. Question publication now
+uses an ACTIVE-only transaction/revision fence. Out-of-band writers that
 ignore these guards remain outside the guarantee.
 
 ## DELETE: remove an unreferenced DRAFT passage
@@ -687,7 +688,8 @@ Readiness, question-reference reads and the final passage update are separate op
 The final revision predicate fences normal passage edits; it is not a cross-document
 transaction or lock on Question Pool. Question DRAFT authoring now coordinates reference
 changes through the [passage revision](learning-path-question-management-api.md#passage-reference-consistency).
-Future question publication/replacement must also coordinate passage lifecycle transitions.
+Question publication now uses the same transaction with an ACTIVE-only passage fence;
+future replacement must also coordinate passage lifecycle transitions.
 Out-of-band DB writes that change content without increasing revision, or insert an
 incompatible reference after readiness, are outside this operation's concurrency
 guarantee. No new transaction/locking mechanism or direct DB repair is introduced.
@@ -767,10 +769,10 @@ retain their existing behavior.
 The reference count and passage transition are separate operations, without a
 cross-document transaction or Question Pool lock. The conditional write protects
 the passage revision/state only. DRAFT reference changes now use the question-authoring
-transaction/revision guard; future question publication/replacement APIs must coordinate
-ACTIVE-reference changes with passage lifecycle/revision before enabling those
-mutations; otherwise a question could become ACTIVE after the count and before
-retirement. Out-of-band DB writes/imports are outside this guarantee. This endpoint
+transaction/revision guard. Question publication now fences ACTIVE passage references
+in the same transaction as its question transition, closing the publication race even
+when retirement counted references before publication committed. Future replacement
+must join this coordination. Out-of-band DB writes/imports are outside this guarantee. This endpoint
 does not implement cascade retirement, a partial replacement workflow or DB repair.
 Existing paths keep their assigned snapshots; retirement does not reselect questions.
 

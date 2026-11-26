@@ -1,12 +1,14 @@
 # Learning Path question management
 
-Implemented scope: list, detail, create DRAFT, edit DRAFT, delete DRAFT and copy to DRAFT.
-Readiness/publish/retire/replace remain planned in the [workspace business entry](../../../../AGENT.md), section 17.12.
+Implemented scope: list, detail, create DRAFT, edit DRAFT, delete DRAFT, copy to DRAFT,
+publication readiness and publication. Retire/replace remain planned in the
+[workspace business entry](../../../../AGENT.md), section 17.12. Section 17.13 tracks the
+deferred learner Media delivery work; its capability blocker remains enforced.
 Passage CRUD and audio preview are owned by the [passage contract](learning-path-management-api-plan.md).
 
 ## Access and persistence
 
-Base: `/api/management/learning-paths/questions`. All six operations require CONTENT_MANAGER,
+Base: `/api/management/learning-paths/questions`. All eight operations require CONTENT_MANAGER,
 including inherited ADMIN. The existing explicit management HTTP matcher enforces 401/403;
 each service entry also uses `@PreAuthorize` through its Spring proxy. Responses use
 `ApiResponse<T>` and `Cache-Control: no-store`; errors use `application/problem+json`.
@@ -87,6 +89,8 @@ question states are readable. `data` contains all list item fields plus:
 - `correctOptionId`, `explanation` for admin review only;
 - `createdBy`, `updatedBy` where present;
 - `passage`: the existing typed passage detail/preview response, or null.
+- `publicationReview`: saved source revision, passage ID/reviewed revision, confirmed
+  checklist and trusted reviewer/time, or null for content without a recorded review.
 
 The read does not enforce publication eligibility: incomplete DRAFTs remain inspectable,
 and no missing prompt, options, answer, revision or passage is synthesized. Normally an
@@ -115,13 +119,16 @@ support remains unchanged; this API does not remove its publication blocker.
 | 404 | QUESTION_NOT_FOUND | No matching public question ID |
 | 404 | MEDIA_NOT_FOUND | Passage references a missing Media asset |
 | 409 | QUESTION_WRITE_CONFLICT | State/revision conflict, exhausted revision or concurrent source change |
+| 422 | QUESTION_NOT_READY | Automated blockers; includes current typed `readiness` extension |
+| 422 | QUESTION_REVIEW_REQUIRED | Missing or unrelated confirmations; includes current typed `readiness` |
 | 415 | UNSUPPORTED_MEDIA_TYPE | JSON mutation body requires a supported JSON content type |
 | 503 | QUESTION_STORAGE_UNAVAILABLE | Question, passage or Media database access failed |
 | 503 | MEDIA_STORAGE_UNAVAILABLE | Protected delivery resolution unavailable |
 
 Infrastructure errors are not converted to empty lists, dangling references or successful
-previews. Existing model conversion limitations for malformed imported enum/field types
-are unchanged; these reads are not a general raw-data repair API.
+previews. Existing list/detail model conversion limitations for malformed imported
+enum/field types are unchanged. The diagnostic readiness read below handles malformed
+classification/option fields explicitly; it does not repair them.
 
 ## POST create a DRAFT
 
@@ -244,31 +251,164 @@ before retrying any uncertain mutation; do not blindly repeat create/copy.
 Removing a reference or deleting a question does not bump the old passage revision: this
 cannot introduce an incompatible reference. Reference counts may reject a simultaneous
 passage operation conservatively until its next retry. Out-of-band writes/imports that
-ignore revision guards remain outside this guarantee. These DRAFT operations do not solve
-ACTIVE-reference publication/retirement races; future question publish/replace must join
-this coordination before becoming available.
+ignore revision guards remain outside this guarantee. Question publication now joins the
+ACTIVE-only guard below. Future replacement must join the same coordination.
+
+## GET publication readiness
+
+`GET /api/management/learning-paths/questions/{questionId}/readiness`
+
+An explicit, read-only evaluation of saved data, with the same ID constraints as detail.
+It returns 200 even when automated checks fail. Missing question returns 404. Reads use
+a diagnostic projection with raw classification strings and field-type diagnostics,
+avoiding enum conversion failures on malformed imported drafts. No repair, review,
+reservation, revision increment or upload occurs.
+
+```json
+{"data":{
+  "questionId":"LP-Q-<uuid>","revision":1,"status":"DRAFT","structurallyValid":true,
+  "passageId":null,"passageRevision":null,"blockers":[],"warnings":[],
+  "requiredReviewChecks":["MICRO_SKILL_APPROPRIATE","LEVEL_APPROPRIATE",
+    "SINGLE_BEST_ANSWER_WITH_EVIDENCE","DISTRACTORS_PLAUSIBLE","EXPLANATION_SUPPORTED",
+    "STIMULUS_SUFFICIENT","NO_ANSWER_LEAKAGE"]
+}}
+```
+
+Every issue is `{ "code": "PROMPT_REQUIRED", "field": "prompt", "message": "..." }`.
+`structurallyValid` means automated blockers are empty, not that the question is approved
+or can be published without review. Answer/choices/explanation, transcript and delivery
+URLs are not returned here. Use detail for preview. Status/revision reflect saved data;
+missing values are not invented. Incomplete or non-DRAFT records remain diagnosable.
+
+Automated checks:
+
+- Known scalar fields have appropriate types; status is DRAFT and revision is positive,
+  integral and below the int increment limit. Skill is Reading/Listening, canonical
+  micro-skill belongs to it, and level is A1–C2.
+- Prompt/explanation are nonblank and at most 50,000 characters. Exactly four choices,
+  each ID A–D appearing once, nonblank text up to 10,000 and a correctOptionId A–D present
+  in the choices. Obvious duplicate texts after stripping, whitespace collapse and
+  case folding block publication; this does not detect all semantic equivalents.
+- Listening requires passage; Reading may omit it. A referenced passage exists, is
+  ACTIVE and matches skill/level. The existing passage content/audio checks are reused
+  with ACTIVE status required; unrelated incompatible questions do not invalidate this
+  question's own reference. All current passage content/media blockers still apply.
+- A passage must have a usable positive revision below the int limit for the publication
+  fence. An observed revision/status change between advisory reads is `PASSAGE_CHANGED`.
+
+Question blocker codes: `INVALID_STORED_FIELD`, `QUESTION_NOT_DRAFT`, `INVALID_REVISION`,
+`REVISION_EXHAUSTED`, `INVALID_SKILL`, `INVALID_MICRO_SKILL`, `INVALID_LEVEL`,
+`PROMPT_REQUIRED`, `EXPLANATION_REQUIRED`, `CONTENT_TOO_LONG`, `OPTIONS_COUNT_INVALID`,
+`OPTION_IDS_INVALID`, `OPTION_TEXT_REQUIRED`, `OPTION_TEXTS_DUPLICATE`,
+`CORRECT_OPTION_INVALID`, `PASSAGE_REQUIRED`, `PASSAGE_ID_INVALID`, `PASSAGE_NOT_FOUND`,
+`PASSAGE_CLASSIFICATION_MISMATCH`, `PASSAGE_REVISION_EXHAUSTED`, `PASSAGE_CHANGED`.
+Reused passage issues retain their existing code and prefix field paths with `passage.`;
+these include `PASSAGE_NOT_ACTIVE`, invalid/missing text, transcript and audio.
+
+Media-backed Listening still blocks with `LEARNER_AUDIO_DELIVERY_UNSUPPORTED`, even if
+Media resolves successfully or legacy audio also exists. Learner snapshots/practice do
+not yet deliver audio_media_id; never silently fall back to the older file. Missing Media
+is an automated `AUDIO_MEDIA_NOT_FOUND` blocker. Unavailable storage/database fails the
+request with 503, not a misleading content failure. Legacy usable URLs retain
+`LEGACY_AUDIO_PLAYBACK_UNVERIFIED`: the server does not fetch arbitrary URLs or assert
+successful playback. Human listening review is still required.
+
+Required professional confirmations (seven Reading; all nine Listening):
+
+| Check | Human attestation |
+| --- | --- |
+| MICRO_SKILL_APPROPRIATE | The question measures the intended canonical skill |
+| LEVEL_APPROPRIATE | Source, prompt, choices and required processing fit the level |
+| SINGLE_BEST_ANSWER_WITH_EVIDENCE | Exactly one best answer has clear supporting evidence |
+| DISTRACTORS_PLAUSIBLE | Incorrect choices are plausible, intentional and unsupported |
+| EXPLANATION_SUPPORTED | Explanation identifies evidence/reasoning for the answer |
+| STIMULUS_SUFFICIENT | The provided source/context is sufficient without outside knowledge |
+| NO_ANSWER_LEAKAGE | Stimulus/prompt/choices do not accidentally disclose the answer |
+| AUDIO_MATCHES_TRANSCRIPT | Listening recording matches the transcript |
+| AUDIO_QUALITY_REVIEWED | Recording was heard and reviewed for quality/level |
+
+There is no minimum-30 or coverage requirement for a single publication. Advisory reads
+are separate operations, not a fixed transaction snapshot. A later edit invalidates a
+displayed result; the frontend must refetch/reconfirm instead of automatically publishing.
+
+## POST publish a DRAFT
+
+`POST /api/management/learning-paths/questions/{questionId}/publish` with JSON:
+
+```json
+{"revision":1,"confirmedReviewChecks":[
+  "MICRO_SKILL_APPROPRIATE","LEVEL_APPROPRIATE","SINGLE_BEST_ANSWER_WITH_EVIDENCE",
+  "DISTRACTORS_PLAUSIBLE","EXPLANATION_SUPPORTED","STIMULUS_SUFFICIENT","NO_ANSWER_LEAKAGE"
+]}
+```
+
+Revision is a required positive int. Confirmations are a required set (at most nine),
+with no null/unknown enum values. Missing/malformed body is 400. Empty/partial sets or
+Listening-only checks supplied for Reading are 422 `QUESTION_REVIEW_REQUIRED`, not a
+saved partial approval. Confirm exactly the current readiness checklist.
+
+The service uses one Mongo transaction, without automatic retry:
+
+1. Read current diagnostic question metadata; require DRAFT and exact request revision.
+   Initial absence is 404; non-DRAFT, stale revision or exhausted increment is 409 before
+   Media resolution. The previous GET readiness is neither required nor trusted.
+2. Re-evaluate readiness inside the transaction and reject automated blockers with 422
+   `QUESTION_NOT_READY`. Require the exact professional confirmations for this revision.
+3. When linked, conditionally fence the passage by public ID + evaluated revision +
+   skill + level + ACTIVE. Increment its revision and set updated_by/at, preserving
+   content, audio, status and existing publication review. A concurrent passage
+   retirement/edit cannot win together with an invalid new ACTIVE reference.
+4. Atomically update question matching ID + DRAFT + expected revision: set ACTIVE,
+   increment revision, update trusted audit and save publication_review. Either both
+   question and passage writes commit or both roll back. Known concurrent write failures
+   return 409; infrastructure/uncertain commit outcomes remain 503 and require refetching.
+
+The embedded review stores `source_revision`, optional `passage_id`/`passage_revision`,
+`confirmed_checks`, `reviewed_by`, `reviewed_at`. Passage revision is the value evaluated
+before the reference fence increments it. Confirmations use canonical checklist order.
+Reviewer comes from the session and time from the server; no second reviewer is required.
+Existing imported ACTIVE questions can have no recorded review; no approval is fabricated.
+Professional confirmation is an attestation, not automated CEFR/playback certification.
+
+HTTP 200 returns `questionId`, `status`, saved `revision`, `reviewedRevision`, optional
+`passageId`/`reviewedPassageRevision`, `publishedBy`, `publishedAt`, `confirmedReviewChecks`
+and readiness `warnings`. The review is also visible in detail's `publicationReview`.
+Reading without a passage can publish with no passage write. Warnings alone do not block
+after required confirmations. A replay returns 409 and preserves the original review.
+Content is then immutable under existing PATCH/DELETE guards; copying still creates DRAFT
+without inheriting the approval. Publication does not publish a passage, select new learner
+questions or rewrite any assigned snapshot, answer, score, draft or path progress.
+
+Retirement's reference count and its final passage update remain separate reads/writes,
+but publication fences the same passage revision. If retirement counted zero before a
+publication commits, its stale CAS fails. If retirement wins first, publication rolls
+back. Out-of-band writers/imports that bypass these guards remain unsupported.
 
 ## Verification
 
-`QuestionPoolQuestionManagementIntegrationTest` uses real HTTP sessions, Spring service
-proxies and MongoDB Testcontainers; only the Media public contract is doubled to exercise
+`QuestionPoolQuestionManagementIntegrationTest` and `QuestionPoolQuestionPublicationIntegrationTest`
+use real HTTP sessions, Spring service proxies and MongoDB Testcontainers;
+only the Media public contract is doubled to exercise
 preview resolution/failures without external uploads. It covers filters, literal search,
 pagination, answer visibility, legacy field mapping, incomplete drafts, missing references,
 permission denial/inheritance, authoring validation, draft immutability guards, copy audit,
 transaction rollback, concurrent question edits, passage deletion/classification races
-and unchanged learner data.
+and unchanged learner data. Publication coverage also verifies raw malformed diagnostics,
+current re-evaluation, exact professional confirmations, recorded review/audit, replay and
+concurrent publication, Media delivery blockers/failures and both outcomes of the race
+with passage retirement (including a stale zero-reference count).
 The [passage integration suite](learning-path-management-api-plan.md#verification-scope)
 covers the underlying Media integration separately. Live Cloudinary upload and frontend
 integration are outside this backend task.
 
 Verification on 2026-11-26:
 
-- Initial authoring suite: 56 tests passed, no failures/errors/skips; the final run below
-  includes additional passage-race and option-mapping cases, totaling 59 question tests.
-- Final `./mvnw.cmd "-Dtest=LearningPath*,QuestionPool*ManagementIntegrationTest" "-Dsurefire.useManifestOnlyJar=false" verify`:
-  BUILD SUCCESS; 327 tests passed, no failures/errors/skips, including existing passage
+- Targeted publication suite: 44 tests passed, no failures/errors/skips.
+- Final `./mvnw.cmd "-Dtest=LearningPath*,QuestionPool*IntegrationTest" "-Dsurefire.useManifestOnlyJar=false" verify`:
+  BUILD SUCCESS; 371 tests passed, no failures/errors/skips, including 59 question
+  authoring/read tests, 44 publication tests and existing passage
   and learner regression suites. The Surefire option uses the working Windows classpath
-  invocation; it does not disable tests. Log: `target/question-authoring-verification.log`.
+  invocation; it does not disable tests. Log: `target/question-publication-verification.log`.
 - Configured workspace DB preflight: hello reported replica-set topology with writable
   primary/session support; a read-only transaction completed and was aborted. No live
   business data was written. Rollback/write-race checks use only the disposable test DB.

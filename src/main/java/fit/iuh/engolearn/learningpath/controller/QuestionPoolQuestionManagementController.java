@@ -5,6 +5,10 @@ import fit.iuh.engolearn.learningpath.dto.request.CreateQuestionPoolQuestionRequ
 import fit.iuh.engolearn.learningpath.dto.request.UpdateQuestionPoolQuestionRequest;
 import fit.iuh.engolearn.learningpath.dto.request.CopyQuestionPoolQuestionRequest;
 import fit.iuh.engolearn.learningpath.dto.request.DeleteQuestionPoolQuestionRequest;
+import fit.iuh.engolearn.learningpath.dto.request.PublishQuestionPoolQuestionRequest;
+import fit.iuh.engolearn.learningpath.dto.response.PublishQuestionPoolQuestionResponse;
+import fit.iuh.engolearn.learningpath.dto.response.QuestionPoolQuestionReadinessResponse;
+import fit.iuh.engolearn.learningpath.service.QuestionPoolQuestionReadinessService;
 import fit.iuh.engolearn.learningpath.dto.response.QuestionPoolQuestionMutationResponse;
 import fit.iuh.engolearn.learningpath.dto.response.DeleteQuestionPoolQuestionResponse;
 import fit.iuh.engolearn.learningpath.dto.response.QuestionPoolQuestionDetailResponse;
@@ -24,6 +28,22 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 public class QuestionPoolQuestionManagementController {
     private final QuestionPoolQuestionManagementService questions;
+    private final QuestionPoolQuestionReadinessService readiness;
+
+    @GetMapping("/{questionId}/readiness")
+    public ApiResponse<QuestionPoolQuestionReadinessResponse> readiness(
+            @PathVariable @NotBlank @Size(max = 100) String questionId, HttpServletResponse response) {
+        response.setHeader("Cache-Control", "no-store");
+        return ApiResponse.ok(readiness.check(questionId));
+    }
+
+    @PostMapping("/{questionId}/publish")
+    public ApiResponse<PublishQuestionPoolQuestionResponse> publish(
+            @PathVariable @NotBlank @Size(max = 100) String questionId,
+            @Valid @RequestBody PublishQuestionPoolQuestionRequest request, HttpServletResponse response) {
+        response.setHeader("Cache-Control", "no-store");
+        return ApiResponse.ok(questions.publish(questionId, request));
+    }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)

@@ -31,8 +31,18 @@ public class QuestionPoolPassageRepository {
 
     public boolean fenceQuestionReference(String passageId, int revision, String skill, String level,
             String actor, Instant updatedAt) {
+        return fenceReference(passageId, revision, skill, level, actor, updatedAt, List.of("DRAFT", "ACTIVE", "RETIRED"));
+    }
+
+    public boolean fenceQuestionPublication(String passageId, int revision, String skill, String level,
+            String actor, Instant updatedAt) {
+        return fenceReference(passageId, revision, skill, level, actor, updatedAt, List.of("ACTIVE"));
+    }
+
+    private boolean fenceReference(String passageId, int revision, String skill, String level,
+            String actor, Instant updatedAt, List<String> statuses) {
         Query query = Query.query(Criteria.where("passage_id").is(passageId).and("revision").is(revision)
-                .and("skill").is(skill).and("level").is(level).and("status").in("DRAFT", "ACTIVE", "RETIRED"));
+                .and("skill").is(skill).and("level").is(level).and("status").in(statuses));
         return mongo.updateFirst(query, new Update().inc("revision", 1).set("updated_at", updatedAt)
                 .set("updated_by", actor), QuestionPoolPassage.class).getModifiedCount() == 1;
     }

@@ -1,6 +1,8 @@
 package fit.iuh.engolearn.learningpath.repository;
 
 import fit.iuh.engolearn.learningpath.model.QuestionPoolQuestion;
+import fit.iuh.engolearn.learningpath.model.vo.QuestionPublicationReviewVo;
+import org.bson.Document;
 import fit.iuh.engolearn.learningpath.model.enums.QuestionPoolContentStatus;
 import fit.iuh.engolearn.learningpath.model.enums.QuestionPoolSkill;
 import fit.iuh.engolearn.shared.enums.CefrLevel;
@@ -24,6 +26,49 @@ import org.springframework.stereotype.Repository;
 @RequiredArgsConstructor
 public class QuestionPoolQuestionRepository {
     private final MongoTemplate mongo;
+
+    public Optional<QuestionPoolQuestionReadinessSource> findReadinessSource(String questionId) {
+        Document source = mongo.findOne(Query.query(Criteria.where("question_id").is(questionId)), Document.class, "question_pool");
+        if (source == null) return Optional.empty();
+        List<String> malformed = new ArrayList<>();
+        for (String field : List.of("question_id", "status", "skill", "micro_skill", "level", "passage_id", "prompt", "correct_option_id", "explanation")) {
+            if (source.get(field) != null && !(source.get(field) instanceof String)) malformed.add(field);
+        }
+        Integer revision = null;
+        if (source.get("revision") instanceof Number number && number.doubleValue() == number.intValue()) revision = number.intValue();
+        else if (source.get("revision") != null) malformed.add("revision");
+        List<QuestionPoolQuestionOptionReadinessSource> options = null;
+        if (source.get("options") instanceof List<?> values) {
+            options = new ArrayList<>();
+            for (int i = 0; i < values.size(); i++) {
+                if (values.get(i) instanceof Document option) {
+                    for (String field : List.of("option_id", "text")) {
+                        if (option.get(field) != null && !(option.get(field) instanceof String)) malformed.add("options[" + i + "]." + field);
+                    }
+                    options.add(new QuestionPoolQuestionOptionReadinessSource(stringField(option, "option_id"), stringField(option, "text")));
+                } else {
+                    malformed.add("options[" + i + "]");
+                    options.add(new QuestionPoolQuestionOptionReadinessSource(null, null));
+                }
+            }
+        } else if (source.get("options") != null) malformed.add("options");
+        return Optional.of(new QuestionPoolQuestionReadinessSource(questionId, revision, stringField(source, "status"),
+                stringField(source, "skill"), stringField(source, "micro_skill"), stringField(source, "level"),
+                stringField(source, "passage_id"), stringField(source, "prompt"), options,
+                stringField(source, "correct_option_id"), stringField(source, "explanation"), malformed));
+    }
+
+    private String stringField(Document source, String field) {
+        return source.get(field) instanceof String value ? value : null;
+    }
+
+    public Optional<QuestionPoolQuestion> publishDraft(String questionId, int revision, QuestionPublicationReviewVo review) {
+        Query query = Query.query(Criteria.where("question_id").is(questionId).and("status").is(QuestionPoolContentStatus.DRAFT)
+                .and("revision").is(revision));
+        Update update = new Update().set("status", QuestionPoolContentStatus.ACTIVE).inc("revision", 1)
+                .set("updated_at", review.getReviewedAt()).set("updated_by", review.getReviewedBy()).set("publication_review", review);
+        return Optional.ofNullable(mongo.findAndModify(query, update, FindAndModifyOptions.options().returnNew(true), QuestionPoolQuestion.class));
+    }
 
     public QuestionPoolQuestion insert(QuestionPoolQuestion question) {
         return mongo.insert(question);
