@@ -4,6 +4,7 @@ import fit.iuh.engolearn.learningpath.model.enums.QuestionPoolSkill;
 import fit.iuh.engolearn.learningpath.model.enums.QuestionPoolContentStatus;
 import fit.iuh.engolearn.shared.BaseDocument;
 import fit.iuh.engolearn.learningpath.model.vo.QuestionPoolPassageAudioVo;
+import fit.iuh.engolearn.learningpath.model.vo.PassagePublicationReviewVo;
 import fit.iuh.engolearn.shared.enums.CefrLevel;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
@@ -41,4 +42,6 @@ public class QuestionPoolPassage extends BaseDocument {
     private String createdBy;
     @Field("updated_by")
     private String updatedBy;
+    @Field("publication_review")
+    private PassagePublicationReviewVo publicationReview;
 }

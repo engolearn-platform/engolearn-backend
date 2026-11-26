@@ -23,11 +23,25 @@ import fit.iuh.engolearn.learningpath.exception.PassageUpdateConflictException;
 import fit.iuh.engolearn.learningpath.repository.QuestionPoolRepository;
 import fit.iuh.engolearn.learningpath.dto.response.DeleteQuestionPoolPassageResponse;
 import fit.iuh.engolearn.learningpath.exception.PassageDeleteConflictException;
+import fit.iuh.engolearn.learningpath.dto.response.QuestionPoolPassageCountersResponse;
+import fit.iuh.engolearn.learningpath.dto.request.PublishQuestionPoolPassageRequest;
+import fit.iuh.engolearn.learningpath.dto.response.PublishQuestionPoolPassageResponse;
+import fit.iuh.engolearn.learningpath.dto.request.RetireQuestionPoolPassageRequest;
+import fit.iuh.engolearn.learningpath.dto.response.RetireQuestionPoolPassageResponse;
+import fit.iuh.engolearn.learningpath.exception.PassageRetireConflictException;
+import fit.iuh.engolearn.learningpath.exception.PassageActiveReferencesException;
+import fit.iuh.engolearn.learningpath.dto.response.QuestionPoolPassageReadinessResponse;
+import fit.iuh.engolearn.learningpath.exception.PassagePublicationRejectedException;
+import fit.iuh.engolearn.learningpath.exception.PassagePublishConflictException;
+import fit.iuh.engolearn.learningpath.model.enums.PassageReviewCheck;
+import fit.iuh.engolearn.learningpath.model.vo.PassagePublicationReviewVo;
+import fit.iuh.engolearn.learningpath.service.QuestionPoolPassageReadinessService;
 import java.io.InputStream;
 import java.time.Instant;
 import java.util.Locale;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
@@ -42,6 +56,62 @@ public class QuestionPoolPassageManagementServiceImpl implements QuestionPoolPas
     private final MediaManagement media;
     private final QuestionPoolRepository questions;
     private final CurrentUserProvider users;
+    private final QuestionPoolPassageReadinessService readiness;
+
+    @Override
+    @PreAuthorize("hasRole('CONTENT_MANAGER')")
+    public RetireQuestionPoolPassageResponse retire(String passageId, RetireQuestionPoolPassageRequest request) {
+        String actor = users.requireCurrentUserId();
+        var source = passages.findReadinessSource(passageId).orElseThrow(QuestionPoolPassageNotFoundException::new);
+        if (!"ACTIVE".equals(source.status()) || !request.revision().equals(source.revision())
+                || request.revision() == Integer.MAX_VALUE) {
+            throw new PassageRetireConflictException("Only the current revision of an ACTIVE passage can be retired");
+        }
+        long activeQuestions = questions.countActivePassageReferences(passageId);
+        if (activeQuestions > 0) throw new PassageActiveReferencesException(activeQuestions);
+        var saved = passages.retireActive(passageId, request.revision(), actor, Instant.now())
+                .orElseThrow(() -> new PassageRetireConflictException("Passage changed while retiring; reload before retrying"));
+        return new RetireQuestionPoolPassageResponse(saved.getPassageId(), saved.getStatus(), saved.getRevision(),
+                saved.getUpdatedBy(), saved.getUpdatedAt());
+    }
+
+    @Override
+    @PreAuthorize("hasRole('CONTENT_MANAGER')")
+    public PublishQuestionPoolPassageResponse publish(String passageId, PublishQuestionPoolPassageRequest request) {
+        String actor = users.requireCurrentUserId();
+        var source = passages.findReadinessSource(passageId).orElseThrow(QuestionPoolPassageNotFoundException::new);
+        if (!"DRAFT".equals(source.status()) || !request.revision().equals(source.revision())) {
+            throw new PassagePublishConflictException("Only the current revision of a DRAFT passage can be published");
+        }
+        if (request.revision() == Integer.MAX_VALUE) {
+            throw new PassagePublishConflictException("Passage revision limit reached");
+        }
+        QuestionPoolPassageReadinessResponse evaluation;
+        try {
+            evaluation = readiness.check(passageId);
+        } catch (QuestionPoolPassageNotFoundException exception) {
+            throw new PassagePublishConflictException("Passage was removed during readiness evaluation");
+        }
+        if (!"DRAFT".equals(evaluation.status()) || !request.revision().equals(evaluation.revision())) {
+            throw new PassagePublishConflictException("Passage changed during readiness evaluation; reload before publishing");
+        }
+        if (!evaluation.structurallyValid()) {
+            throw new PassagePublicationRejectedException("PASSAGE_NOT_READY", "Passage has publication blockers", evaluation);
+        }
+        var required = evaluation.requiredReviewChecks().stream().map(PassageReviewCheck::valueOf).toList();
+        if (!request.confirmedReviewChecks().equals(Set.copyOf(required))) {
+            throw new PassagePublicationRejectedException("PASSAGE_REVIEW_REQUIRED",
+                    "Confirm exactly the required review checks for this passage revision", evaluation);
+        }
+        var review = PassagePublicationReviewVo.builder().sourceRevision(request.revision())
+                .confirmedChecks(required).reviewedBy(actor).reviewedAt(Instant.now()).build();
+        var saved = passages.publishDraft(passageId, request.revision(), review)
+                .orElseThrow(() -> new PassagePublishConflictException("Passage changed while publishing; reload before retrying"));
+        var recorded = saved.getPublicationReview();
+        return new PublishQuestionPoolPassageResponse(saved.getPassageId(), saved.getStatus(), saved.getRevision(),
+                recorded.getSourceRevision(), recorded.getReviewedBy(), recorded.getReviewedAt(),
+                recorded.getConfirmedChecks(), evaluation.warnings());
+    }
 
     @Override
     @PreAuthorize("hasRole('CONTENT_MANAGER')")
@@ -138,13 +208,19 @@ public class QuestionPoolPassageManagementServiceImpl implements QuestionPoolPas
     public QuestionPoolPassageListResponse list(ListQuestionPoolPassagesRequest request) {
         var page = passages.search(request.keyword(), request.skill(), request.level(), request.status(),
                 request.page(), request.size());
+        var passageIds = page.getContent().stream().map(QuestionPoolPassage::getPassageId)
+                .filter(java.util.Objects::nonNull).collect(Collectors.toSet());
+        var referenceCounts = passageIds.isEmpty() ? java.util.Map.<String, Long>of() : questions.countReferencesByPassageIds(passageIds);
         var items = page.getContent().stream().map(passage -> new QuestionPoolPassageListItemResponse(
                 passage.getPassageId(), passage.getTitle(), passage.getSkill(), passage.getLevel(),
                 passage.getStatus(), passage.getRevision(), !blank(passage.getAudioMediaId())
                         || (passage.getAudio() != null && !blank(passage.getAudio().getUrl())),
+                passage.getPassageId() == null ? 0L : referenceCounts.getOrDefault(passage.getPassageId(), 0L),
                 passage.getCreatedAt(), passage.getUpdatedAt())).toList();
+        var counts = passages.countByStatus();
+        var counters = new QuestionPoolPassageCountersResponse(counts.total(), counts.draft(), counts.active(), counts.retired());
         return new QuestionPoolPassageListResponse(items, request.page(), request.size(),
-                page.getTotalElements(), page.getTotalPages());
+                page.getTotalElements(), page.getTotalPages(), counters);
     }
 
     @Override

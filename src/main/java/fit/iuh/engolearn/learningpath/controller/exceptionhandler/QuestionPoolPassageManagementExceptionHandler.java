@@ -8,6 +8,10 @@ import fit.iuh.engolearn.learningpath.exception.QuestionPoolPassageNotFoundExcep
 import fit.iuh.engolearn.media.contract.exception.MediaNotFoundException;
 import fit.iuh.engolearn.learningpath.exception.PassageUpdateConflictException;
 import fit.iuh.engolearn.learningpath.exception.PassageDeleteConflictException;
+import fit.iuh.engolearn.learningpath.exception.PassagePublishConflictException;
+import fit.iuh.engolearn.learningpath.exception.PassagePublicationRejectedException;
+import fit.iuh.engolearn.learningpath.exception.PassageRetireConflictException;
+import fit.iuh.engolearn.learningpath.exception.PassageActiveReferencesException;
 import java.io.IOException;
 import org.springframework.dao.DataAccessException;
 import org.springframework.http.HttpStatus;
@@ -23,6 +27,18 @@ import org.springframework.web.multipart.support.MissingServletRequestPartExcept
 
 @RestControllerAdvice(assignableTypes = QuestionPoolPassageManagementController.class)
 public class QuestionPoolPassageManagementExceptionHandler {
+    @ExceptionHandler(PassageRetireConflictException.class)
+    public ProblemDetail retireConflict(PassageRetireConflictException exception) {
+        return problem(HttpStatus.CONFLICT, "PASSAGE_RETIRE_CONFLICT", exception.getMessage());
+    }
+
+    @ExceptionHandler(PassageActiveReferencesException.class)
+    public ProblemDetail activeReferences(PassageActiveReferencesException exception) {
+        var result = problem(HttpStatus.CONFLICT, "PASSAGE_ACTIVE_REFERENCES", exception.getMessage());
+        result.setProperty("activeQuestionCount", exception.getActiveQuestionCount());
+        return result;
+    }
+
     @ExceptionHandler({InvalidPassageException.class, MediaUploadRejectedException.class})
     public ProblemDetail invalid(RuntimeException exception) {
         return problem(HttpStatus.BAD_REQUEST, "INVALID_PASSAGE", exception.getMessage());
@@ -38,6 +54,18 @@ public class QuestionPoolPassageManagementExceptionHandler {
     @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
     public ProblemDetail unsupported(HttpMediaTypeNotSupportedException exception) {
         return problem(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "UNSUPPORTED_MEDIA_TYPE", "Use multipart/form-data with a JSON passage part");
+    }
+
+    @ExceptionHandler(PassagePublishConflictException.class)
+    public ProblemDetail publishConflict(PassagePublishConflictException exception) {
+        return problem(HttpStatus.CONFLICT, "PASSAGE_PUBLISH_CONFLICT", exception.getMessage());
+    }
+
+    @ExceptionHandler(PassagePublicationRejectedException.class)
+    public ProblemDetail publicationRejected(PassagePublicationRejectedException exception) {
+        var result = problem(HttpStatus.UNPROCESSABLE_CONTENT, exception.getCode(), exception.getMessage());
+        result.setProperty("readiness", exception.getReadiness());
+        return result;
     }
 
     @ExceptionHandler(PassageDeleteConflictException.class)

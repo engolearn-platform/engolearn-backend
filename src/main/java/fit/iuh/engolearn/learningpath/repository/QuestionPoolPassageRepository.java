@@ -1,12 +1,16 @@
 package fit.iuh.engolearn.learningpath.repository;
 
 import fit.iuh.engolearn.learningpath.model.QuestionPoolPassage;
+import fit.iuh.engolearn.learningpath.model.vo.PassagePublicationReviewVo;
 import fit.iuh.engolearn.learningpath.model.enums.QuestionPoolContentStatus;
 import fit.iuh.engolearn.learningpath.model.enums.QuestionPoolSkill;
 import fit.iuh.engolearn.shared.enums.CefrLevel;
+import org.bson.Document;
+import org.springframework.data.mongodb.core.aggregation.Aggregation;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.time.Instant;
 import org.springframework.data.mongodb.core.FindAndModifyOptions;
 import org.springframework.data.mongodb.core.query.Update;
 import java.util.regex.Pattern;
@@ -24,6 +28,50 @@ import org.springframework.stereotype.Repository;
 @RequiredArgsConstructor
 public class QuestionPoolPassageRepository {
     private final MongoTemplate mongo;
+
+    public Optional<QuestionPoolPassageReadinessSource> findReadinessSource(String passageId) {
+        Document source = mongo.findOne(Query.query(Criteria.where("passage_id").is(passageId)),
+                Document.class, "question_pool_passages");
+        if (source == null) return Optional.empty();
+        // Read raw classifications so malformed imported drafts produce diagnostics, not enum conversion failures.
+        List<String> malformed = new ArrayList<>();
+        for (String field : List.of("skill", "level", "status", "title", "text", "transcript", "audio_media_id")) {
+            if (source.get(field) != null && !(source.get(field) instanceof String)) malformed.add(field);
+        }
+        Integer revision = null;
+        if (source.get("revision") instanceof Number number && number.doubleValue() == number.intValue()) {
+            revision = number.intValue();
+        } else if (source.get("revision") != null) malformed.add("revision");
+        Object audio = source.get("audio");
+        Document legacy = audio instanceof Document document ? document : null;
+        if (audio != null && legacy == null) malformed.add("audio");
+        if (legacy != null && legacy.get("url") != null && !(legacy.get("url") instanceof String)) malformed.add("audio.url");
+        return Optional.of(new QuestionPoolPassageReadinessSource(
+                passageId, stringField(source, "skill"), stringField(source, "level"), stringField(source, "status"),
+                revision, stringField(source, "title"), stringField(source, "text"), stringField(source, "transcript"),
+                stringField(source, "audio_media_id"), audio != null,
+                legacy == null ? null : stringField(legacy, "url"), malformed));
+    }
+
+    private static String stringField(Document document, String field) {
+        return document.get(field) instanceof String value ? value : null;
+    }
+
+    public QuestionPoolPassageCounts countByStatus() {
+        var rows = mongo.aggregate(Aggregation.newAggregation(
+                Aggregation.group("status").count().as("count")), "question_pool_passages", Document.class)
+                .getMappedResults();
+        long total = 0, draft = 0, active = 0, retired = 0;
+        for (Document row : rows) {
+            long count = ((Number) row.get("count")).longValue();
+            total += count;
+            Object status = row.get("_id");
+            if ("DRAFT".equals(status)) draft = count;
+            else if ("ACTIVE".equals(status)) active = count;
+            else if ("RETIRED".equals(status)) retired = count;
+        }
+        return new QuestionPoolPassageCounts(total, draft, active, retired);
+    }
 
     public Page<QuestionPoolPassage> search(String keyword, QuestionPoolSkill skill, CefrLevel level,
             QuestionPoolContentStatus status, int page, int size) {
@@ -82,7 +130,26 @@ public class QuestionPoolPassageRepository {
         return mongo.findAndRemove(query, QuestionPoolPassage.class) != null;
     }
 
+    public Optional<QuestionPoolPassage> publishDraft(String passageId, int expectedRevision, PassagePublicationReviewVo review) {
+        Query query = Query.query(Criteria.where("passage_id").is(passageId)
+                .and("status").is(QuestionPoolContentStatus.DRAFT).and("revision").is(expectedRevision));
+        Update update = new Update().set("status", QuestionPoolContentStatus.ACTIVE).inc("revision", 1)
+                .set("updated_at", review.getReviewedAt()).set("updated_by", review.getReviewedBy())
+                .set("publication_review", review);
+        return Optional.ofNullable(mongo.findAndModify(query, update,
+                FindAndModifyOptions.options().returnNew(true), QuestionPoolPassage.class));
+    }
+
     public QuestionPoolPassage insert(QuestionPoolPassage passage) {
         return mongo.insert(passage);
+    }
+
+    public Optional<QuestionPoolPassage> retireActive(String passageId, int expectedRevision, String actor, Instant retiredAt) {
+        Query query = Query.query(Criteria.where("passage_id").is(passageId)
+                .and("status").is(QuestionPoolContentStatus.ACTIVE).and("revision").is(expectedRevision));
+        Update update = new Update().set("status", QuestionPoolContentStatus.RETIRED).inc("revision", 1)
+                .set("updated_at", retiredAt).set("updated_by", actor);
+        return Optional.ofNullable(mongo.findAndModify(query, update,
+                FindAndModifyOptions.options().returnNew(true), QuestionPoolPassage.class));
     }
 }

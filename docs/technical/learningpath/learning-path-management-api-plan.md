@@ -1,7 +1,8 @@
 # Learning Path passage management APIs
 
-All five passage management APIs below are implemented. Validation, publication and
-retirement endpoints will be agreed and implemented separately with the owner. Business scope: workspace `AGENT.md`, sections 17.8–17.11.
+The five CRUD/list APIs, read-only publication readiness, passage publication and
+single-passage retirement below are implemented.
+Business scope: workspace `AGENT.md`, sections 17.8–17.11.
 
 ## Passage API sequence
 
@@ -14,8 +15,11 @@ Base: `/api/management/learning-paths/passages`.
 | 3 | GET | `/{passageId}` | Read passage details and resolve audio for preview | Implemented |
 | 4 | PATCH | `/{passageId}` | Edit a DRAFT passage | Implemented |
 | 5 | DELETE | `/{passageId}` | Delete a DRAFT with no referencing questions | Implemented |
+| 6 | GET | `/{passageId}/readiness` | Check publication conditions without changing content or status | Implemented |
+| 7 | POST | `/{passageId}/publish` | Publish the current DRAFT after automated checks and human confirmations | Implemented |
+| 8 | POST | `/{passageId}/retire` | Retire the current ACTIVE passage when no ACTIVE question references it | Implemented |
 
-Follow with passage validation/publication/retirement, then question management.
+Follow with question management, including passage-reference lookup and coordinated question publication/retirement.
 Coverage dashboards and an operation-history screen are deferred business scope.
 
 ## POST: create a passage DRAFT
@@ -190,17 +194,49 @@ Example response:
       "status": "DRAFT",
       "revision": 1,
       "hasAudio": true,
+      "referencingQuestionCount": 5,
       "createdAt": "2026-11-25T05:00:00Z",
       "updatedAt": "2026-11-25T05:00:00Z"
     }],
     "page": 0,
     "size": 20,
     "totalElements": 1,
-    "totalPages": 1
+    "totalPages": 1,
+    "counters": {"total": 120, "draft": 30, "active": 80, "retired": 10}
   },
   "timestamp": "2026-11-25T05:00:00Z"
 }
 ```
+
+`counters` is an additive field on every successful list response. It reports the entire
+shared passage pool: total documents, DRAFT (`draft`), ACTIVE (`active`) and RETIRED
+(`retired`). These values ignore keyword, skill, level, status, page and size, matching the
+Topic management screen's global counters. They are not counts of rows on the current
+page, and totalElements remains the filtered total. All four values are present as numeric
+zeros for an empty pool; a status absent from a nonempty pool also has count zero. No
+matching rows or an out-of-range page still returns the global counters.
+
+Counters are recomputed using one unfiltered status aggregation on each list request;
+refetch after a successful create/edit/delete to refresh the screen. No new statistics
+endpoint or persisted counter/cache is introduced. Total counts all documents; documents
+with an invalid/missing stored status are not assigned to any of the three named states.
+No legacy data is repaired or reclassified by this read. Counts, filtered total and page
+rows are separate database reads, so concurrent writes can temporarily cause differences;
+there is no transaction or fixed snapshot across all response fields.
+
+This is the small status summary for the management list, not the deferred micro-skill ×
+level coverage dashboard. Authorization and existing error contracts remain unchanged.
+
+Each list item includes numeric `referencingQuestionCount`: total documents in
+`question_pool` referencing that passage, across all question states and classifications.
+It is zero when no question references the passage. This is independent of passage list
+filters and does not count learner snapshots. Only scalar passage IDs are counted;
+malformed array-valued IDs are not treated as individual references by this grouped read.
+One aggregation counts references for the distinct passage IDs on the requested page;
+empty/out-of-range pages skip it. No per-row queries or Media/readiness calls are made.
+Counts are recomputed on refetch and are a separate read from page/status counts, so
+concurrent question edits can temporarily change totals. No persisted counters or
+question/snapshot writes are introduced.
 
 Items are summaries: full text, transcript, creator, media ID and audio URLs are omitted.
 `hasAudio` is true when either audio_media_id or legacy audio.url is nonblank; it describes
@@ -416,9 +452,345 @@ reference changes with passage revision/lifecycle. This endpoint does not guaran
 out-of-band question inserts between the reference check and removal. No automatic Media
 cleanup or operation-history screen is introduced.
 
+## GET: check passage publication readiness
+
+`GET /api/management/learning-paths/passages/{passageId}/readiness` uses the same
+opaque `passage_id`, nonblank/max-100 ID validation and HTTP namespace authorization
+as detail. `QuestionPoolPassageReadinessService.check` independently enforces
+CONTENT_MANAGER (ADMIN inherits) through Spring method security. There is no creator-only
+restriction. Responses have `Cache-Control: no-store`.
+
+This is an advisory check of saved data, not a publish operation or a reservation.
+The frontend should call it explicitly from DRAFT detail/edit after saving changes,
+invalidate displayed results after an edit, and never interpret a previous result as
+permission to publish a newer revision. The publish operation below invokes the same
+readiness capability, requires human confirmations and enforces current revision/status
+when applying the transition. Its reference-concurrency limits are documented below.
+
+### Checks and response
+
+The service reads a diagnostic projection from `question_pool_passages`, including raw
+classification strings so malformed imported values can be reported without enum-mapping
+failures. Existing CRUD persistence/mapping and learner behavior are unchanged.
+
+- Common blockers: non-DRAFT status, missing/nonpositive/invalid revision, wrong stored
+  field types, missing/blank title, title longer than 200 characters, invalid skill or
+  CEFR level. `status` is a raw nullable string in this diagnostic response so invalid
+  imported statuses remain inspectable; the normal model still uses its existing enum.
+- Reading: nonblank text up to 50,000 characters; no nonblank transcript, Media audio
+  reference or non-null legacy audio object.
+- Listening: nonblank transcript up to 50,000 characters and no nonblank Reading text;
+  usable audio reference as described below.
+- Referencing questions are counted across all states using exact `passage_id`. A skill
+  or level mismatch, including absent or array-valued classification, is a blocker, consistent with the
+  current edit guard. No question is mutated or fully validated by this operation.
+- Zero referencing questions is allowed; there is no minimum-30 requirement. The
+  micro-skill/level threshold is a path-creation rule, not passage publication eligibility.
+
+Example: a Reading DRAFT with no referencing questions passes automated checks but still
+requires human review:
+
+```json
+{
+  "data": {
+    "passageId": "LP-PASS-<uuid>",
+    "revision": 3,
+    "status": "DRAFT",
+    "structurallyValid": true,
+    "referencingQuestionCount": 0,
+    "incompatibleQuestionCount": 0,
+    "blockers": [],
+    "warnings": [],
+    "requiredReviewChecks": ["LEVEL_APPROPRIATE", "CONTENT_SUPPORTS_INTENDED_QUESTIONS"]
+  }
+}
+```
+
+Each issue is `{ "code": "TRANSCRIPT_REQUIRED", "field": "transcript",
+"message": "Nội dung bắt buộc chưa được nhập." }`. `structurallyValid` means only that
+the automated check found no blockers; warnings can still be present. It is not a
+`canPublish` decision or proof of editorial/audio quality. Every result retains
+`LEVEL_APPROPRIATE` and `CONTENT_SUPPORTS_INTENDED_QUESTIONS`. Listening also requires
+`AUDIO_MATCHES_TRANSCRIPT` and `AUDIO_QUALITY_REVIEWED`. These are checklist identifiers,
+not stored approvals. No confirmations are accepted or persisted by this GET.
+
+### Audio scope and limits
+
+For nonblank `audio_media_id`, use authorized `MediaManagement.resolve` with priority
+over legacy audio. A missing Media asset is an `AUDIO_MEDIA_NOT_FOUND` blocker, with no
+fallback to an older URL. Delivery must have an absolute HTTP(S) URL without user-info,
+MP3/WAV content type and a future expiry if provided. Problems yield
+`AUDIO_DELIVERY_URL_INVALID`, `AUDIO_CONTENT_TYPE_INVALID` or `AUDIO_DELIVERY_EXPIRED`.
+The resolved URL is neither returned by readiness nor persisted; use detail for preview.
+
+All Media-backed Listening currently also returns
+`LEARNER_AUDIO_DELIVERY_UNSUPPORTED`: the current learner snapshot path copies legacy
+`audio.url` and cannot deliver `audio_media_id`. This is an explicit capability blocker,
+not a claim that a valid uploaded asset is missing. Complete Media-aware snapshot/practice
+delivery before removing this blocker and enabling publication of these drafts. When a
+Media-backed passage also has legacy audio, it remains blocked rather than silently
+using the older recording.
+
+Legacy audio requires a nonblank valid HTTP(S) URL without user-info or a root-relative
+path (not a protocol-relative `//host` URL). Missing/invalid values yield `AUDIO_MISSING`
+or `AUDIO_URL_INVALID`. Valid legacy locations return
+`LEGACY_AUDIO_PLAYBACK_UNVERIFIED` as a warning; the service does not fetch arbitrary
+URLs, inspect/stream audio or claim that playback succeeds. Admin must preview/listen
+and confirm actual playback, quality and transcript match. Media resolution is likewise
+not a professional review or a playback test.
+
+Other blocker codes: `INVALID_STORED_FIELD`, `PASSAGE_NOT_DRAFT`, `INVALID_REVISION`,
+`TITLE_REQUIRED`, `INVALID_LEVEL`, `INVALID_SKILL`, `CONTENT_TOO_LONG`,
+`READING_TEXT_REQUIRED`, `READING_HAS_LISTENING_CONTENT`, `TRANSCRIPT_REQUIRED`,
+`LISTENING_HAS_READING_TEXT`, `INCOMPATIBLE_QUESTION_REFERENCES`.
+
+### Failure and consistency semantics
+
+| Status | Code | Meaning |
+| --- | --- | --- |
+| 200 | Issues in `data.blockers` | Evaluation completed, including content that fails checks |
+| 400 | INVALID_PASSAGE_REQUEST | Blank or overlong passage ID |
+| 401 | AUTHENTICATION_REQUIRED | No valid trusted session |
+| 403 | ACCESS_DENIED | Caller lacks management authority |
+| 404 | PASSAGE_NOT_FOUND | Passage absent |
+| 503 | MEDIA_STORAGE_UNAVAILABLE | Media cannot currently resolve delivery; retry evaluation |
+| 503 | PASSAGE_STORAGE_UNAVAILABLE | Passage/reference/Media database read failed |
+
+Infrastructure errors are ProblemDetail responses, not evidence that audio/content is
+missing; evaluation is incomplete and no successful readiness payload is returned.
+The GET writes no passage, revision, audit field, question, Media asset or learner
+snapshot, and uploads/deletes no files. Passage and reference queries are separate
+reads without a fixed snapshot under concurrent edits. A later GET recomputes everything.
+The publication operation below rechecks current data and enforces the transition
+independently; readiness itself never applies a publication transition.
+
+## POST: publish a passage DRAFT
+
+`POST /api/management/learning-paths/passages/{passageId}/publish` consumes
+`application/json`. The existing management namespace matcher requires CONTENT_MANAGER,
+including inherited ADMIN, and `QuestionPoolPassageManagementService.publish` enforces
+the same role through its Spring proxy. It accepts passage IDs like detail/readiness,
+not Mongo `_id`; a manager may publish another editor's DRAFT. The authenticated caller
+provides the audit identity through CurrentUserProvider, not request fields. No second
+reviewer is required by the current business rules.
+
+### Request and checks
+
+```json
+{
+  "revision": 1,
+  "confirmedReviewChecks": ["LEVEL_APPROPRIATE", "CONTENT_SUPPORTS_INTENDED_QUESTIONS"]
+}
+```
+
+`revision` is a required positive int. `confirmedReviewChecks` is a required set of
+non-null `PassageReviewCheck` enum values (at most four); unknown values, absent fields,
+null elements and malformed JSON return 400. Empty/partial confirmations are valid JSON
+requests but do not authorize publication. Confirmations must exactly match the current
+readiness checklist: Reading requires the two values above; Listening additionally
+requires `AUDIO_MATCHES_TRANSCRIPT` and `AUDIO_QUALITY_REVIEWED`. Extra checks unrelated
+to the current skill are rejected rather than recorded as misleading review evidence.
+
+Processing:
+
+1. Verify trusted role/actor and read current passage metadata. Initial absence returns
+   404. Non-DRAFT state or a different revision returns 409 before resolving any media.
+   An exhausted int revision also returns 409 instead of overflowing on increment.
+2. Invoke the existing readiness service again. A previous GET result is not trusted or
+   required. If its revision/status differs from the request, or the passage disappears
+   between the two reads, return 409. Any automated blocker returns 422
+   `PASSAGE_NOT_READY`, including invalid content, incompatible question references and
+   Media-backed Listening that the learner cannot yet consume.
+3. Require the exact checklist confirmations for that revision; otherwise return 422
+   `PASSAGE_REVIEW_REQUIRED`. Infrastructure outages remain 503, not invalid-content or
+   successful-review results.
+4. Perform one atomic conditional update matching passage_id + DRAFT + expected revision:
+   set ACTIVE, increment revision, update updated_at/by and save publication_review.
+   A lost conditional update returns 409, preserving the winning edit/delete/publication.
+
+Zero referencing questions and fewer than 30 ACTIVE questions are allowed. Existing
+matching DRAFT questions remain DRAFT. Warnings alone do not block after the required
+human confirmations: legacy audio retains `LEGACY_AUDIO_PLAYBACK_UNVERIFIED` in the
+receipt because the server does not test playback. A human confirmation is an editorial
+attestation, not proof from an automated playback or quality assessment.
+
+Publication never uploads audio or changes Cloudinary delivery policy. Media-backed
+Listening remains blocked until Media-aware learner snapshot/practice delivery is
+implemented; it never silently falls back to an older recording. Legacy local audio is
+not migrated to Cloudinary by this API.
+
+### Success and recorded review
+
+HTTP 200 returns the new status/revision and a receipt of the trusted review:
+
+```json
+{
+  "data": {
+    "passageId": "LP-PASS-<uuid>",
+    "status": "ACTIVE",
+    "revision": 2,
+    "reviewedRevision": 1,
+    "publishedBy": "<authenticated account ID>",
+    "publishedAt": "2026-11-25T15:00:00Z",
+    "confirmedReviewChecks": ["LEVEL_APPROPRIATE", "CONTENT_SUPPORTS_INTENDED_QUESTIONS"],
+    "warnings": []
+  }
+}
+```
+
+The passage stores optional `publication_review` as an embedded value with
+`source_revision`, `confirmed_checks`, `reviewed_by`, `reviewed_at`. Confirmed checks use
+the finite enum shared with readiness, stored in the canonical checklist order. The
+review and transition are written together; reviewed_at also supplies updated_at and
+the response's publishedAt. Existing documents need no migration; older ACTIVE content
+can lack this record and is not retrospectively marked reviewed. Existing detail and
+create/update response shapes are unchanged. Creator, creation date, content/audio and
+unknown imported fields are preserved. No separate history collection is introduced.
+
+After publication, existing PATCH/DELETE guards enforce immutability. A replay of the
+same publication returns 409 rather than incrementing again or replacing the review;
+two concurrent publications produce one winner. On an uncertain network outcome,
+refetch the passage before retrying. Publication does not publish or rewrite referencing
+questions and never changes existing learner paths, snapshots or answers.
+
+### Errors and concurrency boundary
+
+| Status | Code | Meaning |
+| --- | --- | --- |
+| 400 | INVALID_PASSAGE_REQUEST | Invalid ID, JSON body, revision or confirmation shape/value |
+| 401 | AUTHENTICATION_REQUIRED | No valid trusted session |
+| 403 | ACCESS_DENIED | Caller lacks management authority |
+| 404 | PASSAGE_NOT_FOUND | Absent at initial lookup |
+| 409 | PASSAGE_PUBLISH_CONFLICT | Not current DRAFT, exhausted revision, concurrent edit/delete/publish |
+| 415 | UNSUPPORTED_MEDIA_TYPE | Publication requires application/json |
+| 422 | PASSAGE_NOT_READY | Current automated checks have blockers |
+| 422 | PASSAGE_REVIEW_REQUIRED | Missing or unrelated human confirmations |
+| 503 | MEDIA_STORAGE_UNAVAILABLE | Audio delivery resolution unavailable |
+| 503 | PASSAGE_STORAGE_UNAVAILABLE | Passage/reference/Media database read or write unavailable |
+
+422 errors use ProblemDetail with the current typed `readiness` extension (same shape
+as GET's data), allowing the client to display blockers, warnings and required checks.
+They record no approval or state change. No partial review is saved on any rejected
+request. Persistence failures with an uncertain network outcome require refetching;
+the status, revision and review still share one atomic document update.
+
+Unsupported publication content types can fail before MVC selects a controller.
+The publication-path content-type resolver preserves the 415 ProblemDetail contract
+without changing errors for other feature routes or existing multipart operations.
+
+Readiness, question-reference reads and the final passage update are separate operations.
+The final revision predicate fences normal passage edits; it is not a cross-document
+transaction or lock on Question Pool. Future question-authoring APIs must coordinate
+reference changes with passage revision/lifecycle, as required for existing PATCH/DELETE.
+Out-of-band DB writes that change content without increasing revision, or insert an
+incompatible reference after readiness, are outside this operation's concurrency
+guarantee. No new transaction/locking mechanism or direct DB repair is introduced.
+
+The frontend branch integrates the publication button with a fresh-readiness confirmation
+dialog and this JSON mutation. Backend authorization, confirmations and revision guards
+remain authoritative; client confirmations do not bypass the checks above.
+
+## POST: retire an ACTIVE passage
+
+`POST /api/management/learning-paths/passages/{passageId}/retire` consumes
+`application/json`. The existing HTTP management boundary and the Spring-proxied
+service require CONTENT_MANAGER (including inherited ADMIN). The passage ID is
+the public `passage_id`, not Mongo `_id`; any authorized editor may retire it.
+Actor identity comes from CurrentUserProvider, never client-supplied audit fields.
+
+```json
+{ "revision": 3 }
+```
+
+The required revision is a positive int. Retirement reads current passage metadata
+and requires ACTIVE with the exact expected revision. An exhausted int revision
+returns 409 instead of overflowing. It then counts Question Pool records matching
+`passage_id` and `status=ACTIVE`. A nonzero count returns 409
+`PASSAGE_ACTIVE_REFERENCES` with the numeric ProblemDetail extension
+`activeQuestionCount`. DRAFT/RETIRED questions do not block; other passage IDs and
+learner snapshots do not count. No questions are automatically retired or detached.
+
+If no ACTIVE references exist, a single conditional update matches public ID,
+ACTIVE status and expected revision, sets RETIRED, increments revision and updates
+updated_at/by from the trusted actor and server time. Losing a concurrent update
+returns 409. A replay after success also returns 409; it does not overwrite audit
+metadata or increment again. Publication review, creator/creation date, content,
+legacy audio, Media reference and unknown imported fields remain unchanged.
+No schema migration or retirement-history collection is introduced.
+
+HTTP 200 uses the shared ApiResponse envelope:
+
+```json
+{
+  "data": {
+    "passageId": "LP-PASS-<uuid>",
+    "status": "RETIRED",
+    "revision": 4,
+    "retiredBy": "<authenticated account ID>",
+    "retiredAt": "2026-11-26T08:00:00Z"
+  }
+}
+```
+
+retiredBy/retiredAt reflect the saved updated_by/updated_at of this transition.
+Readiness and Media delivery are not prerequisites: even an ACTIVE passage with
+broken/unavailable audio can be retired. The operation uploads/deletes no media,
+calls no external provider and changes no questions, paths, drafts, answers or
+learner snapshots. Existing PATCH/DELETE guards keep RETIRED content immutable.
+Current list filters and counters reflect the new state on refetch. Reuse requires
+authoring a new DRAFT; this API does not reactivate content.
+
+| Status | Code | Meaning |
+| --- | --- | --- |
+| 400 | INVALID_PASSAGE_REQUEST | Invalid ID, JSON body or revision |
+| 401 | AUTHENTICATION_REQUIRED | No trusted session |
+| 403 | ACCESS_DENIED | Missing management authority |
+| 404 | PASSAGE_NOT_FOUND | Passage absent at initial lookup |
+| 409 | PASSAGE_RETIRE_CONFLICT | Not ACTIVE, stale/exhausted revision, concurrent change or replay |
+| 409 | PASSAGE_ACTIVE_REFERENCES | ACTIVE questions still reference the passage; includes activeQuestionCount |
+| 415 | UNSUPPORTED_MEDIA_TYPE | Request must use application/json |
+| 503 | PASSAGE_STORAGE_UNAVAILABLE | Passage/reference database read or write unavailable |
+
+Database failure is not evidence of zero references or a successful retirement.
+After an uncertain network outcome, refetch detail before deciding whether to retry.
+The JSON content-type resolver covers both publish and retire; multipart operations
+retain their existing behavior.
+
+### Consistency boundary
+
+The reference count and passage transition are separate operations, without a
+cross-document transaction or Question Pool lock. The conditional write protects
+the passage revision/state only. Future question-authoring APIs must coordinate
+ACTIVE-reference changes with passage lifecycle/revision before enabling those
+mutations; otherwise a question could become ACTIVE after the count and before
+retirement. Out-of-band DB writes/imports are outside this guarantee. This endpoint
+does not implement cascade retirement, a partial replacement workflow or DB repair.
+Existing paths keep their assigned snapshots; retirement does not reselect questions.
+
 ## Verification scope
 
 Run Learning Path tests only, per the owner's explicit instruction. The passage integration
 tests use real HTTP/session authorization, Spring service proxies, MongoDB Testcontainers
 and Media's real signature/metadata processing. Only the external Media storage provider
 is replaced by a test double; actual Cloudinary delivery and human audio review remain manual.
+Publication coverage includes HTTP/proxy roles, revision-bound review persistence,
+replayed and concurrent requests, immutable published content, rejected confirmations,
+fresh readiness checks, infrastructure failures and unchanged questions/learner snapshots.
+Retirement coverage includes HTTP/service-proxy authorization, ACTIVE-only reference
+counts, preserved content/review/media and learner data, malformed bodies/IDs,
+state/revision conflicts and exhaustion, conditional-write races, one winner for
+concurrent retirement, JSON content type and storage failures.
+
+### Retirement verification — 2026-11-26
+
+- Initial passage integration run: 180/181 passed; the new 415 test discarded
+  response headers when reconstructing an HTTP error. Preserving the original
+  headers fixed the assertion; the isolated 415 rerun passed.
+- Final `./mvnw.cmd "-Dtest=LearningPath*,QuestionPoolPassageManagementIntegrationTest" clean verify`:
+  BUILD SUCCESS, 262 tests, zero failures/errors/skips. This includes 181 passage
+  integration cases against real HTTP/session/proxy authorization and MongoDB
+  Testcontainers. The clean build also verifies the renamed JSON content-type
+  resolver without stale class files.
+- `git diff --check`: passed. No frontend changes, live database mutation,
+  migration or tools changes were required. Tests outside Learning Path and
+  manual frontend integration were not run in this backend-only task.

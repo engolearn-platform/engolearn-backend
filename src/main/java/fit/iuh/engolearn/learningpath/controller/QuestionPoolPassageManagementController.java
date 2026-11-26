@@ -3,6 +3,13 @@ package fit.iuh.engolearn.learningpath.controller;
 import fit.iuh.engolearn.learningpath.dto.request.CreateQuestionPoolPassageRequest;
 import fit.iuh.engolearn.learningpath.dto.response.QuestionPoolPassageResponse;
 import fit.iuh.engolearn.learningpath.service.QuestionPoolPassageManagementService;
+import fit.iuh.engolearn.learningpath.service.QuestionPoolPassageReadinessService;
+import fit.iuh.engolearn.learningpath.dto.response.QuestionPoolPassageReadinessResponse;
+import fit.iuh.engolearn.learningpath.dto.request.PublishQuestionPoolPassageRequest;
+import fit.iuh.engolearn.learningpath.dto.response.PublishQuestionPoolPassageResponse;
+import fit.iuh.engolearn.learningpath.dto.request.RetireQuestionPoolPassageRequest;
+import fit.iuh.engolearn.learningpath.dto.response.RetireQuestionPoolPassageResponse;
+import org.springframework.web.bind.annotation.RequestBody;
 import fit.iuh.engolearn.shared.web.ApiResponse;
 import fit.iuh.engolearn.learningpath.dto.request.ListQuestionPoolPassagesRequest;
 import fit.iuh.engolearn.learningpath.dto.response.QuestionPoolPassageListResponse;
@@ -35,6 +42,28 @@ import org.springframework.web.multipart.MultipartFile;
 @RequiredArgsConstructor
 public class QuestionPoolPassageManagementController {
     private final QuestionPoolPassageManagementService passages;
+    private final QuestionPoolPassageReadinessService readiness;
+
+    @PostMapping(value = "/{passageId}/retire", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public ApiResponse<RetireQuestionPoolPassageResponse> retire(
+            @PathVariable @NotBlank @Size(max = 100) String passageId,
+            @Valid @RequestBody RetireQuestionPoolPassageRequest request) {
+        return ApiResponse.ok(passages.retire(passageId, request));
+    }
+
+    @PostMapping(value = "/{passageId}/publish", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public ApiResponse<PublishQuestionPoolPassageResponse> publish(
+            @PathVariable @NotBlank @Size(max = 100) String passageId,
+            @Valid @RequestBody PublishQuestionPoolPassageRequest request) {
+        return ApiResponse.ok(passages.publish(passageId, request));
+    }
+
+    @GetMapping("/{passageId}/readiness")
+    public ApiResponse<QuestionPoolPassageReadinessResponse> readiness(
+            @PathVariable @NotBlank @Size(max = 100) String passageId, HttpServletResponse response) {
+        response.setHeader("Cache-Control", "no-store");
+        return ApiResponse.ok(readiness.check(passageId));
+    }
 
     @GetMapping
     public ApiResponse<QuestionPoolPassageListResponse> list(
