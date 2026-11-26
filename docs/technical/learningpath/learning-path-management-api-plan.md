@@ -19,7 +19,8 @@ Base: `/api/management/learning-paths/passages`.
 | 7 | POST | `/{passageId}/publish` | Publish the current DRAFT after automated checks and human confirmations | Implemented |
 | 8 | POST | `/{passageId}/retire` | Retire the current ACTIVE passage when no ACTIVE question references it | Implemented |
 
-Follow with question management, including passage-reference lookup and coordinated question publication/retirement.
+[Question list/detail and passage-reference lookup](learning-path-question-management-api.md)
+are implemented. Question mutations, including coordinated publication/retirement, remain pending.
 Coverage dashboards and an operation-history screen are deferred business scope.
 
 ## POST: create a passage DRAFT
