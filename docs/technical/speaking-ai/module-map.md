@@ -2,7 +2,7 @@
 
 | Responsibility | Entry point |
 | --- | --- |
-| Topic profile and readiness | `TopicSpeakingProfileController`, `TopicSpeakingProfileServiceImpl`, `TopicPublishReadinessServiceImpl` |
+| Topic profile authoring and publication | `TopicSpeakingProfileController`, `TopicSpeakingProfileServiceImpl`, `TopicSpeakingResourceCatalog` |
 | Learner scope gate and released content | `TopicSpeakingAccess`, `TopicLearningServiceImpl.openableScope` |
 | Learner REST | `SpeakingController`, `SpeakingSessions` |
 | Lease, lifecycle and durable commit | `SpeakingRuntime`, `SpeakingSessionServiceImpl` |

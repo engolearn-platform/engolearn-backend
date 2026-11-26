@@ -15,6 +15,7 @@ public class TopicSpeakingProfileExceptionHandler {
     public ProblemDetail profile(TopicSpeakingProfileException exception) {
         ProblemDetail detail = ProblemDetail.forStatusAndDetail(exception.getStatus(), exception.getMessage());
         detail.setProperty("code", exception.getCode());
+        detail.setProperty("violations", exception.getViolations());
         return detail;
     }
 

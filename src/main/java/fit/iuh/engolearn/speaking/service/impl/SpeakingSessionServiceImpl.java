@@ -766,7 +766,12 @@ public class SpeakingSessionServiceImpl implements SpeakingSessions, SpeakingRun
     private SpeakingStartVo newStart(String owner, SpeakingScopeDto scope, String requestId, String source, Long epoch) {
         var access = topicAccess.resolve(owner, scope);
         if (access.reason() != null) {
-            throw failure(HttpStatus.FORBIDDEN, access.reason().name(), "This Speaking scope is unavailable", false);
+            String detail = switch (access.reason()) {
+                case PROFILE_RESOURCES_STALE -> "The published Speaking profile has unavailable resources. Ask a content manager to update it.";
+                case CONTEXT_BUDGET_EXCEEDED -> "The published Speaking context exceeds its technical limit. Ask a content manager to shorten it.";
+                default -> "This Speaking scope is unavailable";
+            };
+            throw failure(HttpStatus.FORBIDDEN, access.reason().name(), detail, false);
         }
         if (!hasQuota(owner)) throw quotaReached();
         return new SpeakingStartVo(id(), requestId, source, epoch, SpeakingSessionMapper.snapshot(access.snapshot()), settings.limits());
