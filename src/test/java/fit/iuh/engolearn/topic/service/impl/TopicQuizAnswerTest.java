@@ -1,5 +1,7 @@
 package fit.iuh.engolearn.topic.service.impl;
 
+import fit.iuh.engolearn.topic.mapper.TopicLearnerMediaMapper;
+import fit.iuh.engolearn.topic.service.TopicMediaService;
 import fit.iuh.engolearn.topic.service.*;
 
 import fit.iuh.engolearn.topic.dto.request.AnswerQuizRequest;
@@ -19,6 +21,7 @@ import fit.iuh.engolearn.topic.model.enums.AttemptType;
 import fit.iuh.engolearn.topic.model.enums.ContentStatus;
 import fit.iuh.engolearn.topic.model.enums.LearningStage;
 import fit.iuh.engolearn.topic.model.enums.QuizType;
+import fit.iuh.engolearn.topic.model.vo.CompletionResultVo;
 import fit.iuh.engolearn.topic.model.vo.ContentMutationReceiptVo;
 import fit.iuh.engolearn.topic.model.vo.FurthestReachedVo;
 import fit.iuh.engolearn.topic.model.vo.QuizModuleVo;
@@ -51,6 +54,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+import static org.mockito.Mockito.mock;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.catchThrowableOfType;
 import static org.mockito.ArgumentMatchers.any;
@@ -122,7 +126,7 @@ class TopicQuizAnswerTest {
     @BeforeEach
     void setUp() {
         service = new TopicAttemptServiceImpl( catalog, attempts, versions, new TopicAttemptMutationRepository(mongo), topicItems, learning, quizMapper,
-                topics, releases, generations, retries, attemptMapper, quizProgress, new TopicRetrySessionMapper());
+                topics, releases, generations, retries, attemptMapper, quizProgress, new TopicRetrySessionMapper(), new TopicLearnerMediaMapper(mock(TopicMediaService.class)));
     }
 
     @Test
@@ -236,30 +240,44 @@ class TopicQuizAnswerTest {
     }
 
     @Test
-    void correctLastQuestionKeepsFrontierAndDoesNotCompleteTheAttempt() {
+    void correctLastQuestionCompletesTheAttemptAndRecordsTheResultInOneWrite() {
         givenAttempt(attempt(AttemptStatus.IN_PROGRESS, LearningStage.SITUATIONAL_CHOICE, 1, List.of(
                 answered(FIRST), answered(SECOND), answered(FIRST_SITUATIONAL))));
-        when(versions.findById("iv1")).thenReturn(Optional.of(pinned()));
+        TopicItemVersion version = pinned();
+        version.setTitle("At the counter");
+        when(versions.findById("iv1")).thenReturn(Optional.of(version));
         givenVisibleItem();
+        UserTopicItemAttempt completed = committed(null, 0);
+        completed.setStatus(AttemptStatus.COMPLETED);
+        completed.setCompletedAt(SAVED_AT);
         when(mongo.findAndModify(any(Query.class), any(Update.class), any(FindAndModifyOptions.class),
-                eq(UserTopicItemAttempt.class))).thenReturn(committed(LearningStage.SITUATIONAL_CHOICE, 1));
+                eq(UserTopicItemAttempt.class))).thenReturn(completed);
 
         QuizAnswerResponse response = service.answerQuiz(USER_ID, ATTEMPT_ID, LAST, body(3L, LAST_CORRECT), KEY);
 
         assertThat(response.isCorrect()).isTrue();
         assertThat(response.feedback()).isNotNull();
         assertThat(response.feedback().correctOptionId()).isEqualTo(LAST_CORRECT);
-        assertThat(response.attempt().status()).isEqualTo("IN_PROGRESS");
-        assertThat(response.attempt().completedAt()).isNull();
+        assertThat(response.attempt().status()).isEqualTo("COMPLETED");
+        assertThat(response.attempt().completedAt()).isEqualTo(SAVED_AT);
         assertThat(response.attempt().revision()).isEqualTo(4L);
-        assertThat(response.attempt().position()).isEqualTo(new TopicCatalogPolicy.Position("SITUATIONAL_CHOICE", 1));
+        assertThat(response.attempt().position()).isNull();
 
         Update update = singleCommit();
         Document set = setOf(update);
-        assertThat(set.keySet()).containsExactlyInAnyOrder("quiz_progress", "version", "last_accessed_at");
-        assertThat(update.modifies("furthest_reached")).isFalse();
-        assertThat(update.modifies("status")).isFalse();
-        assertThat(update.modifies("completed_at")).isFalse();
+        assertThat(set.keySet()).containsExactlyInAnyOrder("quiz_progress", "version", "last_accessed_at",
+                "status", "furthest_reached", "completed_at", "completion_result");
+        assertThat(set.get("status")).isEqualTo(AttemptStatus.COMPLETED);
+        assertThat(set.get("furthest_reached")).isNull();
+        assertThat(set.get("version")).isEqualTo(4L);
+        assertThat(set.get("completed_at")).isEqualTo(set.get("last_accessed_at"));
+        assertThat(set.get("completed_at")).isInstanceOf(Instant.class);
+        assertThat(set.get("completion_result")).isEqualTo(CompletionResultVo.builder()
+                .title("At the counter").firstTryCorrectCount(4).totalQuizCount(4).build());
+        ContentMutationReceiptVo receipt = receiptOf(pushOf(update));
+        assertThat(receipt.getKey()).isEqualTo(KEY);
+        assertThat(receipt.getRevision()).isEqualTo(4L);
+        assertThat(receipt.getStage()).isNull();
 
         List<QuizProgressVo> stored = storedProgress(set);
         assertThat(stored).hasSize(4);

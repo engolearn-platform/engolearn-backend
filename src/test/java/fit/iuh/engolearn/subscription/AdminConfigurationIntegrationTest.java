@@ -10,6 +10,10 @@ import fit.iuh.engolearn.subscription.mapper.SubscriptionModelMapper;
 import fit.iuh.engolearn.subscription.repository.SubscriptionRepository;
 import fit.iuh.engolearn.subscription.service.*;
 import fit.iuh.engolearn.subscription.infra.scheduling.SubscriptionActivationScheduler;
+import fit.iuh.engolearn.shared.enums.UserRole;
+import fit.iuh.engolearn.shared.security.impl.JwtTokenService;
+import fit.iuh.engolearn.user.model.RefreshSession;
+import fit.iuh.engolearn.user.model.User;
 import java.time.*;
 import java.util.*;
 import java.util.concurrent.*;
@@ -22,6 +26,8 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.RestTemplate;
+import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.testcontainers.junit.jupiter.EnabledIfDockerAvailable;
 import tools.jackson.databind.ObjectMapper;
 import static org.assertj.core.api.Assertions.*;
@@ -29,7 +35,7 @@ import static org.mockito.Mockito.*;
 
 @EnabledIfDockerAvailable
 @Import(AdminConfigurationIntegrationTest.TimeConfig.class)
-@TestPropertySource(properties={"engolearn.security.dev-auth.enabled=true","engolearn.subscription.activation-delay-ms=3600000"})
+@TestPropertySource(properties={"engolearn.subscription.activation-delay-ms=3600000"})
 class AdminConfigurationIntegrationTest extends AbstractMongoIntegrationTest {
     static final Instant START=Instant.parse("2026-10-29T12:00:00.123Z");
     static class MutableClock extends Clock {
@@ -45,6 +51,7 @@ class AdminConfigurationIntegrationTest extends AbstractMongoIntegrationTest {
     @Autowired SubscriptionActivationScheduler scheduler;
     @Autowired MutableClock clock;
     @Autowired ObjectMapper mapper;
+    @Autowired JwtTokenService tokens;
     @MockitoSpyBean SubscriptionRepository store;
     @MockitoSpyBean SubscriptionTransactions transactions;
     @BeforeEach void setup(){
@@ -118,17 +125,123 @@ class AdminConfigurationIntegrationTest extends AbstractMongoIntegrationTest {
         mongoTemplate.remove(org.springframework.data.mongodb.core.query.Query.query(org.springframework.data.mongodb.core.query.Criteria.where("scope").is("FREE")),PlanVersion.class);
         assertThatThrownBy(()->admin.configuration("FREE")).hasMessageContaining("cannot be confirmed");
     }
-    @Test void premiumStartsFromExplicitContentNowOrAtAndHistoryIsAppendOnly(){
-        assertThat(admin.configuration("PREMIUM").current()).isNull();
-        ConfigurationContentRequest trial=input("TRIAL","NOW").content();ConfigurationContentRequest premium=new ConfigurationContentRequest("Premium","",4,List.of(new PlanBenefitRequest("B","Benefit","Description","visible",0)),List.of(new PlanBillingOptionRequest("MONTHLY",123L,"VND")),trial.quotaRules());
-        var accepted=admin.publish("actor",key(),"PREMIUM",new AdminPublicationRequest(admin.catalog().revision(),new PublicationEffectRequest("AT",START.plusSeconds(2)),premium));
-        assertThat(admin.configuration("PREMIUM").current()).isNull();assertThat(admin.configuration("PREMIUM").pending().version()).isEqualTo(1);
-        clock.at=accepted.result().effectiveAt();assertThat(subscriptions.policy("PREMIUM",clock.at).getVersion()).isEqualTo(1);scheduler.activateDue();
-        assertThat(admin.configuration("PREMIUM").current().content().description()).isEmpty();
-        admin.publish("actor",key(),"PREMIUM",new AdminPublicationRequest(admin.catalog().revision(),new PublicationEffectRequest("NOW",null),premium));
-        assertThat(admin.detail("PREMIUM",1).status()).isEqualTo("HISTORICAL");assertThat(admin.history("PREMIUM",1,null).nextBeforeVersion()).isEqualTo(2);
-        assertThat(admin.history("PREMIUM",1,2L).items()).extracting(AdminConfigurationResponse.ConfigurationVersionResponse::version).containsExactly(1L);
-        assertThat(admin.detail("PREMIUM",2).content()).isEqualTo(admin.normalize(new AdminPublicationRequest(0L,new PublicationEffectRequest("NOW",null),premium)).content());
+    @Test void fixedPremiumWritesAreRejectedAndLegacyHistoryRemainsReadableInProductCatalog() throws Exception {
+        List<PlanBenefitResponse> benefits = List.of(new PlanBenefitResponse("B", "Benefit", "Description", "visible", 0));
+        ConfigurationContentRequest trial = input("TRIAL", "NOW").content();
+        ConfigurationContentRequest premium = new ConfigurationContentRequest("Legacy Premium", "Legacy description", 4,
+                List.of(new PlanBenefitRequest("B", "Benefit", "Description", "visible", 0)),
+                List.of(new PlanBillingOptionRequest("MONTHLY", 123L, "VND")), trial.quotaRules());
+        operator.publish(new PublicationManifestRequest("legacy-premium-fixture", "isolated-test",
+                List.of(new PublicationManifestRequest.PlanRequest("legacy-premium-plan", "PREMIUM", 1,
+                        START.minusMillis(1), true, 4, new PlanCardResponse("PREMIUM", premium.displayName(),
+                        premium.description(), benefits, List.of(new PlanBillingOptionResponse("MONTHLY", 123L, "VND"))))),
+                List.of(policyAt("legacy-premium-policy", 1, START.minusMillis(1), benefits)), List.of()));
+
+        assertThat(admin.configuration("PREMIUM").current().version()).isEqualTo(1);
+        AdminPublicationRequest oldWrite = new AdminPublicationRequest(admin.catalog().revision(),
+                new PublicationEffectRequest("NOW", null), premium);
+        assertThatThrownBy(() -> http("/configurations/PREMIUM/publications", HttpMethod.POST,
+                "dev-admin", mapper.writeValueAsString(oldWrite)))
+                .isInstanceOfSatisfying(HttpClientErrorException.class, ex -> {
+                    assertThat(ex.getStatusCode().value()).isEqualTo(409);
+                    assertThat(ex.getResponseBodyAsString()).contains("DYNAMIC_PRODUCTS_REQUIRED");
+                });
+
+        ResponseEntity<String> detail = http("/products/PREMIUM", HttpMethod.GET, "dev-admin", null);
+        assertThat(detail.getStatusCode().value()).isEqualTo(200);
+        assertThat(detail.getBody()).contains("\"planCode\":\"PREMIUM\"", "Legacy Premium", "\"hasDraft\":false");
+        ResponseEntity<String> historical = http("/products/PREMIUM/versions/1", HttpMethod.GET, "dev-admin", null);
+        assertThat(historical.getStatusCode().value()).isEqualTo(200);
+        assertThat(historical.getBody()).contains("Legacy Premium", "Legacy description");
+    }
+    @Test void legacyPremiumScheduleCanBeRescheduledThenActivatedThroughTheProductFence() throws Exception {
+        seedLegacyPremiumSchedule();
+        Instant oldAt = START.plusSeconds(7200), nextAt = START.plusSeconds(10800);
+        ResponseEntity<String> migrated = http("/products/PREMIUM", HttpMethod.GET, "dev-admin", null);
+        assertThat(migrated.getBody()).contains("\"version\":2", "\"status\":\"SCHEDULED\"", "\"hasDraft\":false");
+        var reschedule = new RescheduleLegacyPremiumRequest(2L, oldAt, nextAt);
+        ResponseEntity<String> changed = http("/products/PREMIUM/schedule", HttpMethod.PATCH, "dev-admin",
+                mapper.writeValueAsString(reschedule));
+        assertThat(changed.getBody()).contains("\"version\":3", "\"status\":\"SCHEDULED\"");
+
+        clock.at = nextAt;
+        ResponseEntity<String> applied = http("/products/PREMIUM", HttpMethod.GET, "dev-admin", null);
+        assertThat(applied.getBody()).contains("\"currentVersion\":3", "\"status\":\"APPLIED\"");
+        assertThat(subscriptions.policy("PREMIUM", nextAt).getVersion()).isEqualTo(3);
+    }
+
+    @Test void legacyPremiumScheduleCanBeCancelledAndIsNotReintroducedByLegacyReaders() throws Exception {
+        seedLegacyPremiumSchedule();
+        Instant scheduledAt = START.plusSeconds(7200);
+        ResponseEntity<String> migrated = http("/products/PREMIUM", HttpMethod.GET, "dev-admin", null);
+        assertThat(migrated.getBody()).contains("\"version\":2", "\"status\":\"SCHEDULED\"");
+        var cancel = new CancelLegacyPremiumScheduleRequest(2L, scheduledAt);
+        ResponseEntity<String> cancelled = http("/products/PREMIUM/schedule/cancel", HttpMethod.POST, "dev-admin",
+                mapper.writeValueAsString(cancel));
+        assertThat(cancelled.getBody()).contains("\"status\":\"CANCELLED\"");
+
+        clock.at = scheduledAt.plusSeconds(1);
+        ResponseEntity<String> stillCurrent = http("/products/PREMIUM", HttpMethod.GET, "dev-admin", null);
+        assertThat(stillCurrent.getBody()).contains("\"currentVersion\":1", "\"status\":\"CANCELLED\"");
+        assertThatThrownBy(() -> admin.configuration("PREMIUM"))
+                .hasMessageContaining("product catalog");
+    }
+
+    @Test void legacyScheduleAlreadyActivatedByWorkerIsAdoptedAsApplied() throws Exception {
+        seedLegacyPremiumSchedule();
+        Instant scheduledAt = START.plusSeconds(7200);
+        clock.at = scheduledAt;
+        scheduler.activateDue();
+        ResponseEntity<String> adopted = http("/products/PREMIUM", HttpMethod.GET, "dev-admin", null);
+        assertThat(adopted.getBody()).contains("\"currentVersion\":2", "\"status\":\"APPLIED\"");
+        assertThat(subscriptions.policy("PREMIUM", scheduledAt).getVersion()).isEqualTo(2);
+    }
+
+    @Test void immediateLegacyPremiumPublicationRequiresCurrentScheduleReplacementConsent() throws Exception {
+        seedLegacyPremiumSchedule();
+        Instant scheduledAt = START.plusSeconds(7200);
+        http("/products/PREMIUM", HttpMethod.GET, "dev-admin", null);
+        SubscriptionProductContentRequest content = new SubscriptionProductContentRequest("Managed Premium", "", 4,
+                List.of(new PlanBenefitRequest("ASSESSMENT_FULL_ANALYSIS", "Full analysis",
+                        "Full analysis access", "Included", 0)),
+                List.of(new PlanBillingOptionRequest("MONTHLY", 123L, "VND")), List.of());
+        http("/products/PREMIUM/draft", HttpMethod.PUT, "dev-admin",
+                mapper.writeValueAsString(new SaveSubscriptionProductDraftRequest(0L, content)));
+        PublishSubscriptionProductRequest missingConsent = new PublishSubscriptionProductRequest(1L, false, null, null);
+        assertThatThrownBy(() -> http("/products/PREMIUM/publish", HttpMethod.POST, "dev-admin",
+                mapper.writeValueAsString(missingConsent)))
+                .isInstanceOfSatisfying(HttpClientErrorException.class,
+                        ex -> assertThat(ex.getResponseBodyAsString()).contains("LEGACY_SCHEDULE_REPLACEMENT_REQUIRED"));
+        PublishSubscriptionProductRequest confirmed = new PublishSubscriptionProductRequest(1L, true, 2L, scheduledAt);
+        ResponseEntity<String> published = http("/products/PREMIUM/publish", HttpMethod.POST, "dev-admin",
+                mapper.writeValueAsString(confirmed));
+        assertThat(published.getBody()).contains("\"currentVersion\":3", "\"status\":\"SUPERSEDED\"");
+        assertThat(subscriptions.policy("PREMIUM", START).getVersion()).isEqualTo(3);
+    }
+
+    void seedLegacyPremiumSchedule() {
+        List<PlanBenefitResponse> benefits = List.of(new PlanBenefitResponse("B", "Benefit", "Description", "visible", 0));
+        ConfigurationContentRequest content = new ConfigurationContentRequest("Legacy Premium", "Legacy description", 4,
+                List.of(new PlanBenefitRequest("B", "Benefit", "Description", "visible", 0)),
+                List.of(new PlanBillingOptionRequest("MONTHLY", 123L, "VND")),
+                input("TRIAL", "NOW").content().quotaRules());
+        PlanCardResponse card = new PlanCardResponse("PREMIUM", content.displayName(), content.description(), benefits,
+                List.of(new PlanBillingOptionResponse("MONTHLY", 123L, "VND")));
+        Instant effective = START.minusMillis(1), scheduledAt = START.plusSeconds(7200);
+        operator.publish(new PublicationManifestRequest("premium-active", "isolated-test",
+                List.of(new PublicationManifestRequest.PlanRequest("premium-plan-v1", "PREMIUM", 1, effective, true, 4, card)),
+                List.of(policyAt("premium-policy-v1", 1, effective, benefits)), List.of()));
+        operator.publish(new PublicationManifestRequest("premium-scheduled", "isolated-test",
+                List.of(new PublicationManifestRequest.PlanRequest("premium-plan-v2", "PREMIUM", 2, scheduledAt, true, 4, card)),
+                List.of(policyAt("premium-policy-v2", 2, scheduledAt, benefits)), List.of()));
+    }
+
+    PublicationManifestRequest.PolicyRequest policyAt(String id, long version, Instant effectiveAt,
+            List<PlanBenefitResponse> benefits) {
+        return new PublicationManifestRequest.PolicyRequest(id, "PREMIUM", version, effectiveAt,
+                new QuotaPolicySnapshotDto(id, "PREMIUM", version,
+                        List.of(new QuotaRuleDto("TEST", "Test", 2, "ATTEMPT", "MONTHLY", 0))),
+                new CurrentBenefitsResponse("PREMIUM", "Legacy Premium", id, benefits));
     }
     @RepeatedTest(2) void canonicalIntroductionRaceAcrossScopesHasOneWinner()throws Exception{
         AdminPublicationRequest trial=input("TRIAL","NOW"),free=input("FREE","NEXT_LOCAL_MIDNIGHT");
@@ -142,7 +255,36 @@ class AdminConfigurationIntegrationTest extends AbstractMongoIntegrationTest {
         String loserScope=loser==f?"FREE":"TRIAL";
         assertThatThrownBy(()->admin.preview(loserScope,new AdminPublicationRequest(admin.catalog().revision(),loser.effect(),loser.content()))).hasMessageContaining("unit and period");
     }
-    ResponseEntity<String> http(String path,HttpMethod method,String fixture,String body){HttpHeaders headers=new HttpHeaders();headers.setContentType(MediaType.APPLICATION_JSON);if(fixture!=null)headers.set("X-Dev-User-Id",fixture);headers.set("Idempotency-Key",key());return restTemplate.exchange("http://localhost:"+port+"/api/v1/subscription/admin"+path,method,new HttpEntity<>(body,headers),String.class);}
+    ResponseEntity<String> http(String path, HttpMethod method, String fixture, String body) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        if (fixture != null) {
+            UserRole role = switch (fixture) {
+                case "dev-user" -> UserRole.USER;
+                case "dev-cm" -> UserRole.CONTENT_MANAGER;
+                case "dev-admin" -> UserRole.ADMIN;
+                default -> throw new IllegalArgumentException("Unknown auth fixture");
+            };
+            headers.set(HttpHeaders.COOKIE, accessCookie(fixture, role));
+        }
+        headers.set("Idempotency-Key", key());
+        RestTemplate client = method == HttpMethod.PATCH ? new RestTemplate(new JdkClientHttpRequestFactory()) : restTemplate;
+        return client.exchange("http://localhost:" + port + "/api/v1/subscription/admin" + path,
+                method, new HttpEntity<>(body, headers), String.class);
+    }
+
+    String accessCookie(String userId, UserRole role) {
+        String sessionId = "admin-it-session-" + userId;
+        mongoTemplate.save(new User(userId, userId + "@example.test", "unused", role, false));
+        mongoTemplate.save(RefreshSession.builder()
+                .id(sessionId)
+                .sessionId(sessionId)
+                .accountId(userId)
+                .expiresAt(Instant.now().plusSeconds(3600))
+                .revoked(false)
+                .build());
+        return "ACCESS_TOKEN=" + tokens.create(userId, sessionId, "access", 900);
+    }
     @Test void allHttpMethodsEnforceAdminBeforeReadingDataAndRejectForgedFieldsAndFractionalNumbers()throws Exception{
         Map<String,HttpMethod> paths=new LinkedHashMap<>();paths.put("/catalog",HttpMethod.GET);paths.put("/configurations/FREE",HttpMethod.GET);paths.put("/configurations/FREE/versions",HttpMethod.GET);paths.put("/configurations/FREE/versions/1",HttpMethod.GET);paths.put("/configurations/FREE/preview",HttpMethod.POST);paths.put("/configurations/FREE/publications",HttpMethod.POST);
         String body=mapper.writeValueAsString(input("FREE","NEXT_LOCAL_MIDNIGHT"));

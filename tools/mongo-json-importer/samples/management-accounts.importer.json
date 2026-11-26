@@ -1,0 +1,99 @@
+{
+  "metadata": {
+    "name": "management-accounts-local-demo",
+    "version": 1,
+    "scope": "Disposable local development databases"
+  },
+  "collections": {
+    "users": [
+      {
+        "_id": {
+          "$oid": "68f8f3a9b9e4a12345678001"
+        },
+        "email": "admin@example.test",
+        "password_hash": "$2a$10$ptLQXjAgYZ8WWcacheAS6uP9u.Jk5i11aysAmqNyR6ej5ZoQ4RDqm",
+        "role": "ADMIN",
+        "locked": false,
+        "created_at": {
+          "$date": "2026-11-23T00:00:00Z"
+        },
+        "updated_at": {
+          "$date": "2026-11-23T00:00:00Z"
+        }
+      },
+      {
+        "_id": {
+          "$oid": "68f8f3a9b9e4a12345678002"
+        },
+        "email": "content-manager@example.test",
+        "password_hash": "$2a$10$fHhhWOXtCoiL.nl3mrRqqesB.n2UGkvVJxCxND13VCr9S02AcdkqS",
+        "role": "CONTENT_MANAGER",
+        "locked": false,
+        "created_at": {
+          "$date": "2026-11-23T00:00:00Z"
+        },
+        "updated_at": {
+          "$date": "2026-11-23T00:00:00Z"
+        }
+      }
+    ],
+    "user_profiles": [
+      {
+        "_id": {
+          "$oid": "68f8f3a9b9e4a12345678001"
+        },
+        "cefr_level": "A1",
+        "created_at": {
+          "$date": "2026-11-23T00:00:00Z"
+        },
+        "updated_at": {
+          "$date": "2026-11-23T00:00:00Z"
+        }
+      },
+      {
+        "_id": {
+          "$oid": "68f8f3a9b9e4a12345678002"
+        },
+        "cefr_level": "A1",
+        "created_at": {
+          "$date": "2026-11-23T00:00:00Z"
+        },
+        "updated_at": {
+          "$date": "2026-11-23T00:00:00Z"
+        }
+      }
+    ],
+    "subscription_accounts": [
+      {
+        "_id": {
+          "$oid": "68f8f3a9b9e4a12345678001"
+        },
+        "trial_used": false,
+        "entitlement_version": 0,
+        "revision": 0,
+        "provenance": "NEW_ACCOUNT",
+        "created_at": {
+          "$date": "2026-11-23T00:00:00Z"
+        },
+        "updated_at": {
+          "$date": "2026-11-23T00:00:00Z"
+        }
+      },
+      {
+        "_id": {
+          "$oid": "68f8f3a9b9e4a12345678002"
+        },
+        "trial_used": false,
+        "entitlement_version": 0,
+        "revision": 0,
+        "provenance": "NEW_ACCOUNT",
+        "created_at": {
+          "$date": "2026-11-23T00:00:00Z"
+        },
+        "updated_at": {
+          "$date": "2026-11-23T00:00:00Z"
+        }
+      }
+    ]
+  }
+}

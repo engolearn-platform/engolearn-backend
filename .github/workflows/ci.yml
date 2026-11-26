@@ -1,0 +1,213 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - "**"
+  pull_request:
+    branches:
+      - dev
+      - main
+    types:
+      - opened
+      - synchronize
+      - reopened
+
+permissions:
+  contents: read
+
+jobs:
+  changes:
+    name: Detect relevant changes
+    runs-on: ubuntu-22.04
+    outputs:
+      backend: ${{ steps.filter.outputs.backend }}
+    steps:
+      - name: Checkout repository history
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Detect backend, build, and CI changes
+        id: filter
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BEFORE_SHA: ${{ github.event.before }}
+          AFTER_SHA: ${{ github.sha }}
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          set -euo pipefail
+
+          if [[ "$EVENT_NAME" == "pull_request" ]]; then
+            changed_files="$(git diff --name-only --diff-filter=ACMRTD "${PR_BASE_SHA}...HEAD")"
+          elif [[ "$BEFORE_SHA" =~ ^0+$ ]]; then
+            # A newly created branch has no previous push SHA. Compare it with dev,
+            # the agreed integration base for feature branches.
+            changed_files="$(git diff --name-only --diff-filter=ACMRTD origin/dev...HEAD)"
+          else
+            changed_files="$(git diff --name-only --diff-filter=ACMRTD "$BEFORE_SHA" "$AFTER_SHA")"
+          fi
+
+          echo "Changed files:"
+          printf '%s\n' "$changed_files"
+
+          backend_changed=false
+          while IFS= read -r file; do
+            [[ -z "$file" ]] && continue
+            case "$file" in
+              src/*|pom.xml|.mvn/*|mvnw|mvnw.cmd|tools/*|scripts/*|.github/workflows/*|.github/actions/*|Dockerfile*|docker-compose*.yml|docker-compose*.yaml|compose*.yml|compose*.yaml|lombok.config|sonar-project.properties)
+                backend_changed=true
+                break
+                ;;
+            esac
+          done <<< "$changed_files"
+
+          echo "backend=$backend_changed" >> "$GITHUB_OUTPUT"
+          echo "Relevant backend/build/CI change: $backend_changed"
+
+  verify:
+    name: Build, test, and SonarCloud
+    needs: changes
+    if: needs.changes.outputs.backend == 'true'
+    runs-on: ubuntu-22.04
+    env:
+      SPRING_PROFILES_ACTIVE: prod
+      # Test-only Mongo bindings. The prod profile requires a URI and database name;
+      # integration suites inject their disposable Testcontainers URI/database.
+      MONGODB_URI: mongodb://127.0.0.1:27017/engolearn_ci
+      APP_DB: engolearn_ci
+      # Retained for tests that explicitly select dev and use discrete local Mongo properties.
+      MONGO_HOST: 127.0.0.1
+      MONGO_PORT: "27017"
+      APP_USER: ci_test
+      APP_PASSWORD: ci-only-placeholder
+      CORS_ALLOWED_ORIGINS: http://localhost:3000
+      # Test-only signing key supplied through GitHub Actions Variables.
+      # Never use a production JWT secret in CI.
+      AUTH_JWT_SECRET: ${{ vars.CI_AUTH_JWT_SECRET }}
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+
+      - name: Inspect CI kernel and Docker environment
+        run: |
+          uname -r
+          docker version
+          docker info
+
+      - name: Validate CI runtime configuration
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "$SPRING_PROFILES_ACTIVE" != "prod" ]]; then
+            echo "::error::CI must default to the prod Spring runtime profile."
+            exit 1
+          fi
+
+          if [[ -e .env ]]; then
+            echo "::error::CI must use test-only environment inputs, not a local .env file."
+            exit 1
+          fi
+
+          if [[ -z "${AUTH_JWT_SECRET:-}" ]]; then
+            echo "::error::Missing GitHub Actions variable CI_AUTH_JWT_SECRET. Set a test-only JWT signing key (at least 32 bytes) in Settings > Secrets and variables > Actions > Variables."
+            exit 1
+          fi
+
+          secret_length="$(printf '%s' "$AUTH_JWT_SECRET" | wc -c)"
+          if (( secret_length < 32 )); then
+            echo "::error::CI_AUTH_JWT_SECRET must be at least 32 bytes."
+            exit 1
+          fi
+          echo "CI JWT configuration is present and has an acceptable length."
+
+      - name: Run full Maven verification
+        run: ./mvnw -B -ntp clean verify
+
+      - name: Upload verification reports
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: backend-verification-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            target/surefire-reports/
+            target/failsafe-reports/
+            target/site/jacoco/
+          if-no-files-found: warn
+          retention-days: 7
+
+      # Secrets are not available to workflows triggered by forked pull requests.
+      # Tests still run for forks; Sonar analysis runs for pushes and same-repository PRs.
+      - name: Validate SonarCloud configuration
+        if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_ORGANIZATION: ${{ vars.SONAR_ORGANIZATION }}
+          SONAR_PROJECT_KEY: ${{ vars.SONAR_PROJECT_KEY }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          for name in SONAR_TOKEN SONAR_ORGANIZATION SONAR_PROJECT_KEY; do
+            if [[ -z "${!name}" ]]; then
+              echo "::error::Missing GitHub Actions secret/variable: $name"
+              exit 1
+            fi
+          done
+
+      - name: Analyze with SonarQube Cloud
+        if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_ORGANIZATION: ${{ vars.SONAR_ORGANIZATION }}
+          SONAR_PROJECT_KEY: ${{ vars.SONAR_PROJECT_KEY }}
+        run: |
+          ./mvnw -B -ntp \
+            org.sonarsource.scanner.maven:sonar-maven-plugin:sonar \
+            "-Dsonar.organization=$SONAR_ORGANIZATION" \
+            "-Dsonar.projectKey=$SONAR_PROJECT_KEY" \
+            -Dsonar.host.url=https://sonarcloud.io \
+            -Dsonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml \
+            -Dsonar.qualitygate.wait=true
+
+  ci-gate:
+    name: CI gate
+    if: always()
+    needs:
+      - changes
+      - verify
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Evaluate required CI result
+        env:
+          CHANGES_RESULT: ${{ needs.changes.result }}
+          BACKEND_CHANGED: ${{ needs.changes.outputs.backend }}
+          VERIFY_RESULT: ${{ needs.verify.result }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [[ "$CHANGES_RESULT" != "success" ]]; then
+            echo "::error::Change detection did not complete successfully."
+            exit 1
+          fi
+
+          if [[ "$BACKEND_CHANGED" == "true" && "$VERIFY_RESULT" != "success" ]]; then
+            echo "::error::Relevant changes were detected, but verification result was: $VERIFY_RESULT"
+            exit 1
+          fi
+
+          if [[ "$BACKEND_CHANGED" == "false" ]]; then
+            echo "No backend/build/CI files changed; test and Sonar jobs were intentionally skipped."
+          else
+            echo "Backend verification completed successfully."
+          fi

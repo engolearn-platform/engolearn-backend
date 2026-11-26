@@ -1,0 +1,16 @@
+{
+  "metadata": {
+    "name": "grammar-a1-b2-fresh-counter-only",
+    "version": 1,
+    "precondition": "FRESH Grammar namespace only; import AFTER matching full content. Never overwrite a live counter."
+  },
+  "collections": {
+    "grammar_counters": [
+      {
+        "_id": "topic-order-and-code",
+        "ordering_revision": 84,
+        "topic_sequence": 44
+      }
+    ]
+  }
+}

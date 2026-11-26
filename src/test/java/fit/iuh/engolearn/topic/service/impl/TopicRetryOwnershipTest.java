@@ -1,5 +1,7 @@
 package fit.iuh.engolearn.topic.service.impl;
 
+import fit.iuh.engolearn.topic.mapper.TopicLearnerMediaMapper;
+import fit.iuh.engolearn.topic.service.TopicMediaService;
 import fit.iuh.engolearn.topic.exception.TopicRequestException;
 import fit.iuh.engolearn.user.contract.UserLevelLookup;
 import fit.iuh.engolearn.topic.mapper.*;
@@ -24,7 +26,7 @@ class TopicRetryOwnershipTest {
         var catalog = mock(TopicLearnerCatalogService.class);
         var service = new TopicRetryServiceImpl(mock(UserLevelLookup.class), catalog,
                 mock(TopicItemRepository.class), mock(TopicItemVersionRepository.class), mock(TopicRepository.class),
-                mock(TopicVersionRepository.class), persistence, mock(TopicQuizMapper.class), mock(TopicAttemptMapper.class),
+                mock(TopicVersionRepository.class), persistence, mock(TopicQuizMapper.class), new TopicLearnerMediaMapper(mock(TopicMediaService.class)), mock(TopicAttemptMapper.class),
                 generations, mock(TopicQuizProgressService.class), mock(TopicRetrySessionMapper.class));
         when(persistence.findLocator("attempt-a")).thenReturn(TopicRetryLocator.builder()
                 .id("attempt-a").userId("account-a").topicId("topic-a").kind(RetryLocatorKind.ATTEMPT).build());

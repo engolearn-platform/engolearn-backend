@@ -5,10 +5,14 @@ Start with the [system overview](architecture/system-overview.md) and [module ma
 | Need | Source |
 | --- | --- |
 | Package, dependency and coding rules | [Package structure](architecture/package-structure.md), [communication](architecture/cross-feature-communication.md), [implementation conventions](architecture/implementation-conventions.md) |
+| Create or change protected endpoints or service operations | [Required security authorization rules](architecture/security-authorization.md) |
+| Integrate or verify role authorization | [RBAC integration guide](technical/security/rbac-integration.md), [RBAC verification runbook](runbooks/rbac-verification.md) |
 | Why an architecture choice exists | [ADR-0001](architecture/decisions/ADR-0001-no-outbox-for-quota-mvp.md), [ADR-0002](architecture/decisions/ADR-0002-durable-subscription-payment-quota-delivery.md) |
 | Understand behavior | [Flows](flows/README.md) |
 | Change a module or HTTP contract | [Technical documentation](technical/README.md) |
 | Configure or troubleshoot VNPay | [VNPay runbook](runbooks/vnpay.md) |
+| Configure dev/prod and integrate a module | [Runtime configuration contract](architecture/runtime-configuration.md) |
+| Run CI verification and inspect test reports | [CI verification](runbooks/ci-verification.md) |
 | Temporary development purchase release | [DEV-PAYMENT-RESET-01](runbooks/dev-purchase-reset.md) |
 | Task process and completion | [Working agreement](agent/working-agreement.md), [Definition of Done](agent/definition-of-done.md) |
 
@@ -17,3 +21,5 @@ Module references: [authentication](runbooks/user-auth.md), [learning-path list]
 Architecture owns shared rules; flows own behavior; technical pages own module implementation/contracts; runbooks own practical operations. Link to the owner instead of duplicating it. Update affected pages when implementation changes. Keep architectural decisions in ADRs and use Git for implementation history and earlier verification records instead of maintaining duplicate snapshots. Earlier Subscription documents are available in Git history under `docs/technical/subscription-quota/`; dated evidence does not establish current runtime status.
 
 Learner assessment: [technical contract](technical/assessment.md).
+
+Placement Test: [technical entry](technical/placement/README.md). Grammar Learning: [technical entry](technical/grammar/README.md). Each module entry links current run/import instructions and contracts.

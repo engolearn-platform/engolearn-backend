@@ -8,16 +8,21 @@ import java.security.*;
 import java.util.*;
 import javax.sound.sampled.AudioSystem;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.env.Environment;
+import org.springframework.core.env.Profiles;
 import org.springframework.stereotype.Service;
 
 @Service
 public class AssessmentMediaImpl implements AssessmentMedia {
     private final Path directory;
-    public AssessmentMediaImpl(@Value("${engolearn.assessment.media-directory:./assessment-media}") String directory) {
-        this.directory=Path.of(directory).toAbsolutePath().normalize();
+    public AssessmentMediaImpl(@Value("${engolearn.assessment.media-directory:}") String directory,
+                               Environment environment) {
+        this.directory=environment.acceptsProfiles(Profiles.of("prod")) || directory.isBlank()
+                ? null : Path.of(directory).toAbsolutePath().normalize();
     }
     public byte[] read(String relative,String sha256,int maxSeconds) {
         try {
+            if(directory==null) throw new IllegalStateException("Assessment media storage is not integrated");
             Path file=directory.resolve(relative).normalize();
             if(!file.startsWith(directory) || !file.toRealPath().startsWith(directory.toRealPath())
                     || !relative.endsWith(".wav") || Files.size(file)>4_000_000) throw new IllegalArgumentException();

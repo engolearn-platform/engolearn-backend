@@ -1,5 +1,7 @@
 package fit.iuh.engolearn.topic.service.impl;
 
+import fit.iuh.engolearn.topic.mapper.TopicLearnerMediaMapper;
+import fit.iuh.engolearn.topic.service.TopicMediaService;
 import fit.iuh.engolearn.topic.service.*;
 
 import fit.iuh.engolearn.topic.dto.response.CurrentQuizResponse;
@@ -47,6 +49,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
+import static org.mockito.Mockito.mock;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.catchThrowableOfType;
 import static org.mockito.ArgumentMatchers.any;
@@ -131,7 +134,7 @@ class TopicQuizReadTest {
     @BeforeEach
     void setUp() {
         service = new TopicAttemptServiceImpl( catalog, attempts, versions, new TopicAttemptMutationRepository(mongo), topicItems, learning, quizMapper,
-                topics, releases, generations, retries, attemptMapper, quizProgress, new TopicRetrySessionMapper());
+                topics, releases, generations, retries, attemptMapper, quizProgress, new TopicRetrySessionMapper(), new TopicLearnerMediaMapper(mock(TopicMediaService.class)));
     }
 
     @Test
@@ -248,6 +251,7 @@ class TopicQuizReadTest {
                 Optional.of(attempt(AttemptStatus.COMPLETED, null)));
         when(versions.findById("iv1")).thenReturn(Optional.of(itemVersion(
                 fillBlankModule(0), situationalModule(1))));
+        visibleItemInLatestRelease();
 
         CurrentQuizResponse response = service.getCurrentQuiz(USER_ID, ATTEMPT_ID);
 
@@ -256,7 +260,7 @@ class TopicQuizReadTest {
         assertThat(response.attempt().position()).isNull();
         assertThat(response.quiz()).isNull();
         verify(quizMapper, never()).sequence(any());
-        verifyNoInteractions(topics, releases, mongo, catalog, learning, topicItems);
+        verifyNoInteractions(mongo, catalog, learning, topicItems);
     }
 
     @Test
@@ -507,15 +511,17 @@ class TopicQuizReadTest {
     }
 
     @Test
-    void completedAttemptWithHiddenPinnedVersionStillReturnsNullQuiz() {
+    void completedAttemptWithHiddenPinnedVersionReturnsGoneWithoutReadingQuizSequence() {
         when(attempts.findById(ATTEMPT_ID)).thenReturn(Optional.of(attempt(AttemptStatus.COMPLETED, null)));
         when(versions.findById("iv1")).thenReturn(Optional.of(pinnedVersion(ContentStatus.HIDDEN, fillBlankModule(0))));
 
-        CurrentQuizResponse response = service.getCurrentQuiz(USER_ID, ATTEMPT_ID);
+        TopicRequestException error = catchThrowableOfType(
+                () -> service.getCurrentQuiz(USER_ID, ATTEMPT_ID), TopicRequestException.class);
 
-        assertThat(response.quiz()).isNull();
-        assertThat(response.attempt().status()).isEqualTo("COMPLETED");
-        verifyNoInteractions(topics, releases);
+        assertThat(error.getStatus()).isEqualTo(410);
+        assertThat(error.getCode()).isEqualTo("ITEM_HIDDEN");
+        verify(quizMapper, never()).sequence(any());
+        verifyNoInteractions(topics, releases, mongo, catalog, learning, topicItems);
     }
 
     @Test

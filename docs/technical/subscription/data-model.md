@@ -10,6 +10,9 @@ MongoDB collection ownership follows the module. References such as `payment_id`
 | `subscription_refund_requests` / `SubscriptionRefundRequest` | Stable reference, purchase/payment/user, actor/reason/key, state and result/times. Unique purchase/key and refund reference; user/status pending lookup |
 | `subscription_plan_versions` / `PlanVersion` | Immutable scope/version/effective time and plan card; unique scope/version |
 | `subscription_quota_policy_versions` / `PolicyVersion` | Immutable scope/version/effective time, quota snapshot and benefits; unique scope/version |
+| `subscription_products` / `SubscriptionProduct` | Stable paid plan code, visibility, sale state, archive flag, current version pointer, draft revision/content, legacy schedule pointer and purchase fence; unique plan code |
+| `subscription_product_versions` / `SubscriptionProductVersion` | Immutable paid content/benefit/quota/price snapshot and effective time plus mutable legacy schedule status metadata; unique plan code/version. Migrated PREMIUM history is marked unmanaged to preserve legacy Assessment rights |
+| `subscription_product_publication_receipts` / `SubscriptionProductPublicationReceipt` | Actor/key, product, request fingerprint and accepted version/time; unique actor/key for exact publication replay |
 | `subscription_policy_state` / `PolicyState` | Scope pointer to active/pending versions, pending time and activation sequence |
 | `subscription_operation_receipts` / `TrialReceipt` | Original Trial activation response and fingerprint; unique user/operation/key |
 | `subscription_publication_receipts` / `PublicationReceipt` | Operator publication manifest replay receipt |
@@ -26,11 +29,12 @@ One purchase can bind one Payment transaction and one paid period. A purchase ca
 | Operation | Writes that commit together |
 | --- | --- |
 | Trial activation | Trial flag/period, response receipt, entitlement sequence and Outbox |
-| Purchase creation | Account revision guard, pinned purchase and checkout command Outbox |
+| Purchase creation | Account revision guard, conditional paid-product version/sale fence, pinned purchase and checkout command Outbox |
 | Payment result intake | Receipt, guarded purchase changes; success also Trial supersede, paid period, account sequence and entitlement Outbox |
 | Refund request | Account serialization, retained request, purchase pending projection and refund command Outbox |
 | Refund success intake | Receipt, matching request/purchase, period `REFUNDED`, sequence and changed entitlement Outbox |
-| Publication/actual activation | Policy/plan/pointers as applicable, receipt/revision and actual policy fact Outbox |
+| FREE/TRIAL configuration publication/activation | Policy/plan/pointers as applicable, receipt/revision and actual policy fact Outbox |
+| Paid product publication, stop/resume, visibility and checkout | Mutation of the owning `subscription_products` document and purchase fence; checkout reserves version/sale state in the same purchase + Outbox transaction |
 
 Required MongoDB transactions are local to each owner; normal event consumers commit independently. Provider calls are outside these transactions. The explicit dev-release exception joins two module-owned writes in one local transaction; see its [runbook](../../runbooks/dev-purchase-reset.md). Unknown commits rely on replay/receipt resolution rather than resetting history.
 
@@ -47,4 +51,6 @@ These are boundary references, not Subscription-owned collections. Follow the [c
 
 Quota counters are keyed by user/type, not tier/version. Ledger records the accepted operation, amount, source/key/reference, server recording time, policy snapshot/version, allowance/window, used-after and limit-at-record; retries return this original accepted result. Counter and ledger commit together. Free activation preserves ledger and retains usage recorded since its effective instant when delayed. See [quota lifecycle](../../flows/subscription/quota-lifecycle.md).
 
-There is no approved TTL/deletion policy for unresolved purchases, payments, refunds, messages or necessary receipts. Existing null entitlement fingerprints migrate lazily, preserving histories and counters; events lost before durable delivery are not reconstructed. Operator/account provisioning tools remain described in [tools/subscription](../../../tools/subscription/README.md).
+Paid purchase snapshots retain the stable plan code, displayed version, display name, benefit grant list, complete quota policy and selected term price in the purchase and resulting period. The Subscription contract adds effective `planCode`, `serviceRights` (benefit codes) and `managedProduct`; Assessment uses the immutable full-analysis right for managed plans while retaining legacy Premium/Trial behavior. Quota policy scope remains `PREMIUM`, preserving existing quota accounting rules.
+
+There is no approved TTL/deletion policy for unresolved purchases, payments, refunds, messages or necessary receipts. Existing null entitlement fingerprints migrate lazily, preserving histories and counters; events lost before durable delivery are not reconstructed. Current development sample import steps are in the [Mongo JSON importer guide](../../../tools/mongo-json-importer/README.md); the [legacy Subscription entry](../../../tools/subscription/README.md) explains the retired startup-manifest flow.

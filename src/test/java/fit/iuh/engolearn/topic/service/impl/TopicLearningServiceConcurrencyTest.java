@@ -1,5 +1,7 @@
 package fit.iuh.engolearn.topic.service.impl;
 
+import fit.iuh.engolearn.topic.mapper.TopicLearnerMediaMapper;
+import fit.iuh.engolearn.topic.service.TopicMediaService;
 import fit.iuh.engolearn.topic.service.*;
 
 import fit.iuh.engolearn.shared.enums.CefrLevel;
@@ -49,6 +51,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
+import static org.mockito.Mockito.mock;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
@@ -100,6 +103,9 @@ class TopicLearningServiceConcurrencyTest {
     @Mock
     private UserLevelLookup userLevels;
 
+    @Mock
+    private TopicLearnerCatalogService catalog;
+
     private TopicLearningServiceImpl service;
 
     /** The store the stubs read from; it is replaced between the rounds of the race. */
@@ -109,7 +115,7 @@ class TopicLearningServiceConcurrencyTest {
     void setUp() {
         service = new TopicLearningServiceImpl(topicRepository, topicVersionRepository, topicItemRepository,
                 topicItemVersionRepository, userTopicProgressRepository, userTopicItemProgressRepository,
-                userTopicAttemptRepository, userTopicItemAttemptRepository, userLevels, generations);
+                userTopicAttemptRepository, userTopicItemAttemptRepository, userLevels, generations, catalog, new TopicLearnerMediaMapper(mock(TopicMediaService.class)));
     }
 
     @Test

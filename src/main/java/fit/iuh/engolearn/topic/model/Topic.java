@@ -3,6 +3,7 @@ package fit.iuh.engolearn.topic.model;
 import fit.iuh.engolearn.shared.BaseDocument;
 import fit.iuh.engolearn.shared.enums.CefrLevel;
 import fit.iuh.engolearn.topic.model.enums.TopicCategory;
+import fit.iuh.engolearn.topic.model.vo.TopicMediaReferenceVo;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
 import org.springframework.data.mongodb.core.mapping.Document;
@@ -50,4 +51,10 @@ public class Topic extends BaseDocument {
 
     @Field("tags")
     private List<String> tags;
+
+    @Field("revision")
+    private Long revision;
+
+    @Field("media_references")
+    private List<TopicMediaReferenceVo> mediaReferences;
 }

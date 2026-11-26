@@ -13,8 +13,11 @@ import fit.iuh.engolearn.payment.service.PaymentOutcomeService;
 import fit.iuh.engolearn.quota.contract.*;
 import fit.iuh.engolearn.quota.contract.dto.UsageCommandDto;
 import fit.iuh.engolearn.quota.repository.QuotaRepository;
+import fit.iuh.engolearn.assessment.service.AssessmentAccess;
 import fit.iuh.engolearn.shared.messaging.*;
 import fit.iuh.engolearn.shared.messaging.repository.DurableMessageRepository;
+import fit.iuh.engolearn.shared.enums.UserRole;
+import fit.iuh.engolearn.shared.security.impl.JwtTokenService;
 import fit.iuh.engolearn.subscription.contract.dto.*;
 import fit.iuh.engolearn.subscription.dto.request.*;
 import fit.iuh.engolearn.subscription.dto.request.CreatePurchaseRequest;
@@ -28,6 +31,8 @@ import fit.iuh.engolearn.subscription.repository.*;
 import fit.iuh.engolearn.subscription.repository.SubscriptionMessageRepository;
 import fit.iuh.engolearn.subscription.service.*;
 import fit.iuh.engolearn.subscription.service.SubscriptionService;
+import fit.iuh.engolearn.user.model.RefreshSession;
+import fit.iuh.engolearn.user.model.User;
 import java.time.*;
 import java.util.*;
 import java.util.concurrent.*;
@@ -38,9 +43,12 @@ import org.springframework.context.annotation.*;
 import org.springframework.dao.DataAccessException;
 import org.springframework.http.*;
 import org.springframework.http.MediaType;
+import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.test.context.TestPropertySource;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.RestTemplate;
 import org.testcontainers.junit.jupiter.EnabledIfDockerAvailable;
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
@@ -49,13 +57,14 @@ import tools.jackson.databind.ObjectMapper;
 
 
 @EnabledIfDockerAvailable
+@ActiveProfiles("dev")
 @Import(PurchaseFlowIntegrationTest.TimeConfig.class)
 @TestPropertySource(properties={"engolearn.messaging.enabled=false","engolearn.subscription.activation-delay-ms=3600000",
         "engolearn.payment.vnpay.enabled=false","engolearn.payment.vnpay.worker-enabled=false","engolearn.payment.dev-reset.enabled=true"})
 class PurchaseFlowIntegrationTest extends AbstractMongoIntegrationTest {
     static final Instant START=Instant.parse("2027-01-31T03:00:00Z");
     static final String USER="68f8f3a9b9e4a12345678901";
-    static final CreatePurchaseRequest MONTH=new CreatePurchaseRequest("PREMIUM","MONTHLY");
+    static final CreatePurchaseRequest MONTH=new CreatePurchaseRequest("PREMIUM","MONTHLY",1L);
     static class MutableClock extends Clock {
         volatile Instant now=START;
         public ZoneId getZone(){return ZoneOffset.UTC;}
@@ -77,6 +86,8 @@ class PurchaseFlowIntegrationTest extends AbstractMongoIntegrationTest {
     @MockitoSpyBean PaymentMessageRepository paymentMessages;
     @Autowired MongoMessageTransactions messageTransactions;
     @Autowired ObjectMapper mapper;
+    @Autowired JwtTokenService tokens;
+    @Autowired AssessmentAccess assessmentAccess;
 
     @BeforeEach void fixtures(){
         clock.now=START;repositories.forEach(DurableMessageRepository::ensureStorage);quotaStore.ensureIndexes();
@@ -94,6 +105,47 @@ class PurchaseFlowIntegrationTest extends AbstractMongoIntegrationTest {
                         List.of(new PlanBenefitResponse("TEST","Test","Test benefit",null,0))));
     }
     String key(){return UUID.randomUUID().toString();}
+    String productsApi(){return "http://localhost:"+port+"/api/v1/subscription/admin/products";}
+    HttpHeaders adminHeaders(){HttpHeaders headers=new HttpHeaders();headers.setContentType(MediaType.APPLICATION_JSON);
+        authenticate(headers,ADMIN,UserRole.ADMIN);return headers;}
+    tools.jackson.databind.JsonNode adminCall(HttpHeaders headers,HttpMethod method,String path,Object body,int status){
+        RestTemplate client=method==HttpMethod.PATCH?new RestTemplate(new JdkClientHttpRequestFactory()):restTemplate;
+        var response=client.exchange(productsApi()+path,method,new HttpEntity<>(body,headers),String.class);
+        assertThat(response.getStatusCode().value()).isEqualTo(status);
+        try{return mapper.readTree(response.getBody()).path("data");}catch(Exception failure){throw new IllegalStateException(failure);}
+    }
+    tools.jackson.databind.JsonNode createPublishedProduct(HttpHeaders headers,String planCode,
+            SubscriptionProductContentRequest content){
+        var created=adminCall(headers,HttpMethod.POST,"",new CreateSubscriptionProductRequest(planCode),201);
+        var saved=adminCall(headers,HttpMethod.PUT,"/"+planCode+"/draft",
+                new SaveSubscriptionProductDraftRequest(created.path("draftRevision").asLong(),content),200);
+        headers.set("Idempotency-Key",key());
+        return adminCall(headers,HttpMethod.POST,"/"+planCode+"/publish",
+                new PublishSubscriptionProductRequest(saved.path("draftRevision").asLong()),201);
+    }
+    SubscriptionProductContentRequest dynamicContent(boolean fullAnalysis,long attemptLimit){
+        var benefits=new ArrayList<AdminPublicationRequest.PlanBenefitRequest>();
+        benefits.add(new AdminPublicationRequest.PlanBenefitRequest("PROFICIENCY_CHECK_ATTEMPT",
+                "Số lượt kiểm tra năng lực","Bài kiểm tra năng lực",attemptLimit+" lượt/tháng",0));
+        if(fullAnalysis)benefits.add(new AdminPublicationRequest.PlanBenefitRequest("ASSESSMENT_FULL_ANALYSIS",
+                "Xem phân tích đầy đủ","Xem phân tích đầy đủ","Có",1));
+        return new SubscriptionProductContentRequest("Dynamic plan","Integration fixture",10,benefits,
+                List.of(new AdminPublicationRequest.PlanBillingOptionRequest("MONTHLY",100000L,"VND")),
+                List.of(new AdminPublicationRequest.QuotaRuleRequest("PROFICIENCY_CHECK_ATTEMPT",
+                        "Số lượt kiểm tra năng lực","ATTEMPT","MONTHLY",attemptLimit,0)));
+    }
+    void authenticate(HttpHeaders headers, String userId, UserRole role) {
+        String sessionId = "purchase-it-session-" + userId;
+        mongoTemplate.save(new User(userId, userId + "@example.test", "unused", role, false));
+        mongoTemplate.save(RefreshSession.builder()
+                .id(sessionId)
+                .sessionId(sessionId)
+                .accountId(userId)
+                .expiresAt(Instant.now().plusSeconds(3600))
+                .revoked(false)
+                .build());
+        headers.set(HttpHeaders.COOKIE, "ACCESS_TOKEN=" + tokens.create(userId, sessionId, "access", 900));
+    }
     @Test void devResetRetainsUsageAndHistoryAndLateFactsCannotActivateOrReblock(){
         subscriptions.activateTrial(USER,key());
         consumption.consume(new UsageCommandDto(USER,"TEST",1,"TEST","dev-reset-usage","r",null));
@@ -125,7 +177,7 @@ class PurchaseFlowIntegrationTest extends AbstractMongoIntegrationTest {
     @Test void devResetHttpEnforcesOwnerAndRejectsPaidFactsAndRollsBackFailure(){
         PurchaseResponse p=vnCreate();String url="http://localhost:"+port+"/api/v1/subscription/me/purchases/"+p.purchaseReference()+"/dev-reset";
         assertThatThrownBy(()->restTemplate.postForEntity(url,null,String.class)).isInstanceOfSatisfying(HttpClientErrorException.class,e->assertThat(e.getStatusCode().value()).isEqualTo(401));
-        HttpHeaders headers=new HttpHeaders();headers.set("X-Dev-User-Id","dev-cm");
+        HttpHeaders headers=new HttpHeaders();authenticate(headers,"dev-cm",UserRole.CONTENT_MANAGER);
         assertThatThrownBy(()->restTemplate.exchange(url,HttpMethod.POST,new HttpEntity<>(headers),String.class)).isInstanceOfSatisfying(HttpClientErrorException.class,e->assertThat(e.getStatusCode().value()).isEqualTo(404));
         // The purchase write failure must roll back the Payment write in the same transaction.
         doThrow(new IllegalStateException("source write failed")).when(resetStore).save(any());
@@ -180,7 +232,7 @@ class PurchaseFlowIntegrationTest extends AbstractMongoIntegrationTest {
         String url="http://localhost:"+port+"/api/v1/subscription/me/purchases";
         assertThatThrownBy(()->restTemplate.getForEntity(url,String.class)).isInstanceOfSatisfying(HttpClientErrorException.class,
                 e->assertThat(e.getStatusCode().value()).isEqualTo(401));
-        HttpHeaders headers=new HttpHeaders();headers.set("X-Dev-User-Id","dev-user");
+        HttpHeaders headers=new HttpHeaders();authenticate(headers,USER,UserRole.USER);
         var empty=restTemplate.exchange(url,HttpMethod.GET,new HttpEntity<>(headers),String.class);
         assertThat(empty.getStatusCode().value()).isEqualTo(200);assertThat(empty.getHeaders().getCacheControl()).isEqualTo("no-store");
         assertThat(mapper.readTree(empty.getBody()).path("data").path("items").size()).isZero();
@@ -198,11 +250,80 @@ class PurchaseFlowIntegrationTest extends AbstractMongoIntegrationTest {
         var replay=purchases.create(USER,id.toUpperCase(Locale.ROOT),MONTH);
         assertThat(replay.created()).isFalse();assertThat(replay.purchase().amountVnd()).isEqualTo(100000);
         assertThat(replay.purchase().purchaseReference()).isEqualTo(original.purchase().purchaseReference());
-        assertThatThrownBy(()->purchases.create(USER,id,new CreatePurchaseRequest("PREMIUM","ANNUAL")))
+        assertThatThrownBy(()->purchases.create(USER,id,new CreatePurchaseRequest("PREMIUM","ANNUAL",1L)))
                 .isInstanceOfSatisfying(SubscriptionRequestException.class,e->assertThat(e.code()).isEqualTo("IDEMPOTENCY_CONFLICT"));
         assertThat(count("subscription_purchases")).isEqualTo(1);assertThat(count("subscription_outbox")).isEqualTo(1);
         assertThatThrownBy(()->purchases.detail("dev-cm",original.purchase().purchaseReference()))
                 .isInstanceOfSatisfying(SubscriptionRequestException.class,e->assertThat(e.status()).isEqualTo(404));
+    }
+
+    @Test void dynamicProductPurchaseKeepsPublishedSnapshotAcrossRepublishStopAndRefund(){
+        HttpHeaders admin=adminHeaders();String code="INTEGRATION_PLUS";
+        var v1=createPublishedProduct(admin,code,dynamicContent(true,3));
+        assertThat(v1.path("currentVersion").asLong()).isEqualTo(1);
+        PurchaseResponse purchase=purchases.create(USER,key(),new CreatePurchaseRequest(code,"MONTHLY",1L)).purchase();
+        PremiumPurchase order=store.findByReference(purchase.purchaseReference());
+        assertThat(order.getPlanCode()).isEqualTo(code);assertThat(order.getPlanVersion()).isEqualTo(1);
+        assertThat(order.getBenefitsSnapshot().getBenefits()).extracting("code")
+                .contains("PROFICIENCY_CHECK_ATTEMPT","ASSESSMENT_FULL_ANALYSIS");
+        assertThat(order.getPolicySnapshot().getRules().getFirst().getLimit()).isEqualTo(3);
+        assertThat(purchase.planDisplayName()).isEqualTo("Dynamic plan");assertThat(purchase.planVersion()).isEqualTo(1);
+        assertThat(purchase.planCode()).isEqualTo(code);
+        assertThat(purchases.history(USER,20,null).items().getFirst().planCode()).isEqualTo(code);
+
+        var detail=adminCall(admin,HttpMethod.GET,"/"+code,null,200);
+        var saved=adminCall(admin,HttpMethod.PUT,"/"+code+"/draft",
+                new SaveSubscriptionProductDraftRequest(detail.path("draftRevision").asLong(),dynamicContent(false,7)),200);
+        admin.set("Idempotency-Key",key());
+        var v2=adminCall(admin,HttpMethod.POST,"/"+code+"/publish",
+                new PublishSubscriptionProductRequest(saved.path("draftRevision").asLong()),201);
+        assertThat(v2.path("currentVersion").asLong()).isEqualTo(2);
+        adminCall(admin,HttpMethod.PATCH,"/"+code+"/sale",new SetProductSaleStatusRequest("STOPPED"),200);
+
+        drain();outcomes.confirmSuccess(paymentId(purchase),purchase.amountVnd(),"VND",clock.instant());drain();
+        SubscriptionPeriod period=mongoTemplate.findAll(SubscriptionPeriod.class).stream()
+                .filter(value->value.getKind()!=PeriodKind.TRIAL).findFirst().orElseThrow();
+        assertThat(period.getBenefits().getPlanCode()).isEqualTo(code);
+        assertThat(period.getBenefits().isManagedProduct()).isTrue();
+        assertThat(period.getBenefits().getBenefits()).extracting("code").contains("ASSESSMENT_FULL_ANALYSIS");
+        assertThat(period.getSnapshot().getRules().getFirst().getLimit()).isEqualTo(3);
+        assertThat(subscriptions.summary(USER).currentPlanCode()).isEqualTo(code);
+        assertThat(assessmentAccess.currentGrant(USER)).isPresent();
+        assertThat(availability.checkAvailability(USER,"PROFICIENCY_CHECK_ATTEMPT").limit()).isEqualTo(3);
+        consumption.consume(new UsageCommandDto(USER,"PROFICIENCY_CHECK_ATTEMPT",1,"ASSESSMENT",
+                "dynamic-refund-usage",null,null));
+
+        var refund=subscriptionRefunds.request(ADMIN,purchase.purchaseReference(),key(),"Dynamic plan refund").refund();drain();
+        var refundPayment=refundTransaction(refund);assertThat(refundOutcomes.startProcessing(refundPayment.getId())).isTrue();
+        refundOutcomes.confirmSuccess(refundPayment.getId(),purchase.amountVnd(),"VND",clock.instant());drain();
+        assertThat(subscriptions.summary(USER).tier()).isEqualTo("FREE");
+        assertThat(subscriptions.summary(USER).currentPlanCode()).isEqualTo("FREE");
+        assertThat(assessmentAccess.currentGrant(USER)).isEmpty();
+        assertThat(availability.checkAvailability(USER,"TEST").limit()).isEqualTo(2);
+        assertThat(count("quota_usage_ledger")).isEqualTo(1);
+    }
+
+    @Test void differentDynamicPlanCodesStillShareOneLearnerPendingPurchaseLock()throws Exception{
+        HttpHeaders admin=adminHeaders();
+        createPublishedProduct(admin,"DYNAMIC_ALPHA",dynamicContent(true,3));
+        createPublishedProduct(admin,"DYNAMIC_BETA",dynamicContent(false,5));
+        ExecutorService pool=Executors.newFixedThreadPool(2);CountDownLatch start=new CountDownLatch(1);
+        try{
+            java.util.function.Function<String,Callable<Boolean>> action=planCode->()->{
+                start.await(10,TimeUnit.SECONDS);
+                try{purchases.create(USER,key(),new CreatePurchaseRequest(planCode,"MONTHLY",1L));return true;}
+                catch(SubscriptionRequestException error){
+                    assertThat(error.code()).isEqualTo("PURCHASE_PENDING");return false;
+                }
+            };
+            Future<Boolean> first=pool.submit(action.apply("DYNAMIC_ALPHA"));
+            Future<Boolean> second=pool.submit(action.apply("DYNAMIC_BETA"));start.countDown();
+            assertThat(List.of(first.get(20,TimeUnit.SECONDS),second.get(20,TimeUnit.SECONDS)))
+                    .containsExactlyInAnyOrder(true,false);
+            assertThat(count("subscription_purchases")).isEqualTo(1);
+            assertThat(count("subscription_outbox")).isEqualTo(1);
+            assertThat(store.findBlocking(USER).getPlanCode()).isIn("DYNAMIC_ALPHA","DYNAMIC_BETA");
+        }finally{pool.shutdownNow();}
     }
     @RepeatedTest(2) void concurrentDifferentKeysCreateOneBlockingPurchase()throws Exception{
         ExecutorService pool=Executors.newFixedThreadPool(2);CountDownLatch start=new CountDownLatch(1);
@@ -247,13 +368,13 @@ class PurchaseFlowIntegrationTest extends AbstractMongoIntegrationTest {
         HttpHeaders headers=new HttpHeaders();headers.setContentType(MediaType.APPLICATION_JSON);headers.set("Idempotency-Key",key());
         assertThatThrownBy(()->restTemplate.postForEntity(url,new HttpEntity<>("{\"planCode\":\"PREMIUM\",\"billingPeriod\":\"MONTHLY\"}",headers),String.class))
                 .isInstanceOfSatisfying(HttpClientErrorException.class,e->assertThat(e.getStatusCode().value()).isEqualTo(401));
-        headers.set("X-Dev-User-Id","dev-user");
+        authenticate(headers,USER,UserRole.USER);
         assertThatThrownBy(()->restTemplate.postForEntity(url,new HttpEntity<>("{\"planCode\":\"PREMIUM\",\"billingPeriod\":\"MONTHLY\",\"amount\":1}",headers),String.class))
                 .isInstanceOfSatisfying(HttpClientErrorException.class,e->assertThat(e.getStatusCode().value()).isEqualTo(400));
-        String body="{\"planCode\":\"PREMIUM\",\"billingPeriod\":\"MONTHLY\"}";
+        String body="{\"planCode\":\"PREMIUM\",\"billingPeriod\":\"MONTHLY\",\"expectedVersion\":1}";
         assertThat(restTemplate.postForEntity(url,new HttpEntity<>(body,headers),String.class).getStatusCode().value()).isEqualTo(201);
         assertThat(restTemplate.postForEntity(url,new HttpEntity<>(body,headers),String.class).getStatusCode().value()).isEqualTo(200);
-        var purchase=store.findByIntent(USER,headers.getFirst("Idempotency-Key"));headers.set("X-Dev-User-Id","dev-cm");
+        var purchase=store.findByIntent(USER,headers.getFirst("Idempotency-Key"));authenticate(headers,"dev-cm",UserRole.CONTENT_MANAGER);
         assertThatThrownBy(()->restTemplate.exchange(url+"/"+purchase.getPurchaseReference(),HttpMethod.GET,new HttpEntity<>(headers),String.class))
                 .isInstanceOfSatisfying(HttpClientErrorException.class,e->assertThat(e.getStatusCode().value()).isEqualTo(404));
     }
@@ -337,7 +458,7 @@ class PurchaseFlowIntegrationTest extends AbstractMongoIntegrationTest {
     }
     @Test void annualLeapDayAndDelayedSuccessDoNotExtendExpiredPremium(){
         clock.now=Instant.parse("2028-02-29T03:00:00Z");Instant paid=clock.instant();
-        PurchaseResponse purchase=purchases.create(USER,key(),new CreatePurchaseRequest("PREMIUM","ANNUAL")).purchase();drain();
+        PurchaseResponse purchase=purchases.create(USER,key(),new CreatePurchaseRequest("PREMIUM","ANNUAL",1L)).purchase();drain();
         outcomes.markUnknown(paymentId(purchase));assertThat(store.findByReference(purchase.purchaseReference()).isBlocksNewPurchase()).isTrue();
         clock.now=paid.plus(Duration.ofDays(400));outcomes.confirmSuccess(paymentId(purchase),purchase.amountVnd(),"VND",paid);drain();
         assertThat(purchases.detail(USER,purchase.purchaseReference()).periodEndAt()).isEqualTo(Instant.parse("2029-02-28T03:00:00Z"));
@@ -362,7 +483,7 @@ class PurchaseFlowIntegrationTest extends AbstractMongoIntegrationTest {
     @Autowired fit.iuh.engolearn.payment.infra.event.RefundMessageConsumer refundConsumer;
     static final String ADMIN="68f8f3a9b9e4a12345678903";
     PurchaseResponse paidPurchase(String billing){
-        PurchaseResponse p=purchases.create(USER,key(),new CreatePurchaseRequest("PREMIUM",billing)).purchase();drain();
+        PurchaseResponse p=purchases.create(USER,key(),new CreatePurchaseRequest("PREMIUM",billing,1L)).purchase();drain();
         outcomes.confirmSuccess(paymentId(p),p.amountVnd(),"VND",clock.instant());drain();
         return purchases.detail(USER,p.purchaseReference());
     }
@@ -517,11 +638,11 @@ class PurchaseFlowIntegrationTest extends AbstractMongoIntegrationTest {
         assertThatThrownBy(()->restTemplate.postForEntity(url,new HttpEntity<>(body,headers),String.class))
                 .isInstanceOfSatisfying(HttpClientErrorException.class,e->assertThat(e.getStatusCode().value()).isEqualTo(401));
         for(String user:List.of("dev-user","dev-cm")){
-            headers.set("X-Dev-User-Id",user);
+            authenticate(headers,user.equals("dev-user")?USER:"dev-cm",user.equals("dev-user")?UserRole.USER:UserRole.CONTENT_MANAGER);
             assertThatThrownBy(()->restTemplate.postForEntity(url,new HttpEntity<>(body,headers),String.class))
                     .isInstanceOfSatisfying(HttpClientErrorException.class,e->assertThat(e.getStatusCode().value()).isEqualTo(403));
         }
-        headers.set("X-Dev-User-Id","dev-admin");
+        authenticate(headers,"dev-admin",UserRole.ADMIN);
         for(String invalid:List.of("{\"reason\":\"\"}","{\"reason\":\"x\",\"amountVnd\":1}","{\"reason\":\"x\",\"userId\":\"other\"}"))
             assertThatThrownBy(()->restTemplate.postForEntity(url,new HttpEntity<>(invalid,headers),String.class))
                     .isInstanceOfSatisfying(HttpClientErrorException.class,e->assertThat(e.getStatusCode().value()).isEqualTo(400));

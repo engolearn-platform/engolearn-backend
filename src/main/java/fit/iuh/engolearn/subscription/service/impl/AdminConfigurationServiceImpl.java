@@ -13,6 +13,7 @@ import fit.iuh.engolearn.subscription.model.*;
 import fit.iuh.engolearn.subscription.model.vo.*;
 import fit.iuh.engolearn.subscription.mapper.SubscriptionModelMapper;
 import fit.iuh.engolearn.subscription.repository.SubscriptionRepository;
+import fit.iuh.engolearn.subscription.repository.SubscriptionProductRepository;
 
 import java.security.MessageDigest;
 import java.time.*;
@@ -28,6 +29,7 @@ import tools.jackson.databind.ObjectMapper;
 public class AdminConfigurationServiceImpl implements AdminConfigurationService {
     private static final ZoneId ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
     private final SubscriptionRepository store;
+    private final SubscriptionProductRepository products;
     private final SubscriptionTransactions transactions;
     private final Clock clock;
     private final ObjectMapper mapper;
@@ -46,6 +48,12 @@ public class AdminConfigurationServiceImpl implements AdminConfigurationService 
 
     private SubscriptionRequestException unavailable() {
         return error(503, "CONFIGURATION_UNAVAILABLE", "Published configuration cannot be confirmed");
+    }
+
+    private void requireLegacyPremiumNotAdopted(String scope) {
+        if ("PREMIUM".equals(scope) && products.findProduct("PREMIUM") != null)
+            throw error(409, "DYNAMIC_PRODUCTS_REQUIRED",
+                    "Premium configuration is managed through the product catalog; use product history for previous versions");
     }
 
     private <T> T read(Supplier<T> action) {
@@ -118,7 +126,7 @@ public class AdminConfigurationServiceImpl implements AdminConfigurationService 
     private ConfigurationContentRequest content(PolicyVersion p) {
         CurrentBenefitsVo benefits = p.getBenefits();
         if (benefits == null || !p.getId().equals(benefits.getPolicySnapshotId()) ||
-                !(p.getScope().name().equals("FREE") ? "FREE" : "PREMIUM").equals(benefits.getPlanCode().name()))
+                !(p.getScope().name().equals("FREE") ? "FREE" : "PREMIUM").equals(benefits.getPlanCode()))
             throw unavailable();
         PlanVersion offer = null;
         if (!p.getScope().name().equals("TRIAL")) {
@@ -137,6 +145,7 @@ public class AdminConfigurationServiceImpl implements AdminConfigurationService 
 
     public AdminConfigurationResponse configuration(String scope) {
         return read(() -> {
+            requireLegacyPremiumNotAdopted(scope);
             Instant at = now();
             baseline(at);
             canonical();
@@ -155,6 +164,7 @@ public class AdminConfigurationServiceImpl implements AdminConfigurationService 
 
     public ConfigurationHistoryResponse history(String scope, int limit, Long before) {
         return read(() -> {
+            requireLegacyPremiumNotAdopted(scope);
             Instant at = now();
             baseline(at);
             List<PolicyVersion> all =
@@ -166,6 +176,7 @@ public class AdminConfigurationServiceImpl implements AdminConfigurationService 
 
     public ConfigurationVersionResponse detail(String scope, long number) {
         return read(() -> {
+            requireLegacyPremiumNotAdopted(scope);
             Instant at = now();
             baseline(at);
             return version(policies(scope).stream()
@@ -268,6 +279,8 @@ public class AdminConfigurationServiceImpl implements AdminConfigurationService 
     }
 
     public ConfigurationPreviewResponse preview(String scope, AdminPublicationRequest input) {
+        if ("PREMIUM".equals(scope)) throw error(409, "DYNAMIC_PRODUCTS_REQUIRED",
+                "Publish paid offers through the product catalog");
         AdminPublicationRequest normalized = normalize(input);
         return read(() -> previewAt(scope, normalized, now()));
     }
@@ -289,6 +302,8 @@ public class AdminConfigurationServiceImpl implements AdminConfigurationService 
     }
 
     public Accepted publish(String actor, String key, String scope, AdminPublicationRequest input) {
+        if ("PREMIUM".equals(scope)) throw error(409, "DYNAMIC_PRODUCTS_REQUIRED",
+                "Publish paid offers through the product catalog");
         AdminPublicationRequest normalized = normalize(input);
         String hash = fingerprint(scope, normalized);
         try {

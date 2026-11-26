@@ -7,6 +7,7 @@ import fit.iuh.engolearn.subscription.model.vo.QuotaRuleVo;
 import fit.iuh.engolearn.subscription.model.*;
 import fit.iuh.engolearn.subscription.mapper.SubscriptionModelMapper;
 import fit.iuh.engolearn.subscription.repository.SubscriptionRepository;
+import fit.iuh.engolearn.subscription.repository.SubscriptionProductRepository;
 
 import java.time.Clock;
 import java.util.*;
@@ -17,6 +18,7 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class SubscriptionActivationServiceImpl implements SubscriptionActivationService {
     private final SubscriptionRepository store;
+    private final SubscriptionProductRepository products;
     private final SubscriptionTransactions transactions;
     private final Clock clock;
     private final SubscriptionMessagePublisher messages;
@@ -34,6 +36,16 @@ public class SubscriptionActivationServiceImpl implements SubscriptionActivation
                         state.getActiveVersionId() == null ? null : store.findPolicyVersion(state.getActiveVersionId()),
                         next = store.findPolicyVersion(state.getPendingVersionId());
                 if (!store.activatePendingPolicy(state)) return null;
+                if ("PREMIUM".equals(state.getId())) {
+                    var product = products.findProduct("PREMIUM");
+                    if (product != null && product.getLegacyScheduleVersion() != null
+                            && product.getLegacyScheduleVersion() == next.getVersion()) {
+                        if (!products.applyLegacySchedule("PREMIUM", product.getCurrentVersion(), next.getVersion())
+                                || !products.setLegacyScheduleStatus("PREMIUM", next.getVersion(), "APPLIED"))
+                            throw new org.springframework.dao.OptimisticLockingFailureException(
+                                    "Legacy Premium schedule changed");
+                    }
+                }
                 if ("FREE".equals(state.getId())) {
                     Map<String, QuotaRuleVo> prior = new HashMap<>();
                     for (QuotaRuleVo r : old.getSnapshot().getRules())

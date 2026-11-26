@@ -8,6 +8,10 @@ try {
         if (status.ok !== 1) {
             throw status;
         }
+        if (status.members.length !== 1) {
+            print('EngoLearn requires a single-node replica set; existing topology was not changed.');
+            quit(1);
+        }
     } catch (error) {
         if (error.code !== 94) {
             throw error;

@@ -1,18 +1,25 @@
 package fit.iuh.engolearn.topic.service.impl;
 
+import fit.iuh.engolearn.topic.mapper.TopicLearnerMediaMapper;
+import fit.iuh.engolearn.topic.service.TopicMediaService;
 import fit.iuh.engolearn.topic.service.*;
 
 import fit.iuh.engolearn.shared.enums.CefrLevel;
+import fit.iuh.engolearn.topic.contract.dto.SpeakingScopeDto;
+import fit.iuh.engolearn.topic.contract.enums.SpeakingScopeType;
 import fit.iuh.engolearn.topic.dto.request.GetTopicItemContentRequest;
 import fit.iuh.engolearn.topic.dto.request.GetTopicItemPositionRequest;
 import fit.iuh.engolearn.topic.dto.request.GetTopicProgressRequest;
 import fit.iuh.engolearn.topic.dto.request.SaveTopicItemPositionRequest;
+import fit.iuh.engolearn.topic.dto.response.TopicDetailResponse;
 import fit.iuh.engolearn.topic.dto.response.TopicItemContentResponse;
 import fit.iuh.engolearn.topic.dto.response.TopicItemPositionResponse;
 import fit.iuh.engolearn.topic.dto.response.TopicItemProgressResponse;
+import fit.iuh.engolearn.topic.dto.response.TopicItemSummaryResponse;
 import fit.iuh.engolearn.topic.dto.response.TopicProgressResponse;
 import fit.iuh.engolearn.topic.exception.LearningPreconditionFailedException;
 import fit.iuh.engolearn.topic.exception.TopicItemNotFoundException;
+import fit.iuh.engolearn.topic.mapper.TopicRetrySessionMapper;
 import fit.iuh.engolearn.topic.model.Topic;
 import fit.iuh.engolearn.topic.model.TopicItem;
 import fit.iuh.engolearn.topic.model.TopicItemVersion;
@@ -27,6 +34,7 @@ import fit.iuh.engolearn.topic.model.enums.AttemptType;
 import fit.iuh.engolearn.topic.model.enums.ContentStatus;
 import fit.iuh.engolearn.topic.model.enums.ItemProgressStatus;
 import fit.iuh.engolearn.topic.model.enums.LearningStage;
+import fit.iuh.engolearn.topic.model.vo.CompletionResultVo;
 import fit.iuh.engolearn.topic.model.vo.DialogueTurnVo;
 import fit.iuh.engolearn.topic.model.vo.ExpressionBlockVo;
 import fit.iuh.engolearn.topic.model.vo.ExpressionExampleVo;
@@ -41,6 +49,7 @@ import fit.iuh.engolearn.topic.model.vo.WordSnapshotVo;
 import fit.iuh.engolearn.topic.repository.TopicItemRepository;
 import fit.iuh.engolearn.topic.repository.TopicItemVersionRepository;
 import fit.iuh.engolearn.topic.repository.TopicRepository;
+import fit.iuh.engolearn.topic.repository.TopicRetryRuntimeRepository;
 import fit.iuh.engolearn.topic.repository.TopicVersionRepository;
 import fit.iuh.engolearn.topic.repository.UserTopicAttemptRepository;
 import fit.iuh.engolearn.topic.repository.UserTopicItemAttemptRepository;
@@ -60,6 +69,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import static org.mockito.Mockito.mock;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -120,13 +130,55 @@ class TopicLearningServiceImplTest {
     @Mock
     private UserLevelLookup userLevels;
 
+    @Mock
+    private TopicBrowseService browse;
+
+    @Mock
+    private TopicRetryRuntimeRepository retryRuntimes;
+
+    private TopicLearnerCatalogService catalog;
     private TopicLearningServiceImpl service;
 
     @BeforeEach
     void setUp() {
+        catalog = new TopicLearnerCatalogServiceImpl(browse, userLevels, userTopicProgressRepository,
+                userTopicItemProgressRepository, userTopicItemAttemptRepository, userTopicAttemptRepository,
+                generations, retryRuntimes, new TopicRetrySessionMapper(), topicRepository,
+                topicVersionRepository, topicItemVersionRepository, mock(TopicMediaService.class));
         service = new TopicLearningServiceImpl(topicRepository, topicVersionRepository, topicItemRepository,
                 topicItemVersionRepository, userTopicProgressRepository, userTopicItemProgressRepository,
-                userTopicAttemptRepository, userTopicItemAttemptRepository, userLevels, generations);
+                userTopicAttemptRepository, userTopicItemAttemptRepository, userLevels, generations, catalog, new TopicLearnerMediaMapper(mock(TopicMediaService.class)));
+    }
+
+    @Test
+    void speakingOpensCompletedSecondItemWhenCompletionIsOnlyStoredOnAttempts() {
+        stubPublishedRelease();
+        stubTopicItems();
+        when(userLevels.findLevel(USER)).thenReturn(Optional.of(CefrLevel.A2));
+        when(browse.getTopicDetail(any())).thenAnswer(invocation -> TopicDetailResponse.builder()
+                .topicId(TOPIC_ID)
+                .cefrLevel(CefrLevel.A2)
+                .items(List.of(
+                        TopicItemSummaryResponse.builder().topicItemId(ITEM_ONE).publishedVersionId(VERSION_ONE).build(),
+                        TopicItemSummaryResponse.builder().topicItemId(ITEM_TWO).publishedVersionId(VERSION_TWO).build()))
+                .build());
+        var first = completedLearningAttempt(ITEM_ONE, VERSION_ONE);
+        var second = completedLearningAttempt(ITEM_TWO, VERSION_TWO);
+        when(userTopicItemAttemptRepository.findByUserId(USER)).thenReturn(List.of(first, second));
+        when(userTopicItemAttemptRepository.findByUserIdAndTopicItemId(USER, ITEM_TWO)).thenReturn(List.of(second));
+
+        assertThat(catalog.detail(USER, TOPIC_ID).getItems().get(1).getActions().review().allowed()).isTrue();
+        var scope = new SpeakingScopeDto(SpeakingScopeType.TOPIC_ITEM, TOPIC_ID, ITEM_TWO);
+        assertThat(service.openableScope(USER, scope).release()).isNotNull();
+        assertThat(service.openableScope(USER, scope).release().version()).isEqualTo(VERSION_TWO);
+    }
+
+    private UserTopicItemAttempt completedLearningAttempt(String itemId, String versionId) {
+        return UserTopicItemAttempt.builder().id("attempt-" + itemId).userId(USER).topicId(TOPIC_ID)
+                .topicItemId(itemId).topicItemVersionId(versionId).attemptType(AttemptType.LEARNING)
+                .status(AttemptStatus.COMPLETED).completedAt(Instant.parse("2026-11-08T00:00:00Z"))
+                .completionResult(CompletionResultVo.builder().firstTryCorrectCount(1).totalQuizCount(1).build())
+                .build();
     }
 
     // --- content ------------------------------------------------------------------------

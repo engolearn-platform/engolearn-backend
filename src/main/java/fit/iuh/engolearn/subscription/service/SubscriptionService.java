@@ -7,6 +7,7 @@ import java.util.List;
 
 public interface SubscriptionService {
     List<PlanCardResponse> plans();
+    PlanCardResponse product(String planCode);
     MySubscriptionSummaryResponse summary(String userId);
     PolicyVersion policy(String scope, Instant at);
     ActivationResult activateTrial(String userId, String key);

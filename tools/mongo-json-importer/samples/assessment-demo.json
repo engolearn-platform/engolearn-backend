@@ -1,7 +1,7 @@
 {
   "metadata": {
     "name": "assessment-learningpath-shared-demo",
-    "version": 3,
+    "version": 4,
     "generatedAt": "2026-11-07T09:41:05.679Z",
     "scope": "Reviewed F01/F02 data with shared Learning Path demo account; development only"
   },
@@ -1030,6 +1030,18 @@
       {
         "_id": "pfc-demo-learner-v2",
         "cefr_level": "A2"
+      }
+    ],
+    "subscription_accounts": [
+      {
+        "_id": "pfc-demo-learner-v2",
+        "created_at": { "$date": "2026-11-07T09:41:05.679Z" },
+        "updated_at": { "$date": "2026-11-07T09:41:05.679Z" },
+        "trial_used": false,
+        "entitlement_version": { "$numberLong": "0" },
+        "entitlement_fingerprint": null,
+        "revision": { "$numberLong": "0" },
+        "provenance": "NEW_ACCOUNT"
       }
     ],
     "assessment_gates": [
