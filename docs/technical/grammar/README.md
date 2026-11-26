@@ -16,3 +16,5 @@ Ba collection nghiệp vụ là `grammar_topics`, `grammar_lessons`, `grammar_le
 Quản trị yêu cầu CONTENT_MANAGER, ADMIN kế thừa; học viên dùng quyền USER kế thừa theo [quy tắc RBAC](../../architecture/security-authorization.md). Luồng học chỉ đọc bản Published. Không đổi User profile khi hoàn thành Grammar, không tự tích hợp đánh giá định kỳ.
 
 Kế hoạch triển khai và báo cáo theo ngày được lưu trong Git history và bản local, không bàn giao như hướng dẫn hiện hành. Trạng thái xuất bản/progress của DB từng máy không phải trạng thái mặc định của seed.
+
+Trạng thái demo dùng chung trên máy thành viên: [setup qua Admin API](../../../tools/mongo-json-importer/README.md#shared-placementgrammar-demo-state), có dry-run, kiểm tra nội dung và giữ lịch sử/tiến độ.

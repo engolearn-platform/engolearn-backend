@@ -5,6 +5,8 @@ import fit.iuh.engolearn.topic.service.TopicMediaService;
 import fit.iuh.engolearn.topic.service.*;
 
 import fit.iuh.engolearn.shared.enums.CefrLevel;
+import fit.iuh.engolearn.topic.contract.dto.SpeakingScopeDto;
+import fit.iuh.engolearn.topic.contract.enums.SpeakingScopeType;
 import fit.iuh.engolearn.topic.dto.request.GetTopicItemContentRequest;
 import fit.iuh.engolearn.topic.dto.request.GetTopicItemPositionRequest;
 import fit.iuh.engolearn.topic.dto.request.GetTopicProgressRequest;
@@ -141,7 +143,8 @@ class TopicLearningServiceImplTest {
     void setUp() {
         catalog = new TopicLearnerCatalogServiceImpl(browse, userLevels, userTopicProgressRepository,
                 userTopicItemProgressRepository, userTopicItemAttemptRepository, userTopicAttemptRepository,
-                generations, retryRuntimes, new TopicRetrySessionMapper());
+                generations, retryRuntimes, new TopicRetrySessionMapper(), topicRepository,
+                topicVersionRepository, topicItemVersionRepository, mock(TopicMediaService.class));
         service = new TopicLearningServiceImpl(topicRepository, topicVersionRepository, topicItemRepository,
                 topicItemVersionRepository, userTopicProgressRepository, userTopicItemProgressRepository,
                 userTopicAttemptRepository, userTopicItemAttemptRepository, userLevels, generations, catalog, new TopicLearnerMediaMapper(mock(TopicMediaService.class)));
@@ -165,8 +168,9 @@ class TopicLearningServiceImplTest {
         when(userTopicItemAttemptRepository.findByUserIdAndTopicItemId(USER, ITEM_TWO)).thenReturn(List.of(second));
 
         assertThat(catalog.detail(USER, TOPIC_ID).getItems().get(1).getActions().review().allowed()).isTrue();
-        assertThat(service.findOpenableItem(ITEM_TWO, USER)).hasValueSatisfying(item ->
-                assertThat(item.itemVersionId()).isEqualTo(VERSION_TWO));
+        var scope = new SpeakingScopeDto(SpeakingScopeType.TOPIC_ITEM, TOPIC_ID, ITEM_TWO);
+        assertThat(service.openableScope(USER, scope).release()).isNotNull();
+        assertThat(service.openableScope(USER, scope).release().version()).isEqualTo(VERSION_TWO);
     }
 
     private UserTopicItemAttempt completedLearningAttempt(String itemId, String versionId) {

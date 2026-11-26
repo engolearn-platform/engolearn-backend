@@ -24,6 +24,46 @@ public class QuestionPoolRepository {
         this.mongoTemplate = mongoTemplate;
     }
 
+    public boolean hasPassageReferences(String passageId) {
+        return mongoTemplate.exists(Query.query(Criteria.where("passage_id").is(passageId)), "question_pool");
+    }
+
+    public long countPassageReferences(String passageId) {
+        return mongoTemplate.count(Query.query(Criteria.where("passage_id").is(passageId)), "question_pool");
+    }
+
+    public long countActivePassageReferences(String passageId) {
+        return mongoTemplate.count(Query.query(Criteria.where("passage_id").is(passageId)
+                .and("status").is("ACTIVE")), "question_pool");
+    }
+
+    public Map<String, Long> countReferencesByPassageIds(Set<String> passageIds) {
+        if (passageIds.isEmpty()) return Map.of();
+        return mongoTemplate.aggregate(Aggregation.newAggregation(
+                        Aggregation.match(Criteria.where("passage_id").in(passageIds)),
+                        Aggregation.group("passage_id").count().as("count")), "question_pool", Document.class)
+                .getMappedResults().stream()
+                .filter(row -> row.get("_id") instanceof String id && passageIds.contains(id))
+                .collect(Collectors.toUnmodifiableMap(row -> row.getString("_id"), row -> ((Number) row.get("count")).longValue()));
+    }
+
+    public long countIncompatiblePassageReferences(String passageId, String skill, String level) {
+        Criteria malformedArrays = new Criteria().andOperator(Criteria.where("passage_id").is(passageId),
+                new Criteria().orOperator(Criteria.where("skill").type(4), Criteria.where("level").type(4)));
+        // Mongo scalar equality also matches array elements; classifications must be scalar strings.
+        Criteria mismatch = new Criteria().orOperator(incompatiblePassageCriteria(passageId, skill, level), malformedArrays);
+        return mongoTemplate.count(Query.query(mismatch), "question_pool");
+    }
+
+    public boolean hasIncompatiblePassageReferences(String passageId, String skill, String level) {
+        return mongoTemplate.exists(Query.query(incompatiblePassageCriteria(passageId, skill, level)), "question_pool");
+    }
+
+    private Criteria incompatiblePassageCriteria(String passageId, String skill, String level) {
+        return new Criteria().andOperator(Criteria.where("passage_id").is(passageId),
+                new Criteria().orOperator(Criteria.where("skill").ne(skill), Criteria.where("level").ne(level)));
+    }
+
     public long countActive(String microSkill, String level) {
         return mongoTemplate.count(Query.query(activeCriteria(microSkill, level)), "question_pool");
     }

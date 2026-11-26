@@ -83,7 +83,7 @@ class SecurityIntegrationTest {
     private static final String SESSION_ID = "security-integration-session";
     private static final String DAY_URL = "/api/learning-paths/" + PATH_ID + "/weeks/1/days/1";
     private static final String CREATE_BODY = """
-            {"attemptId":"%s","microSkills":["Reading for Gist"]}
+            {"attemptId":"%s","level":"A2","microSkills":["Reading for Gist"]}
             """.formatted(ATTEMPT_ID);
 
     @Autowired
@@ -114,6 +114,15 @@ class SecurityIntegrationTest {
     @Autowired private JwtTokenService jwtTokenService;
     @MockitoBean private UserRepository userRepository;
     @MockitoBean private RefreshSessionRepository refreshSessionRepository;
+
+    @ParameterizedTest
+    @ValueSource(strings = {"/api/management/topics/cafe/speaking-profile/publish",
+            "/api/management/topics/cafe/items/order/speaking-profile/publish"})
+    void speakingProfilePublicationRejectsAnonymousRequests(String path) throws Exception {
+        mockMvc.perform(post(path).contentType(MediaType.APPLICATION_JSON).content("{\"revision\":1}"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("AUTHENTICATION_REQUIRED"));
+    }
 
     @ParameterizedTest
     @ValueSource(strings = {"/actuator/env", "/actuator/metrics"})
@@ -332,10 +341,10 @@ class SecurityIntegrationTest {
         } else if (endpoint.equals("/api/learning-paths/by-assessment")) {
             verify(creationService).createForAssessment(
                     new fit.iuh.engolearn.learningpath.dto.request.CreateLearningPathByAssessmentRequest(
-                            "native-assessment-id", List.of("Reading for Gist")), USER_ID);
+                            "native-assessment-id", List.of("Reading for Gist"), "A2"), USER_ID);
         } else if (path.equals("/api/learning-paths") && method == HttpMethod.POST) {
             verify(creationService).create(new CreateLearningPathRequest(
-                    ATTEMPT_ID, List.of("Reading for Gist")), USER_ID);
+                    ATTEMPT_ID, List.of("Reading for Gist"), "A2"), USER_ID);
         } else if (path.equals("/api/learning-paths")) {
             verify(learningPathService).getByUserId(USER_ID,
                     fit.iuh.engolearn.learningpath.dto.request.LearningPathListStatus.ACTIVE);
@@ -448,7 +457,7 @@ class SecurityIntegrationTest {
                 Arguments.of(HttpMethod.GET, "/api/learning-paths/recommendation/by-assessment?assessmentAttemptId=native-assessment-id", ""),
                 Arguments.of(HttpMethod.POST, "/api/learning-paths", CREATE_BODY),
                 Arguments.of(HttpMethod.POST, "/api/learning-paths/by-assessment",
-                        "{\"assessmentAttemptId\":\"native-assessment-id\",\"microSkills\":[\"Reading for Gist\"]}"),
+                        "{\"assessmentAttemptId\":\"native-assessment-id\",\"level\":\"A2\",\"microSkills\":[\"Reading for Gist\"]}"),
                 Arguments.of(HttpMethod.GET, "/api/learning-paths/" + PATH_ID, ""),
                 Arguments.of(HttpMethod.POST, DAY_URL + "/start", ""),
                 Arguments.of(HttpMethod.PUT, DAY_URL + "/questions/q-1/draft", "{\"selectedOptionId\":\"A\"}"),

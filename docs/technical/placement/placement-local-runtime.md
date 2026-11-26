@@ -40,3 +40,5 @@ Dev có thể dùng WAV đóng gói ở `tools/mongo-json-importer/samples/place
 - Học viên: `/grammar` → chủ đề → lý thuyết → luyện tập → kết quả/tiếp tục; chỉ thấy nội dung Published theo cấp đã mở.
 
 Kiểm tra code bằng `.\mvnw.cmd verify` ở BE; `npm run build`, `npm run lint`, `npm run test:auth` ở FE. Kiểm thử tích hợp yêu cầu BE/Mongo thật; thiếu đầu vào hoặc bị skip không phải là đã pass. Mỗi lần bàn giao báo kết quả thực tế và lỗi còn tồn tại, không dùng báo cáo cũ thay cho kiểm tra.
+
+Sau khi import bộ chung và chạy BE, thực hiện [shared demo setup](../../../tools/mongo-json-importer/README.md#shared-placementgrammar-demo-state) để đối chiếu7/9 bộ đề và thiết lập39/4 chủ đề Grammar. Máy đã có bộ43/106 không import lại; preflight/Apply dùng API hiện có và không reset tiến độ.
