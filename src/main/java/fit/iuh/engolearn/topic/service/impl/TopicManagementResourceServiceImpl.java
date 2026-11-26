@@ -5,19 +5,29 @@ import fit.iuh.engolearn.topic.dto.request.TopicItemContextRequest;
 import fit.iuh.engolearn.topic.dto.request.TopicItemVocabularyRequest;
 import fit.iuh.engolearn.topic.dto.request.TopicItemExpressionsRequest;
 import fit.iuh.engolearn.topic.dto.request.TopicItemQuizzesRequest;
+import fit.iuh.engolearn.topic.dto.request.TopicItemMinorRequest;
 import fit.iuh.engolearn.topic.dto.response.TopicItemResourceMutationResponse;
 import fit.iuh.engolearn.topic.dto.response.TopicManagementItemDetail;
 import fit.iuh.engolearn.topic.exception.TopicMutationValidationException;
+import fit.iuh.engolearn.topic.exception.TopicMinorRequiresMajorException;
+import fit.iuh.engolearn.topic.exception.TopicRevisionConflictException;
 import fit.iuh.engolearn.topic.mapper.TopicManagementItemMapper;
 import fit.iuh.engolearn.topic.model.Topic;
 import fit.iuh.engolearn.topic.model.TopicItemVersion;
+import fit.iuh.engolearn.topic.model.TopicVersion;
 import fit.iuh.engolearn.topic.model.enums.QuizType;
 import fit.iuh.engolearn.topic.model.vo.*;
 import fit.iuh.engolearn.topic.service.TopicItemDraftMutationGuard;
 import fit.iuh.engolearn.topic.service.TopicManagementResourceService;
 import fit.iuh.engolearn.topic.service.TopicMediaService;
+import fit.iuh.engolearn.topic.repository.TopicVersionRepository;
+import fit.iuh.engolearn.topic.repository.TopicItemVersionRepository;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import com.mongodb.MongoException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.FindAndModifyOptions;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
@@ -40,6 +50,9 @@ public class TopicManagementResourceServiceImpl implements TopicManagementResour
     private final TopicManagementItemMapper mapper;
     private final VocabularyLookup vocabularyLookup;
     private final TopicMediaService topicMedia;
+    private final TopicVersionRepository releases;
+    private final TopicItemVersionRepository versions;
+    private final ObjectMapper objectMapper;
 
     @Override
     public TopicItemResourceMutationResponse context(String topicId, String itemId, TopicItemContextRequest request) {
@@ -103,6 +116,178 @@ public class TopicManagementResourceServiceImpl implements TopicManagementResour
         List<QuizModuleVo> quizzes = incoming.stream().map(TopicManagementResourceServiceImpl::toQuizModule).toList();
         update(draft, "quizzes", quizzes);
         return response(updatedTopic, mongo.findById(draft.getId(), TopicItemVersion.class));
+    }
+
+    @Override
+    @Transactional(transactionManager = "mongoTransactionManager")
+    public TopicItemResourceMutationResponse minor(String topicId, String itemId, TopicItemMinorRequest request) {
+        try {
+            return minorTransaction(topicId, itemId, request);
+        } catch (RuntimeException failure) {
+            if (isConcurrentWrite(failure)) throw new TopicRevisionConflictException();
+            throw failure;
+        }
+    }
+
+    private TopicItemResourceMutationResponse minorTransaction(String topicId, String itemId, TopicItemMinorRequest request) {
+        long expectedRevision = revision(request == null ? null : request.revision());
+        if (request.itemVersionId() == null || request.itemVersionId().isBlank())
+            throw invalid("itemVersionId", "The current published ItemVersion ID is required.");
+        int supplied = (request.context() != null ? 1 : 0) + (request.vocabularies() != null ? 1 : 0)
+                + (request.expressions() != null ? 1 : 0) + (request.quizzes() != null ? 1 : 0);
+        if (supplied != 1) throw invalid("section", "Supply exactly one non-null resource section.");
+
+        Topic topic = draftGuard.requireTopic(topicId);
+        if (!Objects.equals(topic.getRevision() == null ? 0L : topic.getRevision(), expectedRevision))
+            throw new TopicRevisionConflictException();
+        String currentReleaseId = topic.getLatestPublishedVersion();
+        TopicVersion release = currentReleaseId == null || currentReleaseId.isBlank() ? null : releases.findById(currentReleaseId).orElse(null);
+        if (release == null || !Objects.equals(release.getTopicId(), topicId)
+                || release.getStatus() != fit.iuh.engolearn.topic.model.enums.ContentStatus.PUBLISHED
+                || release.getItemVersionIds() == null || !release.getItemVersionIds().contains(request.itemVersionId()))
+            throw new TopicRevisionConflictException("The target ItemVersion is not in the current published release.");
+        TopicItemVersion current = versions.findById(request.itemVersionId()).orElse(null);
+        if (current == null || current.getStatus() != fit.iuh.engolearn.topic.model.enums.ContentStatus.PUBLISHED
+                || !Objects.equals(current.getTopicId(), topicId) || !Objects.equals(current.getTopicItemId(), itemId))
+            throw new TopicRevisionConflictException("The target ItemVersion is not the current published version of this Item.");
+        if (versions.findAllByTopicIdAndTopicItemId(topicId, itemId).stream()
+                .anyMatch(v -> v.getStatus() == fit.iuh.engolearn.topic.model.enums.ContentStatus.DRAFT))
+            throw new TopicRevisionConflictException("A pending working copy exists; MINOR cannot overwrite it.");
+
+        TopicManagementItemDetail before = mapper.detail(current);
+        Object sectionBefore;
+        Object sectionAfter;
+        Set<String> allowed;
+        String field;
+        if (request.context() != null) {
+            sectionBefore = before.context(); sectionAfter = request.context(); field = "context";
+            allowed = Set.of("/dialogue/*/textVi", "/dialogue/*/audioUrl");
+        } else if (request.vocabularies() != null) {
+            sectionBefore = before.vocabularies(); sectionAfter = request.vocabularies(); field = "vocabularies";
+            allowed = Set.of("/*/snapshot/sense", "/*/snapshot/describeVi", "/*/snapshot/phonetic",
+                    "/*/snapshot/audioUrl", "/*/snapshot/audioEnUrl", "/*/snapshot/audioUsUrl",
+                    "/*/samples/*/textVi", "/*/samples/*/audioUrl");
+            if (stableVocabularyIdentities(before.vocabularies(), request.vocabularies())) {
+                allowed = new HashSet<>(allowed);
+                allowed.add("/*/snapshot/word");
+            }
+        } else if (request.expressions() != null) {
+            sectionBefore = before.expressions(); sectionAfter = request.expressions(); field = "expressions";
+            allowed = Set.of("/*/purposes/*/purposeVi", "/*/purposes/*/examples/*/textVi",
+                    "/*/purposes/*/examples/*/usageNote", "/*/purposes/*/examples/*/audioUrl");
+        } else {
+            sectionBefore = before.quizzes(); sectionAfter = request.quizzes(); field = "quizzes";
+            allowed = Set.of("/*/questions/*/explanation", "/*/questions/*/explanationOk", "/*/questions/*/explanationNg",
+                    "/*/questions/*/audioUrl", "/*/questions/*/sentence/audioUrl", "/*/questions/*/sentence/audioUrlSlow");
+        }
+        JsonNode oldNode = objectMapper.valueToTree(sectionBefore);
+        JsonNode newNode = objectMapper.valueToTree(sectionAfter);
+        Map<String, JsonNode> leafChanges = new LinkedHashMap<>();
+        if (!collectMinorChanges(oldNode, newNode, "", allowed, leafChanges))
+            throw new TopicMinorRequiresMajorException("This change affects structure or learning semantics. Apply it through MAJOR.");
+        validateChangedAudio(topic, oldNode, newNode);
+        Topic updatedTopic = advancePublishedRevision(topicId, expectedRevision, currentReleaseId);
+        Query query = new Query(new Criteria().andOperator(Criteria.where("_id").is(current.getId()),
+                Criteria.where("topic_id").is(topicId), Criteria.where("topic_item_id").is(itemId),
+                Criteria.where("status").is(fit.iuh.engolearn.topic.model.enums.ContentStatus.PUBLISHED),
+                Criteria.where("topic_version_id").is(current.getTopicVersionId())));
+        Update minorUpdate = new Update();
+        leafChanges.forEach((path, leaf) -> minorUpdate.set(field + toMongoPath(path), objectMapper.convertValue(leaf, Object.class)));
+        minorUpdate.set("updatedAt", Instant.now());
+        if (mongo.updateFirst(query, minorUpdate, TopicItemVersion.class)
+                .getModifiedCount() != 1) throw new TopicRevisionConflictException();
+        return response(updatedTopic, mongo.findById(current.getId(), TopicItemVersion.class));
+    }
+
+    private static boolean collectMinorChanges(JsonNode before, JsonNode after, String path, Set<String> allowed,
+                                               Map<String, JsonNode> changes) {
+        if (before == null || after == null) return before == after;
+        if (before.isObject() && after.isObject()) {
+            if (before.size() != after.size()) return false;
+            for (String name : before.propertyNames()) {
+                if (!after.has(name) || !collectMinorChanges(before.get(name), after.get(name), path + "/" + name, allowed, changes)) return false;
+            }
+            return true;
+        }
+        if (before.isArray() && after.isArray()) {
+            if (before.size() != after.size()) return false;
+            for (int i = 0; i < before.size(); i++)
+                if (!collectMinorChanges(before.get(i), after.get(i), path + "/" + i, allowed, changes)) return false;
+            return true;
+        }
+        boolean mutable = allowed.stream().anyMatch(pattern -> pathMatches(path, pattern));
+        if (before.equals(after)) return true;
+        if (!mutable || after.isNull() || after.isTextual() && after.asText().isBlank()) return false;
+        changes.put(path, after);
+        return true;
+    }
+
+    private static String toMongoPath(String path) {
+        StringBuilder result = new StringBuilder();
+        for (String part : path.split("/")) {
+            if (part.isEmpty()) continue;
+            result.append('.');
+            if (part.chars().allMatch(Character::isDigit)) result.append(part);
+            else result.append(part.replaceAll("([a-z0-9])([A-Z])", "$1_$2").toLowerCase(Locale.ROOT));
+        }
+        return result.toString();
+    }
+
+    private static boolean pathMatches(String path, String pattern) {
+        String[] actual = path.split("/"); String[] expected = pattern.split("/");
+        if (actual.length != expected.length) return false;
+        for (int i = 0; i < actual.length; i++) if (!expected[i].equals("*") && !expected[i].equals(actual[i])) return false;
+        return true;
+    }
+
+    private static boolean stableVocabularyIdentities(List<TopicManagementItemDetail.Vocabulary> before,
+                                                        List<TopicManagementItemDetail.Vocabulary> after) {
+        if (before == null || after == null || before.size() != after.size()) return false;
+        for (int i = 0; i < before.size(); i++) {
+            var oldValue = before.get(i); var newValue = after.get(i);
+            if (oldValue == null || newValue == null || oldValue.vocabId() == null || oldValue.vocabId().isBlank()
+                    || oldValue.senseId() == null || oldValue.senseId().isBlank()
+                    || !Objects.equals(oldValue.vocabId(), newValue.vocabId())
+                    || !Objects.equals(oldValue.senseId(), newValue.senseId())) return false;
+        }
+        return true;
+    }
+
+    private void validateChangedAudio(Topic topic, JsonNode before, JsonNode after) {
+        if (before.isObject() && after.isObject()) {
+            for (String name : after.propertyNames()) {
+                if (name.toLowerCase(Locale.ROOT).contains("audio") && !Objects.equals(before.get(name), after.get(name))) {
+                    String replacement = after.get(name).asText();
+                    if (replacement.isBlank() || !topicMedia.isReference(topic, replacement, fit.iuh.engolearn.topic.model.enums.TopicMediaKind.AUDIO))
+                        throw invalid("media", "Changed audio must reference managed audio owned by this Topic.");
+                }
+                else validateChangedAudio(topic, before.get(name), after.get(name));
+            }
+        } else if (before.isArray() && after.isArray()) {
+            for (int i = 0; i < Math.min(before.size(), after.size()); i++) validateChangedAudio(topic, before.get(i), after.get(i));
+        }
+    }
+
+    private Topic advancePublishedRevision(String topicId, long expectedRevision, String releaseId) {
+        Criteria revisionMatch = expectedRevision == 0
+                ? new Criteria().orOperator(Criteria.where("revision").is(0), Criteria.where("revision").is(null))
+                : Criteria.where("revision").is(expectedRevision);
+        Query query = new Query(new Criteria().andOperator(Criteria.where("_id").is(topicId),
+                Criteria.where("latestPublishedVersion").is(releaseId), revisionMatch));
+        Topic updated = mongo.findAndModify(query, new Update().inc("revision", 1).set("updatedAt", Instant.now()),
+                FindAndModifyOptions.options().returnNew(true), Topic.class);
+        if (updated == null) throw new TopicRevisionConflictException();
+        return updated;
+    }
+
+    private static boolean isConcurrentWrite(Throwable failure) {
+        for (Throwable cause = failure; cause != null; cause = cause.getCause()) {
+            if (cause instanceof MongoException mongoFailure
+                    && (mongoFailure.getCode() == 112 || mongoFailure.getCode() == 251
+                    || mongoFailure.hasErrorLabel("TransientTransactionError")
+                    || mongoFailure.hasErrorLabel("UnknownTransactionCommitResult"))) return true;
+        }
+        return false;
     }
 
     private static void validateExpressions(TopicItemVersion draft,

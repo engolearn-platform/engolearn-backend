@@ -21,5 +21,7 @@ public interface TopicManagementReadService {
 
     TopicManagementItemDetail item(String topicId, String itemId);
 
+    TopicManagementItemDetail publishedItem(String topicId, String itemId);
+
     List<TopicItemVersion> speakingAuthoringItems(String topicId, String itemId);
 }

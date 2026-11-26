@@ -79,6 +79,7 @@ import static org.mockito.Mockito.*;
 @ActiveProfiles("dev")
 @Import(SpeakingRealtimeMongoIntegrationTest.TestEvents.class)
 @TestPropertySource(properties = {"engolearn.speaking.recovery.enabled=false",
+        "engolearn.speaking.realtime.max-frames-per-second=256",
         "engolearn.security.jwt.secret=speaking-realtime-db-only-integration-secret"})
 class SpeakingRealtimeMongoIntegrationTest extends AbstractMongoIntegrationTest {
     private static final String BASE = "/api/v1/speaking";

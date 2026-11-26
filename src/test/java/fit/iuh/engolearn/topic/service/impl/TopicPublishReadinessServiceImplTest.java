@@ -10,7 +10,10 @@ import fit.iuh.engolearn.topic.model.enums.ExpressionLabel;
 import fit.iuh.engolearn.topic.model.enums.ExpressionType;
 import fit.iuh.engolearn.topic.model.enums.QuizType;
 import fit.iuh.engolearn.topic.model.enums.TopicCategory;
+import fit.iuh.engolearn.topic.model.Topic;
+import fit.iuh.engolearn.topic.repository.TopicRepository;
 import fit.iuh.engolearn.topic.service.TopicManagementReadService;
+import fit.iuh.engolearn.topic.service.TopicMediaService;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
@@ -23,10 +26,14 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 
 class TopicPublishReadinessServiceImplTest {
     private final TopicManagementReadService readService = mock(TopicManagementReadService.class);
-    private final TopicPublishReadinessServiceImpl service = new TopicPublishReadinessServiceImpl(readService);
+    private final TopicRepository topics = mock(TopicRepository.class);
+    private final TopicMediaService media = mock(TopicMediaService.class);
+    private final TopicPublishReadinessServiceImpl service = new TopicPublishReadinessServiceImpl(readService, topics, media);
 
     @Test
     void reportsLocalizedFieldPathsAndDoesNotInspectHiddenItems() {
@@ -43,12 +50,14 @@ class TopicPublishReadinessServiceImplTest {
     @Test
     void completeWorkingDraftIsReadyAndQuestionErrorsPointToTheQuestionField() {
         when(readService.topic("topic-1")).thenReturn(topic(true));
+        when(topics.findById("topic-1")).thenReturn(java.util.Optional.of(Topic.builder().id("topic-1").build()));
+        when(media.isReference(any(Topic.class), anyString(), any())).thenReturn(true);
         List<TopicManagementItemSummary> summaries = new ArrayList<>();
         for (int i = 0; i < 5; i++) summaries.add(summary("item-" + i, DRAFT));
         when(readService.items("topic-1")).thenReturn(summaries);
         for (var summary : summaries) when(readService.item("topic-1", summary.id())).thenReturn(item(summary.id(), true));
 
-        assertThat(service.readiness("topic-1").ready()).isTrue();
+        assertThat(service.readiness("topic-1").violations()).isEmpty();
 
         when(readService.item("topic-1", "item-0")).thenReturn(item("item-0", false));
         var invalid = service.readiness("topic-1");
@@ -59,10 +68,52 @@ class TopicPublishReadinessServiceImplTest {
         });
     }
 
+    @Test
+    void optionalQuickCheckSentenceAudioMustBeTopicOwnedAudioWhenPresent() {
+        when(readService.topic("topic-1")).thenReturn(topic(true));
+        when(topics.findById("topic-1")).thenReturn(java.util.Optional.of(Topic.builder().id("topic-1").build()));
+        when(media.isReference(any(Topic.class), anyString(), any())).thenReturn(true);
+        List<TopicManagementItemSummary> summaries = new ArrayList<>();
+        for (int i = 0; i < 5; i++) summaries.add(summary("item-" + i, DRAFT));
+        when(readService.items("topic-1")).thenReturn(summaries);
+        for (var summary : summaries) when(readService.item("topic-1", summary.id())).thenReturn(item(summary.id(), true));
+
+        var source = item("item-0", true);
+        var vocabulary = source.vocabularies().getFirst();
+        var sentence = new TopicManagementItemDetail.QuizSentence("Sentence", "Câu", "https://example.test/wrong-kind.mp3",
+                "topic-media:other-topic:foreign-audio", null, null);
+        var quickCheck = new TopicManagementItemDetail.QuickCheck(sentence, Map.of(), Map.of(), null);
+        var invalidVocabulary = new TopicManagementItemDetail.Vocabulary(vocabulary.vocabId(), vocabulary.senseId(),
+                vocabulary.snapshot(), vocabulary.samples(), vocabulary.collocations(), quickCheck, vocabulary.orderIndex(), vocabulary.tips());
+        var invalidItem = new TopicManagementItemDetail(source.id(), source.topicId(), source.title(), source.description(),
+                source.order(), source.status(), source.durationMinutes(), source.versionId(), source.version(), source.topicVersionId(),
+                source.previousItemVersionId(), source.changeType(), source.createdAt(), source.updatedAt(), source.publishedAt(),
+                source.context(), List.of(invalidVocabulary, source.vocabularies().get(1), source.vocabularies().get(2)),
+                source.expressions(), source.quizzes());
+        when(readService.item("topic-1", "item-0")).thenReturn(invalidItem);
+        when(media.isReference(any(Topic.class), anyString(), any())).thenAnswer(invocation -> {
+            String reference = invocation.getArgument(1, String.class);
+            var kind = invocation.getArgument(2, fit.iuh.engolearn.topic.model.enums.TopicMediaKind.class);
+            return kind == fit.iuh.engolearn.topic.model.enums.TopicMediaKind.IMAGE
+                    || reference.equals("topic-media:topic-1:audio");
+        });
+
+        var result = service.readiness("topic-1");
+
+        assertThat(result.violations()).anySatisfy(v -> {
+            assertThat(v.path()).isEqualTo("items[item-0].vocabularies[0].quickCheck.sentence.audioUrl");
+            assertThat(v.code()).isEqualTo("INVALID_MEDIA");
+        });
+        assertThat(result.violations()).anySatisfy(v -> {
+            assertThat(v.path()).isEqualTo("items[item-0].vocabularies[0].quickCheck.sentence.audioUrlSlow");
+            assertThat(v.code()).isEqualTo("INVALID_MEDIA");
+        });
+    }
+
     private static TopicManagementResponse topic(boolean complete) {
         return new TopicManagementResponse("topic-1", complete ? "Travel" : null, complete ? "Du lịch" : null,
                 complete ? CefrLevel.A1 : null, complete ? TopicCategory.TRAVEL : null,
-                complete ? "Description" : null, complete ? "https://media/cover.jpg" : null,
+                complete ? "Description" : null, complete ? "topic-media:topic-1:cover" : null,
                 "draft", 0, 0, null, null, List.of(), null, null, null, null, 1L);
     }
 
@@ -75,12 +126,12 @@ class TopicPublishReadinessServiceImplTest {
         List<TopicManagementItemDetail.Vocabulary> words = new ArrayList<>();
         for (int i = 0; i < 3; i++) {
             words.add(new TopicManagementItemDetail.Vocabulary("word-" + i, null,
-                    new TopicManagementItemDetail.WordSnapshot("word", "noun", "meaning", "nghĩa", "/p/", "audio", null, null),
-                    List.of(new TopicManagementItemDetail.WordSample("English", "Tiếng Việt", "audio", true)),
+                    new TopicManagementItemDetail.WordSnapshot("word", "noun", "meaning", "nghĩa", "/p/", "topic-media:topic-1:audio", "topic-media:topic-1:audio", "topic-media:topic-1:audio"),
+                    List.of(new TopicManagementItemDetail.WordSample("English", "Tiếng Việt", "topic-media:topic-1:audio", true)),
                     List.of(), null, i, null));
         }
         var expression = new TopicManagementItemDetail.ExpressionExample(ExpressionType.POLITE_INQUIRY, "Could you help?", "Bạn giúp tôi?",
-                "Polite request", "audio", List.of(), ExpressionLabel.POLITE);
+                "Polite request", "topic-media:topic-1:audio", List.of(), ExpressionLabel.POLITE);
         var group = new TopicManagementItemDetail.ExpressionPurpose("Requests", "Yêu cầu", 0,
                 ExpressionGroupType.BASIC, List.of(expression));
         List<TopicManagementItemDetail.QuizModule> quizzes = List.of(
@@ -102,7 +153,7 @@ class TopicPublishReadinessServiceImplTest {
                     new TopicManagementItemDetail.QuizOption("d", "last", false));
             var sentence = type == QuizType.FILL_BLANK
                     ? new TopicManagementItemDetail.QuizSentence(complete ? "I need an answer today." : null,
-                    "Hôm nay tôi cần một câu trả lời.", "audio", null, null, null) : null;
+                    "Hôm nay tôi cần một câu trả lời.", null, null, null, null) : null;
             questions.add(new TopicManagementItemDetail.QuizQuestion(type == QuizType.SITUATIONAL_CHOICE ? "What do you say?" : null,
                     null, options, null, null, null, sentence, Map.of(), Map.of(), "Explanation", null));
         }
