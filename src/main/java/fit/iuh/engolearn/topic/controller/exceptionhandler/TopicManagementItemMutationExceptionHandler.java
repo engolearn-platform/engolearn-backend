@@ -2,6 +2,7 @@ package fit.iuh.engolearn.topic.controller.exceptionhandler;
 
 import com.mongodb.MongoException;
 import fit.iuh.engolearn.topic.controller.TopicManagementItemMutationController;
+import fit.iuh.engolearn.topic.controller.TopicMajorWorkingDraftController;
 import fit.iuh.engolearn.topic.controller.TopicManagementResourceController;
 import fit.iuh.engolearn.topic.exception.TopicItemMutationBlockedException;
 import fit.iuh.engolearn.topic.exception.TopicItemNotFoundException;
@@ -14,7 +15,8 @@ import org.springframework.http.ProblemDetail;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-@RestControllerAdvice(assignableTypes = {TopicManagementItemMutationController.class, TopicManagementResourceController.class})
+@RestControllerAdvice(assignableTypes = {TopicManagementItemMutationController.class, TopicManagementResourceController.class,
+        TopicMajorWorkingDraftController.class})
 public class TopicManagementItemMutationExceptionHandler {
     @ExceptionHandler({TopicNotFoundException.class, TopicItemNotFoundException.class})
     public ProblemDetail notFound(RuntimeException exception) {
