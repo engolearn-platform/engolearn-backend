@@ -153,6 +153,10 @@ Inspect the dry-run report and target database before confirming the import. Thi
 not a production catalog or evidence of production data. Admin catalog changes continue to
 use the Subscription Admin API and preserve its validation and audit behavior.
 
+For a fresh disposable development database, this sample includes AI Companion quota rules for Free (15,000), Trial (15,000), and Premium (50,000) tokens per day. Trial uses the Free allowance as a development fixture, not a production pricing decision. Import the catalog before registering learners; Quota derives its snapshots from Subscription at runtime. Do not seed or overwrite Quota snapshots, counters, projections, or ledgers separately. Verify a new account through GET /api/v1/quota/me/usage and confirm AI_COMPANION_TOKEN_USAGE is available with used=0. Reimport with skip is safe only for identical catalog versions; if an existing database has older policy versions, publish a new version instead of editing an immutable snapshot.
+
+For AI Companion quotas in an existing database, use the existing Admin Free/Trial/Premium publication flow. Managed Premium changes must use the existing product draft and publish flow; use the legacy policy path only where applicable. Preserve the other quota rules. If versions are already imported, `skip` leaves them intact. Do not use replace to update an existing catalog or learner database.
+
 ## Shared Assessment / Learning Path demo
 
 The two datasets use account `pfc-demo-learner-v2`. The Assessment file also includes that

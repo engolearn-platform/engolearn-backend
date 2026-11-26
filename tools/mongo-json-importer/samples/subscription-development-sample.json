@@ -39,6 +39,13 @@
               "description": "Sử dụng tối đa 1 lượt đánh giá trình độ tiếng Anh mỗi tháng để theo dõi việc học. Hạn mức lượt đánh giá được làm mới hằng tháng.",
               "display_value": "1 lượt/tháng",
               "sort_order": 1
+            },
+            {
+              "code": "AI_COMPANION",
+              "title": "AI Companion",
+              "description": "Trò chuyện với AI Companion với hạn mức 15.000 token mỗi ngày.",
+              "display_value": "15.000 token/ngày",
+              "sort_order": 2
             }
           ],
           "billing_options": []
@@ -77,6 +84,13 @@
               "description": "Sử dụng tối đa 5 lượt đánh giá trình độ tiếng Anh mỗi tháng để theo dõi việc học. Hạn mức lượt đánh giá được làm mới hằng tháng.",
               "display_value": "5 lượt/tháng",
               "sort_order": 1
+            },
+            {
+              "code": "AI_COMPANION",
+              "title": "AI Companion",
+              "description": "Trò chuyện với AI Companion với hạn mức 50.000 token mỗi ngày.",
+              "display_value": "50.000 token/ngày",
+              "sort_order": 2
             }
           ],
           "billing_options": [
@@ -128,6 +142,14 @@
               "unit": "ATTEMPT",
               "period": "MONTHLY",
               "display_order": 1
+            },
+            {
+              "quota_type": "AI_COMPANION_TOKEN_USAGE",
+              "display_name": "Token AI Companion",
+              "limit": 15000,
+              "unit": "TOKEN",
+              "period": "DAILY",
+              "display_order": 2
             }
           ]
         },
@@ -149,6 +171,13 @@
               "description": "Sử dụng tối đa 1 lượt đánh giá trình độ tiếng Anh mỗi tháng để theo dõi việc học. Hạn mức lượt đánh giá được làm mới hằng tháng.",
               "display_value": "1 lượt/tháng",
               "sort_order": 1
+            },
+            {
+              "code": "AI_COMPANION",
+              "title": "AI Companion",
+              "description": "Trò chuyện với AI Companion với hạn mức 15.000 token mỗi ngày.",
+              "display_value": "15.000 token/ngày",
+              "sort_order": 2
             }
           ]
         }
@@ -186,6 +215,14 @@
               "unit": "ATTEMPT",
               "period": "MONTHLY",
               "display_order": 1
+            },
+            {
+              "quota_type": "AI_COMPANION_TOKEN_USAGE",
+              "display_name": "Token AI Companion",
+              "limit": 15000,
+              "unit": "TOKEN",
+              "period": "DAILY",
+              "display_order": 2
             }
           ]
         },
@@ -207,6 +244,13 @@
               "description": "Sử dụng tối đa 2 lượt đánh giá trình độ tiếng Anh mỗi tháng để theo dõi việc học. Hạn mức lượt đánh giá được làm mới hằng tháng.",
               "display_value": "2 lượt/tháng",
               "sort_order": 1
+            },
+            {
+              "code": "AI_COMPANION",
+              "title": "AI Companion",
+              "description": "Trò chuyện với AI Companion với hạn mức 15.000 token mỗi ngày.",
+              "display_value": "15.000 token/ngày",
+              "sort_order": 2
             }
           ]
         }
@@ -244,6 +288,14 @@
               "unit": "ATTEMPT",
               "period": "MONTHLY",
               "display_order": 1
+            },
+            {
+              "quota_type": "AI_COMPANION_TOKEN_USAGE",
+              "display_name": "Token AI Companion",
+              "limit": 50000,
+              "unit": "TOKEN",
+              "period": "DAILY",
+              "display_order": 2
             }
           ]
         },
@@ -265,6 +317,13 @@
               "description": "Sử dụng tối đa 5 lượt đánh giá trình độ tiếng Anh mỗi tháng để theo dõi việc học. Hạn mức lượt đánh giá được làm mới hằng tháng.",
               "display_value": "5 lượt/tháng",
               "sort_order": 1
+            },
+            {
+              "code": "AI_COMPANION",
+              "title": "AI Companion",
+              "description": "Trò chuyện với AI Companion với hạn mức 50.000 token mỗi ngày.",
+              "display_value": "50.000 token/ngày",
+              "sort_order": 2
             }
           ]
         }
