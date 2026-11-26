@@ -10,4 +10,9 @@ public class SpeakingResourceVo implements EmbeddedDocument {
     @Field("id") private String id;
     @Field("type") private TopicSpeakingResourceDto.Type type;
     @Field("text_en") private String textEn;
+    @Field("context") private String context;
+
+    public SpeakingResourceVo(String id, TopicSpeakingResourceDto.Type type, String textEn) {
+        this(id, type, textEn, null);
+    }
 }

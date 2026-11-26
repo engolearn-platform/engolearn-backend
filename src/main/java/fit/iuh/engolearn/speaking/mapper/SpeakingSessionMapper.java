@@ -21,7 +21,8 @@ public final class SpeakingSessionMapper {
                 .contentVersion(snapshot.contentVersion()).profileVersion(snapshot.profileVersion())
                 .level(profile.level()).description(profile.description()).aiRole(profile.aiRole()).learnerRole(profile.learnerRole())
                 .suggestedTopics(profile.suggestedTopics()).resources(snapshot.resources().stream()
-                        .map(resource -> new SpeakingResourceVo(resource.id(), resource.type(), resource.textEn())).toList())
+                        .map(resource -> new SpeakingResourceVo(resource.id(), resource.type(), resource.textEn(),
+                                resource.context())).toList())
                 .fallbackReply(profile.fallbackReply())
                 .fallbackHint(hint == null ? null : new SpeakingHintVo(hint.exampleEn(), hint.explanationVi())).build();
     }

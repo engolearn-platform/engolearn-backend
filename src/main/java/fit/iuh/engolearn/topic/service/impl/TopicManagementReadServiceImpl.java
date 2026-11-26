@@ -85,6 +85,10 @@ public class TopicManagementReadServiceImpl implements TopicManagementReadServic
 
     @Override
     public List<TopicManagementItemSummary> items(String topicId) {
+        return selectedItems(topicId).stream().map(itemMapper::summary).toList();
+    }
+
+    private List<TopicItemVersion> selectedItems(String topicId) {
         Topic topic = requireTopic(topicId);
         Set<String> manifest = manifest(topic);
         var byItem = versions.findManagementMetadata(List.of(topicId)).stream()
@@ -92,18 +96,40 @@ public class TopicManagementReadServiceImpl implements TopicManagementReadServic
                 .collect(Collectors.groupingBy(TopicItemVersion::getTopicItemId));
         return topicItems.findAllByTopicId(topicId).stream()
                 .map(item -> select(item, byItem.getOrDefault(item.getId(), List.of()), manifest))
-                .sorted(ITEM_ORDER).map(itemMapper::summary).toList();
+                .sorted(ITEM_ORDER).toList();
     }
 
     @Override
     public TopicManagementItemDetail item(String topicId, String itemId) {
+        return itemMapper.detail(authoringItem(topicId, itemId));
+    }
+
+    @Override
+    public List<TopicItemVersion> speakingAuthoringItems(String topicId, String itemId) {
+        if (itemId != null) {
+            var item = authoringItem(topicId, itemId);
+            return selectable(item) ? List.of(item) : List.of();
+        }
+        var selected = selectedItems(topicId).stream().filter(TopicManagementReadServiceImpl::selectable).toList();
+        var byId = versions.findAllById(selected.stream().map(TopicItemVersion::getId).toList()).stream()
+                .filter(item -> topicId.equals(item.getTopicId()))
+                .collect(Collectors.toMap(TopicItemVersion::getId, item -> item));
+        return selected.stream().map(item -> byId.get(item.getId()))
+                .filter(Objects::nonNull).filter(TopicManagementReadServiceImpl::selectable).toList();
+    }
+
+    private static boolean selectable(TopicItemVersion item) {
+        return item.getStatus() == ContentStatus.DRAFT || item.getStatus() == ContentStatus.PUBLISHED;
+    }
+
+    private TopicItemVersion authoringItem(String topicId, String itemId) {
         Topic topic = requireTopic(topicId);
         TopicItem item = topicItems.findByIdAndTopicId(itemId, topicId)
                 .orElseThrow(() -> new TopicItemNotFoundException("Topic item was not found"));
         TopicItemVersion selected = select(item, versions.findManagementMetadataForItem(topicId, itemId), manifest(topic));
-        if (selected.getId() == null) return itemMapper.detail(selected);
-        return itemMapper.detail(versions.findByIdAndTopicIdAndTopicItemId(selected.getId(), topicId, itemId)
-                .orElseThrow(() -> new TopicItemNotFoundException("Topic item version was not found")));
+        if (selected.getId() == null) return selected;
+        return versions.findByIdAndTopicIdAndTopicItemId(selected.getId(), topicId, itemId)
+                .orElseThrow(() -> new TopicItemNotFoundException("Topic item version was not found"));
     }
 
     private Topic requireTopic(String topicId) {

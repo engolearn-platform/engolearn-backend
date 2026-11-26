@@ -23,9 +23,11 @@ import fit.iuh.engolearn.topic.contract.TopicSpeakingAccess;
 import fit.iuh.engolearn.topic.contract.dto.SpeakingScopeDto;
 import fit.iuh.engolearn.topic.contract.dto.TopicSpeakingProfileDto;
 import fit.iuh.engolearn.topic.contract.enums.SpeakingScopeType;
+import fit.iuh.engolearn.topic.mapper.TopicSpeakingProfileMapper;
 import fit.iuh.engolearn.topic.model.Topic;
 import fit.iuh.engolearn.topic.model.TopicItem;
 import fit.iuh.engolearn.topic.model.TopicItemVersion;
+import fit.iuh.engolearn.topic.model.TopicSpeakingProfile;
 import fit.iuh.engolearn.topic.model.TopicVersion;
 import fit.iuh.engolearn.topic.model.UserTopicAttempt;
 import fit.iuh.engolearn.topic.model.UserTopicItemProgress;
@@ -39,6 +41,7 @@ import fit.iuh.engolearn.user.model.RefreshSession;
 import fit.iuh.engolearn.user.model.User;
 import fit.iuh.engolearn.user.model.UserProfile;
 import jakarta.servlet.http.Cookie;
+import org.bson.Document;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -59,6 +62,8 @@ import org.testcontainers.junit.jupiter.EnabledIfDockerAvailable;
 import org.springframework.test.context.ActiveProfiles;
 
 import java.time.Instant;
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.Callable;
@@ -99,6 +104,7 @@ class SpeakingFoundationMongoIntegrationTest extends AbstractMongoIntegrationTes
     @Autowired private fit.iuh.engolearn.shared.security.CurrentUserProvider users;
     @Autowired private fit.iuh.engolearn.speaking.utils.SpeakingSessionSettings settings;
     @Autowired private fit.iuh.engolearn.speaking.utils.SpeakingProviderProperties providerProperties;
+    @Autowired private fit.iuh.engolearn.speaking.utils.SpeakingConversation conversation;
     @Autowired private java.time.Clock clock;
     @Autowired private TopicSpeakingProfileService profiles;
     @Autowired private TopicSpeakingAccess access;
@@ -144,9 +150,14 @@ class SpeakingFoundationMongoIntegrationTest extends AbstractMongoIntegrationTes
                             .content("{\"revision\":0}")).andExpect(status().isForbidden());
             mvc.perform(get(path).cookie(cookie(AUTHOR))).andExpect(status().isOk())
                     .andExpect(jsonPath("$.data.revision").value(0))
-                    .andExpect(jsonPath("$.data.resources[0].id").value("juice"));
+                    .andExpect(jsonPath("$.data.resources[0].textEn").value("juice"))
+                    .andExpect(jsonPath("$.data.resources[0].itemId").value(ITEM_ID))
+                    .andExpect(jsonPath("$.data.initialProfile.enabled").value(false));
             mvc.perform(put(path).cookie(cookie(AUTHOR)).contentType(MediaType.APPLICATION_JSON)
                             .content("{\"revision\":0,\"profile\":{\"enabled\":false,\"selectedResourceIds\":[\"unreleased\"]}}"))
+                    .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("INVALID_RESOURCE"));
+            mvc.perform(put(path).cookie(cookie(AUTHOR)).contentType(MediaType.APPLICATION_JSON)
+                            .content("{\"revision\":0,\"profile\":{\"enabled\":false}}"))
                     .andExpect(status().isOk()).andExpect(jsonPath("$.data.revision").value(1));
             mvc.perform(post(path + "/publish").cookie(cookie(ADMIN)).contentType(MediaType.APPLICATION_JSON)
                             .content("{\"revision\":1}"))
@@ -157,7 +168,8 @@ class SpeakingFoundationMongoIntegrationTest extends AbstractMongoIntegrationTes
                     .andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("REQUEST_CONFLICT"));
         }
         authorize(LEARNER, UserRole.USER);
-        assertThatThrownBy(() -> profiles.save(TOPIC, 2, profile("Denied")))
+        var denied = new TopicSpeakingProfileDto(false, null, null, null, null, List.of(), List.of(), null, null);
+        assertThatThrownBy(() -> profiles.save(TOPIC, 2, denied))
                 .isInstanceOf(AccessDeniedException.class);
         assertThatThrownBy(() -> profiles.publish(ITEM, 2)).isInstanceOf(AccessDeniedException.class);
         assertThat(mongoTemplate.findById(TOPIC_ID, Topic.class).getRevision()).isEqualTo(4L);
@@ -251,7 +263,7 @@ class SpeakingFoundationMongoIntegrationTest extends AbstractMongoIntegrationTes
     @Test
     void noPublishedProfileAndNoAuthoritativeLevelDenyNewPractice() {
         authorize(AUTHOR, UserRole.CONTENT_MANAGER);
-        profiles.save(TOPIC, 0, profile("Draft only"));
+        profiles.save(TOPIC, 0, profile(TOPIC, "Draft only"));
         authorize(LEARNER, UserRole.USER);
         assertThat(sessions.availability(TOPIC).reason()).isEqualTo("PROFILE_DISABLED");
         assertCode(() -> sessions.create(new Create(TOPIC, UUID.randomUUID())), "PROFILE_DISABLED");
@@ -302,7 +314,7 @@ class SpeakingFoundationMongoIntegrationTest extends AbstractMongoIntegrationTes
 
         publish(ITEM, "Published item");
         authorize(AUTHOR, UserRole.CONTENT_MANAGER);
-        profiles.save(TOPIC, 2, profile("Updated"));
+        profiles.save(TOPIC, 2, profile(TOPIC, "Updated"));
         profiles.publish(TOPIC, 3);
         authorize(LEARNER, UserRole.USER);
         var request2 = new Replace(ITEM, UUID.randomUUID(), original, 1L);
@@ -392,21 +404,250 @@ class SpeakingFoundationMongoIntegrationTest extends AbstractMongoIntegrationTes
     }
 
     @Test
-    void invalidEnabledProfilesFailPublishAndReadinessAtBothScopes() throws Exception {
+    void incompleteSpeakingDraftsBlockOnlySpeakingPublicationAtBothScopes() throws Exception {
         authorize(AUTHOR, UserRole.CONTENT_MANAGER);
         var invalid = new TopicSpeakingProfileDto(true, CefrLevel.A1, "Description", "AI", "Learner",
-                List.of(), List.of("unreleased-vocab"), "Hello", null);
+                List.of(), List.of(), "", null);
         for (var scope : List.of(TOPIC, ITEM)) {
-            profiles.save(scope, 0, invalid);
+            assertThat(profiles.save(scope, 0, invalid).publishViolations())
+                    .extracting("path").containsExactly("profile.fallbackReply");
             assertCodeTopic(() -> profiles.publish(scope, 1), "INVALID_PROFILE");
+            assertThat(profiles.read(scope).published()).isNull();
         }
         mvc.perform(get("/api/management/topics/" + TOPIC_ID + "/readiness").cookie(cookie(AUTHOR)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.violations[?(@.code == 'INVALID_RESOURCE')].path")
-                        .value(org.hamcrest.Matchers.containsInAnyOrder("topic.speakingProfile.selectedResourceIds",
-                                "items[" + ITEM_ID + "].speakingProfile.selectedResourceIds")));
+                .andExpect(jsonPath("$.data.violations[?(@.path =~ /.*speakingProfile.*/)]").isEmpty());
         assertThat(access.resolve(LEARNER, new SpeakingScopeDto(SpeakingScopeType.TOPIC_ITEM, "another-topic", ITEM_ID))
                 .reason().name()).isEqualTo("SCOPE_FORBIDDEN");
+    }
+
+    @Test
+    void issuedProfileSurvivesCompatibleContentReleaseAndPinsEachSession() {
+        String firstId = createInitialTopicSession();
+        var original = repository.findById(firstId).orElseThrow().getSnapshot();
+        assertThat(original.getResources()).extracting(resource -> resource.getTextEn()).containsExactly("juice");
+
+        Topic topic = mongoTemplate.findById(TOPIC_ID, Topic.class);
+        mongoTemplate.insert(TopicItemVersion.builder().id("order-v2").topicId(TOPIC_ID).topicItemId(ITEM_ID)
+                .status(ContentStatus.PUBLISHED).title("Order a drink").order(1)
+                .vocabularies(List.of(ItemWordVo.builder().vocabId("juice")
+                        .snapshot(WordSnapshotVo.builder().word("juice").sense("A drink from fruit").build()).build())).build());
+        mongoTemplate.insert(TopicVersion.builder().id("cafe-v2").topicId(TOPIC_ID).status(ContentStatus.PUBLISHED)
+                .itemVersionIds(List.of("order-v2")).build());
+        topic.setLatestPublishedVersion("cafe-v2");
+        mongoTemplate.save(topic);
+
+        var decision = access.resolve(LEARNER, TOPIC);
+        assertThat(decision.reason()).isNull();
+        assertThat(decision.snapshot().profileVersion()).isEqualTo(original.getProfileVersion());
+        var replaced = sessions.replace(new Replace(TOPIC, UUID.randomUUID(), firstId, 1L)).session();
+        var updated = repository.findById(replaced.sessionId()).orElseThrow().getSnapshot();
+        assertThat(updated.getContentVersion()).isEqualTo("cafe-v2");
+        assertThat(updated.getResources()).extracting(resource -> resource.getContext()).containsExactly("A drink from fruit");
+        assertThat(repository.findById(firstId).orElseThrow().getSnapshot()).usingRecursiveComparison().isEqualTo(original);
+
+        TopicItemVersion second = mongoTemplate.findById("order-v2", TopicItemVersion.class);
+        second.getVocabularies().getFirst().getSnapshot().setSense("x".repeat(530_000));
+        mongoTemplate.save(second);
+        assertCode(() -> sessions.replace(new Replace(TOPIC, UUID.randomUUID(), replaced.sessionId(), 1L)),
+                "CONTEXT_BUDGET_EXCEEDED");
+        assertThat(sessions.read(replaced.sessionId()).status()).isEqualTo(SpeakingSessionStatus.INITIALIZING);
+
+        second.setVocabularies(List.of());
+        mongoTemplate.save(second);
+        assertCode(() -> sessions.replace(new Replace(TOPIC, UUID.randomUUID(), replaced.sessionId(), 1L)),
+                "PROFILE_RESOURCES_STALE");
+        assertThat(sessions.read(replaced.sessionId()).status()).isEqualTo(SpeakingSessionStatus.INITIALIZING);
+
+        authorize(AUTHOR, UserRole.CONTENT_MANAGER);
+        var stale = profiles.read(TOPIC);
+        assertThat(stale.publishedViolations()).extracting("code").containsExactly("INVALID_RESOURCE");
+        profiles.save(TOPIC, stale.revision(), stale.draft());
+        assertCodeTopic(() -> profiles.publish(TOPIC, stale.revision() + 1), "INVALID_PROFILE");
+        assertThat(profiles.read(TOPIC).publishedProfileVersion()).isEqualTo(stale.publishedProfileVersion());
+
+        second.setVocabularies(List.of(ItemWordVo.builder().vocabId("water").snapshot(
+                WordSnapshotVo.builder().word("water").build()).build()));
+        mongoTemplate.save(second);
+        var current = profiles.read(TOPIC);
+        assertThat(current.draft().selectedResourceIds()).containsExactlyElementsOf(stale.draft().selectedResourceIds());
+        assertThat(current.resources()).extracting(resource -> resource.textEn()).containsExactly("water");
+        var repaired = profiles.save(TOPIC, current.revision(), profile(TOPIC, "Repaired"));
+        var published = profiles.publish(TOPIC, repaired.revision());
+        assertThat(access.resolve(LEARNER, TOPIC).snapshot().resources()).singleElement()
+                .satisfies(resource -> assertThat(resource.textEn()).isEqualTo("water"));
+
+        var disabled = new TopicSpeakingProfileDto(false, null, null, null, null, List.of(), List.of(), null, null);
+        var disabledDraft = profiles.save(TOPIC, published.revision(), disabled);
+        profiles.publish(TOPIC, disabledDraft.revision());
+        authorize(LEARNER, UserRole.USER);
+        assertThat(sessions.availability(TOPIC).reason()).isEqualTo("PROFILE_DISABLED");
+        assertThat(repository.findById(firstId).orElseThrow().getSnapshot()).usingRecursiveComparison().isEqualTo(original);
+        assertThat(repository.findById(replaced.sessionId()).orElseThrow().getSnapshot())
+                .usingRecursiveComparison().isEqualTo(updated);
+    }
+
+    @Test
+    void readsAndPublishesExactScopeWithoutWritingToLearningCollections() {
+        authorize(ADMIN, UserRole.ADMIN);
+        var snapshot = learningState();
+        var initial = profiles.read(ITEM);
+        assertThat(initial.initialProfile().suggestedTopics()).containsExactly("Order a drink");
+        assertThat(initial.initialProfile().level()).isEqualTo(CefrLevel.A1);
+        assertThat(initial.initialProfile().selectedResourceIds()).isEmpty();
+        assertThat(profiles.read(TOPIC).initialProfile().suggestedTopics()).containsExactly("Cafe");
+        assertThat(mongoTemplate.findAll(Document.class, "topic_speaking_profiles")).isEmpty();
+
+        profiles.save(ITEM, 0, profile(ITEM, "Item only"));
+        profiles.publish(ITEM, 1);
+        assertThat(profiles.read(TOPIC).published()).isNull();
+        assertThat(learningState()).isEqualTo(snapshot);
+        assertThat(mongoTemplate.findAll(Document.class, "topic_speaking_profiles")).singleElement()
+                .satisfies(document -> {
+                    assertThat(document.getList("publication_audit", Document.class)).singleElement().satisfies(audit -> {
+                        assertThat(audit.getString("actor_id")).isEqualTo(ADMIN);
+                        assertThat(audit.getLong("profile_version")).isEqualTo(1L);
+                        assertThat(audit.getDate("published_at")).isNotNull();
+                    });
+                });
+    }
+
+    @Test
+    void selectedOccurrencesStayIndependentAndOnlyEquivalentContextIsDeduplicated() {
+        String[] items = {"66fa4639f05f7400cafe0002", "66fa4639f05f7400cafe0003"};
+        for (int index = 0; index < items.length; index++) {
+            String item = items[index];
+            mongoTemplate.insert(TopicItem.builder().id(item).topicId(TOPIC_ID).build());
+            mongoTemplate.insert(TopicItemVersion.builder().id("context-" + index)
+                    .topicId(TOPIC_ID).topicItemId(item).status(ContentStatus.PUBLISHED).title("Context " + index)
+                    .order(index + 2).vocabularies(List.of(
+                            ItemWordVo.builder().vocabId("juice").senseId(index == 0 ? null : "electricity")
+                                    .snapshot(WordSnapshotVo.builder().word("juice")
+                                            .sense(index == 0 ? null : "Electrical power").build()).build(),
+                            ItemWordVo.builder().vocabId("unselected").snapshot(
+                                    WordSnapshotVo.builder().word("Unselected vocabulary").build()).build())).build());
+        }
+        TopicVersion manifest = mongoTemplate.findById("cafe-v1", TopicVersion.class);
+        manifest.setItemVersionIds(List.of("order-v1", "context-0", "context-1"));
+        mongoTemplate.save(manifest);
+
+        authorize(AUTHOR, UserRole.CONTENT_MANAGER);
+        var selected = profiles.read(TOPIC).resources().stream().filter(resource -> resource.textEn().equals("juice"))
+                .map(resource -> resource.id()).toList();
+        assertThat(selected).hasSize(3).doesNotHaveDuplicates();
+        var profile = new TopicSpeakingProfileDto(true, CefrLevel.A1, "Order a drink", "Barista", "Customer",
+                List.of(), selected, "Good morning.", null);
+        profiles.save(TOPIC, 0, profile);
+        profiles.publish(TOPIC, 1);
+        assertThat(profiles.read(TOPIC).published().selectedResourceIds()).containsExactlyElementsOf(selected);
+        assertThat(profiles.read(ITEM).published()).isNull();
+
+        authorize(LEARNER, UserRole.USER);
+        var created = sessions.create(new Create(TOPIC, UUID.randomUUID())).session();
+        var snapshot = repository.findById(created.sessionId()).orElseThrow().getSnapshot();
+        assertThat(snapshot.getResources()).hasSize(2);
+        assertThat(snapshot.getResources()).extracting(resource -> resource.getContext())
+                .containsExactly(null, "Electrical power");
+        assertThat(conversation.opening(snapshot).data()).contains("juice", "Electrical power", "Barista")
+                .doesNotContain("Unselected vocabulary");
+    }
+
+    @Test
+    void unpublishedScopeUsesSavedSourceAndWrongParentIsRejectedForEveryOperation() throws Exception {
+        String topicId = "66fa4639f05f7400cafe0010";
+        String itemId = "66fa4639f05f7400cafe0011";
+        mongoTemplate.insert(Topic.builder().id(topicId).titleVi("Chủ đề nháp").cefrLevel(CefrLevel.A2).build());
+        mongoTemplate.insert(TopicItem.builder().id(itemId).topicId(topicId).build());
+        var itemDraft = mongoTemplate.insert(TopicItemVersion.builder().id("not-released").topicId(topicId).topicItemId(itemId)
+                .title("Draft lesson").status(ContentStatus.DRAFT).context(
+                        fit.iuh.engolearn.topic.model.vo.TopicContextVo.builder()
+                                .scenarioDescription("Practice a draft scenario.").build())
+                .vocabularies(List.of(ItemWordVo.builder()
+                        .snapshot(WordSnapshotVo.builder().word("ticket").build()).build()))
+                .expressions(List.of(fit.iuh.engolearn.topic.model.vo.ExpressionBlockVo.builder().purposes(List.of(
+                        fit.iuh.engolearn.topic.model.vo.ExpressionPurposeVo.builder().examples(List.of(
+                                fit.iuh.engolearn.topic.model.vo.ExpressionExampleVo.builder()
+                                        .textEn("May I buy a ticket?").build())).build())).build())).build());
+        authorize(AUTHOR, UserRole.CONTENT_MANAGER);
+        var scope = new SpeakingScopeDto(SpeakingScopeType.TOPIC_ITEM, topicId, itemId);
+        var state = profiles.read(scope);
+        assertThat(state.parentTitle()).isEqualTo("Chủ đề nháp");
+        assertThat(state.resources()).extracting(resource -> resource.textEn())
+                .containsExactly("ticket", "May I buy a ticket?");
+        var topicScope = new SpeakingScopeDto(SpeakingScopeType.TOPIC, topicId, null);
+        assertThat(profiles.read(topicScope).resources()).isEqualTo(state.resources());
+        assertThat(state.initialProfile().description()).isEqualTo("Practice a draft scenario.");
+        assertThat(state.initialProfile().level()).isEqualTo(CefrLevel.A2);
+        assertThat(mongoTemplate.findAll(Document.class, "topic_speaking_profiles")).isEmpty();
+        var selected = profile(scope, "Practice a draft scenario.");
+        profiles.save(scope, 0, selected);
+        profiles.save(topicScope, 0, selected);
+        assertCodeTopic(() -> profiles.publish(scope, 1), "CONTENT_NOT_RELEASED");
+        assertCodeTopic(() -> profiles.publish(topicScope, 1), "CONTENT_NOT_RELEASED");
+        itemDraft.setExpressions(List.of());
+        mongoTemplate.save(itemDraft);
+        var updated = profiles.read(scope);
+        assertThat(updated.resources()).extracting(resource -> resource.id())
+                .containsExactly(selected.selectedResourceIds().getFirst());
+        assertThat(updated.draft()).isEqualTo(selected);
+        assertThat(updated.publishViolations()).extracting("code").contains("INVALID_RESOURCE");
+        assertThat(profiles.save(scope, 1, selected).draft()).isEqualTo(selected);
+
+        String wrongPath = "/api/management/topics/" + TOPIC_ID + "/items/" + itemId + "/speaking-profile";
+        mvc.perform(get(wrongPath).cookie(cookie(AUTHOR))).andExpect(status().isNotFound());
+        mvc.perform(put(wrongPath).cookie(cookie(AUTHOR)).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"revision\":0,\"profile\":{\"enabled\":false}}"))
+                .andExpect(status().isNotFound());
+        mvc.perform(post(wrongPath + "/publish").cookie(cookie(AUTHOR)).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"revision\":0}")).andExpect(status().isNotFound());
+    }
+
+    @Test
+    void legacyVocabularyMatchesOnlyAnUnambiguousOccurrenceFromTheOriginalScope() {
+        String sibling = "66fa4639f05f7400cafe0002";
+        mongoTemplate.insert(TopicItem.builder().id(sibling).topicId(TOPIC_ID).build());
+        mongoTemplate.insert(TopicItemVersion.builder().id("duplicate-vocab").topicId(TOPIC_ID).topicItemId(sibling)
+                .status(ContentStatus.PUBLISHED).title("Sibling").order(2)
+                .vocabularies(List.of(ItemWordVo.builder().vocabId("juice")
+                        .snapshot(WordSnapshotVo.builder().word("juice").build()).build())).build());
+        TopicVersion manifest = mongoTemplate.findById("cafe-v1", TopicVersion.class);
+        manifest.setItemVersionIds(List.of("order-v1", "duplicate-vocab"));
+        mongoTemplate.save(manifest);
+        var legacy = new TopicSpeakingProfileDto(true, CefrLevel.A1, "Cafe", "Barista", "Customer",
+                List.of(), List.of("juice"), "Good morning.", null);
+        String topicKey = scopeKey(TOPIC_ID);
+        mongoTemplate.insert(TopicSpeakingProfile.builder().id(topicKey).published(TopicSpeakingProfileMapper.toValue(legacy))
+                .publishedContentVersion("cafe-v1").publishedProfileVersion(1L).build());
+        mongoTemplate.insert(TopicSpeakingProfile.builder().id(topicKey + "." + scopeKey(ITEM_ID))
+                .published(TopicSpeakingProfileMapper.toValue(legacy)).publishedContentVersion("order-v1")
+                .publishedProfileVersion(1L).build());
+
+        authorize(AUTHOR, UserRole.CONTENT_MANAGER);
+        var topicProfile = profiles.read(TOPIC);
+        assertThat(topicProfile.published().selectedResourceIds()).containsExactly("juice");
+        assertThat(topicProfile.publishedViolations()).extracting("code").containsExactly("INVALID_RESOURCE");
+        var itemProfile = profiles.read(ITEM);
+        assertThat(itemProfile.publishedViolations()).isEmpty();
+        assertThat(itemProfile.published().selectedResourceIds()).containsExactly(itemProfile.resources().getFirst().id());
+        assertThat(mongoTemplate.findById(topicKey + "." + scopeKey(ITEM_ID), TopicSpeakingProfile.class)
+                .getPublished().getSelectedResourceIds()).containsExactly("juice");
+    }
+
+    private static String scopeKey(String id) {
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(id.getBytes(StandardCharsets.UTF_8));
+    }
+
+    private String createInitialTopicSession() {
+        publish(TOPIC, "Published context");
+        authorize(LEARNER, UserRole.USER);
+        return sessions.create(new Create(TOPIC, UUID.randomUUID())).session().sessionId();
+    }
+
+    private List<List<Document>> learningState() {
+        return List.of(Topic.class, TopicVersion.class, TopicItem.class, TopicItemVersion.class,
+                        UserTopicProgress.class, UserTopicItemProgress.class, UserTopicAttempt.class)
+                .stream().map(type -> mongoTemplate.findAll(Document.class, mongoTemplate.getCollectionName(type)))
+                .toList();
     }
 
     @Test
@@ -486,13 +727,13 @@ class SpeakingFoundationMongoIntegrationTest extends AbstractMongoIntegrationTes
 
     private void publish(SpeakingScopeDto scope, String description) {
         authorize(AUTHOR, UserRole.CONTENT_MANAGER);
-        profiles.save(scope, 0, profile(description));
+        profiles.save(scope, 0, profile(scope, description));
         profiles.publish(scope, 1);
     }
 
-    private static TopicSpeakingProfileDto profile(String description) {
+    private TopicSpeakingProfileDto profile(SpeakingScopeDto scope, String description) {
         return new TopicSpeakingProfileDto(true, CefrLevel.A1, description, "Barista", "Customer",
-                List.of(), List.of("juice"), "Hello", null);
+                List.of(), profiles.read(scope).resources().stream().map(resource -> resource.id()).toList(), "Hello", null);
     }
 
     private void account(String id, UserRole role) {

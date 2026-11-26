@@ -2,7 +2,7 @@
 
 | Collection | Ownership and invariants |
 | --- | --- |
-| `topic_speaking_profiles` | Topic-owned draft and published profiles, keyed by Topic and optional Item. Promotion binds the draft to the current content release. |
+| `topic_speaking_profiles` | Topic-owned draft and published profiles, keyed by exact Topic and optional Item. A write revision protects edits and promotions, and a separate Speaking version advances on each promotion. Publication records actor, Speaking version, content provenance and timestamp in the profile document. |
 | `speaking_v2_sessions` | Speaking-owned snapshot, prompt version, controller and work fences, opening claim, embedded memory and per-session watermark. A partial unique index allows one unfinished session per owner. The final assessment and its status publish atomically on this document under the same tombstone fence. |
 | `speaking_v2_owner_slots` | One CAS reservation per owner. It persists before the first insert and transfers to the replacement after the old session ends. |
 | `speaking_v2_turns` | Archived terminal turns, with unique session/sequence and session/client turn ID. The active marker in the session owns admission and in-flight mutations. Archived delivery metadata and charge state use conditional updates. |

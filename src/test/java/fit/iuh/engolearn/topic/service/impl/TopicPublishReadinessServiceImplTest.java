@@ -26,8 +26,7 @@ import static org.mockito.Mockito.when;
 
 class TopicPublishReadinessServiceImplTest {
     private final TopicManagementReadService readService = mock(TopicManagementReadService.class);
-    private final TopicPublishReadinessServiceImpl service = new TopicPublishReadinessServiceImpl(readService,
-            org.mockito.Mockito.mock(fit.iuh.engolearn.topic.service.TopicSpeakingProfileService.class));
+    private final TopicPublishReadinessServiceImpl service = new TopicPublishReadinessServiceImpl(readService);
 
     @Test
     void reportsLocalizedFieldPathsAndDoesNotInspectHiddenItems() {

@@ -4,6 +4,16 @@ See the [shared contract](../../../../docs/system-design/speaking-v2-contract.md
 
 Topic profile read, save and publish use the Content Manager authority for Topic and Item scopes. Learner REST uses the authenticated User role and verifies ownership. Deleted sessions cannot be retrieved or replayed. History is independent of current Topic visibility and quota.
 
+## Speaking profile authoring
+
+GET and PUT use `/api/management/topics/{topicId}/speaking-profile` or `/api/management/topics/{topicId}/items/{itemId}/speaking-profile`. POST appends `/publish`. The GET projection includes the write revision, draft, stored publication, Speaking publication version, optional source defaults, owning Item groups and resource options. An unreleased scope may have a draft and source defaults. Publish requires an existing release and an explicitly saved draft. An enabled profile is validated against the current exact catalog. Validation failures include field paths and stable reason codes. A stale write revision returns `REQUEST_CONFLICT`.
+
+Resource IDs identify explicit Item occurrences. Authoring uses the saved working Item version, including DRAFT, within the exact scope. An existing selection remains checked if its canonical occurrence still exists. Removed or replaced occurrences stay in the draft as stale references until the editor removes or replaces them. Publish validation and learner admission use the current published catalog, and the learner snapshot deduplicates equivalent text and meaning. At publication and new-session admission, Topic checks the serialized static payload against the application envelope configured by `speaking.context.total-limit-bytes` (768 KiB default, with 256 KiB held for dynamic conversation and generation). A newer learning release can supply current resources to an existing published profile. Missing occurrences return `PROFILE_RESOURCES_STALE` at admission, and over-budget profiles return `CONTEXT_BUDGET_EXCEEDED`. Existing sessions continue to read their saved snapshots.
+
+Only the Speaking profile document is written by these management operations. Topic Learning readiness evaluates its own content and never promotes a Speaking draft.
+
+## Learner admission
+
 New sessions, replacements and Practice Again check the authoritative Topic CEFR against the learner's current CEFR. A published Topic can be practiced before the learner starts Topic Learning. An Item also has to be visible under its parent and accessible under Topic Learning's sequence rules. Availability reports `LEVEL_TOO_HIGH` or `ITEM_LOCKED` for the corresponding admission failure. Create and replace return the same reason as a 403 code. An explicit resume of an unfinished owned session still uses its pinned snapshot and existing controller checks.
 
 ## History
