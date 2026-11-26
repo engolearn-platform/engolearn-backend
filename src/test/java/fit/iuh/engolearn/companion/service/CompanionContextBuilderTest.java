@@ -70,4 +70,18 @@ class CompanionContextBuilderTest {
         assertThat(texts.get(0)).contains("The learner's current CEFR level is unavailable. Do not assume or invent it.");
         assertThat(texts).contains("new", "current").doesNotContain("old");
     }
+
+    @Test
+    void directMemoryRequestsRemainAvailableAndSuccessMustBeConfirmedWhenAutomaticMemoryIsOff() {
+        List<CompanionPromptMessage> prompt = builder.build("learner-1", List.of(),
+                "Please remember my coffee preference.", null, false);
+
+        String system = prompt.get(0).text();
+        assertThat(system).contains("including when Automatic Memory is OFF",
+                "set trigger USER_REQUESTED only when", "otherwise use AUTOMATIC",
+                "retaining relevant negations and qualifiers", "Never automatically forget a memory",
+                "Claim a memory change succeeded only when its tool result confirms status SUCCESS",
+                "Automatic Memory is OFF. Do not opportunistically create or update memories",
+                "direct user requests to remember, update, or forget remain available through the memory tools");
+    }
 }

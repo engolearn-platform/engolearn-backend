@@ -3,10 +3,12 @@ package fit.iuh.engolearn.companion.service.impl;
 import fit.iuh.engolearn.assessment.contract.AssessmentCompanionResults;
 import fit.iuh.engolearn.assessment.contract.dto.AssessmentCompanionSummaryDto;
 import fit.iuh.engolearn.companion.service.CompanionToolDefinition;
+import fit.iuh.engolearn.companion.service.CompanionMemoryToolContext;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import org.springframework.stereotype.Component;
+import org.springframework.beans.factory.annotation.Autowired;
 import tools.jackson.databind.ObjectMapper;
 
 @Component
@@ -19,14 +21,28 @@ public class CompanionToolRegistry {
 
     private final AssessmentCompanionResults assessments;
     private final ObjectMapper mapper;
+    private final CompanionMemoryToolHandler memoryTools;
 
+    @Autowired
+    public CompanionToolRegistry(AssessmentCompanionResults assessments, ObjectMapper mapper,
+            CompanionMemoryToolHandler memoryTools) {
+        this.assessments = Objects.requireNonNull(assessments, "assessments");
+        this.mapper = Objects.requireNonNull(mapper, "mapper");
+        this.memoryTools = Objects.requireNonNull(memoryTools, "memoryTools");
+    }
+
+    /** Compatibility constructor for isolated Assessment tool tests. */
     public CompanionToolRegistry(AssessmentCompanionResults assessments, ObjectMapper mapper) {
         this.assessments = Objects.requireNonNull(assessments, "assessments");
         this.mapper = Objects.requireNonNull(mapper, "mapper");
+        this.memoryTools = null;
     }
 
     public List<CompanionToolDefinition> definitions(boolean enabled) {
-        return enabled ? List.of(ASSESSMENT_TOOL) : List.of();
+        if (!enabled) return List.of();
+        if (memoryTools == null) return List.of(ASSESSMENT_TOOL);
+        return java.util.stream.Stream.concat(java.util.stream.Stream.of(ASSESSMENT_TOOL),
+                memoryTools.definitions().stream()).toList();
     }
 
     public String execute(String name, Map<String, Object> arguments, String learnerId) {
@@ -34,6 +50,13 @@ public class CompanionToolRegistry {
     }
 
     public String execute(String name, Map<String, Object> arguments, String learnerId, Runnable onAssessmentLookup) {
+        return execute(name, arguments, learnerId, onAssessmentLookup, null);
+    }
+
+    public String execute(String name, Map<String, Object> arguments, String learnerId,
+            Runnable onAssessmentLookup, CompanionMemoryToolContext memoryContext) {
+        if (memoryTools != null && memoryTools.supports(name))
+            return memoryTools.execute(name, arguments, learnerId, memoryContext);
         if (!LATEST_ASSESSMENT.equals(name)) return result("ERROR", "The requested tool is unavailable.");
         if (learnerId == null || learnerId.isBlank()) return result("FORBIDDEN", "Assessment context is unavailable.");
         ToolArguments parsed = parseArguments(arguments);

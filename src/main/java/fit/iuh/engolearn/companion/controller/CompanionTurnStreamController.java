@@ -6,6 +6,7 @@ import fit.iuh.engolearn.companion.dto.response.CompanionTurnCompletedResponse;
 import fit.iuh.engolearn.companion.exception.CompanionException;
 import fit.iuh.engolearn.companion.service.CompanionTurnResult;
 import fit.iuh.engolearn.companion.service.CompanionTurnService;
+import fit.iuh.engolearn.companion.service.CompanionMemoryOperationEvent;
 import fit.iuh.engolearn.config.CompanionProperties;
 import java.io.IOException;
 import java.util.Map;
@@ -98,6 +99,13 @@ public class CompanionTurnStreamController {
                         if (status == CompanionTurnService.TurnStatus.ASSESSMENT_LOOKUP) {
                             send(emitter, "status", Map.of("code", "ASSESSMENT_LOOKUP"), cancelled);
                         }
+                    }
+
+                    @Override
+                    public void onMemoryOperation(CompanionMemoryOperationEvent event) {
+                        send(emitter, "memory_operation", Map.of("operationId", event.operationId(),
+                                "action", event.action(), "memoryId", event.memoryId(),
+                                "version", event.version()), cancelled);
                     }
 
                     @Override

@@ -18,6 +18,12 @@ import fit.iuh.engolearn.companion.service.CompanionToolResult;
 import fit.iuh.engolearn.companion.service.CompanionUsage;
 import fit.iuh.engolearn.companion.service.CompanionTurnResult;
 import fit.iuh.engolearn.companion.service.CompanionTurnService;
+import fit.iuh.engolearn.companion.service.CompanionMemoryOperationCursor;
+import fit.iuh.engolearn.companion.service.CompanionMemoryToolContext;
+import fit.iuh.engolearn.companion.service.CompanionMemoryService;
+import fit.iuh.engolearn.companion.service.MemoryRetrievalResult;
+import fit.iuh.engolearn.companion.service.MemoryRetrievalService;
+import fit.iuh.engolearn.companion.service.MemorySettingsSnapshot;
 import fit.iuh.engolearn.quota.contract.QuotaAvailability;
 import fit.iuh.engolearn.quota.contract.QuotaUsageRecording;
 import fit.iuh.engolearn.quota.contract.dto.AvailabilityResultDto;
@@ -61,6 +67,8 @@ public class CompanionTurnServiceImpl implements CompanionTurnService {
     private final QuotaAvailability quotaAvailability;
     private final QuotaUsageRecording quotaUsage;
     private final CompanionToolRegistry toolRegistry;
+    private final CompanionMemoryService memories;
+    private final MemoryRetrievalService memoryRetrieval;
     @Qualifier("companionToolExecutor")
     private final ExecutorService companionToolExecutor;
     private final ConcurrentHashMap<String, Object> activeLearners = new ConcurrentHashMap<>();
@@ -95,7 +103,10 @@ public class CompanionTurnServiceImpl implements CompanionTurnService {
                                     properties.getMaxMessages())
                             .orElseThrow(() -> conflict("Another companion turn is already active"));
                     return new PreparedTurn(conversationId, learnerId, turnId, request.content(),
-                            claimed.getActiveTurnGeneration(), userMessage.getSequence(), guardToken);
+                            claimed.getActiveTurnGeneration(), userMessage.getSequence(), guardToken,
+                            Boolean.TRUE.equals(userMessage.getMemoryAutomaticEnabledSnapshot()),
+                            userMessage.getMemoryForgetRevisionSnapshot() == null ? 0L
+                                    : userMessage.getMemoryForgetRevisionSnapshot());
                 }
                 if (messages.findByTurnAndRole(conversationId, turnId, CompanionMessage.Role.USER).isPresent()
                         || messages.findByTurnAndRole(conversationId, turnId, CompanionMessage.Role.ASSISTANT).isPresent()) {
@@ -106,14 +117,18 @@ public class CompanionTurnServiceImpl implements CompanionTurnService {
                     throw new CompanionException(409, "MESSAGE_LIMIT_REACHED", "Conversation message limit reached", false);
                 }
                 requireQuotaAvailable(learnerId);
+                MemorySettingsSnapshot memorySettings = memories.settingsSnapshot(learnerId);
                 CompanionConversation admitted = conversations.admitNew(conversationId, learnerId, turnId,
                         conversation.getNextSequence(), now, leaseUntil, maxMessages)
                         .orElseThrow(() -> conflict("Another companion turn is active or the message limit was reached"));
                 long userSequence = admitted.getPendingUserSequence();
                 messages.insert(CompanionMessage.builder().conversationId(conversationId).turnId(turnId)
-                        .sequence(userSequence).role(CompanionMessage.Role.USER).content(request.content()).createdAt(now).build());
+                        .sequence(userSequence).role(CompanionMessage.Role.USER).content(request.content())
+                        .memoryAutomaticEnabledSnapshot(memorySettings.automaticMemoryEnabled())
+                        .memoryForgetRevisionSnapshot(memorySettings.forgetRevision()).createdAt(now).build());
                 return new PreparedTurn(conversationId, learnerId, turnId, request.content(),
-                        admitted.getActiveTurnGeneration(), userSequence, guardToken);
+                        admitted.getActiveTurnGeneration(), userSequence, guardToken,
+                        memorySettings.automaticMemoryEnabled(), memorySettings.forgetRevision());
             });
         } catch (RuntimeException ex) {
             activeLearners.remove(learnerId, guardToken);
@@ -132,7 +147,10 @@ public class CompanionTurnServiceImpl implements CompanionTurnService {
             Collections.reverse(prior);
             List<CompanionHistoryMessage> history = prior.stream()
                     .map(message -> new CompanionHistoryMessage(message.getRole().name(), message.getContent())).toList();
-            List<CompanionPromptMessage> messagesForModel = contextBuilder.build(prepared.learnerId(), history, prepared.content());
+            MemoryRetrievalResult memoryContext = retrieveMemoryContext(prepared, turnDeadline, observer);
+            List<CompanionPromptMessage> messagesForModel = contextBuilder.build(prepared.learnerId(), history,
+                    prepared.content(), memoryContext == null ? "" : memoryContext.promptContext(),
+                    prepared.admissionAutomaticMemoryEnabled());
             CompanionModelContinuation continuation = null;
             List<CompanionToolResult> toolResults = List.of();
             Set<String> seenCallIds = new HashSet<>();
@@ -141,6 +159,7 @@ public class CompanionTurnServiceImpl implements CompanionTurnService {
             int toolRounds = 0;
             boolean toolsDisabled = false;
             boolean retryUsed = false;
+            CompanionMemoryOperationCursor memoryCursor = new CompanionMemoryOperationCursor();
             RuntimeException lastFailure = null;
             while (true) {
                 if (observer.isCancelled()) throw new TurnCancelledException();
@@ -180,6 +199,8 @@ public class CompanionTurnServiceImpl implements CompanionTurnService {
                         if (!currentRound.completed || currentRound.usage == null || currentRound.usage.totalTokenCount() <= 0) throw missingUsage();
                         totalTokens = addUsage(totalTokens, currentRound.usage);
                         round = currentRound;
+                        log.info("Companion provider tool call returned: present={}, count={}",
+                                round.toolCalls != null, round.toolCalls == null ? 0 : round.toolCalls.calls().size());
                         break;
                     } catch (RuntimeException failure) {
                         if (failure instanceof TurnCancelledException) throw failure;
@@ -206,11 +227,15 @@ public class CompanionTurnServiceImpl implements CompanionTurnService {
                     if (!seenCallIds.add(call.callId())) throw invalidProviderResponse();
                     String json;
                     if (toolCallsExecuted >= properties.getMaxToolCalls()) {
+                        log.info("Companion tool call: tool={}, decision=skip, stage=tool_budget, code=CALL_LIMIT_REACHED",
+                                safeToolName(call.name()));
                         json = toolError("The tool call budget is exhausted.");
                         toolsDisabled = true;
                     } else {
                         toolCallsExecuted++;
-                        json = executeTool(call, prepared.learnerId(), turnDeadline, observer);
+                        log.info("Companion tool call: tool={}, decision=invoke, stage=provider_response, code=TOOL_CALL_RECEIVED",
+                                safeToolName(call.name()));
+                        json = executeTool(call, prepared, turnDeadline, observer, memoryCursor);
                     }
                     results.add(new CompanionToolResult(call.callId(), call.name(), json));
                 }
@@ -293,17 +318,63 @@ public class CompanionTurnServiceImpl implements CompanionTurnService {
                 "The companion service is temporarily unavailable. Retry the request.", true);
     }
 
-    private String executeTool(CompanionToolCall call, String learnerId, Instant turnDeadline, TurnObserver observer) {
+    private MemoryRetrievalResult retrieveMemoryContext(PreparedTurn prepared, Instant turnDeadline, TurnObserver observer) {
+        if (observer.isCancelled()) throw new TurnCancelledException();
+        Duration remaining = Duration.between(Instant.now(), turnDeadline);
+        if (remaining.isNegative() || remaining.isZero()) return null;
+        Duration timeout = remaining.compareTo(properties.getToolTimeout()) < 0 ? remaining : properties.getToolTimeout();
+        Future<MemoryRetrievalResult> future;
+        try {
+            future = companionToolExecutor.submit(() -> memoryRetrieval.retrieve(prepared.learnerId(),
+                    prepared.content(), turnDeadline));
+        } catch (RejectedExecutionException saturated) {
+            return null;
+        }
+        Instant retrievalDeadline = Instant.now().plus(timeout);
+        while (true) {
+            if (observer.isCancelled()) {
+                future.cancel(true);
+                throw new TurnCancelledException();
+            }
+            Duration wait = Duration.between(Instant.now(), retrievalDeadline);
+            if (wait.isNegative() || wait.isZero()) {
+                future.cancel(true);
+                return null;
+            }
+            try {
+                return future.get(Math.min(100, Math.max(1, wait.toMillis())), TimeUnit.MILLISECONDS);
+            } catch (TimeoutException waiting) {
+                // Keep cancellation responsive while retrieval uses the same bounded tool executor.
+            } catch (InterruptedException interrupted) {
+                future.cancel(true);
+                Thread.currentThread().interrupt();
+                return null;
+            } catch (ExecutionException failure) {
+                log.debug("Companion memory retrieval unavailable; causeType={}", rootCauseType((failure.getCause() instanceof RuntimeException runtime)
+                        ? runtime : new RuntimeException(failure.getCause())));
+                return null;
+            }
+        }
+    }
+
+    private String executeTool(CompanionToolCall call, PreparedTurn prepared, Instant turnDeadline,
+            TurnObserver observer, CompanionMemoryOperationCursor memoryCursor) {
         Duration remaining = Duration.between(Instant.now(), turnDeadline);
         if (remaining.isNegative() || remaining.isZero()) {
             throw new CompanionException(504, "COMPANION_TURN_TIMEOUT", "The companion response timed out", true);
         }
         Duration timeout = remaining.compareTo(properties.getToolTimeout()) < 0 ? remaining : properties.getToolTimeout();
+        CompanionMemoryToolContext memoryContext = new CompanionMemoryToolContext(prepared.conversationId(),
+                prepared.turnId(), prepared.content(), prepared.admissionAutomaticMemoryEnabled(),
+                prepared.forgetRevision(), turnDeadline, () -> fenceMemoryWrite(prepared, turnDeadline),
+                memoryCursor, observer);
         Future<String> future;
         try {
-            future = companionToolExecutor.submit(() -> toolRegistry.execute(call.name(), call.arguments(), learnerId,
-                    () -> notifyAssessmentLookup(observer)));
+            future = companionToolExecutor.submit(() -> toolRegistry.execute(call.name(), call.arguments(),
+                    prepared.learnerId(), () -> notifyAssessmentLookup(observer), memoryContext));
         } catch (RejectedExecutionException saturated) {
+            log.info("Companion tool call: tool={}, decision=error, stage=tool_executor, code=EXECUTOR_SATURATED",
+                    safeToolName(call.name()));
             return toolError("Assessment context is temporarily unavailable.");
         }
         Instant toolDeadline = Instant.now().plus(timeout);
@@ -316,13 +387,18 @@ public class CompanionTurnServiceImpl implements CompanionTurnService {
                 remaining = Duration.between(Instant.now(), toolDeadline);
                 if (remaining.isNegative() || remaining.isZero()) {
                     future.cancel(true);
+                    log.info("Companion tool call: tool={}, decision=error, stage=tool_timeout, code=TOOL_TIMEOUT",
+                            safeToolName(call.name()));
                     if (!Instant.now().isBefore(turnDeadline)) {
                         throw new CompanionException(504, "COMPANION_TURN_TIMEOUT", "The companion response timed out", true);
                     }
                     return toolError("Assessment context took too long to load.");
                 }
                 try {
-                    return future.get(Math.min(100, Math.max(1, remaining.toMillis())), TimeUnit.MILLISECONDS);
+                    String response = future.get(Math.min(100, Math.max(1, remaining.toMillis())), TimeUnit.MILLISECONDS);
+                    log.info("Companion tool call: tool={}, decision=result, stage=tool_handler, code={}",
+                            safeToolName(call.name()), toolResultStatus(response));
+                    return response;
                 } catch (TimeoutException waiting) {
                     // Polling keeps cancellation responsive while the bounded read runs separately.
                 }
@@ -336,7 +412,37 @@ public class CompanionTurnServiceImpl implements CompanionTurnService {
                 if (observer.isCancelled()) throw new TurnCancelledException();
                 throw callbackFailure;
             }
+            if (failure.getCause() instanceof CompanionException turnFailure
+                    && "TURN_CONFLICT".equals(turnFailure.getCode())) throw turnFailure;
+            log.info("Companion tool call: tool={}, decision=error, stage=tool_execution, code=TOOL_EXECUTION_FAILED",
+                    safeToolName(call.name()));
             return toolError("Assessment context is temporarily unavailable.");
+        }
+    }
+
+    private static String safeToolName(String name) {
+        return switch (name == null ? "" : name) {
+            case "getLatestAssessmentResult", "searchMemory", "createMemory", "updateMemory", "deleteMemory" -> name;
+            default -> "UNKNOWN_TOOL";
+        };
+    }
+
+    private static String toolResultStatus(String response) {
+        if (response == null) return "EMPTY_RESULT";
+        for (String status : List.of("SUCCESS", "NO_DATA", "FORBIDDEN", "INVALID_ARGUMENTS", "CONFLICT", "ERROR")) {
+            if (response.contains("\"status\":\"" + status + "\"")) return status;
+        }
+        return "UNKNOWN_RESULT";
+    }
+
+    private void fenceMemoryWrite(PreparedTurn prepared, Instant turnDeadline) {
+        Instant now = Instant.now();
+        if (!now.isBefore(turnDeadline)) {
+            throw new CompanionException(504, "COMPANION_TURN_TIMEOUT", "The companion response timed out", true);
+        }
+        if (!conversations.fenceActiveTurn(prepared.conversationId(), prepared.learnerId(), prepared.turnId(),
+                prepared.generation(), now, turnDeadline.plusSeconds(30))) {
+            throw conflict("Turn lease expired before the memory change could commit");
         }
     }
 

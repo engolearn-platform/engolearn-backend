@@ -13,6 +13,10 @@ import fit.iuh.engolearn.companion.repository.CompanionMessageRepository;
 import fit.iuh.engolearn.companion.service.impl.CompanionContextBuilder;
 import fit.iuh.engolearn.companion.service.impl.CompanionTurnServiceImpl;
 import fit.iuh.engolearn.companion.service.impl.CompanionToolRegistry;
+import fit.iuh.engolearn.companion.service.CompanionMemoryService;
+import fit.iuh.engolearn.companion.service.MemoryRetrievalService;
+import fit.iuh.engolearn.companion.service.MemorySettingsSnapshot;
+import fit.iuh.engolearn.companion.service.CompanionMemoryToolContext;
 import fit.iuh.engolearn.config.CompanionProperties;
 import fit.iuh.engolearn.quota.contract.QuotaAvailability;
 import fit.iuh.engolearn.quota.contract.QuotaUsageRecording;
@@ -50,6 +54,8 @@ class CompanionTurnServiceTest {
     @Mock QuotaAvailability quotaAvailability;
     @Mock QuotaUsageRecording quotaUsage;
     @Mock CompanionToolRegistry toolRegistry;
+    @Mock CompanionMemoryService memories;
+    @Mock MemoryRetrievalService memoryRetrieval;
     ExecutorService toolExecutor;
     CompanionProperties properties;
     CompanionTurnServiceImpl service;
@@ -63,7 +69,7 @@ class CompanionTurnServiceTest {
                 .thenReturn(new AvailabilityResultDto("AI_COMPANION_TOKEN_USAGE", 0, 100, 100, "TOKEN",
                         "DAILY", Instant.now(), Instant.now().plusSeconds(86400), Instant.now(), "AVAILABLE"));
         service = new CompanionTurnServiceImpl(users, conversations, messages, model, contextBuilder, properties,
-                transactions, quotaAvailability, quotaUsage, toolRegistry, toolExecutor);
+                transactions, quotaAvailability, quotaUsage, toolRegistry, memories, memoryRetrieval, toolExecutor);
     }
 
     @AfterEach void closeToolExecutor() { toolExecutor.shutdownNow(); }
@@ -76,14 +82,19 @@ class CompanionTurnServiceTest {
     }
 
     private void stubPrompt() {
-        when(contextBuilder.build(anyString(), anyList(), anyString()))
+        when(contextBuilder.build(anyString(), anyList(), anyString(), any(), anyBoolean()))
                 .thenReturn(java.util.List.of(new CompanionPromptMessage(CompanionPromptMessage.Role.SYSTEM, "prompt"),
                         new CompanionPromptMessage(CompanionPromptMessage.Role.USER, "question")));
+    }
+
+    private void stubMemorySettings() {
+        when(memories.settingsSnapshot(anyString())).thenReturn(new MemorySettingsSnapshot(true, 0));
     }
 
     @Test void failedProviderAttemptCanRetryWithoutInsertingAnotherUserMessage() {
         stubUsageRecording();
         stubPrompt();
+        stubMemorySettings();
         String conversationId = "conversation-1";
         String turnId = UUID.randomUUID().toString();
         CompanionConversation conversation = conversation(conversationId, 0, 1, null, null);
@@ -124,6 +135,7 @@ class CompanionTurnServiceTest {
     }
 
     @Test void learnerCannotHoldTurnsAcrossTwoConversationsAtOnce() {
+        stubMemorySettings();
         String first = UUID.randomUUID().toString();
         when(conversations.findOwned("conversation-1", "learner-1"))
                 .thenReturn(Optional.of(conversation("conversation-1", 0, 1, null, null)));
@@ -139,6 +151,7 @@ class CompanionTurnServiceTest {
 
     @Test void clientCancellationCancelsProviderAndReleasesTheReservation() {
         stubPrompt();
+        stubMemorySettings();
         String turnId = UUID.randomUUID().toString();
         when(conversations.findOwned("conversation-1", "learner-1"))
                 .thenReturn(Optional.of(conversation("conversation-1", 0, 1, null, null)));
@@ -171,6 +184,7 @@ class CompanionTurnServiceTest {
     @Test void assessmentToolRoundTripsTypedResultsAndAggregatesUsageBeforeAtomicCompletion() {
         stubUsageRecording();
         stubPrompt();
+        stubMemorySettings();
         String conversationId = "conversation-tools";
         String turnId = UUID.randomUUID().toString();
         when(conversations.findOwned(conversationId, "learner-1")).thenReturn(Optional.of(conversation(conversationId, 0, 1, null, null)),
@@ -191,7 +205,8 @@ class CompanionTurnServiceTest {
             value.setId("message-" + value.getSequence());
             return value;
         });
-        when(toolRegistry.execute(eq("getLatestAssessmentResult"), anyMap(), eq("learner-1"), any(Runnable.class)))
+        when(toolRegistry.execute(eq("getLatestAssessmentResult"), anyMap(), eq("learner-1"), any(Runnable.class),
+                any(CompanionMemoryToolContext.class)))
                 .thenAnswer(invocation -> {
                     invocation.<Runnable>getArgument(3).run();
                     return "{\"status\":\"SUCCESS\"}";
@@ -213,6 +228,7 @@ class CompanionTurnServiceTest {
 
     @Test void assessmentStatusObserverFailureReleasesTurnWithoutPersistingOrCharging() {
         stubPrompt();
+        stubMemorySettings();
         String conversationId = "conversation-observer-failure";
         String turnId = UUID.randomUUID().toString();
         when(conversations.findOwned(conversationId, "learner-1"))
@@ -226,7 +242,8 @@ class CompanionTurnServiceTest {
                 new CompanionModelEvent.ToolCalls(new CompanionModelContinuation() {}, List.of(
                         new CompanionToolCall("call-1", "getLatestAssessmentResult", java.util.Map.of()))),
                 new CompanionModelEvent.RoundCompleted(new CompanionUsage(4))));
-        when(toolRegistry.execute(eq("getLatestAssessmentResult"), anyMap(), eq("learner-1"), any(Runnable.class)))
+        when(toolRegistry.execute(eq("getLatestAssessmentResult"), anyMap(), eq("learner-1"), any(Runnable.class),
+                any(CompanionMemoryToolContext.class)))
                 .thenAnswer(invocation -> {
                     invocation.<Runnable>getArgument(3).run();
                     return "{\"status\":\"SUCCESS\"}";
@@ -252,6 +269,7 @@ class CompanionTurnServiceTest {
     @Test void assessmentCallSkippedByToolBudgetDoesNotEmitStatus() {
         stubUsageRecording();
         stubPrompt();
+        stubMemorySettings();
         properties.setMaxToolCalls(1);
         String conversationId = "conversation-budget";
         String turnId = UUID.randomUUID().toString();
@@ -273,7 +291,8 @@ class CompanionTurnServiceTest {
         when(model.stream(any())).thenReturn(Flux.just(new CompanionModelEvent.ToolCalls(new CompanionModelContinuation() {}, calls),
                         new CompanionModelEvent.RoundCompleted(new CompanionUsage(4))),
                 completedText("Answer", 3));
-        when(toolRegistry.execute(eq("otherTool"), anyMap(), eq("learner-1"), any(Runnable.class)))
+        when(toolRegistry.execute(eq("otherTool"), anyMap(), eq("learner-1"), any(Runnable.class),
+                any(CompanionMemoryToolContext.class)))
                 .thenReturn("{\"status\":\"ERROR\"}");
         var prepared = service.prepareTurn(conversationId,
                 new CompanionTurnRequest(UUID.fromString(turnId), "How did I do?", false));
@@ -283,12 +302,15 @@ class CompanionTurnServiceTest {
 
         assertEquals("Answer", result.assistantMessage().content());
         assertTrue(statuses.isEmpty());
-        verify(toolRegistry).execute(eq("otherTool"), anyMap(), eq("learner-1"), any(Runnable.class));
-        verify(toolRegistry, never()).execute(eq("getLatestAssessmentResult"), anyMap(), eq("learner-1"), any(Runnable.class));
+        verify(toolRegistry).execute(eq("otherTool"), anyMap(), eq("learner-1"), any(Runnable.class),
+                any(CompanionMemoryToolContext.class));
+        verify(toolRegistry, never()).execute(eq("getLatestAssessmentResult"), anyMap(), eq("learner-1"), any(Runnable.class),
+                any(CompanionMemoryToolContext.class));
     }
 
     @Test void missingAuthoritativeUsageFailsWithoutAssistantPersistenceOrCharge() {
         stubPrompt();
+        stubMemorySettings();
         String turnId = UUID.randomUUID().toString();
         when(conversations.findOwned("conversation-1", "learner-1"))
                 .thenReturn(Optional.of(conversation("conversation-1", 0, 1, null, null)));

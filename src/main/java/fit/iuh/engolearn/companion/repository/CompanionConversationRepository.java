@@ -15,5 +15,6 @@ public interface CompanionConversationRepository {
             Instant leaseUntil, int maxMessages);
     boolean finish(String id, String learnerId, String turnId, long generation, long expectedSequence, Instant now);
     boolean release(String id, String learnerId, String turnId, long generation, Instant now);
+    boolean fenceActiveTurn(String id, String learnerId, String turnId, long generation, Instant now, Instant leaseUntil);
     boolean deleteOwned(String id, String learnerId);
 }

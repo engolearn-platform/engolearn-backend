@@ -23,4 +23,6 @@ public class CompanionMessage extends BaseDocument {
     @Field("sequence") private long sequence;
     @Field("role") private Role role;
     @Field("content") private String content;
+    @Field("memory_automatic_enabled_snapshot") private Boolean memoryAutomaticEnabledSnapshot;
+    @Field("memory_forget_revision_snapshot") private Long memoryForgetRevisionSnapshot;
 }

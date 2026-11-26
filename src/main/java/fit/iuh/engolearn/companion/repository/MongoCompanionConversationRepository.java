@@ -65,6 +65,15 @@ public class MongoCompanionConversationRepository implements CompanionConversati
                 new Update().set("updated_at", now).unset("active_turn_id").unset("active_turn_lease_until"), CompanionConversation.class).getModifiedCount() == 1;
     }
 
+    @Override public boolean fenceActiveTurn(String id, String learnerId, String turnId, long generation,
+            Instant now, Instant leaseUntil) {
+        return mongo.updateFirst(Query.query(Criteria.where("_id").is(id).and("learner_id").is(learnerId)
+                        .and("active_turn_id").is(turnId).and("active_turn_generation").is(generation)
+                        .and("active_turn_lease_until").gt(now)),
+                new Update().set("updated_at", now).set("active_turn_lease_until", leaseUntil),
+                CompanionConversation.class).getModifiedCount() == 1;
+    }
+
     @Override public boolean deleteOwned(String id, String learnerId) {
         return mongo.remove(Query.query(Criteria.where("_id").is(id).and("learner_id").is(learnerId)), CompanionConversation.class).getDeletedCount() == 1;
     }

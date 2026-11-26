@@ -10,6 +10,10 @@ import fit.iuh.engolearn.companion.service.CompanionModelEvent;
 import fit.iuh.engolearn.companion.service.CompanionPromptMessage;
 import fit.iuh.engolearn.companion.service.CompanionUsage;
 import fit.iuh.engolearn.companion.service.CompanionTurnService;
+import fit.iuh.engolearn.companion.service.CompanionMemoryService;
+import fit.iuh.engolearn.companion.service.MemoryRetrievalService;
+import fit.iuh.engolearn.companion.service.MemoryRetrievalResult;
+import fit.iuh.engolearn.companion.service.MemorySettingsSnapshot;
 import fit.iuh.engolearn.companion.service.impl.CompanionContextBuilder;
 import fit.iuh.engolearn.companion.service.impl.CompanionToolRegistry;
 import fit.iuh.engolearn.companion.service.impl.CompanionTurnServiceImpl;
@@ -85,6 +89,28 @@ class CompanionTurnReservationIntegrationTest extends AbstractMongoIntegrationTe
         assertThat(admittedNext.getMessageCount()).isEqualTo(2);
     }
 
+    @Test void memoryFenceRequiresTheCurrentUnexpiredTurnGeneration() {
+        Instant admittedAt = Instant.now();
+        CompanionConversation conversation = transactions.required(() -> conversations.insert(CompanionConversation.builder()
+                .learnerId("learner").messageCount(0).nextSequence(1).activeTurnGeneration(0)
+                .createdAt(admittedAt).updatedAt(admittedAt).build()));
+        String turnId = UUID.randomUUID().toString();
+        CompanionConversation first = transactions.required(() -> conversations.admitNew(conversation.getId(), "learner",
+                turnId, 1, admittedAt, admittedAt.plusSeconds(10), 100).orElseThrow());
+        Instant writeAt = admittedAt.plusSeconds(1);
+        assertThat(transactions.required(() -> conversations.fenceActiveTurn(conversation.getId(), "learner", turnId,
+                first.getActiveTurnGeneration(), writeAt, admittedAt.plusSeconds(20)))).isTrue();
+
+        Instant takeoverAt = admittedAt.plusSeconds(21);
+        CompanionConversation retry = transactions.required(() -> conversations.claimRetry(conversation.getId(), "learner",
+                turnId, takeoverAt, takeoverAt.plusSeconds(30), 100).orElseThrow());
+        assertThat(retry.getActiveTurnGeneration()).isGreaterThan(first.getActiveTurnGeneration());
+        assertThat(transactions.required(() -> conversations.fenceActiveTurn(conversation.getId(), "learner", turnId,
+                first.getActiveTurnGeneration(), takeoverAt.plusSeconds(1), takeoverAt.plusSeconds(31)))).isFalse();
+        assertThat(transactions.required(() -> conversations.fenceActiveTurn(conversation.getId(), "learner", turnId,
+                retry.getActiveTurnGeneration(), takeoverAt.plusSeconds(1), takeoverAt.plusSeconds(31)))).isTrue();
+    }
+
     @Test void assistantAndActualUsageCommitTogetherAndBothRollBackOnQuotaFailure() {
         assertAtomicCompletion(false, true);
         assertAtomicCompletion(true, false);
@@ -112,8 +138,13 @@ class CompanionTurnReservationIntegrationTest extends AbstractMongoIntegrationTe
         };
         CompanionToolRegistry tools = Mockito.mock(CompanionToolRegistry.class);
         Mockito.when(tools.definitions(Mockito.anyBoolean())).thenReturn(List.of());
+        CompanionMemoryService memories = Mockito.mock(CompanionMemoryService.class);
+        Mockito.when(memories.settingsSnapshot(Mockito.anyString())).thenReturn(new MemorySettingsSnapshot(true, 0));
+        MemoryRetrievalService memoryRetrieval = Mockito.mock(MemoryRetrievalService.class);
+        Mockito.when(memoryRetrieval.retrieve(Mockito.anyString(), Mockito.anyString(), Mockito.any()))
+                .thenReturn(new MemoryRetrievalResult("", List.of()));
         CompanionTurnService service = new CompanionTurnServiceImpl(users, conversations, messages, model, contextBuilder,
-                properties, transactions, availability, usage, tools, toolExecutor);
+                properties, transactions, availability, usage, tools, memories, memoryRetrieval, toolExecutor);
         String turnId = UUID.randomUUID().toString();
         var prepared = service.prepareTurn(conversation.getId(),
                 new fit.iuh.engolearn.companion.dto.request.CompanionTurnRequest(UUID.fromString(turnId), "Question", false));
