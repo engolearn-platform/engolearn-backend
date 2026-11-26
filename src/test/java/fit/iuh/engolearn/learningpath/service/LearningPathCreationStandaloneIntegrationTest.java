@@ -80,7 +80,7 @@ class LearningPathCreationStandaloneIntegrationTest {
                 LearningPathCreationService creation = new LearningPathCreationServiceImpl(
                         recommendations, periodicTests, paths, questionPool);
                 CreateLearningPathRequest request = new CreateLearningPathRequest(
-                        attemptId, List.of("Reading for Gist"));
+                        attemptId, List.of("Reading for Gist"), "B1");
 
                 var first = creation.create(request, userId);
                 var repeated = creation.create(request, userId);

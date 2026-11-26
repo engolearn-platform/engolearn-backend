@@ -10,6 +10,7 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 
 @RestControllerAdvice(assignableTypes = LearningPathController.class)
 public class LearningPathExceptionHandler {
@@ -60,5 +61,10 @@ public class LearningPathExceptionHandler {
         );
         problem.setTitle("Invalid Learning Path request");
         return problem;
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ProblemDetail handleUnreadableBody(HttpMessageNotReadableException exception) {
+        return invalidRequest();
     }
 }

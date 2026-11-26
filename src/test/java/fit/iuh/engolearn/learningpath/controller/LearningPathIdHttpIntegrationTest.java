@@ -76,7 +76,7 @@ class LearningPathIdHttpIntegrationTest extends AbstractMongoIntegrationTest {
         assertThat(submitted.path("status").asString()).isEqualTo("READY");
         JsonNode recommendation = mapper.readTree(authenticatedGet(recommendationUrl, owner)).path("data");
         assertThat(recommendation.path("state").asString()).isEqualTo("AVAILABLE");
-        String body = "{\"assessmentAttemptId\":\"" + attemptId + "\",\"microSkills\":[\"Reading for Gist\"]}";
+        String body = "{\"assessmentAttemptId\":\"" + attemptId + "\",\"level\":\"A2\",\"microSkills\":[\"Reading for Gist\"]}";
         JsonNode created = mapper.readTree(authenticatedRequest(base + "/api/learning-paths/by-assessment", HttpMethod.POST, body, owner)).path("data");
         assertThat(created.path("created").asBoolean()).isTrue();
         JsonNode items = mapper.readTree(authenticatedGet(base + "/api/learning-paths", owner)).path("data").path("items");
@@ -99,7 +99,7 @@ class LearningPathIdHttpIntegrationTest extends AbstractMongoIntegrationTest {
         resolver.resolveIndexFor(fit.iuh.engolearn.learningpath.model.LearningPath.class)
                 .forEach(index -> mongoTemplate.indexOps(fit.iuh.engolearn.learningpath.model.LearningPath.class).ensureIndex(index));
         String url = "http://localhost:" + port + "/api/learning-paths/by-assessment";
-        String body = "{\"assessmentAttemptId\":\"concurrent-native-id\",\"microSkills\":[\"Reading for Gist\"]}";
+        String body = "{\"assessmentAttemptId\":\"concurrent-native-id\",\"level\":\"A2\",\"microSkills\":[\"Reading for Gist\"]}";
         try (var executor = java.util.concurrent.Executors.newFixedThreadPool(2)) {
             var one = executor.submit(() -> authenticatedRequest(url, HttpMethod.POST, body, owner));
             var two = executor.submit(() -> authenticatedRequest(url, HttpMethod.POST, body, owner));
@@ -119,7 +119,7 @@ class LearningPathIdHttpIntegrationTest extends AbstractMongoIntegrationTest {
         seedAccount(owner);
         seedEligibleProjection(owner, nativeId);
         String url = "http://localhost:" + port + "/api/learning-paths/by-assessment";
-        String body = "{\"assessmentAttemptId\":\"%s\",\"microSkills\":[\"Reading for Gist\"]}";
+        String body = "{\"assessmentAttemptId\":\"%s\",\"level\":\"A2\",\"microSkills\":[\"Reading for Gist\"]}";
         JsonMapper mapper = JsonMapper.builder().build();
         var first = mapper.readTree(authenticatedRequest(url, HttpMethod.POST, body.formatted(nativeId.toUpperCase(java.util.Locale.ROOT)), owner)).path("data");
         var repeated = mapper.readTree(authenticatedRequest(url, HttpMethod.POST, body.formatted(nativeId), owner)).path("data");
@@ -264,7 +264,7 @@ class LearningPathIdHttpIntegrationTest extends AbstractMongoIntegrationTest {
         String base = "http://localhost:" + port + "/api/learning-paths";
         String recommendation = base + "/recommendation?attemptId=" + attemptId;
         String body = """
-                {"attemptId":"%s","microSkills":["Reading for Gist"]}
+                {"attemptId":"%s","level":"A2","microSkills":["Reading for Gist"]}
                 """.formatted(attemptId);
         JsonMapper mapper = JsonMapper.builder().build();
         assertThat(mapper.readTree(authenticatedGet(recommendation, ownerId))
@@ -354,7 +354,7 @@ class LearningPathIdHttpIntegrationTest extends AbstractMongoIntegrationTest {
         Document sourceBefore = mongoTemplate.getCollection("assessment_attempts").find(new Document("_id", attemptId)).first();
         String base = "http://localhost:" + port + "/api/learning-paths";
         String url = base + "/by-assessment";
-        String body = "{\"assessmentAttemptId\":\"native-create-id\",\"microSkills\":[\"Reading for Gist\"]}";
+        String body = "{\"assessmentAttemptId\":\"native-create-id\",\"level\":\"A2\",\"microSkills\":[\"Reading for Gist\"]}";
         JsonMapper mapper = JsonMapper.builder().build();
 
         assertThatThrownBy(() -> authenticatedRequest(url + "?userId=" + ownerId, HttpMethod.POST, body, otherId))
@@ -419,7 +419,7 @@ class LearningPathIdHttpIntegrationTest extends AbstractMongoIntegrationTest {
         seedAccount(ownerId);
         seedEligibleProjection(ownerId, "native-conflict-id");
         String url = "http://localhost:" + port + "/api/learning-paths/by-assessment";
-        String wrongSkills = "{\"assessmentAttemptId\":\"native-conflict-id\",\"microSkills\":[\"Listening for Gist\"]}";
+        String wrongSkills = "{\"assessmentAttemptId\":\"native-conflict-id\",\"level\":\"A2\",\"microSkills\":[\"Listening for Gist\"]}";
         assertThatThrownBy(() -> authenticatedRequest(url, HttpMethod.POST, wrongSkills, ownerId))
                 .isInstanceOfSatisfying(HttpClientErrorException.Conflict.class, exception -> {
                     JsonNode recommendation = JsonMapper.builder().build().readTree(exception.getResponseBodyAsString())
@@ -428,7 +428,7 @@ class LearningPathIdHttpIntegrationTest extends AbstractMongoIntegrationTest {
                     assertThat(recommendation.path("microSkills").get(0).path("name").asString()).isEqualTo("Reading for Gist");
                 });
         mongoTemplate.getCollection("question_pool").deleteOne(new Document("question_id", "native-pool-0"));
-        String oldConfirmation = "{\"assessmentAttemptId\":\"native-conflict-id\",\"microSkills\":[\"Reading for Gist\"]}";
+        String oldConfirmation = "{\"assessmentAttemptId\":\"native-conflict-id\",\"level\":\"A2\",\"microSkills\":[\"Reading for Gist\"]}";
         assertThatThrownBy(() -> authenticatedRequest(url, HttpMethod.POST, oldConfirmation, ownerId))
                 .isInstanceOfSatisfying(HttpClientErrorException.Conflict.class, exception ->
                         assertThat(JsonMapper.builder().build().readTree(exception.getResponseBodyAsString())
@@ -444,18 +444,18 @@ class LearningPathIdHttpIntegrationTest extends AbstractMongoIntegrationTest {
         String attemptId = seedEligibleProjection(ownerId, "native-validation-id");
         String url = "http://localhost:" + port + "/api/learning-paths/by-assessment";
         for (String body : List.of("{}",
-                "{\"assessmentAttemptId\":\" \",\"microSkills\":[\"Reading for Gist\"]}",
-                "{\"assessmentAttemptId\":\"" + "x".repeat(101) + "\",\"microSkills\":[\"Reading for Gist\"]}",
-                "{\"assessmentAttemptId\":\"native-validation-id\",\"microSkills\":[]}",
-                "{\"assessmentAttemptId\":\"native-validation-id\",\"microSkills\":[\"\"]}",
-                "{\"assessmentAttemptId\":\"native-validation-id\",\"microSkills\":[\"a\",\"b\",\"c\",\"d\",\"e\",\"f\"]}")) {
+                "{\"assessmentAttemptId\":\" \",\"level\":\"A2\",\"microSkills\":[\"Reading for Gist\"]}",
+                "{\"assessmentAttemptId\":\"" + "x".repeat(101) + "\",\"level\":\"A2\",\"microSkills\":[\"Reading for Gist\"]}",
+                "{\"assessmentAttemptId\":\"native-validation-id\",\"level\":\"A2\",\"microSkills\":[]}",
+                "{\"assessmentAttemptId\":\"native-validation-id\",\"level\":\"A2\",\"microSkills\":[\"\"]}",
+                "{\"assessmentAttemptId\":\"native-validation-id\",\"level\":\"A2\",\"microSkills\":[\"a\",\"b\",\"c\",\"d\",\"e\",\"f\"]}")) {
             assertThatThrownBy(() -> authenticatedRequest(url, HttpMethod.POST, body, ownerId))
                     .isInstanceOf(HttpClientErrorException.BadRequest.class);
         }
-        String missing = "{\"assessmentAttemptId\":\"unknown-id\",\"microSkills\":[\"Reading for Gist\"]}";
+        String missing = "{\"assessmentAttemptId\":\"unknown-id\",\"level\":\"A2\",\"microSkills\":[\"Reading for Gist\"]}";
         assertThatThrownBy(() -> authenticatedRequest(url, HttpMethod.POST, missing, ownerId))
                 .isInstanceOf(HttpClientErrorException.NotFound.class);
-        String valid = "{\"assessmentAttemptId\":\"native-validation-id\",\"microSkills\":[\"Reading for Gist\"]}";
+        String valid = "{\"assessmentAttemptId\":\"native-validation-id\",\"level\":\"A2\",\"microSkills\":[\"Reading for Gist\"]}";
         for (Document changed : List.of(new Document("status", "ACTIVE"),
                 new Document("status", "ABANDONED"))) {
             mongoTemplate.getCollection("assessment_attempts").updateOne(new Document("_id", attemptId), new Document("$set", changed));
@@ -531,6 +531,104 @@ class LearningPathIdHttpIntegrationTest extends AbstractMongoIntegrationTest {
                         .append("prompt", "Question " + i).append("options", options)
                         .append("correct_option_id", "A").append("explanation", "Explanation")).toList());
         return nativeId;
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"", "/by-assessment"})
+    void changedLevelWithIdenticalSkillsRequiresReconfirmationBeforeAnyWrites(String endpoint) {
+        String owner = "level-confirmation-owner";
+        seedAccount(owner);
+        seedEligibleProjection(owner, "level-confirmation-source");
+        String base = "http://localhost:" + port + "/api/learning-paths";
+        JsonMapper mapper = JsonMapper.builder().build();
+        var initial = mapper.readTree(authenticatedGet(base
+                + "/recommendation/by-assessment?assessmentAttemptId=level-confirmation-source", owner)).path("data");
+        assertThat(initial.path("state").asString()).isEqualTo("AVAILABLE");
+        assertThat(initial.path("level").asString()).isEqualTo("A2");
+        var sourceBefore = mongoTemplate.getCollection("assessment_attempts").find().first();
+        var pool = mongoTemplate.getCollection("question_pool");
+        for (Document question : pool.find().into(new java.util.ArrayList<>())) {
+            var higherLevel = new Document(question);
+            higherLevel.remove("_id");
+            higherLevel.put("question_id", question.getString("question_id") + "-B1");
+            higherLevel.put("level", "B1");
+            pool.insertOne(higherLevel);
+        }
+        mongoTemplate.getCollection("user_profiles").updateOne(new Document("_id", owner),
+                new Document("$set", new Document("cefr_level", "B1")));
+        String sourceField = endpoint.isEmpty() ? "attemptId" : "assessmentAttemptId";
+        String body = "{\"" + sourceField + "\":\"level-confirmation-source\",\"microSkills\":[\"Reading for Gist\"],\"level\":\"A2\"}";
+        assertThatThrownBy(() -> authenticatedRequest(base + endpoint, HttpMethod.POST, body, owner))
+                .isInstanceOfSatisfying(HttpClientErrorException.Conflict.class, exception -> {
+                    assertThat(exception.getResponseHeaders().getContentType().isCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON)).isTrue();
+                    var current = mapper.readTree(exception.getResponseBodyAsString()).path("recommendation");
+                    assertThat(current.path("state").asString()).isEqualTo("AVAILABLE");
+                    assertThat(current.path("level").asString()).isEqualTo("B1");
+                    assertThat(current.path("microSkills")).isEqualTo(initial.path("microSkills"));
+                });
+        assertThat(mongoTemplate.getCollection("learning_paths").countDocuments()).isZero();
+        assertThat(mongoTemplate.getCollection("learning_path_questions").countDocuments()).isZero();
+
+        var created = mapper.readTree(authenticatedRequest(base + endpoint, HttpMethod.POST,
+                body.replace("\"A2\"", "\"B1\""), owner)).path("data");
+        assertThat(created.path("created").asBoolean()).isTrue();
+        var pathBefore = mongoTemplate.getCollection("learning_paths").find().first();
+        assertThat(pathBefore.getString("level")).isEqualTo("B1");
+        assertThat(mongoTemplate.getCollection("learning_path_questions").distinct("level", String.class)
+                .into(new java.util.ArrayList<>())).containsExactly("B1");
+        assertThat(mongoTemplate.getCollection("learning_path_questions").countDocuments()).isEqualTo(30);
+        assertThat(mongoTemplate.getCollection("assessment_attempts").find().first()).isEqualTo(sourceBefore);
+
+        mongoTemplate.getCollection("user_profiles").updateOne(new Document("_id", owner),
+                new Document("$set", new Document("cefr_level", "C1")));
+        for (boolean removeProfile : new boolean[]{false, true}) {
+            if (removeProfile) mongoTemplate.getCollection("user_profiles").deleteOne(new Document("_id", owner));
+            var repeated = mapper.readTree(authenticatedRequest(base + endpoint, HttpMethod.POST, body, owner)).path("data");
+            assertThat(repeated.path("created").asBoolean()).isFalse();
+            assertThat(repeated.path("pathId")).isEqualTo(created.path("pathId"));
+        }
+        assertThat(mongoTemplate.getCollection("learning_paths").find().first()).isEqualTo(pathBefore);
+        assertThat(mongoTemplate.getCollection("learning_path_questions").countDocuments()).isEqualTo(30);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"", "/by-assessment"})
+    void changedLevelWithoutEligiblePoolReturnsTheCurrentRecommendation(String endpoint) {
+        String owner = "changed-level-no-pool";
+        seedAccount(owner);
+        seedEligibleProjection(owner, "changed-level-no-pool-source");
+        mongoTemplate.getCollection("user_profiles").updateOne(new Document("_id", owner),
+                new Document("$set", new Document("cefr_level", "B1")));
+        String sourceField = endpoint.isEmpty() ? "attemptId" : "assessmentAttemptId";
+        String body = "{\"" + sourceField + "\":\"changed-level-no-pool-source\",\"microSkills\":[\"Reading for Gist\"],\"level\":\"A2\"}";
+        assertThatThrownBy(() -> authenticatedRequest("http://localhost:" + port + "/api/learning-paths" + endpoint,
+                HttpMethod.POST, body, owner)).isInstanceOfSatisfying(HttpClientErrorException.Conflict.class, exception -> {
+                    var recommendation = JsonMapper.builder().build().readTree(exception.getResponseBodyAsString()).path("recommendation");
+                    assertThat(recommendation.path("state").asString()).isEqualTo("NO_ELIGIBLE_SKILLS");
+                    assertThat(recommendation.path("level").asString()).isEqualTo("B1");
+                });
+        assertThat(mongoTemplate.getCollection("learning_paths").countDocuments()).isZero();
+        assertThat(mongoTemplate.getCollection("learning_path_questions").countDocuments()).isZero();
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"", "/by-assessment"})
+    void creationRequiresAValidConfirmedLevelAndJsonBody(String endpoint) {
+        String owner = "invalid-confirmed-level";
+        seedAccount(owner);
+        seedEligibleProjection(owner, "invalid-confirmed-level-source");
+        String sourceField = endpoint.isEmpty() ? "attemptId" : "assessmentAttemptId";
+        String prefix = "{\"" + sourceField + "\":\"invalid-confirmed-level-source\",\"microSkills\":[\"Reading for Gist\"]";
+        for (String level : new String[]{"MISSING", "null", "\"\"", "\" \"", "\"A0\"", "\"b1\"", "\"B3\"", "42", "{}", "[]"}) {
+            String body = prefix + (level.equals("MISSING") ? "" : ",\"level\":" + level) + "}";
+            assertThatThrownBy(() -> authenticatedRequest("http://localhost:" + port + "/api/learning-paths" + endpoint,
+                    HttpMethod.POST, body, owner)).as(level).isInstanceOfSatisfying(HttpClientErrorException.BadRequest.class, exception ->
+                            assertThat(exception.getResponseHeaders().getContentType().isCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON)).isTrue());
+        }
+        assertThatThrownBy(() -> authenticatedRequest("http://localhost:" + port + "/api/learning-paths" + endpoint,
+                HttpMethod.POST, "{", owner)).isInstanceOf(HttpClientErrorException.BadRequest.class);
+        assertThat(mongoTemplate.getCollection("learning_paths").countDocuments()).isZero();
+        assertThat(mongoTemplate.getCollection("learning_path_questions").countDocuments()).isZero();
     }
 
     private void seedPracticeDay(ObjectId pathId, String userId) {

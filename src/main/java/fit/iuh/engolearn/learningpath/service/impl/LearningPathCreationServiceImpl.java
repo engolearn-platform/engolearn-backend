@@ -58,7 +58,7 @@ public class LearningPathCreationServiceImpl implements LearningPathCreationServ
 
     public CreateLearningPathResponse createForAssessment(CreateLearningPathByAssessmentRequest request,
                                                           String actorUserId) {
-        return create(new CreateLearningPathRequest(request.assessmentAttemptId(), request.microSkills()), actorUserId);
+        return create(new CreateLearningPathRequest(request.assessmentAttemptId(), request.microSkills(), request.level()), actorUserId);
     }
 
     public CreateLearningPathResponse create(CreateLearningPathRequest request, String actorUserId) {
@@ -99,6 +99,7 @@ public class LearningPathCreationServiceImpl implements LearningPathCreationServ
                 .collect(Collectors.toSet());
         Set<String> confirmed = new HashSet<>(request.microSkills());
         if (current.state() != LearningPathRecommendationResponse.State.AVAILABLE
+                || !current.level().equals(request.level())
                 || expected.size() != request.microSkills().size()
                 || !expected.equals(confirmed)) {
             throw new RecommendationChangedException(current);
