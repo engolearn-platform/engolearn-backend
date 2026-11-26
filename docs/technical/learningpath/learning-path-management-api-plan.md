@@ -1,8 +1,8 @@
 # Learning Path passage management APIs
 
-The five CRUD/list APIs and the read-only publication-readiness API below are implemented.
-Publication and retirement endpoints will be agreed and implemented separately with the
-owner. Business scope: workspace `AGENT.md`, sections 17.8–17.11.
+The five CRUD/list APIs, read-only publication readiness and passage publication below
+are implemented. Retirement will be agreed and implemented separately with the owner.
+Business scope: workspace `AGENT.md`, sections 17.8–17.11.
 
 ## Passage API sequence
 
@@ -16,8 +16,9 @@ Base: `/api/management/learning-paths/passages`.
 | 4 | PATCH | `/{passageId}` | Edit a DRAFT passage | Implemented |
 | 5 | DELETE | `/{passageId}` | Delete a DRAFT with no referencing questions | Implemented |
 | 6 | GET | `/{passageId}/readiness` | Check publication conditions without changing content or status | Implemented |
+| 7 | POST | `/{passageId}/publish` | Publish the current DRAFT after automated checks and human confirmations | Implemented |
 
-Follow with passage publication/retirement, then question management.
+Follow with passage retirement, then question management.
 Coverage dashboards and an operation-history screen are deferred business scope.
 
 ## POST: create a passage DRAFT
@@ -461,9 +462,9 @@ restriction. Responses have `Cache-Control: no-store`.
 This is an advisory check of saved data, not a publish operation or a reservation.
 The frontend should call it explicitly from DRAFT detail/edit after saving changes,
 invalidate displayed results after an edit, and never interpret a previous result as
-permission to publish a newer revision. The future publish operation must invoke the same
-readiness capability, require human confirmations, and enforce current revision/status
-and reference consistency when applying the transition.
+permission to publish a newer revision. The publish operation below invokes the same
+readiness capability, requires human confirmations and enforces current revision/status
+when applying the transition. Its reference-concurrency limits are documented below.
 
 ### Checks and response
 
@@ -559,8 +560,134 @@ missing; evaluation is incomplete and no successful readiness payload is returne
 The GET writes no passage, revision, audit field, question, Media asset or learner
 snapshot, and uploads/deletes no files. Passage and reference queries are separate
 reads without a fixed snapshot under concurrent edits. A later GET recomputes everything.
-The future publication operation must recheck current data and enforce the transition
-independently; this endpoint does not implement publication or its concurrency mechanism.
+The publication operation below rechecks current data and enforces the transition
+independently; readiness itself never applies a publication transition.
+
+## POST: publish a passage DRAFT
+
+`POST /api/management/learning-paths/passages/{passageId}/publish` consumes
+`application/json`. The existing management namespace matcher requires CONTENT_MANAGER,
+including inherited ADMIN, and `QuestionPoolPassageManagementService.publish` enforces
+the same role through its Spring proxy. It accepts passage IDs like detail/readiness,
+not Mongo `_id`; a manager may publish another editor's DRAFT. The authenticated caller
+provides the audit identity through CurrentUserProvider, not request fields. No second
+reviewer is required by the current business rules.
+
+### Request and checks
+
+```json
+{
+  "revision": 1,
+  "confirmedReviewChecks": ["LEVEL_APPROPRIATE", "CONTENT_SUPPORTS_INTENDED_QUESTIONS"]
+}
+```
+
+`revision` is a required positive int. `confirmedReviewChecks` is a required set of
+non-null `PassageReviewCheck` enum values (at most four); unknown values, absent fields,
+null elements and malformed JSON return 400. Empty/partial confirmations are valid JSON
+requests but do not authorize publication. Confirmations must exactly match the current
+readiness checklist: Reading requires the two values above; Listening additionally
+requires `AUDIO_MATCHES_TRANSCRIPT` and `AUDIO_QUALITY_REVIEWED`. Extra checks unrelated
+to the current skill are rejected rather than recorded as misleading review evidence.
+
+Processing:
+
+1. Verify trusted role/actor and read current passage metadata. Initial absence returns
+   404. Non-DRAFT state or a different revision returns 409 before resolving any media.
+   An exhausted int revision also returns 409 instead of overflowing on increment.
+2. Invoke the existing readiness service again. A previous GET result is not trusted or
+   required. If its revision/status differs from the request, or the passage disappears
+   between the two reads, return 409. Any automated blocker returns 422
+   `PASSAGE_NOT_READY`, including invalid content, incompatible question references and
+   Media-backed Listening that the learner cannot yet consume.
+3. Require the exact checklist confirmations for that revision; otherwise return 422
+   `PASSAGE_REVIEW_REQUIRED`. Infrastructure outages remain 503, not invalid-content or
+   successful-review results.
+4. Perform one atomic conditional update matching passage_id + DRAFT + expected revision:
+   set ACTIVE, increment revision, update updated_at/by and save publication_review.
+   A lost conditional update returns 409, preserving the winning edit/delete/publication.
+
+Zero referencing questions and fewer than 30 ACTIVE questions are allowed. Existing
+matching DRAFT questions remain DRAFT. Warnings alone do not block after the required
+human confirmations: legacy audio retains `LEGACY_AUDIO_PLAYBACK_UNVERIFIED` in the
+receipt because the server does not test playback. A human confirmation is an editorial
+attestation, not proof from an automated playback or quality assessment.
+
+Publication never uploads audio or changes Cloudinary delivery policy. Media-backed
+Listening remains blocked until Media-aware learner snapshot/practice delivery is
+implemented; it never silently falls back to an older recording. Legacy local audio is
+not migrated to Cloudinary by this API.
+
+### Success and recorded review
+
+HTTP 200 returns the new status/revision and a receipt of the trusted review:
+
+```json
+{
+  "data": {
+    "passageId": "LP-PASS-<uuid>",
+    "status": "ACTIVE",
+    "revision": 2,
+    "reviewedRevision": 1,
+    "publishedBy": "<authenticated account ID>",
+    "publishedAt": "2026-11-25T15:00:00Z",
+    "confirmedReviewChecks": ["LEVEL_APPROPRIATE", "CONTENT_SUPPORTS_INTENDED_QUESTIONS"],
+    "warnings": []
+  }
+}
+```
+
+The passage stores optional `publication_review` as an embedded value with
+`source_revision`, `confirmed_checks`, `reviewed_by`, `reviewed_at`. Confirmed checks use
+the finite enum shared with readiness, stored in the canonical checklist order. The
+review and transition are written together; reviewed_at also supplies updated_at and
+the response's publishedAt. Existing documents need no migration; older ACTIVE content
+can lack this record and is not retrospectively marked reviewed. Existing detail and
+create/update response shapes are unchanged. Creator, creation date, content/audio and
+unknown imported fields are preserved. No separate history collection is introduced.
+
+After publication, existing PATCH/DELETE guards enforce immutability. A replay of the
+same publication returns 409 rather than incrementing again or replacing the review;
+two concurrent publications produce one winner. On an uncertain network outcome,
+refetch the passage before retrying. Publication does not publish or rewrite referencing
+questions and never changes existing learner paths, snapshots or answers.
+
+### Errors and concurrency boundary
+
+| Status | Code | Meaning |
+| --- | --- | --- |
+| 400 | INVALID_PASSAGE_REQUEST | Invalid ID, JSON body, revision or confirmation shape/value |
+| 401 | AUTHENTICATION_REQUIRED | No valid trusted session |
+| 403 | ACCESS_DENIED | Caller lacks management authority |
+| 404 | PASSAGE_NOT_FOUND | Absent at initial lookup |
+| 409 | PASSAGE_PUBLISH_CONFLICT | Not current DRAFT, exhausted revision, concurrent edit/delete/publish |
+| 415 | UNSUPPORTED_MEDIA_TYPE | Publication requires application/json |
+| 422 | PASSAGE_NOT_READY | Current automated checks have blockers |
+| 422 | PASSAGE_REVIEW_REQUIRED | Missing or unrelated human confirmations |
+| 503 | MEDIA_STORAGE_UNAVAILABLE | Audio delivery resolution unavailable |
+| 503 | PASSAGE_STORAGE_UNAVAILABLE | Passage/reference/Media database read or write unavailable |
+
+422 errors use ProblemDetail with the current typed `readiness` extension (same shape
+as GET's data), allowing the client to display blockers, warnings and required checks.
+They record no approval or state change. No partial review is saved on any rejected
+request. Persistence failures with an uncertain network outcome require refetching;
+the status, revision and review still share one atomic document update.
+
+Unsupported publication content types can fail before MVC selects a controller.
+The publication-path content-type resolver preserves the 415 ProblemDetail contract
+without changing errors for other feature routes or existing multipart operations.
+
+Readiness, question-reference reads and the final passage update are separate operations.
+The final revision predicate fences normal passage edits; it is not a cross-document
+transaction or lock on Question Pool. Future question-authoring APIs must coordinate
+reference changes with passage revision/lifecycle, as required for existing PATCH/DELETE.
+Out-of-band DB writes that change content without increasing revision, or insert an
+incompatible reference after readiness, are outside this operation's concurrency
+guarantee. No new transaction/locking mechanism or direct DB repair is introduced.
+
+The frontend branch integrates the publication button with a fresh-readiness confirmation
+dialog and this JSON mutation. Backend authorization, confirmations and revision guards
+remain authoritative; client confirmations do not bypass the checks above.
 
 ## Verification scope
 
@@ -568,3 +695,6 @@ Run Learning Path tests only, per the owner's explicit instruction. The passage 
 tests use real HTTP/session authorization, Spring service proxies, MongoDB Testcontainers
 and Media's real signature/metadata processing. Only the external Media storage provider
 is replaced by a test double; actual Cloudinary delivery and human audio review remain manual.
+Publication coverage includes HTTP/proxy roles, revision-bound review persistence,
+replayed and concurrent requests, immutable published content, rejected confirmations,
+fresh readiness checks, infrastructure failures and unchanged questions/learner snapshots.

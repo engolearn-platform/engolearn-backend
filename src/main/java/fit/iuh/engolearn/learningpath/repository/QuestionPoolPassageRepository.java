@@ -1,6 +1,7 @@
 package fit.iuh.engolearn.learningpath.repository;
 
 import fit.iuh.engolearn.learningpath.model.QuestionPoolPassage;
+import fit.iuh.engolearn.learningpath.model.vo.PassagePublicationReviewVo;
 import fit.iuh.engolearn.learningpath.model.enums.QuestionPoolContentStatus;
 import fit.iuh.engolearn.learningpath.model.enums.QuestionPoolSkill;
 import fit.iuh.engolearn.shared.enums.CefrLevel;
@@ -126,6 +127,16 @@ public class QuestionPoolPassageRepository {
         Query query = Query.query(Criteria.where("passage_id").is(passageId)
                 .and("status").is(QuestionPoolContentStatus.DRAFT).and("revision").is(expectedRevision));
         return mongo.findAndRemove(query, QuestionPoolPassage.class) != null;
+    }
+
+    public Optional<QuestionPoolPassage> publishDraft(String passageId, int expectedRevision, PassagePublicationReviewVo review) {
+        Query query = Query.query(Criteria.where("passage_id").is(passageId)
+                .and("status").is(QuestionPoolContentStatus.DRAFT).and("revision").is(expectedRevision));
+        Update update = new Update().set("status", QuestionPoolContentStatus.ACTIVE).inc("revision", 1)
+                .set("updated_at", review.getReviewedAt()).set("updated_by", review.getReviewedBy())
+                .set("publication_review", review);
+        return Optional.ofNullable(mongo.findAndModify(query, update,
+                FindAndModifyOptions.options().returnNew(true), QuestionPoolPassage.class));
     }
 
     public QuestionPoolPassage insert(QuestionPoolPassage passage) {

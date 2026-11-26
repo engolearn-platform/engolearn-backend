@@ -3,6 +3,7 @@ package fit.iuh.engolearn.learningpath.service.impl;
 import fit.iuh.engolearn.learningpath.dto.response.QuestionPoolPassageReadinessIssueResponse;
 import fit.iuh.engolearn.learningpath.dto.response.QuestionPoolPassageReadinessResponse;
 import fit.iuh.engolearn.learningpath.exception.QuestionPoolPassageNotFoundException;
+import fit.iuh.engolearn.learningpath.model.enums.PassageReviewCheck;
 import fit.iuh.engolearn.learningpath.repository.QuestionPoolPassageReadinessSource;
 import fit.iuh.engolearn.learningpath.repository.QuestionPoolPassageRepository;
 import fit.iuh.engolearn.learningpath.repository.QuestionPoolRepository;
@@ -35,7 +36,8 @@ public class QuestionPoolPassageReadinessServiceImpl implements QuestionPoolPass
         var source = passages.findReadinessSource(passageId).orElseThrow(QuestionPoolPassageNotFoundException::new);
         List<QuestionPoolPassageReadinessIssueResponse> blockers = new ArrayList<>();
         List<QuestionPoolPassageReadinessIssueResponse> warnings = new ArrayList<>();
-        List<String> reviews = new ArrayList<>(List.of("LEVEL_APPROPRIATE", "CONTENT_SUPPORTS_INTENDED_QUESTIONS"));
+        List<String> reviews = new ArrayList<>(List.of(PassageReviewCheck.LEVEL_APPROPRIATE.name(),
+                PassageReviewCheck.CONTENT_SUPPORTS_INTENDED_QUESTIONS.name()));
         for (String field : source.malformedFields()) {
             blockers.add(issue("INVALID_STORED_FIELD", field, "Trường dữ liệu đã lưu không đúng kiểu."));
         }
@@ -57,7 +59,7 @@ public class QuestionPoolPassageReadinessServiceImpl implements QuestionPoolPass
         } else if ("LISTENING".equals(source.skill())) {
             validateText(source.transcript(), 50000, "transcript", "TRANSCRIPT_REQUIRED", blockers, true);
             if (!blank(source.text())) blockers.add(issue("LISTENING_HAS_READING_TEXT", "text", "Passage Listening không được chứa nội dung Reading."));
-            reviews.addAll(List.of("AUDIO_MATCHES_TRANSCRIPT", "AUDIO_QUALITY_REVIEWED"));
+            reviews.addAll(List.of(PassageReviewCheck.AUDIO_MATCHES_TRANSCRIPT.name(), PassageReviewCheck.AUDIO_QUALITY_REVIEWED.name()));
             checkAudio(source, blockers, warnings);
         } else {
             blockers.add(issue("INVALID_SKILL", "skill", "Kỹ năng phải là READING hoặc LISTENING."));

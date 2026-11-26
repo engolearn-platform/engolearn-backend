@@ -5,6 +5,9 @@ import fit.iuh.engolearn.learningpath.dto.response.QuestionPoolPassageResponse;
 import fit.iuh.engolearn.learningpath.service.QuestionPoolPassageManagementService;
 import fit.iuh.engolearn.learningpath.service.QuestionPoolPassageReadinessService;
 import fit.iuh.engolearn.learningpath.dto.response.QuestionPoolPassageReadinessResponse;
+import fit.iuh.engolearn.learningpath.dto.request.PublishQuestionPoolPassageRequest;
+import fit.iuh.engolearn.learningpath.dto.response.PublishQuestionPoolPassageResponse;
+import org.springframework.web.bind.annotation.RequestBody;
 import fit.iuh.engolearn.shared.web.ApiResponse;
 import fit.iuh.engolearn.learningpath.dto.request.ListQuestionPoolPassagesRequest;
 import fit.iuh.engolearn.learningpath.dto.response.QuestionPoolPassageListResponse;
@@ -38,6 +41,13 @@ import org.springframework.web.multipart.MultipartFile;
 public class QuestionPoolPassageManagementController {
     private final QuestionPoolPassageManagementService passages;
     private final QuestionPoolPassageReadinessService readiness;
+
+    @PostMapping(value = "/{passageId}/publish", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public ApiResponse<PublishQuestionPoolPassageResponse> publish(
+            @PathVariable @NotBlank @Size(max = 100) String passageId,
+            @Valid @RequestBody PublishQuestionPoolPassageRequest request) {
+        return ApiResponse.ok(passages.publish(passageId, request));
+    }
 
     @GetMapping("/{passageId}/readiness")
     public ApiResponse<QuestionPoolPassageReadinessResponse> readiness(

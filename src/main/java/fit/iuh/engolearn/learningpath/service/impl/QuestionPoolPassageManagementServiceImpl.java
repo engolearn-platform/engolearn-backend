@@ -24,6 +24,14 @@ import fit.iuh.engolearn.learningpath.repository.QuestionPoolRepository;
 import fit.iuh.engolearn.learningpath.dto.response.DeleteQuestionPoolPassageResponse;
 import fit.iuh.engolearn.learningpath.exception.PassageDeleteConflictException;
 import fit.iuh.engolearn.learningpath.dto.response.QuestionPoolPassageCountersResponse;
+import fit.iuh.engolearn.learningpath.dto.request.PublishQuestionPoolPassageRequest;
+import fit.iuh.engolearn.learningpath.dto.response.PublishQuestionPoolPassageResponse;
+import fit.iuh.engolearn.learningpath.dto.response.QuestionPoolPassageReadinessResponse;
+import fit.iuh.engolearn.learningpath.exception.PassagePublicationRejectedException;
+import fit.iuh.engolearn.learningpath.exception.PassagePublishConflictException;
+import fit.iuh.engolearn.learningpath.model.enums.PassageReviewCheck;
+import fit.iuh.engolearn.learningpath.model.vo.PassagePublicationReviewVo;
+import fit.iuh.engolearn.learningpath.service.QuestionPoolPassageReadinessService;
 import java.io.InputStream;
 import java.time.Instant;
 import java.util.Locale;
@@ -44,6 +52,45 @@ public class QuestionPoolPassageManagementServiceImpl implements QuestionPoolPas
     private final MediaManagement media;
     private final QuestionPoolRepository questions;
     private final CurrentUserProvider users;
+    private final QuestionPoolPassageReadinessService readiness;
+
+    @Override
+    @PreAuthorize("hasRole('CONTENT_MANAGER')")
+    public PublishQuestionPoolPassageResponse publish(String passageId, PublishQuestionPoolPassageRequest request) {
+        String actor = users.requireCurrentUserId();
+        var source = passages.findReadinessSource(passageId).orElseThrow(QuestionPoolPassageNotFoundException::new);
+        if (!"DRAFT".equals(source.status()) || !request.revision().equals(source.revision())) {
+            throw new PassagePublishConflictException("Only the current revision of a DRAFT passage can be published");
+        }
+        if (request.revision() == Integer.MAX_VALUE) {
+            throw new PassagePublishConflictException("Passage revision limit reached");
+        }
+        QuestionPoolPassageReadinessResponse evaluation;
+        try {
+            evaluation = readiness.check(passageId);
+        } catch (QuestionPoolPassageNotFoundException exception) {
+            throw new PassagePublishConflictException("Passage was removed during readiness evaluation");
+        }
+        if (!"DRAFT".equals(evaluation.status()) || !request.revision().equals(evaluation.revision())) {
+            throw new PassagePublishConflictException("Passage changed during readiness evaluation; reload before publishing");
+        }
+        if (!evaluation.structurallyValid()) {
+            throw new PassagePublicationRejectedException("PASSAGE_NOT_READY", "Passage has publication blockers", evaluation);
+        }
+        var required = evaluation.requiredReviewChecks().stream().map(PassageReviewCheck::valueOf).toList();
+        if (!request.confirmedReviewChecks().equals(Set.copyOf(required))) {
+            throw new PassagePublicationRejectedException("PASSAGE_REVIEW_REQUIRED",
+                    "Confirm exactly the required review checks for this passage revision", evaluation);
+        }
+        var review = PassagePublicationReviewVo.builder().sourceRevision(request.revision())
+                .confirmedChecks(required).reviewedBy(actor).reviewedAt(Instant.now()).build();
+        var saved = passages.publishDraft(passageId, request.revision(), review)
+                .orElseThrow(() -> new PassagePublishConflictException("Passage changed while publishing; reload before retrying"));
+        var recorded = saved.getPublicationReview();
+        return new PublishQuestionPoolPassageResponse(saved.getPassageId(), saved.getStatus(), saved.getRevision(),
+                recorded.getSourceRevision(), recorded.getReviewedBy(), recorded.getReviewedAt(),
+                recorded.getConfirmedChecks(), evaluation.warnings());
+    }
 
     @Override
     @PreAuthorize("hasRole('CONTENT_MANAGER')")

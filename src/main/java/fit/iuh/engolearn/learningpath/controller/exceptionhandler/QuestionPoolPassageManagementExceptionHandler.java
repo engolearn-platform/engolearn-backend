@@ -8,6 +8,8 @@ import fit.iuh.engolearn.learningpath.exception.QuestionPoolPassageNotFoundExcep
 import fit.iuh.engolearn.media.contract.exception.MediaNotFoundException;
 import fit.iuh.engolearn.learningpath.exception.PassageUpdateConflictException;
 import fit.iuh.engolearn.learningpath.exception.PassageDeleteConflictException;
+import fit.iuh.engolearn.learningpath.exception.PassagePublishConflictException;
+import fit.iuh.engolearn.learningpath.exception.PassagePublicationRejectedException;
 import java.io.IOException;
 import org.springframework.dao.DataAccessException;
 import org.springframework.http.HttpStatus;
@@ -38,6 +40,18 @@ public class QuestionPoolPassageManagementExceptionHandler {
     @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
     public ProblemDetail unsupported(HttpMediaTypeNotSupportedException exception) {
         return problem(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "UNSUPPORTED_MEDIA_TYPE", "Use multipart/form-data with a JSON passage part");
+    }
+
+    @ExceptionHandler(PassagePublishConflictException.class)
+    public ProblemDetail publishConflict(PassagePublishConflictException exception) {
+        return problem(HttpStatus.CONFLICT, "PASSAGE_PUBLISH_CONFLICT", exception.getMessage());
+    }
+
+    @ExceptionHandler(PassagePublicationRejectedException.class)
+    public ProblemDetail publicationRejected(PassagePublicationRejectedException exception) {
+        var result = problem(HttpStatus.UNPROCESSABLE_CONTENT, exception.getCode(), exception.getMessage());
+        result.setProperty("readiness", exception.getReadiness());
+        return result;
     }
 
     @ExceptionHandler(PassageDeleteConflictException.class)
