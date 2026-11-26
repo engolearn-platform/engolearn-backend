@@ -41,6 +41,9 @@ public class CompanionProperties {
     private int historyMessageLimit = 20;
     @Min(0)
     private int historyTokenBudget = 4000;
+    @Min(256)
+    @Max(65536)
+    private int screenContextMaxBytes = 12000;
     @Min(1)
     @Max(5)
     private int maxToolCalls = 5;

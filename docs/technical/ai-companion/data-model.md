@@ -14,6 +14,8 @@ Messages store `conversation_id`, `turn_id`, `sequence`, `role`, and `content` a
 
 The user message is saved at admission, before inference, so failures remain readable and retryable. Assistant messages are saved only after the complete response, authoritative usage metadata, and active generation have been validated. The assistant message and its Quota usage record commit in the same Mongo transaction before the `completed` event is sent. Quota owns its usage ledger/counters; Companion adds no quota collection. The usage record uses `AI_COMPANION_TOKEN_USAGE`, source feature `AI_COMPANION`, and stable idempotency key `turn:<conversationId>:<turnId>`.
 
+An optional embedded `screen_context` on USER messages stores only the reference (type and topic_id, or attempt_id, stage and item_index). Older messages without it remain valid. A retry reauthorizes and resolves the stored reference; the resolved lesson payload is never persisted as conversation context.
+
 Stream deltas, prompt context, Assessment results, tool arguments/results, and the opaque provider continuation are transient and never stored in Companion documents. The continuation is passed unchanged through the provider-neutral Companion contract and interpreted only inside the Gemini adapter; it is not logged or exposed to the client. If final usage metadata is absent or invalid, or the joint completion transaction fails, the user message remains for explicit retry while no assistant message or usage charge is committed.
 
 ## `companion_memories`

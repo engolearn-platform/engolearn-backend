@@ -56,6 +56,7 @@ class CompanionTurnServiceTest {
     @Mock CompanionToolRegistry toolRegistry;
     @Mock CompanionMemoryService memories;
     @Mock MemoryRetrievalService memoryRetrieval;
+    @Mock fit.iuh.engolearn.companion.service.impl.ScreenContextResolverRegistry screenContexts;
     ExecutorService toolExecutor;
     CompanionProperties properties;
     CompanionTurnServiceImpl service;
@@ -69,7 +70,7 @@ class CompanionTurnServiceTest {
                 .thenReturn(new AvailabilityResultDto("AI_COMPANION_TOKEN_USAGE", 0, 100, 100, "TOKEN",
                         "DAILY", Instant.now(), Instant.now().plusSeconds(86400), Instant.now(), "AVAILABLE"));
         service = new CompanionTurnServiceImpl(users, conversations, messages, model, contextBuilder, properties,
-                transactions, quotaAvailability, quotaUsage, toolRegistry, memories, memoryRetrieval, toolExecutor);
+                transactions, quotaAvailability, quotaUsage, toolRegistry, memories, memoryRetrieval, screenContexts, toolExecutor);
     }
 
     @AfterEach void closeToolExecutor() { toolExecutor.shutdownNow(); }

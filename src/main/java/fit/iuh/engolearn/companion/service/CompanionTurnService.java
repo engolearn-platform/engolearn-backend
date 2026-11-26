@@ -1,6 +1,7 @@
 package fit.iuh.engolearn.companion.service;
 
 import fit.iuh.engolearn.companion.dto.request.CompanionTurnRequest;
+import fit.iuh.engolearn.companion.dto.request.ScreenContextReferenceRequest;
 
 public interface CompanionTurnService {
     PreparedTurn prepareTurn(String conversationId, CompanionTurnRequest request);
@@ -30,6 +31,7 @@ public interface CompanionTurnService {
         private final Object guardToken;
         private final boolean admissionAutomaticMemoryEnabled;
         private final long forgetRevision;
+        private final ScreenContextReferenceRequest screenContext;
 
         public PreparedTurn(String conversationId, String learnerId, String turnId, String content,
                             long generation, long userSequence, Object guardToken) {
@@ -38,6 +40,14 @@ public interface CompanionTurnService {
         public PreparedTurn(String conversationId, String learnerId, String turnId, String content,
                             long generation, long userSequence, Object guardToken,
                             boolean admissionAutomaticMemoryEnabled, long forgetRevision) {
+            this(conversationId, learnerId, turnId, content, generation, userSequence, guardToken,
+                    admissionAutomaticMemoryEnabled, forgetRevision, null);
+        }
+        public PreparedTurn(String conversationId, String learnerId, String turnId, String content,
+                            long generation, long userSequence, Object guardToken,
+                            boolean admissionAutomaticMemoryEnabled, long forgetRevision,
+                            ScreenContextReferenceRequest screenContext) {
+            this.screenContext = screenContext;
             this.conversationId = conversationId;
             this.learnerId = learnerId;
             this.turnId = turnId;
@@ -57,5 +67,6 @@ public interface CompanionTurnService {
         public Object guardToken() { return guardToken; }
         public boolean admissionAutomaticMemoryEnabled() { return admissionAutomaticMemoryEnabled; }
         public long forgetRevision() { return forgetRevision; }
+        public ScreenContextReferenceRequest screenContext() { return screenContext; }
     }
 }

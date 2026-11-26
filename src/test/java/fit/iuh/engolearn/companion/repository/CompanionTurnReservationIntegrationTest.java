@@ -116,6 +116,57 @@ class CompanionTurnReservationIntegrationTest extends AbstractMongoIntegrationTe
         assertAtomicCompletion(true, false);
     }
 
+    @Test void attachedReferencePersistsAndRetryUsesCanonicalReference() {
+        var now = Instant.now();
+        String learner = "context-owner";
+        var conversation = conversations.insert(CompanionConversation.builder()
+                .learnerId(learner).messageCount(0).nextSequence(1).activeTurnGeneration(0)
+                .createdAt(now).updatedAt(now).build());
+        CurrentUserProvider users = Mockito.mock(CurrentUserProvider.class);
+        Mockito.when(users.requireCurrentUserId()).thenReturn(learner);
+        var resolver = Mockito.mock(fit.iuh.engolearn.companion.service.impl.ScreenContextResolverRegistry.class);
+        var reference = new fit.iuh.engolearn.companion.dto.request.ScreenContextReferenceRequest(
+                fit.iuh.engolearn.companion.model.enums.ScreenContextType.TOPIC_OVERVIEW, "topic-one", null, null, null);
+        var other = new fit.iuh.engolearn.companion.dto.request.ScreenContextReferenceRequest(
+                fit.iuh.engolearn.companion.model.enums.ScreenContextType.TOPIC_OVERVIEW, "topic-two", null, null, null);
+        Mockito.when(resolver.resolve(learner, reference)).thenThrow(new CompanionException(503, "SCREEN_CONTEXT_TEMPORARILY_UNAVAILABLE", "Retry", true))
+                .thenReturn("{\"topic\":\"Travel\"}");
+        CompanionModel model = Mockito.mock(CompanionModel.class);
+        Mockito.when(model.stream(Mockito.any())).thenReturn(Flux.just(new CompanionModelEvent.TextDelta("Travel"),
+                new CompanionModelEvent.RoundCompleted(new CompanionUsage(19))));
+        QuotaAvailability availability = (userId, type) -> new AvailabilityResultDto(type, 0, 100, 100,
+                "TOKEN", "DAILY", now, now.plusSeconds(86400), now, "AVAILABLE");
+        QuotaUsageRecording usage = command -> new UsageResultDto(true, "ledger", command.amount(), now, "allowance", null);
+        CompanionToolRegistry tools = Mockito.mock(CompanionToolRegistry.class);
+        Mockito.when(tools.definitions(Mockito.anyBoolean())).thenReturn(List.of());
+        CompanionMemoryService memories = Mockito.mock(CompanionMemoryService.class);
+        Mockito.when(memories.settingsSnapshot(learner)).thenReturn(new MemorySettingsSnapshot(false, 0));
+        MemoryRetrievalService retrieval = Mockito.mock(MemoryRetrievalService.class);
+        Mockito.when(retrieval.retrieve(Mockito.anyString(), Mockito.anyString(), Mockito.any())).thenReturn(new MemoryRetrievalResult("", List.of()));
+        var service = new CompanionTurnServiceImpl(users, conversations, messages, model, contextBuilder, properties,
+                transactions, availability, usage, tools, memories, retrieval, resolver, toolExecutor);
+        var turnId = UUID.randomUUID();
+        var prepared = service.prepareTurn(conversation.getId(), new fit.iuh.engolearn.companion.dto.request.CompanionTurnRequest(turnId, "Explain this", false, reference));
+        var observer = new CompanionTurnService.TurnObserver() {
+            @Override public void onDelta(String text) {}
+            @Override public boolean isCancelled() { return false; }
+        };
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> service.streamPreparedTurn(prepared, observer))
+                .isInstanceOf(CompanionException.class);
+        Mockito.verifyNoInteractions(model);
+        var persisted = messages.findByTurnAndRole(conversation.getId(), turnId.toString(), CompanionMessage.Role.USER).orElseThrow();
+        assertThat(persisted.getScreenContext().getTopicId()).isEqualTo("topic-one");
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> service.prepareTurn(conversation.getId(),
+                new fit.iuh.engolearn.companion.dto.request.CompanionTurnRequest(turnId, "Explain this", true, other)))
+                .isInstanceOf(CompanionException.class);
+        var retry = service.prepareTurn(conversation.getId(), new fit.iuh.engolearn.companion.dto.request.CompanionTurnRequest(turnId, "Explain this", true));
+        assertThat(retry.screenContext()).isEqualTo(reference);
+        assertThat(service.streamPreparedTurn(retry, observer).assistantMessage().content()).isEqualTo("Travel");
+        Mockito.verify(model).stream(Mockito.argThat(request -> request.messages().stream().anyMatch(message ->
+                message.text().contains("untrusted contextual data") && message.text().contains("Travel"))));
+        assertThat(messages.newest(conversation.getId(), null, 10)).hasSize(2);
+    }
+
     private void assertAtomicCompletion(boolean failQuota, boolean succeeds) {
         mongoTemplate.dropCollection("companion_test_usage");
         Instant now = Instant.now();
@@ -144,7 +195,8 @@ class CompanionTurnReservationIntegrationTest extends AbstractMongoIntegrationTe
         Mockito.when(memoryRetrieval.retrieve(Mockito.anyString(), Mockito.anyString(), Mockito.any()))
                 .thenReturn(new MemoryRetrievalResult("", List.of()));
         CompanionTurnService service = new CompanionTurnServiceImpl(users, conversations, messages, model, contextBuilder,
-                properties, transactions, availability, usage, tools, memories, memoryRetrieval, toolExecutor);
+                properties, transactions, availability, usage, tools, memories, memoryRetrieval,
+                Mockito.mock(fit.iuh.engolearn.companion.service.impl.ScreenContextResolverRegistry.class), toolExecutor);
         String turnId = UUID.randomUUID().toString();
         var prepared = service.prepareTurn(conversation.getId(),
                 new fit.iuh.engolearn.companion.dto.request.CompanionTurnRequest(UUID.fromString(turnId), "Question", false));

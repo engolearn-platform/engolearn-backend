@@ -1,6 +1,8 @@
 package fit.iuh.engolearn.companion.service.impl;
 
 import fit.iuh.engolearn.companion.dto.request.CompanionTurnRequest;
+import fit.iuh.engolearn.companion.dto.request.ScreenContextReferenceRequest;
+import fit.iuh.engolearn.companion.model.vo.ScreenContextReferenceVo;
 import fit.iuh.engolearn.companion.dto.response.MessageResponse;
 import fit.iuh.engolearn.companion.exception.CompanionException;
 import fit.iuh.engolearn.companion.model.CompanionConversation;
@@ -69,6 +71,7 @@ public class CompanionTurnServiceImpl implements CompanionTurnService {
     private final CompanionToolRegistry toolRegistry;
     private final CompanionMemoryService memories;
     private final MemoryRetrievalService memoryRetrieval;
+    private final ScreenContextResolverRegistry screenContexts;
     @Qualifier("companionToolExecutor")
     private final ExecutorService companionToolExecutor;
     private final ConcurrentHashMap<String, Object> activeLearners = new ConcurrentHashMap<>();
@@ -77,6 +80,7 @@ public class CompanionTurnServiceImpl implements CompanionTurnService {
         if (request == null || request.turnId() == null || request.content() == null || request.content().isBlank()) {
             throw new CompanionException(400, "INVALID_TURN", "Turn ID and non-empty content are required", false);
         }
+        if (request.screenContext() != null) screenContexts.validate(request.screenContext());
         String learnerId = users.requireCurrentUserId();
         Object guardToken = new Object();
         if (activeLearners.putIfAbsent(learnerId, guardToken) != null) throw conflict("Another companion turn is already active");
@@ -95,6 +99,9 @@ public class CompanionTurnServiceImpl implements CompanionTurnService {
                     CompanionMessage userMessage = messages.findByTurnAndRole(conversationId, turnId, CompanionMessage.Role.USER)
                             .orElseThrow(() -> conflict("This turn cannot be retried"));
                     if (!userMessage.getContent().equals(request.content())) throw conflict("Retry content must match the original turn");
+                    ScreenContextReferenceRequest originalContext = fromStoredReference(userMessage.getScreenContext());
+                    if (request.screenContext() != null && !request.screenContext().equals(originalContext))
+                        throw conflict("Retry context must match the original turn");
                     if (messages.findByTurnAndRole(conversationId, turnId, CompanionMessage.Role.ASSISTANT).isPresent()) {
                         throw conflict("This turn is already complete");
                     }
@@ -106,7 +113,7 @@ public class CompanionTurnServiceImpl implements CompanionTurnService {
                             claimed.getActiveTurnGeneration(), userMessage.getSequence(), guardToken,
                             Boolean.TRUE.equals(userMessage.getMemoryAutomaticEnabledSnapshot()),
                             userMessage.getMemoryForgetRevisionSnapshot() == null ? 0L
-                                    : userMessage.getMemoryForgetRevisionSnapshot());
+                                    : userMessage.getMemoryForgetRevisionSnapshot(), originalContext);
                 }
                 if (messages.findByTurnAndRole(conversationId, turnId, CompanionMessage.Role.USER).isPresent()
                         || messages.findByTurnAndRole(conversationId, turnId, CompanionMessage.Role.ASSISTANT).isPresent()) {
@@ -124,11 +131,12 @@ public class CompanionTurnServiceImpl implements CompanionTurnService {
                 long userSequence = admitted.getPendingUserSequence();
                 messages.insert(CompanionMessage.builder().conversationId(conversationId).turnId(turnId)
                         .sequence(userSequence).role(CompanionMessage.Role.USER).content(request.content())
+                        .screenContext(toStoredReference(request.screenContext()))
                         .memoryAutomaticEnabledSnapshot(memorySettings.automaticMemoryEnabled())
                         .memoryForgetRevisionSnapshot(memorySettings.forgetRevision()).createdAt(now).build());
                 return new PreparedTurn(conversationId, learnerId, turnId, request.content(),
                         admitted.getActiveTurnGeneration(), userSequence, guardToken,
-                        memorySettings.automaticMemoryEnabled(), memorySettings.forgetRevision());
+                        memorySettings.automaticMemoryEnabled(), memorySettings.forgetRevision(), request.screenContext());
             });
         } catch (RuntimeException ex) {
             activeLearners.remove(learnerId, guardToken);
@@ -147,10 +155,12 @@ public class CompanionTurnServiceImpl implements CompanionTurnService {
             Collections.reverse(prior);
             List<CompanionHistoryMessage> history = prior.stream()
                     .map(message -> new CompanionHistoryMessage(message.getRole().name(), message.getContent())).toList();
+            String screenContext = prepared.screenContext() == null ? null : resolveScreenContext(prepared, turnDeadline, observer);
             MemoryRetrievalResult memoryContext = retrieveMemoryContext(prepared, turnDeadline, observer);
             List<CompanionPromptMessage> messagesForModel = contextBuilder.build(prepared.learnerId(), history,
                     prepared.content(), memoryContext == null ? "" : memoryContext.promptContext(),
                     prepared.admissionAutomaticMemoryEnabled());
+            if (screenContext != null) messagesForModel = contextBuilder.withScreenContext(messagesForModel, screenContext);
             CompanionModelContinuation continuation = null;
             List<CompanionToolResult> toolResults = List.of();
             Set<String> seenCallIds = new HashSet<>();
@@ -316,6 +326,50 @@ public class CompanionTurnServiceImpl implements CompanionTurnService {
     private static CompanionException quotaUnavailable() {
         return new CompanionException(503, "COMPANION_QUOTA_UNAVAILABLE",
                 "The companion service is temporarily unavailable. Retry the request.", true);
+    }
+
+    private ScreenContextReferenceVo toStoredReference(ScreenContextReferenceRequest ref) {
+        return ref == null ? null : ScreenContextReferenceVo.builder().type(ref.type()).topicId(ref.topicId())
+                .attemptId(ref.attemptId()).stage(ref.stage()).itemIndex(ref.itemIndex()).build();
+    }
+
+    private ScreenContextReferenceRequest fromStoredReference(ScreenContextReferenceVo ref) {
+        return ref == null ? null : new ScreenContextReferenceRequest(ref.getType(), ref.getTopicId(),
+                ref.getAttemptId(), ref.getStage(), ref.getItemIndex());
+    }
+
+    private String resolveScreenContext(PreparedTurn prepared, Instant deadline, TurnObserver observer) {
+        if (observer.isCancelled()) throw new TurnCancelledException();
+        Instant timeout = Instant.now().plus(properties.getToolTimeout());
+        Instant resolveDeadline = timeout.isBefore(deadline) ? timeout : deadline;
+        Future<String> future;
+        try {
+            future = companionToolExecutor.submit(() -> screenContexts.resolve(prepared.learnerId(), prepared.screenContext()));
+        } catch (RejectedExecutionException busy) {
+            throw screenContextUnavailable();
+        }
+        try {
+            while (true) {
+                if (observer.isCancelled()) throw new TurnCancelledException();
+                long wait = Duration.between(Instant.now(), resolveDeadline).toMillis();
+                if (wait <= 0) throw screenContextUnavailable();
+                try { return future.get(Math.min(100, wait), TimeUnit.MILLISECONDS); }
+                catch (TimeoutException waiting) { /* Check cancellation and deadline again. */ }
+            }
+        } catch (InterruptedException interrupted) {
+            Thread.currentThread().interrupt();
+            throw screenContextUnavailable();
+        } catch (ExecutionException failure) {
+            if (failure.getCause() instanceof CompanionException safe) throw safe;
+            throw screenContextUnavailable();
+        } finally {
+            future.cancel(true);
+        }
+    }
+
+    private CompanionException screenContextUnavailable() {
+        return new CompanionException(503, "SCREEN_CONTEXT_TEMPORARILY_UNAVAILABLE",
+                "The selected context could not be loaded. Retry this turn.", true);
     }
 
     private MemoryRetrievalResult retrieveMemoryContext(PreparedTurn prepared, Instant turnDeadline, TurnObserver observer) {
