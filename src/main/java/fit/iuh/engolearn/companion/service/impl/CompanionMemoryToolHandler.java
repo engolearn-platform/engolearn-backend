@@ -9,6 +9,8 @@ import fit.iuh.engolearn.companion.service.CompanionMemoryOperationEvent;
 import fit.iuh.engolearn.companion.service.CompanionMemoryService;
 import fit.iuh.engolearn.companion.service.CompanionMemoryToolContext;
 import fit.iuh.engolearn.companion.service.CompanionToolDefinition;
+import fit.iuh.engolearn.companion.service.CompanionToolHandler;
+import fit.iuh.engolearn.companion.service.CompanionToolExecutionContext;
 import fit.iuh.engolearn.companion.service.MemoryMutation;
 import fit.iuh.engolearn.companion.service.MemoryOperationResult;
 import fit.iuh.engolearn.companion.service.MemoryRetrievalResult;
@@ -29,7 +31,8 @@ import org.slf4j.LoggerFactory;
 import tools.jackson.databind.ObjectMapper;
 
 @Component
-public class CompanionMemoryToolHandler {
+@org.springframework.core.annotation.Order(1)
+public class CompanionMemoryToolHandler implements CompanionToolHandler {
     private static final Logger log = LoggerFactory.getLogger(CompanionMemoryToolHandler.class);
     private static final String SEARCH = "searchMemory";
     private static final String CREATE = "createMemory";
@@ -59,10 +62,10 @@ public class CompanionMemoryToolHandler {
                 "engolearn/companion-memory-fingerprint/v1".getBytes(StandardCharsets.UTF_8));
     }
 
-    public List<CompanionToolDefinition> definitions() { return DEFINITIONS; }
+    @Override public List<CompanionToolDefinition> definitions() { return DEFINITIONS; }
 
-    public boolean supports(String name) {
-        return SEARCH.equals(name) || CREATE.equals(name) || UPDATE.equals(name) || DELETE.equals(name);
+    @Override public String execute(String name, Map<String, Object> arguments, CompanionToolExecutionContext context) {
+        return execute(name, arguments, context.learnerId(), context.memoryContext());
     }
 
     public String execute(String name, Map<String, Object> arguments, String learnerId,

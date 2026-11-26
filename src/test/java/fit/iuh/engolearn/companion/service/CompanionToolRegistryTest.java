@@ -8,6 +8,7 @@ import fit.iuh.engolearn.assessment.contract.dto.AssessmentCompanionSkillDto;
 import fit.iuh.engolearn.assessment.contract.dto.AssessmentCompanionSummaryDto;
 import fit.iuh.engolearn.assessment.contract.enums.AssessmentCompanionScope;
 import fit.iuh.engolearn.companion.service.impl.CompanionToolRegistry;
+import fit.iuh.engolearn.companion.service.impl.CompanionAssessmentToolHandler;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -19,7 +20,7 @@ import tools.jackson.databind.json.JsonMapper;
 
 class CompanionToolRegistryTest {
     private final AssessmentCompanionResults assessments = mock(AssessmentCompanionResults.class);
-    private final CompanionToolRegistry registry = new CompanionToolRegistry(assessments, JsonMapper.builder().build());
+    private final CompanionToolRegistry registry = new CompanionToolRegistry(List.of(new CompanionAssessmentToolHandler(assessments, JsonMapper.builder().build())));
     private final Instant submitted = Instant.parse("2026-11-25T10:00:00Z");
 
     @BeforeEach void setUp() {
@@ -98,5 +99,18 @@ class CompanionToolRegistryTest {
         assertTrue(registry.definitions(false).isEmpty());
         when(assessments.latestForCompanion("learner-2")).thenReturn(Optional.empty());
         assertTrue(registry.execute("getLatestAssessmentResult", Map.of(), "learner-2").contains("NO_DATA"));
+    }
+
+    @Test void registrationDispatchesNewHandlerWithoutRegistryChangesAndRejectsDuplicateNames() {
+        CompanionToolHandler handler = mock(CompanionToolHandler.class);
+        var definition = new CompanionToolDefinition("extraTool", "Example", "{}");
+        when(handler.definitions()).thenReturn(List.of(definition));
+        var registry = new CompanionToolRegistry(List.of(handler));
+        assertEquals(List.of(definition), registry.definitions(true));
+        Runnable observer = () -> {};
+        var context = new CompanionToolExecutionContext("learner-1", observer, null);
+        when(handler.execute("extraTool", Map.of(), context)).thenReturn("result");
+        assertEquals("result", registry.execute("extraTool", Map.of(), "learner-1", observer));
+        assertThrows(IllegalStateException.class, () -> new CompanionToolRegistry(List.of(handler, handler)));
     }
 }
