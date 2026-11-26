@@ -1,7 +1,7 @@
 # Learning Path passage management APIs
 
-The five CRUD/list APIs, read-only publication readiness and passage publication below
-are implemented. Retirement will be agreed and implemented separately with the owner.
+The five CRUD/list APIs, read-only publication readiness, passage publication and
+single-passage retirement below are implemented.
 Business scope: workspace `AGENT.md`, sections 17.8–17.11.
 
 ## Passage API sequence
@@ -17,8 +17,9 @@ Base: `/api/management/learning-paths/passages`.
 | 5 | DELETE | `/{passageId}` | Delete a DRAFT with no referencing questions | Implemented |
 | 6 | GET | `/{passageId}/readiness` | Check publication conditions without changing content or status | Implemented |
 | 7 | POST | `/{passageId}/publish` | Publish the current DRAFT after automated checks and human confirmations | Implemented |
+| 8 | POST | `/{passageId}/retire` | Retire the current ACTIVE passage when no ACTIVE question references it | Implemented |
 
-Follow with passage retirement, then question management.
+Follow with question management, including passage-reference lookup and coordinated question publication/retirement.
 Coverage dashboards and an operation-history screen are deferred business scope.
 
 ## POST: create a passage DRAFT
@@ -689,6 +690,83 @@ The frontend branch integrates the publication button with a fresh-readiness con
 dialog and this JSON mutation. Backend authorization, confirmations and revision guards
 remain authoritative; client confirmations do not bypass the checks above.
 
+## POST: retire an ACTIVE passage
+
+`POST /api/management/learning-paths/passages/{passageId}/retire` consumes
+`application/json`. The existing HTTP management boundary and the Spring-proxied
+service require CONTENT_MANAGER (including inherited ADMIN). The passage ID is
+the public `passage_id`, not Mongo `_id`; any authorized editor may retire it.
+Actor identity comes from CurrentUserProvider, never client-supplied audit fields.
+
+```json
+{ "revision": 3 }
+```
+
+The required revision is a positive int. Retirement reads current passage metadata
+and requires ACTIVE with the exact expected revision. An exhausted int revision
+returns 409 instead of overflowing. It then counts Question Pool records matching
+`passage_id` and `status=ACTIVE`. A nonzero count returns 409
+`PASSAGE_ACTIVE_REFERENCES` with the numeric ProblemDetail extension
+`activeQuestionCount`. DRAFT/RETIRED questions do not block; other passage IDs and
+learner snapshots do not count. No questions are automatically retired or detached.
+
+If no ACTIVE references exist, a single conditional update matches public ID,
+ACTIVE status and expected revision, sets RETIRED, increments revision and updates
+updated_at/by from the trusted actor and server time. Losing a concurrent update
+returns 409. A replay after success also returns 409; it does not overwrite audit
+metadata or increment again. Publication review, creator/creation date, content,
+legacy audio, Media reference and unknown imported fields remain unchanged.
+No schema migration or retirement-history collection is introduced.
+
+HTTP 200 uses the shared ApiResponse envelope:
+
+```json
+{
+  "data": {
+    "passageId": "LP-PASS-<uuid>",
+    "status": "RETIRED",
+    "revision": 4,
+    "retiredBy": "<authenticated account ID>",
+    "retiredAt": "2026-11-26T08:00:00Z"
+  }
+}
+```
+
+retiredBy/retiredAt reflect the saved updated_by/updated_at of this transition.
+Readiness and Media delivery are not prerequisites: even an ACTIVE passage with
+broken/unavailable audio can be retired. The operation uploads/deletes no media,
+calls no external provider and changes no questions, paths, drafts, answers or
+learner snapshots. Existing PATCH/DELETE guards keep RETIRED content immutable.
+Current list filters and counters reflect the new state on refetch. Reuse requires
+authoring a new DRAFT; this API does not reactivate content.
+
+| Status | Code | Meaning |
+| --- | --- | --- |
+| 400 | INVALID_PASSAGE_REQUEST | Invalid ID, JSON body or revision |
+| 401 | AUTHENTICATION_REQUIRED | No trusted session |
+| 403 | ACCESS_DENIED | Missing management authority |
+| 404 | PASSAGE_NOT_FOUND | Passage absent at initial lookup |
+| 409 | PASSAGE_RETIRE_CONFLICT | Not ACTIVE, stale/exhausted revision, concurrent change or replay |
+| 409 | PASSAGE_ACTIVE_REFERENCES | ACTIVE questions still reference the passage; includes activeQuestionCount |
+| 415 | UNSUPPORTED_MEDIA_TYPE | Request must use application/json |
+| 503 | PASSAGE_STORAGE_UNAVAILABLE | Passage/reference database read or write unavailable |
+
+Database failure is not evidence of zero references or a successful retirement.
+After an uncertain network outcome, refetch detail before deciding whether to retry.
+The JSON content-type resolver covers both publish and retire; multipart operations
+retain their existing behavior.
+
+### Consistency boundary
+
+The reference count and passage transition are separate operations, without a
+cross-document transaction or Question Pool lock. The conditional write protects
+the passage revision/state only. Future question-authoring APIs must coordinate
+ACTIVE-reference changes with passage lifecycle/revision before enabling those
+mutations; otherwise a question could become ACTIVE after the count and before
+retirement. Out-of-band DB writes/imports are outside this guarantee. This endpoint
+does not implement cascade retirement, a partial replacement workflow or DB repair.
+Existing paths keep their assigned snapshots; retirement does not reselect questions.
+
 ## Verification scope
 
 Run Learning Path tests only, per the owner's explicit instruction. The passage integration
@@ -698,3 +776,21 @@ is replaced by a test double; actual Cloudinary delivery and human audio review 
 Publication coverage includes HTTP/proxy roles, revision-bound review persistence,
 replayed and concurrent requests, immutable published content, rejected confirmations,
 fresh readiness checks, infrastructure failures and unchanged questions/learner snapshots.
+Retirement coverage includes HTTP/service-proxy authorization, ACTIVE-only reference
+counts, preserved content/review/media and learner data, malformed bodies/IDs,
+state/revision conflicts and exhaustion, conditional-write races, one winner for
+concurrent retirement, JSON content type and storage failures.
+
+### Retirement verification — 2026-11-26
+
+- Initial passage integration run: 180/181 passed; the new 415 test discarded
+  response headers when reconstructing an HTTP error. Preserving the original
+  headers fixed the assertion; the isolated 415 rerun passed.
+- Final `./mvnw.cmd "-Dtest=LearningPath*,QuestionPoolPassageManagementIntegrationTest" clean verify`:
+  BUILD SUCCESS, 262 tests, zero failures/errors/skips. This includes 181 passage
+  integration cases against real HTTP/session/proxy authorization and MongoDB
+  Testcontainers. The clean build also verifies the renamed JSON content-type
+  resolver without stale class files.
+- `git diff --check`: passed. No frontend changes, live database mutation,
+  migration or tools changes were required. Tests outside Learning Path and
+  manual frontend integration were not run in this backend-only task.

@@ -15,7 +15,7 @@ import tools.jackson.databind.ObjectMapper;
 
 @Component
 @RequiredArgsConstructor
-public class PassagePublicationContentTypeExceptionResolver implements HandlerExceptionResolver, Ordered {
+public class PassageJsonContentTypeExceptionResolver implements HandlerExceptionResolver, Ordered {
     private final ObjectMapper mapper;
 
     @Override
@@ -25,8 +25,8 @@ public class PassagePublicationContentTypeExceptionResolver implements HandlerEx
     public ModelAndView resolveException(HttpServletRequest request, HttpServletResponse response,
             Object handler, Exception exception) {
         String prefix = "/api/management/learning-paths/passages/";
-        String suffix = "/publish";
         String path = request.getRequestURI();
+        String suffix = path.endsWith("/retire") ? "/retire" : "/publish";
         if (!(exception instanceof HttpMediaTypeNotSupportedException) || !"POST".equals(request.getMethod())
                 || !path.startsWith(prefix) || !path.endsWith(suffix) || path.length() <= prefix.length() + suffix.length()) return null;
         String id = path.substring(prefix.length(), path.length() - suffix.length());
@@ -38,7 +38,7 @@ public class PassagePublicationContentTypeExceptionResolver implements HandlerEx
         try {
             mapper.writeValue(response.getOutputStream(), Map.of(
                     "type", "about:blank", "title", "Unsupported Media Type", "status", 415,
-                    "detail", "Use application/json for passage publication", "code", "UNSUPPORTED_MEDIA_TYPE", "instance", path));
+                    "detail", "Use application/json for passage publication or retirement", "code", "UNSUPPORTED_MEDIA_TYPE", "instance", path));
             return new ModelAndView();
         } catch (IOException failure) {
             return null;

@@ -10,6 +10,8 @@ import fit.iuh.engolearn.learningpath.exception.PassageUpdateConflictException;
 import fit.iuh.engolearn.learningpath.exception.PassageDeleteConflictException;
 import fit.iuh.engolearn.learningpath.exception.PassagePublishConflictException;
 import fit.iuh.engolearn.learningpath.exception.PassagePublicationRejectedException;
+import fit.iuh.engolearn.learningpath.exception.PassageRetireConflictException;
+import fit.iuh.engolearn.learningpath.exception.PassageActiveReferencesException;
 import java.io.IOException;
 import org.springframework.dao.DataAccessException;
 import org.springframework.http.HttpStatus;
@@ -25,6 +27,18 @@ import org.springframework.web.multipart.support.MissingServletRequestPartExcept
 
 @RestControllerAdvice(assignableTypes = QuestionPoolPassageManagementController.class)
 public class QuestionPoolPassageManagementExceptionHandler {
+    @ExceptionHandler(PassageRetireConflictException.class)
+    public ProblemDetail retireConflict(PassageRetireConflictException exception) {
+        return problem(HttpStatus.CONFLICT, "PASSAGE_RETIRE_CONFLICT", exception.getMessage());
+    }
+
+    @ExceptionHandler(PassageActiveReferencesException.class)
+    public ProblemDetail activeReferences(PassageActiveReferencesException exception) {
+        var result = problem(HttpStatus.CONFLICT, "PASSAGE_ACTIVE_REFERENCES", exception.getMessage());
+        result.setProperty("activeQuestionCount", exception.getActiveQuestionCount());
+        return result;
+    }
+
     @ExceptionHandler({InvalidPassageException.class, MediaUploadRejectedException.class})
     public ProblemDetail invalid(RuntimeException exception) {
         return problem(HttpStatus.BAD_REQUEST, "INVALID_PASSAGE", exception.getMessage());

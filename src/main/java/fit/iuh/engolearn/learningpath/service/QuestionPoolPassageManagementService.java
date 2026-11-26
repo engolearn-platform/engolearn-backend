@@ -10,8 +10,12 @@ import fit.iuh.engolearn.learningpath.dto.request.ListQuestionPoolPassagesReques
 import fit.iuh.engolearn.learningpath.dto.response.QuestionPoolPassageListResponse;
 import fit.iuh.engolearn.learningpath.dto.request.PublishQuestionPoolPassageRequest;
 import fit.iuh.engolearn.learningpath.dto.response.PublishQuestionPoolPassageResponse;
+import fit.iuh.engolearn.learningpath.dto.request.RetireQuestionPoolPassageRequest;
+import fit.iuh.engolearn.learningpath.dto.response.RetireQuestionPoolPassageResponse;
 
 public interface QuestionPoolPassageManagementService {
+    RetireQuestionPoolPassageResponse retire(String passageId, RetireQuestionPoolPassageRequest request);
+
     PublishQuestionPoolPassageResponse publish(String passageId, PublishQuestionPoolPassageRequest request);
 
     DeleteQuestionPoolPassageResponse delete(String passageId, int revision);

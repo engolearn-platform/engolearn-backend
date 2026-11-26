@@ -10,6 +10,7 @@ import org.springframework.data.mongodb.core.aggregation.Aggregation;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.time.Instant;
 import org.springframework.data.mongodb.core.FindAndModifyOptions;
 import org.springframework.data.mongodb.core.query.Update;
 import java.util.regex.Pattern;
@@ -141,5 +142,14 @@ public class QuestionPoolPassageRepository {
 
     public QuestionPoolPassage insert(QuestionPoolPassage passage) {
         return mongo.insert(passage);
+    }
+
+    public Optional<QuestionPoolPassage> retireActive(String passageId, int expectedRevision, String actor, Instant retiredAt) {
+        Query query = Query.query(Criteria.where("passage_id").is(passageId)
+                .and("status").is(QuestionPoolContentStatus.ACTIVE).and("revision").is(expectedRevision));
+        Update update = new Update().set("status", QuestionPoolContentStatus.RETIRED).inc("revision", 1)
+                .set("updated_at", retiredAt).set("updated_by", actor);
+        return Optional.ofNullable(mongo.findAndModify(query, update,
+                FindAndModifyOptions.options().returnNew(true), QuestionPoolPassage.class));
     }
 }

@@ -32,6 +32,11 @@ public class QuestionPoolRepository {
         return mongoTemplate.count(Query.query(Criteria.where("passage_id").is(passageId)), "question_pool");
     }
 
+    public long countActivePassageReferences(String passageId) {
+        return mongoTemplate.count(Query.query(Criteria.where("passage_id").is(passageId)
+                .and("status").is("ACTIVE")), "question_pool");
+    }
+
     public Map<String, Long> countReferencesByPassageIds(Set<String> passageIds) {
         if (passageIds.isEmpty()) return Map.of();
         return mongoTemplate.aggregate(Aggregation.newAggregation(

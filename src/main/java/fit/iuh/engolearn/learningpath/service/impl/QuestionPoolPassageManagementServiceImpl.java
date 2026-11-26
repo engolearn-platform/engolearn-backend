@@ -26,6 +26,10 @@ import fit.iuh.engolearn.learningpath.exception.PassageDeleteConflictException;
 import fit.iuh.engolearn.learningpath.dto.response.QuestionPoolPassageCountersResponse;
 import fit.iuh.engolearn.learningpath.dto.request.PublishQuestionPoolPassageRequest;
 import fit.iuh.engolearn.learningpath.dto.response.PublishQuestionPoolPassageResponse;
+import fit.iuh.engolearn.learningpath.dto.request.RetireQuestionPoolPassageRequest;
+import fit.iuh.engolearn.learningpath.dto.response.RetireQuestionPoolPassageResponse;
+import fit.iuh.engolearn.learningpath.exception.PassageRetireConflictException;
+import fit.iuh.engolearn.learningpath.exception.PassageActiveReferencesException;
 import fit.iuh.engolearn.learningpath.dto.response.QuestionPoolPassageReadinessResponse;
 import fit.iuh.engolearn.learningpath.exception.PassagePublicationRejectedException;
 import fit.iuh.engolearn.learningpath.exception.PassagePublishConflictException;
@@ -53,6 +57,23 @@ public class QuestionPoolPassageManagementServiceImpl implements QuestionPoolPas
     private final QuestionPoolRepository questions;
     private final CurrentUserProvider users;
     private final QuestionPoolPassageReadinessService readiness;
+
+    @Override
+    @PreAuthorize("hasRole('CONTENT_MANAGER')")
+    public RetireQuestionPoolPassageResponse retire(String passageId, RetireQuestionPoolPassageRequest request) {
+        String actor = users.requireCurrentUserId();
+        var source = passages.findReadinessSource(passageId).orElseThrow(QuestionPoolPassageNotFoundException::new);
+        if (!"ACTIVE".equals(source.status()) || !request.revision().equals(source.revision())
+                || request.revision() == Integer.MAX_VALUE) {
+            throw new PassageRetireConflictException("Only the current revision of an ACTIVE passage can be retired");
+        }
+        long activeQuestions = questions.countActivePassageReferences(passageId);
+        if (activeQuestions > 0) throw new PassageActiveReferencesException(activeQuestions);
+        var saved = passages.retireActive(passageId, request.revision(), actor, Instant.now())
+                .orElseThrow(() -> new PassageRetireConflictException("Passage changed while retiring; reload before retrying"));
+        return new RetireQuestionPoolPassageResponse(saved.getPassageId(), saved.getStatus(), saved.getRevision(),
+                saved.getUpdatedBy(), saved.getUpdatedAt());
+    }
 
     @Override
     @PreAuthorize("hasRole('CONTENT_MANAGER')")

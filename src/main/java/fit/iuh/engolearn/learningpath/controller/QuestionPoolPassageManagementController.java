@@ -7,6 +7,8 @@ import fit.iuh.engolearn.learningpath.service.QuestionPoolPassageReadinessServic
 import fit.iuh.engolearn.learningpath.dto.response.QuestionPoolPassageReadinessResponse;
 import fit.iuh.engolearn.learningpath.dto.request.PublishQuestionPoolPassageRequest;
 import fit.iuh.engolearn.learningpath.dto.response.PublishQuestionPoolPassageResponse;
+import fit.iuh.engolearn.learningpath.dto.request.RetireQuestionPoolPassageRequest;
+import fit.iuh.engolearn.learningpath.dto.response.RetireQuestionPoolPassageResponse;
 import org.springframework.web.bind.annotation.RequestBody;
 import fit.iuh.engolearn.shared.web.ApiResponse;
 import fit.iuh.engolearn.learningpath.dto.request.ListQuestionPoolPassagesRequest;
@@ -41,6 +43,13 @@ import org.springframework.web.multipart.MultipartFile;
 public class QuestionPoolPassageManagementController {
     private final QuestionPoolPassageManagementService passages;
     private final QuestionPoolPassageReadinessService readiness;
+
+    @PostMapping(value = "/{passageId}/retire", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public ApiResponse<RetireQuestionPoolPassageResponse> retire(
+            @PathVariable @NotBlank @Size(max = 100) String passageId,
+            @Valid @RequestBody RetireQuestionPoolPassageRequest request) {
+        return ApiResponse.ok(passages.retire(passageId, request));
+    }
 
     @PostMapping(value = "/{passageId}/publish", consumes = MediaType.APPLICATION_JSON_VALUE)
     public ApiResponse<PublishQuestionPoolPassageResponse> publish(

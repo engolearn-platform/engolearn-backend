@@ -5,6 +5,7 @@ import fit.iuh.engolearn.learningpath.dto.request.CreateQuestionPoolPassageReque
 import fit.iuh.engolearn.learningpath.dto.request.UpdateQuestionPoolPassageRequest;
 import fit.iuh.engolearn.learningpath.dto.request.ListQuestionPoolPassagesRequest;
 import fit.iuh.engolearn.learningpath.dto.request.PublishQuestionPoolPassageRequest;
+import fit.iuh.engolearn.learningpath.dto.request.RetireQuestionPoolPassageRequest;
 import fit.iuh.engolearn.learningpath.model.enums.PassageReviewCheck;
 import fit.iuh.engolearn.learningpath.model.enums.QuestionPoolSkill;
 import fit.iuh.engolearn.learningpath.repository.QuestionPoolPassageRepository;
@@ -1466,9 +1467,185 @@ class QuestionPoolPassageManagementIntegrationTest extends AbstractMongoIntegrat
         } finally { SecurityContextHolder.clearContext(); }
     }
 
+    @ParameterizedTest
+    @EnumSource(value = UserRole.class, names = {"CONTENT_MANAGER", "ADMIN"})
+    void retirementPreservesContentReviewMediaAndLearnerDataAndUpdatesTrustedAudit(UserRole role) {
+        seedPassage("retire", "LISTENING", "B1", "ACTIVE", "Title", null, "Transcript", 0);
+        var review = new Document("source_revision", 1).append("reviewed_by", "original-reviewer");
+        setAudio("retire", new Document("audio_media_id", "existing-media").append("publication_review", review)
+                .append("extra_metadata", "preserve"));
+        mongoTemplate.getCollection("media_assets").insertOne(new Document("_id", "existing-media").append("status", "READY"));
+        for (String state : java.util.List.of("DRAFT", "RETIRED")) {
+            mongoTemplate.getCollection("question_pool").insertOne(new Document("question_id", state)
+                    .append("passage_id", "retire").append("status", state));
+        }
+        mongoTemplate.getCollection("question_pool").insertOne(new Document("question_id", "other")
+                .append("passage_id", "other-passage").append("status", "ACTIVE"));
+        mongoTemplate.getCollection("learning_paths").insertOne(new Document("_id", "existing").append("progress", 5));
+        mongoTemplate.getCollection("learning_path_questions").insertOne(new Document("question_id", "snapshot")
+                .append("passage", new Document("passage_id", "retire").append("audio", "old-audio")));
+        var before = mongoTemplate.getCollection("question_pool_passages").find().first();
+        var unchanged = new java.util.HashMap<String, java.util.List<Document>>();
+        for (String collection : java.util.List.of("question_pool", "learning_paths", "learning_path_questions", "media_assets")) {
+            unchanged.put(collection, mongoTemplate.getCollection(collection).find().into(new java.util.ArrayList<>()));
+        }
+        var response = retire("retire", "{\"revision\":1}", role);
+        assertThat(response.getStatusCode().value()).as(response.getBody()).isEqualTo(200);
+        var data = json.readTree(response.getBody()).path("data");
+        assertThat(data.path("passageId").asString()).isEqualTo("retire");
+        assertThat(data.path("status").asString()).isEqualTo("RETIRED");
+        assertThat(data.path("revision").asInt()).isEqualTo(2);
+        assertThat(data.path("retiredBy").asString()).isEqualTo("passage-editor");
+        var saved = mongoTemplate.getCollection("question_pool_passages").find().first();
+        var expected = new Document(before).append("status", "RETIRED").append("revision", 2)
+                .append("updated_by", "passage-editor").append("updated_at", saved.get("updated_at"));
+        assertThat(saved).isEqualTo(expected);
+        assertThat(Instant.parse(data.path("retiredAt").asString())).isEqualTo(saved.getDate("updated_at").toInstant());
+        unchanged.forEach((collection, records) -> assertThat(mongoTemplate.getCollection(collection).find()
+                .into(new java.util.ArrayList<>())).isEqualTo(records));
+        assertCounters(listData("status=RETIRED"), 1, 0, 0, 1);
+        assertError(retire("retire", "{\"revision\":2}", role), 409, "PASSAGE_RETIRE_CONFLICT");
+        assertError(patch("retire", "{\"revision\":2,\"title\":\"Changed\"}", null, null, role), 409, "PASSAGE_UPDATE_CONFLICT");
+        assertError(delete("retire", "revision=2", role), 409, "PASSAGE_DELETE_CONFLICT");
+        assertThat(mongoTemplate.getCollection("question_pool_passages").find().first()).isEqualTo(saved);
+        verifyNoInteractions(storage);
+    }
+
+    @Test
+    void retirementBlocksActiveReferencesWithCountAndDoesNotCascade() {
+        seedPassage("linked", "READING", "B1", "ACTIVE", "Title", "Text", null, 0);
+        for (int index = 0; index < 3; index++) {
+            mongoTemplate.getCollection("question_pool").insertOne(new Document("question_id", "q" + index)
+                    .append("passage_id", "linked").append("status", index < 2 ? "ACTIVE" : "DRAFT"));
+        }
+        var before = mongoTemplate.getCollection("question_pool_passages").find().first();
+        var questionRecords = mongoTemplate.getCollection("question_pool").find().into(new java.util.ArrayList<>());
+        var response = retire("linked", "{\"revision\":1}", UserRole.ADMIN);
+        assertError(response, 409, "PASSAGE_ACTIVE_REFERENCES");
+        assertThat(json.readTree(response.getBody()).path("activeQuestionCount").asLong()).isEqualTo(2);
+        assertThat(mongoTemplate.getCollection("question_pool_passages").find().first()).isEqualTo(before);
+        assertThat(mongoTemplate.getCollection("question_pool").find().into(new java.util.ArrayList<>())).isEqualTo(questionRecords);
+        verify(passages, never()).retireActive(anyString(), anyInt(), anyString(), any());
+    }
+
+    @Test
+    void retirementEnforcesHttpAndServiceProxyRoles() {
+        assertError(retire("missing", "{\"revision\":1}", null), 401, "AUTHENTICATION_REQUIRED");
+        assertError(retire("missing", "{\"revision\":1}", UserRole.USER), 403, "ACCESS_DENIED");
+        verify(passages, never()).findReadinessSource(anyString());
+        var request = new RetireQuestionPoolPassageRequest(1);
+        try {
+            SecurityContextHolder.clearContext();
+            assertThatThrownBy(() -> service.retire("missing", request)).isInstanceOf(AuthenticationCredentialsNotFoundException.class);
+            authenticate(UserRole.USER);
+            assertThatThrownBy(() -> service.retire("missing", request)).isInstanceOf(AccessDeniedException.class);
+            for (UserRole role : java.util.List.of(UserRole.CONTENT_MANAGER, UserRole.ADMIN)) {
+                seedPassage("retire-" + role, "READING", "B1", "ACTIVE", "Title", "Text", null, 0);
+                authenticate(role);
+                assertThat(service.retire("retire-" + role, request).status().name()).isEqualTo("RETIRED");
+            }
+        } finally { SecurityContextHolder.clearContext(); }
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"{}", "{\"revision\":null}", "{\"revision\":0}", "{\"revision\":-1}", "{\"revision\":2147483648}", "{", ""})
+    void retirementRejectsMalformedBody(String body) {
+        assertError(retire("missing", body, UserRole.ADMIN), 400, "INVALID_PASSAGE_REQUEST");
+        verify(passages, never()).retireActive(anyString(), anyInt(), anyString(), any());
+    }
+
+    @Test
+    void retirementValidatesIdsAndUsesPublicPassageId() {
+        assertError(retire(" ", "{\"revision\":1}", UserRole.ADMIN), 400, "INVALID_PASSAGE_REQUEST");
+        assertError(retire("x".repeat(101), "{\"revision\":1}", UserRole.ADMIN), 400, "INVALID_PASSAGE_REQUEST");
+        assertError(retire("missing", "{\"revision\":1}", UserRole.ADMIN), 404, "PASSAGE_NOT_FOUND");
+        seedPassage("internal", "READING", "B1", "ACTIVE", "Title", "Text", null, 0);
+        setAudio("internal", new Document("passage_id", "public-id"));
+        assertError(retire("internal", "{\"revision\":1}", UserRole.ADMIN), 404, "PASSAGE_NOT_FOUND");
+        assertThat(retire("public-id", "{\"revision\":1}", UserRole.ADMIN).getStatusCode().value()).isEqualTo(200);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"DRAFT", "RETIRED", "STALE", "EXHAUSTED"})
+    void retirementRejectsStateOrRevisionConflictBeforeReferenceQuery(String state) {
+        seedPassage("conflict", "READING", "B1", state.equals("DRAFT") || state.equals("RETIRED") ? state : "ACTIVE", "Title", "Text", null, 0);
+        if (state.equals("EXHAUSTED")) setAudio("conflict", new Document("revision", Integer.MAX_VALUE));
+        String body = "{\"revision\":" + (state.equals("EXHAUSTED") ? Integer.MAX_VALUE : state.equals("STALE") ? 2 : 1) + "}";
+        assertError(retire("conflict", body, UserRole.ADMIN), 409, "PASSAGE_RETIRE_CONFLICT");
+        verify(questions, never()).countActivePassageReferences(anyString());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"RETIRED", "EDITED", "DELETED"})
+    void retirementConditionalWritePreservesConcurrentChanges(String change) {
+        seedPassage("race", "READING", "B1", "ACTIVE", "Title", "Text", null, 0);
+        doAnswer(invocation -> {
+            if (change.equals("DELETED")) mongoTemplate.getCollection("question_pool_passages").deleteOne(new Document("_id", "race"));
+            else setAudio("race", change.equals("EDITED") ? new Document("revision", 2) : new Document("status", "RETIRED"));
+            return invocation.callRealMethod();
+        }).when(passages).retireActive(eq("race"), eq(1), anyString(), any());
+        assertError(retire("race", "{\"revision\":1}", UserRole.ADMIN), 409, "PASSAGE_RETIRE_CONFLICT");
+        var saved = mongoTemplate.getCollection("question_pool_passages").find().first();
+        if (change.equals("DELETED")) assertThat(saved).isNull();
+        else {
+            assertThat(saved.get("updated_by")).isNull();
+            assertThat(saved.getInteger("revision")).isEqualTo(change.equals("EDITED") ? 2 : 1);
+        }
+    }
+
+    @Test
+    void concurrentRetirementsHaveOneWinner() throws Exception {
+        seedPassage("retire-once", "READING", "B1", "ACTIVE", "Title", "Text", null, 0);
+        var barrier = new java.util.concurrent.CyclicBarrier(2);
+        doAnswer(invocation -> { barrier.await(15, java.util.concurrent.TimeUnit.SECONDS); return invocation.callRealMethod(); })
+                .when(passages).retireActive(eq("retire-once"), eq(1), anyString(), any());
+        var first = java.util.concurrent.CompletableFuture.supplyAsync(() -> retire("retire-once", "{\"revision\":1}", UserRole.ADMIN));
+        var second = java.util.concurrent.CompletableFuture.supplyAsync(() -> retire("retire-once", "{\"revision\":1}", UserRole.ADMIN));
+        assertThat(java.util.List.of(first.get(25, java.util.concurrent.TimeUnit.SECONDS).getStatusCode().value(),
+                second.get(25, java.util.concurrent.TimeUnit.SECONDS).getStatusCode().value())).containsExactlyInAnyOrder(200, 409);
+        assertThat(mongoTemplate.getCollection("question_pool_passages").find().first().getInteger("revision")).isEqualTo(2);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"references", "write"})
+    void retirementStorageFailureDoesNotReportSuccess(String stage) {
+        seedPassage("outage", "READING", "B1", "ACTIVE", "Title", "Text", null, 0);
+        var before = mongoTemplate.getCollection("question_pool_passages").find().first();
+        if (stage.equals("references")) doThrow(new DataAccessResourceFailureException("private diagnostic"))
+                .when(questions).countActivePassageReferences("outage");
+        else doThrow(new DataAccessResourceFailureException("private diagnostic"))
+                .when(passages).retireActive(eq("outage"), eq(1), anyString(), any());
+        var response = retire("outage", "{\"revision\":1}", UserRole.ADMIN);
+        assertError(response, 503, "PASSAGE_STORAGE_UNAVAILABLE");
+        assertThat(response.getBody()).doesNotContain("private diagnostic");
+        assertThat(mongoTemplate.getCollection("question_pool_passages").find().first()).isEqualTo(before);
+    }
+
+    @Test
+    void retirementRequiresJsonContentType() {
+        var headers = authHeaders(UserRole.ADMIN);
+        headers.setContentType(MediaType.TEXT_PLAIN);
+        try {
+            var response = restTemplate.exchange("http://localhost:" + port + BASE + "/one/retire", HttpMethod.POST,
+                    new HttpEntity<>("{\"revision\":1}", headers), String.class);
+            assertError(response, 415, "UNSUPPORTED_MEDIA_TYPE");
+        } catch (org.springframework.web.client.HttpStatusCodeException exception) {
+            assertError(new ResponseEntity<>(exception.getResponseBodyAsString(), exception.getResponseHeaders(), exception.getStatusCode()),
+                    415, "UNSUPPORTED_MEDIA_TYPE");
+        }
+    }
+
+    private ResponseEntity<String> retire(String id, String body, UserRole role) {
+        return passageTransition(id, "retire", body, role);
+    }
+
     private ResponseEntity<String> publish(String id, String body, UserRole role) {
+        return passageTransition(id, "publish", body, role);
+    }
+
+    private ResponseEntity<String> passageTransition(String id, String operation, String body, UserRole role) {
         java.net.URI uri = org.springframework.web.util.UriComponentsBuilder.fromUriString("http://localhost:" + port + BASE)
-                .path("/{passageId}/publish").encode().buildAndExpand(id).toUri();
+                .path("/{passageId}/" + operation).encode().buildAndExpand(id).toUri();
         var headers = authHeaders(role);
         headers.setContentType(MediaType.APPLICATION_JSON);
         try {
