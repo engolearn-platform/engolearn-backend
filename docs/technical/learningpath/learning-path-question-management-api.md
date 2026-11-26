@@ -1,14 +1,14 @@
 # Learning Path question management
 
-Implemented scope: list, detail, create DRAFT, edit DRAFT, delete DRAFT, copy to DRAFT,
-publication readiness and publication. Retire/replace remain planned in the
+Implemented scope: all ten backend APIs — list, detail, create/edit/delete DRAFT, copy,
+readiness, publish, retire and replace. Business rules are in the
 [workspace business entry](../../../../AGENT.md), section 17.12. Section 17.13 tracks the
 deferred learner Media delivery work; its capability blocker remains enforced.
 Passage CRUD and audio preview are owned by the [passage contract](learning-path-management-api-plan.md).
 
 ## Access and persistence
 
-Base: `/api/management/learning-paths/questions`. All eight operations require CONTENT_MANAGER,
+Base: `/api/management/learning-paths/questions`. All ten operations require CONTENT_MANAGER,
 including inherited ADMIN. The existing explicit management HTTP matcher enforces 401/403;
 each service entry also uses `@PreAuthorize` through its Spring proxy. Responses use
 `ApiResponse<T>` and `Cache-Control: no-store`; errors use `application/problem+json`.
@@ -16,10 +16,11 @@ These responses contain editorial content and must not be reused as learner endp
 
 The repository accesses existing `question_pool` documents using `question_id`, not Mongo `_id`.
 The typed read model preserves stored snake_case names, including `options[].option_id`.
-Canonical micro-skill names remain strings; no new catalog, collection, index or migration
-is introduced. Missing optional audit data or revision stays null; reads do not invent it.
+Canonical micro-skill names remain strings. `question_pool_coverage_fences` adds a technical
+concurrency record per micro-skill/level; no catalog/content migration is introduced.
+Missing optional audit data or revision stays null; reads do not invent it.
 GETs have no writes. Mutations affect source questions and, when attaching a passage,
-its reference-fencing revision/audit only. No Media asset, learner path, assigned snapshot,
+its reference-fencing revision/audit and the technical coverage fence. No Media asset, learner path, assigned snapshot,
 answer draft or result is changed. No endpoint uploads or deletes files.
 
 Question mutations require enabled MongoDB transactions and a replica set/sharded topology.
@@ -119,6 +120,7 @@ support remains unchanged; this API does not remove its publication blocker.
 | 404 | QUESTION_NOT_FOUND | No matching public question ID |
 | 404 | MEDIA_NOT_FOUND | Passage references a missing Media asset |
 | 409 | QUESTION_WRITE_CONFLICT | State/revision conflict, exhausted revision or concurrent source change |
+| 409 | QUESTION_COVERAGE_CONFIRMATION_REQUIRED | Explicit admin confirmation required; includes `confirmationRequired` and typed `warnings` |
 | 422 | QUESTION_NOT_READY | Automated blockers; includes current typed `readiness` extension |
 | 422 | QUESTION_REVIEW_REQUIRED | Missing or unrelated confirmations; includes current typed `readiness` |
 | 415 | UNSUPPORTED_MEDIA_TYPE | JSON mutation body requires a supported JSON content type |
@@ -251,8 +253,8 @@ before retrying any uncertain mutation; do not blindly repeat create/copy.
 Removing a reference or deleting a question does not bump the old passage revision: this
 cannot introduce an incompatible reference. Reference counts may reject a simultaneous
 passage operation conservatively until its next retry. Out-of-band writes/imports that
-ignore revision guards remain outside this guarantee. Question publication now joins the
-ACTIVE-only guard below. Future replacement must join the same coordination.
+ignore revision guards remain outside this guarantee. Question publication and replacement
+join the ACTIVE-only guard below.
 
 ## GET publication readiness
 
@@ -354,7 +356,8 @@ The service uses one Mongo transaction, without automatic retry:
    Media resolution. The previous GET readiness is neither required nor trusted.
 2. Re-evaluate readiness inside the transaction and reject automated blockers with 422
    `QUESTION_NOT_READY`. Require the exact professional confirmations for this revision.
-3. When linked, conditionally fence the passage by public ID + evaluated revision +
+3. Fence the micro-skill/level cohort as described below. When linked, conditionally
+   fence the passage by public ID + evaluated revision +
    skill + level + ACTIVE. Increment its revision and set updated_by/at, preserving
    content, audio, status and existing publication review. A concurrent passage
    retirement/edit cannot win together with an invalid new ACTIVE reference.
@@ -384,9 +387,110 @@ but publication fences the same passage revision. If retirement counted zero bef
 publication commits, its stale CAS fails. If retirement wins first, publication rolls
 back. Out-of-band writers/imports that bypass these guards remain unsupported.
 
+## POST retire an ACTIVE question
+
+`POST /api/management/learning-paths/questions/{questionId}/retire` with JSON:
+
+```json
+{"revision":3,"confirmCoverageWarning":false}
+```
+
+Revision is required/positive. Optional acknowledgement defaults false (including null).
+Require ACTIVE and exact current revision: initially missing is 404; non-ACTIVE, stale
+or exhausted revision is 409. Scalar public ID is required. Retirement does not require
+valid question content, usable passage/audio or Media resolution; defective content can
+be removed from future selection. It preserves content, creator, created_at, publication
+review and unknown metadata, and never retires/deletes its passage or learner data.
+
+The transaction fences the cohort, counts ACTIVE before, conditionally retires/increments
+revision/updates trusted audit and counts after. Counts use the same micro-skill + level
++ ACTIVE predicate as path eligibility. If after-count is below 30 and acknowledgement
+is false, the transaction rolls back before returning 409. Example ProblemDetail extensions:
+
+```json
+{"code":"QUESTION_COVERAGE_CONFIRMATION_REQUIRED","confirmationRequired":true,
+"warnings":[{"code":"BELOW_MINIMUM_ACTIVE_QUESTIONS","message":"...",
+"coverage":{"microSkill":"Reading for Gist","level":"B1",
+"activeQuestionCountBefore":30,"activeQuestionCountAfter":29,
+"minimumRequired":30,"eligibleAfter":false}}]}
+```
+
+Display this warning; only after admin confirmation resend with `confirmCoverageWarning: true`.
+The backend rechecks state/revision and recomputes counts. Confirmation accepts
+below-minimum coverage, not an exact count reservation. 31 → 30 needs no shortage
+acknowledgement; 29 → 28 still requires it. No partial source/audit/fence increment is saved
+on the rejected attempt. False/default never becomes automatic approval.
+
+HTTP 200 returns questionId, RETIRED status, saved revision, retiredBy/retiredAt, `coverage`
+and `warnings`; warnings remain after confirmation. Unclassifiable imported micro-skill
+or CEFR level yields null counts/eligibility with `COVERAGE_UNDETERMINED`, requiring the
+same acknowledgement rather than fabricating zero. Raw conditional retirement avoids
+enum/content conversion failures for defective imports. Replay returns 409 unchanged.
+
+## POST replace an ACTIVE question
+
+`POST /api/management/learning-paths/questions/{questionId}/replace` targets the old ACTIVE:
+
+```json
+{"revision":3,"replacementQuestionId":"LP-Q-<draft-id>","replacementRevision":1,
+"confirmedReviewChecks":["MICRO_SKILL_APPROPRIATE","LEVEL_APPROPRIATE",
+"SINGLE_BEST_ANSWER_WITH_EVIDENCE","DISTRACTORS_PLAUSIBLE","EXPLANATION_SUPPORTED",
+"STIMULUS_SUFFICIENT","NO_ANSWER_LEAKAGE"],"confirmCoverageWarning":false}
+```
+
+Both revisions are required positive ints. Replacement ID is nonblank/max-100, different
+from source ID. Require current old ACTIVE and new DRAFT revisions; missing either is
+404, stale/wrong state/exhausted revision is 409, self replacement is 400. Replacement
+uses the same fresh readiness/exact professional confirmations as publish; 422 includes
+the replacement readiness. Media-backed Listening remains blocked.
+
+One transaction fences the affected cohorts, counts before, publishes the replacement
+with its ACTIVE-only passage fence/review, conditionally retires old, then counts after.
+All question, passage and cohort writes commit or roll back together; no two-request
+publish/retire sequence or automatic retry. Both transitions share trusted actor/time.
+Old review/content remain intact; no assigned snapshot, answer, result, draft or progress
+is changed. No unused passage is automatically retired.
+
+Replacement may correct micro-skill/level. Same-cohort replacement has no net decrease,
+so needs no shortage acknowledgement; existing below-30 coverage is an informational
+warning. Across cohorts, decreased coverage ending below 30 or unknown old coverage
+requires the same explicit acknowledgement and rollback-before-confirmation contract.
+The gaining cohort staying below 30 is informational, not a publication minimum.
+
+HTTP 200 returns `retiredQuestion` (ID, RETIRED status, revision, retiredBy/At),
+`publishedQuestion` (the publish receipt, including review/audio warnings), `coverage`
+(one entry for same cohort, otherwise old then replacement cohort), and coverage `warnings`.
+Completed replay conflicts; after uncertain outcomes refetch both questions before retrying.
+
+## Concurrent coverage coordination
+
+Publish, retire and replace all fence a micro-skill/CEFR pair in
+`question_pool_coverage_fences`, inside the mutation transaction. Model-owned bootstrap
+creates the collection; neutral revision-zero records are initialized before the
+transaction by deterministic unique `_id` with
+micro_skill, level, revision and audit timestamps. It stores no counts: question_pool
+remains authoritative. Existing content needs no reset/reseed/migration. Restart/deploy
+updated backend to register the model; implementation did not write live DB data.
+
+Question Pool transactions request SNAPSHOT read concern and MAJORITY write concern via
+Spring Data Mongo labels scoped to this capability. Neutral metadata allocation may remain
+after a rejected mutation; it stores no approval/count and leaves source state unchanged.
+Shared manager defaults/other features are unchanged. Neutral initialization is idempotent;
+two-pair fences use deterministic order. Transaction/CAS conflicts return 409, requiring
+explicit refetch/retry. For example, two retirements seeing 31 cannot
+both silently leave 29: one wins and the other conflicts; its next attempt sees 30 → 29
+and requires confirmation. Publish also joins this coordination.
+
+Counts describe this serialized operation, not a reservation against later changes or
+all path eligibility conditions. Precise pair coordination needs identifiable metadata;
+malformed classification returns an explicit undetermined warning. All active-state
+writers must use the guard; direct imports/DB writes and mixed deployments with older
+writers remain outside this guarantee. Never reset/delete fences during active writes.
+
 ## Verification
 
-`QuestionPoolQuestionManagementIntegrationTest` and `QuestionPoolQuestionPublicationIntegrationTest`
+`QuestionPoolQuestionManagementIntegrationTest`, `QuestionPoolQuestionPublicationIntegrationTest`
+and `QuestionPoolQuestionLifecycleIntegrationTest`
 use real HTTP sessions, Spring service proxies and MongoDB Testcontainers;
 only the Media public contract is doubled to exercise
 preview resolution/failures without external uploads. It covers filters, literal search,
@@ -396,20 +500,24 @@ transaction rollback, concurrent question edits, passage deletion/classification
 and unchanged learner data. Publication coverage also verifies raw malformed diagnostics,
 current re-evaluation, exact professional confirmations, recorded review/audit, replay and
 concurrent publication, Media delivery blockers/failures and both outcomes of the race
-with passage retirement (including a stale zero-reference count).
+with passage retirement (including a stale zero-reference count). Lifecycle coverage
+also verifies explicit shortage acknowledgement, unknown imported classifications,
+atomic replacement/rollback, same/different-cohort counts, first-use cohort allocation,
+concurrent retirement/publication/replacement and preserved Media capability blockers.
 The [passage integration suite](learning-path-management-api-plan.md#verification-scope)
 covers the underlying Media integration separately. Live Cloudinary upload and frontend
 integration are outside this backend task.
 
-Verification on 2026-11-26:
+Verification on 2026-11-27:
 
-- Targeted publication suite: 44 tests passed, no failures/errors/skips.
+- Targeted lifecycle suite after the concurrency fix: 30 tests passed with no
+  failures/errors/skips. The final run includes an additional replacement Media case.
 - Final `./mvnw.cmd "-Dtest=LearningPath*,QuestionPool*IntegrationTest" "-Dsurefire.useManifestOnlyJar=false" verify`:
-  BUILD SUCCESS; 371 tests passed, no failures/errors/skips, including 59 question
-  authoring/read tests, 44 publication tests and existing passage
+  BUILD SUCCESS; 402 tests passed, no failures/errors/skips, including 59 question
+  authoring/read tests, 44 publication tests, 31 lifecycle tests and existing passage
   and learner regression suites. The Surefire option uses the working Windows classpath
-  invocation; it does not disable tests. Log: `target/question-publication-verification.log`.
-- Configured workspace DB preflight: hello reported replica-set topology with writable
+  invocation; it does not disable tests. Log: `target/question-lifecycle-verification.log`.
+- Earlier workspace DB preflight (2026-11-26): hello reported replica-set topology with writable
   primary/session support; a read-only transaction completed and was aborted. No live
   business data was written. Rollback/write-race checks use only the disposable test DB.
 - Verification is scoped to Learning Path per the existing owner instruction; the

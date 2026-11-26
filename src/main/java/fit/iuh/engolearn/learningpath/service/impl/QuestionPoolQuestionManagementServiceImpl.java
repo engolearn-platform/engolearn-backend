@@ -5,10 +5,20 @@ import fit.iuh.engolearn.learningpath.dto.request.CreateQuestionPoolQuestionRequ
 import fit.iuh.engolearn.learningpath.dto.request.UpdateQuestionPoolQuestionRequest;
 import fit.iuh.engolearn.learningpath.dto.request.QuestionPoolQuestionOptionRequest;
 import fit.iuh.engolearn.learningpath.dto.request.PublishQuestionPoolQuestionRequest;
+import fit.iuh.engolearn.learningpath.dto.request.RetireQuestionPoolQuestionRequest;
+import fit.iuh.engolearn.learningpath.dto.request.ReplaceQuestionPoolQuestionRequest;
+import fit.iuh.engolearn.learningpath.exception.QuestionCoverageConfirmationRequiredException;
+import fit.iuh.engolearn.learningpath.repository.QuestionPoolCoverageKey;
+import fit.iuh.engolearn.learningpath.repository.QuestionPoolCoverageRepository;
+import fit.iuh.engolearn.learningpath.repository.QuestionPoolQuestionReadinessSource;
+import fit.iuh.engolearn.learningpath.repository.QuestionPoolQuestionRetirementSource;
+import fit.iuh.engolearn.learningpath.repository.QuestionPoolRepository;
+import fit.iuh.engolearn.shared.enums.CefrLevel;
 import fit.iuh.engolearn.learningpath.exception.QuestionPublicationRejectedException;
 import fit.iuh.engolearn.learningpath.model.vo.QuestionPublicationReviewVo;
 import fit.iuh.engolearn.learningpath.service.QuestionPoolQuestionReadinessService;
 import fit.iuh.engolearn.learningpath.utils.QuestionPoolMicroSkills;
+import fit.iuh.engolearn.learningpath.utils.QuestionPoolTransactionTemplate;
 import fit.iuh.engolearn.learningpath.dto.response.*;
 import fit.iuh.engolearn.learningpath.exception.QuestionPoolPassageNotFoundException;
 import fit.iuh.engolearn.learningpath.exception.QuestionPoolQuestionNotFoundException;
@@ -36,7 +46,6 @@ import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.dao.DataAccessException;
 import org.springframework.data.mongodb.MongoTransactionManager;
 import org.springframework.transaction.TransactionException;
-import org.springframework.transaction.support.TransactionTemplate;
 
 @Service
 @RequiredArgsConstructor
@@ -47,43 +56,164 @@ public class QuestionPoolQuestionManagementServiceImpl implements QuestionPoolQu
     private final CurrentUserProvider users;
     private final ObjectProvider<MongoTransactionManager> transactions;
     private final QuestionPoolQuestionReadinessService readiness;
+    private final QuestionPoolCoverageRepository coverageRepository;
+    private final QuestionPoolRepository pool;
 
     @Override
     @PreAuthorize("hasRole('CONTENT_MANAGER')")
     public PublishQuestionPoolQuestionResponse publish(String questionId, PublishQuestionPoolQuestionRequest request) {
         String actor = users.requireCurrentUserId();
+        ensureCoverage(List.of(questionId));
         return write(() -> {
-            var source = questions.findReadinessSource(questionId).orElseThrow(QuestionPoolQuestionNotFoundException::new);
-            if (!"DRAFT".equals(source.status()) || !request.revision().equals(source.revision()) || request.revision() == Integer.MAX_VALUE) {
-                throw new QuestionMutationConflictException("Only the current revision of a DRAFT question can be published");
-            }
-            var evaluation = readiness.check(questionId);
-            if (!"DRAFT".equals(evaluation.status()) || !request.revision().equals(evaluation.revision())) {
-                throw new QuestionMutationConflictException("Question changed during evaluation; reload before publishing");
-            }
-            if (!evaluation.structurallyValid()) {
-                throw new QuestionPublicationRejectedException("QUESTION_NOT_READY", "Question has publication blockers", evaluation);
-            }
-            if (!request.confirmedReviewChecks().equals(Set.copyOf(evaluation.requiredReviewChecks()))) {
-                throw new QuestionPublicationRejectedException("QUESTION_REVIEW_REQUIRED", "Confirm exactly the required checks for this question revision", evaluation);
-            }
-            Instant now = Instant.now();
-            if (evaluation.passageId() != null && !evaluation.passageId().isBlank()) {
-                if (!passageRepository.fenceQuestionPublication(evaluation.passageId(), evaluation.passageRevision(), source.skill(), source.level(), actor, now)) {
-                    throw new QuestionMutationConflictException("Passage changed while publishing; reload before retrying");
-                }
-            }
-            var review = QuestionPublicationReviewVo.builder().sourceRevision(request.revision())
-                    .passageId(evaluation.passageId()).passageRevision(evaluation.passageRevision())
-                    .confirmedChecks(evaluation.requiredReviewChecks()).reviewedBy(actor).reviewedAt(now).build();
-            var saved = questions.publishDraft(questionId, request.revision(), review).orElseThrow(() ->
-                    new QuestionMutationConflictException("Question changed while publishing; reload before retrying"));
-            var recorded = saved.getPublicationReview();
-            return new PublishQuestionPoolQuestionResponse(saved.getQuestionId(), saved.getStatus(), saved.getRevision(),
-                    recorded.getSourceRevision(), recorded.getPassageId(), recorded.getPassageRevision(), recorded.getReviewedBy(),
-                    recorded.getReviewedAt(), recorded.getConfirmedChecks(), evaluation.warnings());
+            var prepared = preparePublication(questionId, request);
+            fenceCoverage(List.of(coverageKey(prepared.source())));
+            return publishPrepared(prepared, actor, Instant.now());
         });
     }
+
+    @Override
+    @PreAuthorize("hasRole('CONTENT_MANAGER')")
+    public RetireQuestionPoolQuestionResponse retire(String questionId, RetireQuestionPoolQuestionRequest request) {
+        String actor = users.requireCurrentUserId();
+        ensureCoverage(List.of(questionId));
+        return write(() -> {
+            var source = requireActiveRevision(questionId, request.revision());
+            var key = coverageKey(source);
+            fenceCoverage(key == null ? List.of() : List.of(key));
+            Long before = activeCount(key);
+            var retired = retirePrepared(source, actor, Instant.now());
+            var coverage = coverage(source, before, activeCount(key));
+            var warnings = coverageWarnings(List.of(coverage));
+            if (!request.confirmCoverageWarning() && needsCoverageConfirmation(coverage)) {
+                throw new QuestionCoverageConfirmationRequiredException(warnings);
+            }
+            return new RetireQuestionPoolQuestionResponse(retired.questionId(), QuestionPoolContentStatus.RETIRED,
+                    retired.revision(), retired.retiredBy(), retired.retiredAt(), coverage, warnings);
+        });
+    }
+
+    @Override
+    @PreAuthorize("hasRole('CONTENT_MANAGER')")
+    public ReplaceQuestionPoolQuestionResponse replace(String questionId, ReplaceQuestionPoolQuestionRequest request) {
+        String actor = users.requireCurrentUserId();
+        ensureCoverage(List.of(questionId, request.replacementQuestionId()));
+        return write(() -> {
+            var old = requireActiveRevision(questionId, request.revision());
+            if (questionId.equals(request.replacementQuestionId())) throw new InvalidQuestionException("Replacement must be a different question");
+            var prepared = preparePublication(request.replacementQuestionId(), new PublishQuestionPoolQuestionRequest(
+                    request.replacementRevision(), request.confirmedReviewChecks()));
+            var oldKey = coverageKey(old);
+            var newKey = coverageKey(prepared.source());
+            var keys = new java.util.ArrayList<QuestionPoolCoverageKey>();
+            if (oldKey != null) keys.add(oldKey);
+            keys.add(newKey);
+            fenceCoverage(keys);
+            Long oldBefore = activeCount(oldKey);
+            Long newBefore = java.util.Objects.equals(oldKey, newKey) ? oldBefore : activeCount(newKey);
+            Instant now = Instant.now();
+            var published = publishPrepared(prepared, actor, now);
+            var retired = retirePrepared(old, actor, now);
+            var coverage = new java.util.ArrayList<QuestionPoolCoverageResponse>();
+            coverage.add(coverage(old, oldBefore, activeCount(oldKey)));
+            if (!java.util.Objects.equals(oldKey, newKey)) coverage.add(coverage(prepared.source(), newBefore, activeCount(newKey)));
+            var warnings = coverageWarnings(coverage);
+            if (!request.confirmCoverageWarning() && coverage.stream().anyMatch(this::needsCoverageConfirmation)) {
+                throw new QuestionCoverageConfirmationRequiredException(warnings);
+            }
+            return new ReplaceQuestionPoolQuestionResponse(new QuestionPoolQuestionRetirementResponse(retired.questionId(),
+                    QuestionPoolContentStatus.RETIRED, retired.revision(), retired.retiredBy(), retired.retiredAt()), published, coverage, warnings);
+        });
+    }
+
+    private PreparedPublication preparePublication(String questionId, PublishQuestionPoolQuestionRequest request) {
+        var source = questions.findReadinessSource(questionId).orElseThrow(QuestionPoolQuestionNotFoundException::new);
+        if (!"DRAFT".equals(source.status()) || !request.revision().equals(source.revision()) || request.revision() == Integer.MAX_VALUE) {
+            throw new QuestionMutationConflictException("Only the current revision of a DRAFT question can be published");
+        }
+        var evaluation = readiness.check(questionId);
+        if (!"DRAFT".equals(evaluation.status()) || !request.revision().equals(evaluation.revision())) {
+            throw new QuestionMutationConflictException("Question changed during evaluation; reload before publishing");
+        }
+        if (!evaluation.structurallyValid()) throw new QuestionPublicationRejectedException("QUESTION_NOT_READY", "Question has publication blockers", evaluation);
+        if (!request.confirmedReviewChecks().equals(Set.copyOf(evaluation.requiredReviewChecks()))) {
+            throw new QuestionPublicationRejectedException("QUESTION_REVIEW_REQUIRED", "Confirm exactly the required checks for this question revision", evaluation);
+        }
+        return new PreparedPublication(source, evaluation);
+    }
+
+    private PublishQuestionPoolQuestionResponse publishPrepared(PreparedPublication prepared, String actor, Instant now) {
+        var source = prepared.source();
+        var evaluation = prepared.evaluation();
+        if (!blank(evaluation.passageId()) && !passageRepository.fenceQuestionPublication(evaluation.passageId(), evaluation.passageRevision(), source.skill(), source.level(), actor, now)) {
+            throw new QuestionMutationConflictException("Passage changed while publishing; reload before retrying");
+        }
+        var review = QuestionPublicationReviewVo.builder().sourceRevision(source.revision())
+                .passageId(evaluation.passageId()).passageRevision(evaluation.passageRevision())
+                .confirmedChecks(evaluation.requiredReviewChecks()).reviewedBy(actor).reviewedAt(now).build();
+        var saved = questions.publishDraft(source.questionId(), source.revision(), review).orElseThrow(() ->
+                new QuestionMutationConflictException("Question changed while publishing; reload before retrying"));
+        var recorded = saved.getPublicationReview();
+        return new PublishQuestionPoolQuestionResponse(saved.getQuestionId(), saved.getStatus(), saved.getRevision(),
+                recorded.getSourceRevision(), recorded.getPassageId(), recorded.getPassageRevision(), recorded.getReviewedBy(),
+                recorded.getReviewedAt(), recorded.getConfirmedChecks(), evaluation.warnings());
+    }
+
+    private QuestionPoolQuestionReadinessSource requireActiveRevision(String questionId, int revision) {
+        var source = questions.findReadinessSource(questionId).orElseThrow(QuestionPoolQuestionNotFoundException::new);
+        if (!"ACTIVE".equals(source.status()) || !Integer.valueOf(revision).equals(source.revision()) || revision == Integer.MAX_VALUE) {
+            throw new QuestionMutationConflictException("Only the current revision of an ACTIVE question can be retired or replaced");
+        }
+        if (source.malformedFields().contains("question_id")) throw new InvalidQuestionException("Question ID must be a scalar public identifier");
+        return source;
+    }
+
+    private QuestionPoolQuestionRetirementSource retirePrepared(QuestionPoolQuestionReadinessSource source, String actor, Instant now) {
+        return questions.retireActive(source.questionId(), source.revision(), actor, now).orElseThrow(() ->
+                new QuestionMutationConflictException("Question changed while retiring; reload before retrying"));
+    }
+
+    private QuestionPoolCoverageKey coverageKey(QuestionPoolQuestionReadinessSource source) {
+        if (blank(source.microSkill()) || blank(source.level())) return null;
+        try { return new QuestionPoolCoverageKey(source.microSkill(), CefrLevel.valueOf(source.level())); }
+        catch (IllegalArgumentException malformedLevel) { return null; }
+    }
+
+    private void fenceCoverage(List<QuestionPoolCoverageKey> keys) {
+        keys.stream().distinct().sorted(java.util.Comparator.comparing(QuestionPoolCoverageKey::id)).forEach(coverageRepository::fence);
+    }
+
+    private void ensureCoverage(List<String> questionIds) {
+        // Neutral fences must predate the snapshot; first-use creation inside it can defer a conflict until commit.
+        questionIds.stream().distinct().map(id -> questions.findReadinessSource(id).orElseThrow(QuestionPoolQuestionNotFoundException::new))
+                .map(this::coverageKey).filter(java.util.Objects::nonNull).distinct()
+                .sorted(java.util.Comparator.comparing(QuestionPoolCoverageKey::id)).forEach(coverageRepository::ensure);
+    }
+
+    private Long activeCount(QuestionPoolCoverageKey key) {
+        return key == null ? null : pool.countActive(key.microSkill(), key.level().name());
+    }
+
+    private QuestionPoolCoverageResponse coverage(QuestionPoolQuestionReadinessSource source, Long before, Long after) {
+        return new QuestionPoolCoverageResponse(source.microSkill(), source.level(), before, after, 30, after == null ? null : after >= 30);
+    }
+
+    private List<QuestionPoolCoverageWarningResponse> coverageWarnings(List<QuestionPoolCoverageResponse> coverage) {
+        var result = new java.util.ArrayList<QuestionPoolCoverageWarningResponse>();
+        for (var value : coverage) {
+            if (value.activeQuestionCountAfter() == null) result.add(new QuestionPoolCoverageWarningResponse("COVERAGE_UNDETERMINED",
+                    "Không xác định được độ phủ vì phân loại câu hỏi đã lưu không hợp lệ.", value));
+            else if (value.activeQuestionCountAfter() < 30) result.add(new QuestionPoolCoverageWarningResponse("BELOW_MINIMUM_ACTIVE_QUESTIONS",
+                    "Nhóm kỹ năng và trình độ còn dưới 30 câu ACTIVE, chưa đủ điều kiện tạo lộ trình mới.", value));
+        }
+        return result;
+    }
+
+    private boolean needsCoverageConfirmation(QuestionPoolCoverageResponse coverage) {
+        return coverage.activeQuestionCountAfter() == null || (coverage.activeQuestionCountAfter() < 30
+                && coverage.activeQuestionCountBefore() != null && coverage.activeQuestionCountAfter() < coverage.activeQuestionCountBefore());
+    }
+
+    private record PreparedPublication(QuestionPoolQuestionReadinessSource source, QuestionPoolQuestionReadinessResponse evaluation) {}
 
     @Override
     @PreAuthorize("hasRole('CONTENT_MANAGER')")
@@ -226,8 +356,11 @@ public class QuestionPoolQuestionManagementServiceImpl implements QuestionPoolQu
         var manager = transactions.getIfAvailable();
         if (manager == null) throw new QuestionWriteUnavailableException("MongoDB transactions must be enabled for question authoring");
         try {
-            return new TransactionTemplate(manager).execute(status -> operation.get());
+            return new QuestionPoolTransactionTemplate(manager).execute(status -> operation.get());
         } catch (DataAccessException | TransactionException failure) {
+            if (failure instanceof org.springframework.dao.ConcurrencyFailureException) {
+                throw new QuestionMutationConflictException("Concurrent content change; reload before retrying");
+            }
             boolean concurrentChange = false;
             boolean uncertainCommit = false;
             for (Throwable cause = failure; cause != null; cause = cause.getCause()) {

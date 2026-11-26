@@ -6,6 +6,7 @@ import fit.iuh.engolearn.learningpath.exception.InvalidQuestionException;
 import fit.iuh.engolearn.learningpath.exception.QuestionMutationConflictException;
 import fit.iuh.engolearn.learningpath.exception.QuestionWriteUnavailableException;
 import fit.iuh.engolearn.learningpath.exception.QuestionPublicationRejectedException;
+import fit.iuh.engolearn.learningpath.exception.QuestionCoverageConfirmationRequiredException;
 import fit.iuh.engolearn.media.contract.exception.MediaNotFoundException;
 import fit.iuh.engolearn.media.contract.exception.MediaStorageUnavailableException;
 import org.springframework.dao.DataAccessException;
@@ -21,6 +22,13 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 
 @RestControllerAdvice(assignableTypes = QuestionPoolQuestionManagementController.class)
 public class QuestionPoolQuestionManagementExceptionHandler {
+    @ExceptionHandler(QuestionCoverageConfirmationRequiredException.class)
+    public ProblemDetail coverageConfirmation(QuestionCoverageConfirmationRequiredException exception) {
+        var result = problem(HttpStatus.CONFLICT, "QUESTION_COVERAGE_CONFIRMATION_REQUIRED", exception.getMessage());
+        result.setProperty("confirmationRequired", true);
+        result.setProperty("warnings", exception.getWarnings());
+        return result;
+    }
     @ExceptionHandler(QuestionPublicationRejectedException.class)
     public ProblemDetail publicationRejected(QuestionPublicationRejectedException exception) {
         var problem = problem(HttpStatus.UNPROCESSABLE_CONTENT, exception.getCode(), exception.getMessage());

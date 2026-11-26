@@ -9,6 +9,10 @@ import fit.iuh.engolearn.learningpath.dto.request.PublishQuestionPoolQuestionReq
 import fit.iuh.engolearn.learningpath.dto.response.PublishQuestionPoolQuestionResponse;
 import fit.iuh.engolearn.learningpath.dto.response.QuestionPoolQuestionReadinessResponse;
 import fit.iuh.engolearn.learningpath.service.QuestionPoolQuestionReadinessService;
+import fit.iuh.engolearn.learningpath.dto.request.RetireQuestionPoolQuestionRequest;
+import fit.iuh.engolearn.learningpath.dto.request.ReplaceQuestionPoolQuestionRequest;
+import fit.iuh.engolearn.learningpath.dto.response.RetireQuestionPoolQuestionResponse;
+import fit.iuh.engolearn.learningpath.dto.response.ReplaceQuestionPoolQuestionResponse;
 import fit.iuh.engolearn.learningpath.dto.response.QuestionPoolQuestionMutationResponse;
 import fit.iuh.engolearn.learningpath.dto.response.DeleteQuestionPoolQuestionResponse;
 import fit.iuh.engolearn.learningpath.dto.response.QuestionPoolQuestionDetailResponse;
@@ -29,6 +33,22 @@ import org.springframework.web.bind.annotation.*;
 public class QuestionPoolQuestionManagementController {
     private final QuestionPoolQuestionManagementService questions;
     private final QuestionPoolQuestionReadinessService readiness;
+
+    @PostMapping("/{questionId}/retire")
+    public ApiResponse<RetireQuestionPoolQuestionResponse> retire(
+            @PathVariable @NotBlank @Size(max = 100) String questionId,
+            @Valid @RequestBody RetireQuestionPoolQuestionRequest request, HttpServletResponse response) {
+        response.setHeader("Cache-Control", "no-store");
+        return ApiResponse.ok(questions.retire(questionId, request));
+    }
+
+    @PostMapping("/{questionId}/replace")
+    public ApiResponse<ReplaceQuestionPoolQuestionResponse> replace(
+            @PathVariable @NotBlank @Size(max = 100) String questionId,
+            @Valid @RequestBody ReplaceQuestionPoolQuestionRequest request, HttpServletResponse response) {
+        response.setHeader("Cache-Control", "no-store");
+        return ApiResponse.ok(questions.replace(questionId, request));
+    }
 
     @GetMapping("/{questionId}/readiness")
     public ApiResponse<QuestionPoolQuestionReadinessResponse> readiness(

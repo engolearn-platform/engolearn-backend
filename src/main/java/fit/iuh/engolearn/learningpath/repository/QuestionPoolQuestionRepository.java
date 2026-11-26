@@ -27,6 +27,15 @@ import org.springframework.stereotype.Repository;
 public class QuestionPoolQuestionRepository {
     private final MongoTemplate mongo;
 
+    public Optional<QuestionPoolQuestionRetirementSource> retireActive(String questionId, int revision, String actor, java.time.Instant retiredAt) {
+        var saved = mongo.findAndModify(Query.query(Criteria.where("question_id").is(questionId)
+                        .and("status").is("ACTIVE").and("revision").is(revision)),
+                new Update().set("status", "RETIRED").inc("revision", 1).set("updated_by", actor).set("updated_at", retiredAt),
+                FindAndModifyOptions.options().returnNew(true), Document.class, "question_pool");
+        return saved == null ? Optional.empty() : Optional.of(new QuestionPoolQuestionRetirementSource(
+                questionId, ((Number) saved.get("revision")).intValue(), actor, retiredAt));
+    }
+
     public Optional<QuestionPoolQuestionReadinessSource> findReadinessSource(String questionId) {
         Document source = mongo.findOne(Query.query(Criteria.where("question_id").is(questionId)), Document.class, "question_pool");
         if (source == null) return Optional.empty();
