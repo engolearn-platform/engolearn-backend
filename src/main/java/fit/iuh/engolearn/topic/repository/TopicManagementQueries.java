@@ -14,6 +14,7 @@ import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Repository;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -28,25 +29,28 @@ public class TopicManagementQueries {
         this.mongo = mongo;
     }
 
-    public Page<Topic> findPage(String search, CefrLevel cefr, TopicCategory category, Boolean published,
+    public Page<Topic> findPage(String search, CefrLevel cefr, TopicCategory category, String status,
                                 int page, int size) {
         Query filter = new Query();
+        List<Criteria> criteria = new ArrayList<>();
         if (search != null && !search.isBlank()) {
             Pattern title = Pattern.compile(Pattern.quote(search.trim()), Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE);
-            filter.addCriteria(new Criteria().orOperator(Criteria.where("titleEn").regex(title),
+            criteria.add(new Criteria().orOperator(Criteria.where("titleEn").regex(title),
                     Criteria.where("titleVi").regex(title)));
         }
-        if (cefr != null) filter.addCriteria(Criteria.where("cefrLevel").is(cefr));
-        if (category != null) filter.addCriteria(Criteria.where("category").is(category));
-        if (published != null) filter.addCriteria(publication(published));
+        if (cefr != null) criteria.add(Criteria.where("cefrLevel").is(cefr));
+        if (category != null) criteria.add(Criteria.where("category").is(category));
+        if (status != null) criteria.add(publication(status));
+        if (criteria.size() == 1) filter.addCriteria(criteria.get(0));
+        else if (!criteria.isEmpty()) filter.addCriteria(new Criteria().andOperator(criteria.toArray(Criteria[]::new)));
 
         PageRequest pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "updatedAt", "id"));
         long total = mongo.count(filter, Topic.class);
         return new PageImpl<>(mongo.find(Query.of(filter).with(pageable), Topic.class), pageable, total);
     }
 
-    public long countByPublication(boolean published) {
-        return mongo.count(Query.query(publication(published)), Topic.class);
+    public long countByPublication(String status) {
+        return mongo.count(Query.query(publication(status)), Topic.class);
     }
 
     public Map<String, ItemStats> itemStats(Collection<String> topicIds) {
@@ -78,8 +82,13 @@ public class TopicManagementQueries {
         public static final ItemStats EMPTY = new ItemStats(0, 0);
     }
 
-    private static Criteria publication(boolean published) {
+    private static Criteria publication(String status) {
         Criteria pointer = Criteria.where("latestPublishedVersion");
-        return published ? pointer.nin(null, "") : pointer.in(null, "");
+        return switch (status) {
+            case "published" -> new Criteria().andOperator(pointer.nin(null, ""), Criteria.where("publicationSuspended").ne(true));
+            case "unpublished" -> new Criteria().andOperator(pointer.nin(null, ""), Criteria.where("publicationSuspended").is(true));
+            case "draft" -> pointer.in(null, "");
+            default -> throw new IllegalArgumentException("Unsupported Topic publication status: " + status);
+        };
     }
 }

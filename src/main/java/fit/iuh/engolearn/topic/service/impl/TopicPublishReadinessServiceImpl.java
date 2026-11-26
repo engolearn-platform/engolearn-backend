@@ -6,6 +6,10 @@ import fit.iuh.engolearn.topic.dto.response.TopicManagementResponse;
 import fit.iuh.engolearn.topic.dto.response.TopicPublishReadinessResponse;
 import fit.iuh.engolearn.topic.dto.response.TopicPublishReadinessResponse.Violation;
 import fit.iuh.engolearn.topic.model.enums.ContentStatus;
+import fit.iuh.engolearn.topic.model.Topic;
+import fit.iuh.engolearn.topic.model.enums.TopicMediaKind;
+import fit.iuh.engolearn.topic.repository.TopicRepository;
+import fit.iuh.engolearn.topic.service.TopicMediaService;
 import fit.iuh.engolearn.topic.model.enums.QuizType;
 import fit.iuh.engolearn.topic.service.TopicManagementReadService;
 import fit.iuh.engolearn.topic.service.TopicPublishReadinessService;
@@ -24,17 +28,20 @@ import java.util.Map;
 @PreAuthorize("hasRole('CONTENT_MANAGER')")
 public class TopicPublishReadinessServiceImpl implements TopicPublishReadinessService {
     private final TopicManagementReadService readService;
+    private final TopicRepository topics;
+    private final TopicMediaService media;
 
     @Override
     public TopicPublishReadinessResponse readiness(String topicId) {
         TopicManagementResponse topic = readService.topic(topicId);
+        Topic entity = topics.findById(topicId).orElse(null);
         List<Violation> violations = new ArrayList<>();
         required(violations, "topic.titleEn", topic.titleEn());
         required(violations, "topic.titleVi", topic.titleVi());
         required(violations, "topic.cefr", topic.cefr());
         required(violations, "topic.category", topic.category());
         required(violations, "topic.description", topic.description());
-        required(violations, "topic.coverUrl", topic.coverUrl());
+        validateMedia(violations, entity, "topic.coverUrl", topic.coverUrl(), TopicMediaKind.IMAGE, true);
 
         List<TopicManagementItemSummary> visible = readService.items(topicId).stream()
                 .filter(item -> item.status() != ContentStatus.HIDDEN).toList();
@@ -43,12 +50,13 @@ public class TopicPublishReadinessServiceImpl implements TopicPublishReadinessSe
         }
         for (TopicManagementItemSummary summary : visible) {
             TopicManagementItemDetail item = readService.item(topicId, summary.id());
-            validateItem(item, violations);
+            required(violations, "items[" + summary.id() + "].order", summary.order());
+            validateItem(item, violations, entity);
         }
         return new TopicPublishReadinessResponse(violations.isEmpty(), violations);
     }
 
-    private void validateItem(TopicManagementItemDetail item, List<Violation> violations) {
+    private void validateItem(TopicManagementItemDetail item, List<Violation> violations, Topic topic) {
         String base = "items[" + item.id() + "]";
         required(violations, base + ".title", item.title());
         required(violations, base + ".durationMinutes", item.durationMinutes());
@@ -57,12 +65,20 @@ public class TopicPublishReadinessServiceImpl implements TopicPublishReadinessSe
         } else {
             required(violations, base + ".context.scenarioDescription", item.context().scenarioDescription());
         }
-        validateVocabulary(item, base, violations);
-        validateExpressions(item, base, violations);
-        validateQuizzes(item, base, violations);
+        if (item.context() != null) {
+            List<TopicManagementItemDetail.DialogueTurn> dialogue = safe(item.context().dialogue());
+            for (int i = 0; i < dialogue.size(); i++) {
+                var turn = dialogue.get(i);
+                if (turn != null) validateMedia(violations, topic, base + ".context.dialogue[" + i + "].audioUrl",
+                        turn.audioUrl(), TopicMediaKind.AUDIO, false);
+            }
+        }
+        validateVocabulary(item, base, violations, topic);
+        validateExpressions(item, base, violations, topic);
+        validateQuizzes(item, base, violations, topic);
     }
 
-    private void validateVocabulary(TopicManagementItemDetail item, String base, List<Violation> violations) {
+    private void validateVocabulary(TopicManagementItemDetail item, String base, List<Violation> violations, Topic topic) {
         List<TopicManagementItemDetail.Vocabulary> words = safe(item.vocabularies());
         count(violations, base + ".vocabularies", words.size(), 3, 5, "Vocabulary count must be between 3 and 5.");
         for (int i = 0; i < words.size(); i++) {
@@ -79,9 +95,9 @@ public class TopicPublishReadinessServiceImpl implements TopicPublishReadinessSe
                 required(violations, path + ".snapshot.word", snapshot.word());
                 required(violations, path + ".snapshot.phonetic", snapshot.phonetic());
                 required(violations, path + ".snapshot.describeVi", snapshot.describeVi());
-                if (blank(snapshot.audioUrl()) && blank(snapshot.audioEnUrl()) && blank(snapshot.audioUsUrl())) {
-                    add(violations, path + ".snapshot.audioUrl", "REQUIRED", "Vocabulary pronunciation audio is required.");
-                }
+                validateMedia(violations, topic, path + ".snapshot.audioEnUrl", snapshot.audioEnUrl(), TopicMediaKind.AUDIO, true);
+                validateMedia(violations, topic, path + ".snapshot.audioUsUrl", snapshot.audioUsUrl(), TopicMediaKind.AUDIO, true);
+                validateMedia(violations, topic, path + ".snapshot.audioUrl", snapshot.audioUrl(), TopicMediaKind.AUDIO, false);
             }
             List<TopicManagementItemDetail.Collocation> collocations = safe(word.collocations());
             count(violations, path + ".collocations", collocations.size(), 0, 5,
@@ -98,12 +114,19 @@ public class TopicPublishReadinessServiceImpl implements TopicPublishReadinessSe
                 }
                 required(violations, examplePath + ".textEn", example.textEn());
                 required(violations, examplePath + ".textVi", example.textVi());
-                required(violations, examplePath + ".audioUrl", example.audioUrl());
+                validateMedia(violations, topic, examplePath + ".audioUrl", example.audioUrl(), TopicMediaKind.AUDIO, true);
+            }
+            if (word.quickCheck() != null && word.quickCheck().sentence() != null) {
+                var sentence = word.quickCheck().sentence();
+                validateMedia(violations, topic, path + ".quickCheck.sentence.audioUrl",
+                        sentence.audioUrl(), TopicMediaKind.AUDIO, false);
+                validateMedia(violations, topic, path + ".quickCheck.sentence.audioUrlSlow",
+                        sentence.audioUrlSlow(), TopicMediaKind.AUDIO, false);
             }
         }
     }
 
-    private void validateExpressions(TopicManagementItemDetail item, String base, List<Violation> violations) {
+    private void validateExpressions(TopicManagementItemDetail item, String base, List<Violation> violations, Topic topic) {
         List<TopicManagementItemDetail.ExpressionPurpose> groups = safe(item.expressions()).stream()
                 .filter(block -> block != null).flatMap(block -> safe(block.purposes()).stream()).toList();
         count(violations, base + ".expressionGroups", groups.size(), 1, 3,
@@ -130,12 +153,12 @@ public class TopicPublishReadinessServiceImpl implements TopicPublishReadinessSe
                 required(violations, expressionPath + ".textEn", expression.textEn());
                 required(violations, expressionPath + ".textVi", expression.textVi());
                 required(violations, expressionPath + ".usageNote", expression.usageNote());
-                required(violations, expressionPath + ".audioUrl", expression.audioUrl());
+                validateMedia(violations, topic, expressionPath + ".audioUrl", expression.audioUrl(), TopicMediaKind.AUDIO, true);
             }
         }
     }
 
-    private void validateQuizzes(TopicManagementItemDetail item, String base, List<Violation> violations) {
+    private void validateQuizzes(TopicManagementItemDetail item, String base, List<Violation> violations, Topic topic) {
         Map<QuizType, List<QuestionRef>> byType = new EnumMap<>(QuizType.class);
         List<TopicManagementItemDetail.QuizModule> modules = safe(item.quizzes());
         for (int m = 0; m < modules.size(); m++) {
@@ -154,7 +177,16 @@ public class TopicPublishReadinessServiceImpl implements TopicPublishReadinessSe
             List<QuestionRef> refs = byType.computeIfAbsent(module.quizType(), ignored -> new ArrayList<>());
             for (int q = 0; q < questions.size(); q++) {
                 if (questions.get(q) == null) add(violations, modulePath + ".questions[" + q + "]", "REQUIRED", "Quiz question is required.");
-                else refs.add(new QuestionRef(questions.get(q), modulePath + ".questions[" + q + "]"));
+                else {
+                    String questionPath = modulePath + ".questions[" + q + "]";
+                    var question = questions.get(q);
+                    refs.add(new QuestionRef(question, questionPath));
+                    validateMedia(violations, topic, questionPath + ".audioUrl", question.audioUrl(), TopicMediaKind.AUDIO, false);
+                    if (question.sentence() != null) {
+                        validateMedia(violations, topic, questionPath + ".sentence.audioUrl", question.sentence().audioUrl(), TopicMediaKind.AUDIO, false);
+                        validateMedia(violations, topic, questionPath + ".sentence.audioUrlSlow", question.sentence().audioUrlSlow(), TopicMediaKind.AUDIO, false);
+                    }
+                }
             }
         }
         for (QuizType type : List.of(QuizType.FILL_BLANK, QuizType.SITUATIONAL_CHOICE)) {
@@ -225,6 +257,17 @@ public class TopicPublishReadinessServiceImpl implements TopicPublishReadinessSe
     }
 
     private static boolean blank(String value) { return value == null || value.isBlank(); }
+
+    private void validateMedia(List<Violation> violations, Topic topic, String path, String value,
+                               TopicMediaKind kind, boolean required) {
+        if (blank(value)) {
+            if (required) add(violations, path, "REQUIRED", "Required managed media is missing.");
+            return;
+        }
+        if (!value.startsWith("topic-media:") || !media.isReference(topic, value, kind)) {
+            add(violations, path, "INVALID_MEDIA", "Media must be a Topic-owned managed asset of the required kind.");
+        }
+    }
 
     private static <T> List<T> safe(List<T> values) { return values == null ? List.of() : values; }
 

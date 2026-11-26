@@ -84,6 +84,8 @@ public class SecurityConfig {
                         .requestMatchers("/api/learning-paths", "/api/learning-paths/**").authenticated()
                         .requestMatchers("/api/management/learning-paths", "/api/management/learning-paths/**").hasRole("CONTENT_MANAGER")
                         .requestMatchers(HttpMethod.POST, "/api/management/topics").hasRole("CONTENT_MANAGER")
+                        .requestMatchers(HttpMethod.POST, "/api/management/topics/*/publish", "/api/management/topics/*/unpublish").hasRole("CONTENT_MANAGER")
+                        .requestMatchers(HttpMethod.POST, "/api/management/topics/*/items/*/working-draft").hasRole("CONTENT_MANAGER")
                         .requestMatchers(HttpMethod.POST, "/api/management/topics/*/media/*").hasRole("CONTENT_MANAGER")
                         .requestMatchers(HttpMethod.GET, "/api/management/topics/*/media/*").hasRole("CONTENT_MANAGER")
                         .requestMatchers(HttpMethod.PATCH, "/api/management/topics/*").hasRole("CONTENT_MANAGER")
