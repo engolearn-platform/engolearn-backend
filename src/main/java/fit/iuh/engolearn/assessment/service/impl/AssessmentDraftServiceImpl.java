@@ -47,6 +47,9 @@ public class AssessmentDraftServiceImpl implements AssessmentDraftService {
 
     private AssessmentDraftResponse createDraft(CreateDraftRequest input) {
         var paper = drafts.latestPaper(input.series());
+        if (input.expectedSourceId() != null && (paper == null || !input.expectedSourceId().equals(paper.getId()))) {
+            throw new AssessmentException(409, "DRAFT_SOURCE_CHANGED", "Đề nguồn đã thay đổi. Hãy kiểm tra lại phiên bản.");
+        }
         var draft = AssessmentDraft.builder().id("draft:" + input.series()).series(input.series()).name(input.name())
                 .version(paper == null ? 1 : paper.getVersion() + 1).revision(UUID.randomUUID().toString())
                 .skills(List.of()).units(List.of()).sourceAudioUnits(List.of()).build();

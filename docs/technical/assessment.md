@@ -117,7 +117,7 @@ missing/unknown fields, fractional integers, invalid UUIDs and payloads above 4 
 | GET /attempts/{id} | Current state; requires binding |
 | PUT /attempts/{id}/answer | question 1..50, sequence 0..JS-safe integer, choice null/0..3, UUID commandId |
 | POST /attempts/{id}/next | Same body; version 2 only permits the open Listening single |
-| POST /attempts/{id}/finish-stage | unitIndex 10..13 and phase READING_PREVIEW or ANSWER, UUID commandId; actual snapshot/unit/phase must match |
+| POST /attempts/{id}/finish-stage | unitIndex 10..13 and phase READING_PREVIEW, LISTENING_WAIT or ANSWER, UUID commandId; actual snapshot/unit/phase must match |
 | POST /attempts/{id}/submit | confirmed=true, binding; grade at most once |
 | POST /attempts/{id}/abandon | confirmed=true, owner; also clears an old active conflict |
 | POST /attempts/{id}/audio | unitIndex 0..25, UUID issueId, binding; one issuance/unit, identical retry allowed |
@@ -126,7 +126,7 @@ missing/unknown fields, fractional integers, invalid UUIDs and payloads above 4 
 | GET /attempts/{id}/review | READY only; original selections/key/explanations/transcripts |
 | GET /attempts/{id}/review/audio/{index} | READY owner only; replay allowed |
 
-Version-2 finish-stage accepts only Listening passage indices 10/11 in ANSWER. Legacy
+Version-2 finish-stage accepts only Listening passage indices 10/11 in LISTENING_WAIT or ANSWER. Legacy
 preview indices 10..13 remain valid only for legacy snapshots. Replaying an earlier command
 cannot extend a deadline or end the next group. Version-2 taking state adds `rulesVersion`,
 `audioStartsAt`, and `questions` (one single, five group questions or all thirty Reading
@@ -165,8 +165,8 @@ allows seeking and replay, with fresh authorization on a delivery retry. Audio f
 do not extend deadlines, issue attempts or refund quota. Signed URLs remain usable on
 the provider until their short expiry, regardless of the browser controls.
 
-Premium assessment count is provider-configured. The isolated demo uses Free 1, Trial 2,
-Premium 2 and consistent displayed benefits; this is not a global hardcoded entitlement.
+Premium assessment count is provider-configured. The current subscription-development-sample uses Free 1, Trial 2,
+Premium 5 and consistent displayed benefits; this is not a global hardcoded entitlement.
 Already issued Subscription snapshots are preserved. Full-analysis grants survive ordinary
 expiry. A verified refund must call `AssessmentGrantRevocation` with the exact correlated
 source (`scope:snapshotId:effectiveAt`), preserving other grants and scores. The
@@ -276,3 +276,14 @@ Nháp ở collection `assessment_paper_drafts`, khóa duy nhất theo series. T�
   `/api/v1/assessment/admin/papers/{series}/{version}/archive` ngừng cấp đúng phiên bản đó.
   Đề đã phát hành, lịch sử và WAV còn dùng được giữ nguyên. Media phase 1 chưa có xóa file
   công khai, nên việc dọn asset không còn tham chiếu phải qua quy trình vận hành riêng.
+
+## Version 2 listening navigation
+
+During the two-second preparation, Next on an unanswered single sends the current question
+with a null choice. The server locks that single and opens the next unit. Choices become
+editable when preparation ends. Inside a five-question group Next moves focus locally,
+retaining the same audio, editable scope and deadline. Confirming the end of the current
+group may close it during preparation. A confirmation crossing the audio-start boundary
+remains valid for the same unit. Old-unit and duplicate commands cannot close a later group.
+
+Admin draft creation may supply expectedSourceId. If supplied, the latest paper must match that ID under the series transaction or the server returns 409 DRAFT_SOURCE_CHANGED. The local import instructions are in tools/assessment/README.md.

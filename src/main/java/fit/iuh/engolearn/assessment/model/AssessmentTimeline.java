@@ -90,9 +90,13 @@ public final class AssessmentTimeline {
             }
         }
     }
+    public static boolean listeningWindow(AssessmentAttempt a) {
+        return a.getPhase() == AssessmentPhase.LISTENING_WAIT || a.getPhase() == AssessmentPhase.ANSWER;
+    }
+
     public static void next(AssessmentAttempt a, Instant now) {
         if (modern(a)) {
-            if (unit(a).getKind() != AssessmentUnitKind.LISTENING_SINGLE || a.getPhase() != AssessmentPhase.ANSWER)
+            if (unit(a).getKind() != AssessmentUnitKind.LISTENING_SINGLE || !listeningWindow(a))
                 throw new IllegalArgumentException("Only an open listening single can advance");
             open(a, a.getUnitIndex() + 1, now);
             return;
@@ -102,7 +106,7 @@ public final class AssessmentTimeline {
     }
     public static void finishStage(AssessmentAttempt a, Instant now) {
         if (modern(a)) {
-            if (unit(a).getKind() != AssessmentUnitKind.LISTENING_PASSAGE || a.getPhase() != AssessmentPhase.ANSWER)
+            if (unit(a).getKind() != AssessmentUnitKind.LISTENING_PASSAGE || !listeningWindow(a))
                 throw new IllegalArgumentException("Only an open listening group can finish");
             open(a, a.getUnitIndex() + 1, now);
             return;

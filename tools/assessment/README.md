@@ -137,3 +137,34 @@ thử trong các database cố định `engolearn_assessment_draft_it` và `engo
 Chỉ trỏ tới replica set mới dành riêng cho test. Kiểm tra số ca chạy và skip trong
 `target/surefire-reports`. CI mặc định dùng `prod` với cấu hình thử như trong runbook và
 các bộ test chỉ định `dev` vẫn dùng profile riêng của mình.
+
+## Nhập nhanh một đề vào Studio trên DB demo riêng
+
+Từ backend của gói bàn giao, chạy trong Bash trên Ubuntu hoặc WSL2. Chọn một thư
+mục mẫu mới. Lệnh đầu lấy đủ 50 câu và 12 WAV mẫu của dự án. Có thể chỉnh
+`paper.json` và thay WAV trong `wav/`, rồi cập nhật `audio_sha256` bằng
+`sha256sum`. Chuẩn bị gói trước khi khởi động demo.
+
+```bash
+python3 tools/assessment/local_draft.py template ../de-thu
+python3 tools/assessment/local_draft.py check ../de-thu
+PFC_DRAFT_PACK=../de-thu bash tools/assessment/run-placement-demo.sh ../frontend
+```
+
+Giữ terminal trên mở. Trong terminal thứ hai, trở lại **cùng checkout backend**
+rồi chạy lệnh sau. Nhập mật khẩu tài khoản quản lý của DB demo khi được hỏi.
+
+```bash
+python3 tools/assessment/local_draft.py stage ../de-thu
+```
+
+Mở `http://localhost:28300/admin/assessment` → **Mở nháp**. Tài khoản mẫu nằm
+trong `docs/runbooks/user-auth.md`. Nếu đổi cổng frontend, truyền thêm
+`--origin http://localhost:CỔNG`. Trên Hyper-V, chuyển tiếp cổng FE qua SSH.
+Kiểm WAV và nội dung; mở hết 26 phần trong chế độ xem thử rồi xác nhận trước
+khi xuất bản. Gói dựng nguồn mẫu v1 đang ngừng dùng trong DB rỗng của runner.
+Lệnh stage đăng nhập qua cookie và tạo nháp v2 từ nguồn đó. Mã nguồn được
+kiểm trong giao dịch tạo nháp. Chạy lại với nháp nguyên vẹn trả cùng revision;
+nếu người khác sửa hoặc đã xuất bản thì dừng. Khi dừng runner, DB demo bị bỏ.
+Giữ thư mục đề gốc để tái lập. Với môi trường nhóm, dùng quy trình Media có
+phê duyệt ở trên. Tác vụ local không cần Cloudinary.

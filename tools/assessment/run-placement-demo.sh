@@ -55,7 +55,13 @@ trap 'exit 130' INT
 trap 'exit 143' TERM
 
 # The fixture is loaded only in the empty DB created by this run.
-python3 "$backend/tools/assessment/dev-placement-fixtures.py" > "$logs/fixtures.json"
+media_dir="$backend/tools/mongo-json-importer/samples/assessment-media"
+fixture_args=()
+if [[ -n "${PFC_DRAFT_PACK:-}" ]]; then
+    media_dir="$logs/assessment-media"
+    fixture_args=(--draft-pack "$PFC_DRAFT_PACK" --output-media "$media_dir")
+fi
+python3 "$backend/tools/assessment/dev-placement-fixtures.py" "${fixture_args[@]}" > "$logs/fixtures.json"
 container=$(docker run -d --rm --ulimit nofile=64000:64000 --publish "127.0.0.1:$mongo_port:$mongo_port" mongo:8.0.29-noble \
     mongod --bind_ip_all --port "$mongo_port" --replSet pfcdemo)
 mongo=(docker exec -i "$container" mongosh --host 127.0.0.1 --port "$mongo_port" --quiet)
@@ -95,7 +101,7 @@ origin="http://localhost:$frontend_port"
         MONGODB_URI="mongodb://127.0.0.1:$mongo_port/?replicaSet=pfcdemo&directConnection=true" \
         APP_DB=engolearn_pfc_local_demo CORS_ALLOWED_ORIGINS="$origin" \
         PLACEMENT_MEDIA_DIRECTORY="$backend/tools/mongo-json-importer/samples/placement-media" \
-        ASSESSMENT_MEDIA_DIRECTORY="$backend/tools/mongo-json-importer/samples/assessment-media" \
+        ASSESSMENT_MEDIA_DIRECTORY="$media_dir" \
         "$java_bin" -jar "$jar" --spring.profiles.active=dev \
         --server.address=127.0.0.1 --server.port="$backend_port"
 ) > "$logs/backend-runtime.log" 2>&1 &

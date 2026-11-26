@@ -491,6 +491,37 @@ class AssessmentMongoIntegrationTest {
         assertThat(service.finishStage(USER, a.id(), binding, close).current().number()).isEqualTo(16);
         assertThat(remaining()).isZero();
     }
+    @Test void earlyNextKeepsBlanksAndCannotAdvanceTwiceOrEditWhileWaiting() {
+        String id = startModern().id();
+        clock.at = START.plusMillis(1999);
+        assertThatThrownBy(() -> service.answer(USER, id, binding, answer(1, 1, 0), true))
+                .isInstanceOfSatisfying(AssessmentException.class, e -> assertThat(e.code()).isEqualTo("QUESTION_LOCKED"));
+        var skip = answer(1, 2, null);
+        assertThat(service.answer(USER, id, binding, skip, true).current().number()).isEqualTo(2);
+        assertThat(service.answer(USER, id, binding, skip, true).current().number()).isEqualTo(2);
+        assertThatThrownBy(() -> service.answer(USER, id, binding, answer(1, 3, null), true))
+                .isInstanceOf(AssessmentException.class);
+        clock.at = clock.at.plusSeconds(2);
+        var state = service.answer(USER, id, binding, answer(2, 4, 0), true);
+        assertThat(state.current().number()).isEqualTo(3);
+        assertThat(state.savedCount()).isEqualTo(1);
+        assertThat(remaining()).isZero();
+    }
+
+    @Test void confirmedGroupCloseDuringWaitAndAcrossPhaseBoundaryKeepsCorrectUnit() {
+        String id = startModern().id();
+        clock.at = START.plusSeconds(300).plusMillis(900);
+        var first = new AssessmentFinishStageRequest(10, "LISTENING_WAIT", UUID.randomUUID().toString());
+        var second = new AssessmentFinishStageRequest(11, "LISTENING_WAIT", UUID.randomUUID().toString());
+        assertThat(service.finishStage(USER, id, binding, first).current().number()).isEqualTo(16);
+        clock.at = clock.at.plusSeconds(2);
+        var reading = service.finishStage(USER, id, binding, second);
+        assertThat(reading.current().number()).isEqualTo(21);
+        assertThat(reading.deadline()).isEqualTo(clock.at.plusSeconds(1800));
+        assertThat(service.finishStage(USER, id, binding, second).savedCount()).isZero();
+        assertThat(remaining()).isZero();
+    }
+
     @Test void modernReadingCanReviseEarlierAnswersAndQuestionFiftyDoesNotSubmit() {
         var a = startModern();
         clock.at = START.plusSeconds(900);

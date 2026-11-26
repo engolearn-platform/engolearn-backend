@@ -167,7 +167,10 @@ public class AssessmentServiceImpl implements AssessmentService {
                 return AssessmentMapper.state(a,at,development());
             }
             if(AssessmentPhase.READING_PREVIEW.equals(a.getPhase())) fail(409,"PREVIEW_ONLY","Chưa đến thời gian trả lời.");
-            if(!editable(a,request.question())) fail(409,"QUESTION_LOCKED","Câu hỏi không thuộc phần hoặc nhóm đang được sửa.");
+            boolean skipBlank = advance && modern(a) && a.getPhase() == AssessmentPhase.LISTENING_WAIT
+                    && unit(a).getKind() == AssessmentUnitKind.LISTENING_SINGLE
+                    && request.question() == a.getCursor() && request.choice() == null;
+            if(!skipBlank && !editable(a,request.question())) fail(409,"QUESTION_LOCKED","Câu hỏi không thuộc phần hoặc nhóm đang được sửa.");
             if (advance && modern(a) && unit(a).getKind() != AssessmentUnitKind.LISTENING_SINGLE)
                 fail(409,"STAGE_ACTION_REQUIRED","Dùng chuyển nhóm hoặc nộp bài; không chuyển từng câu ở phần này.");
             String key=""+request.question();
@@ -193,10 +196,12 @@ public class AssessmentServiceImpl implements AssessmentService {
                 if(!fingerprint.equals(previous)) fail(409,"COMMAND_CONFLICT","Yêu cầu lặp có nội dung khác.");
                 return AssessmentMapper.state(a,at,development());
             }
-            if(request.unitIndex()!=a.getUnitIndex()||!request.phase().equals(a.getPhase().name())
-                    ||!(modern(a)
-                        ? unit(a).getKind() == AssessmentUnitKind.LISTENING_PASSAGE && a.getPhase() == AssessmentPhase.ANSWER
-                        : AssessmentPhase.READING_PREVIEW.equals(a.getPhase())))
+            boolean phaseMatches = request.phase().equals(a.getPhase().name());
+            boolean canFinish = modern(a)
+                    ? unit(a).getKind() == AssessmentUnitKind.LISTENING_PASSAGE && listeningWindow(a)
+                        && (phaseMatches || ("LISTENING_WAIT".equals(request.phase()) && a.getPhase() == AssessmentPhase.ANSWER))
+                    : phaseMatches && a.getPhase() == AssessmentPhase.READING_PREVIEW;
+            if (request.unitIndex() != a.getUnitIndex() || !canFinish)
                 fail(409,"STAGE_CLOSED","Giai đoạn này đã kết thúc. Hãy tiếp tục theo trạng thái hiện tại.");
             a.getCommands().put(request.commandId(),fingerprint);
             AssessmentTimeline.finishStage(a,at);

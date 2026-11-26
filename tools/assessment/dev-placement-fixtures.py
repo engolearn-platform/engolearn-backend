@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 """Print the local-only fixture subset used by the Placement-to-Assessment demo."""
 
+import argparse
+import shutil
+from local_draft import load_pack
 import hashlib
 import json
 from pathlib import Path
@@ -60,12 +63,25 @@ def periodic_fixture():
 
 
 def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--draft-pack", type=Path)
+    parser.add_argument("--output-media", type=Path)
+    args = parser.parse_args()
     subscription = collections("subscription-development-sample.json")
     subscription.pop("subscription_accounts")
     paths = collections("learning-path-demo.json")
     fixtures = placement_fixture() | periodic_fixture() | subscription | {
         name: paths[name] for name in ("question_pool", "question_pool_passages")
     }
+    if args.draft_pack:
+        paper, files = load_pack(args.draft_pack)
+        if any(p["series"] == paper["series"] for p in fixtures["assessment_papers"]):
+            raise ValueError("Mã đề nhập trùng đề demo hiện có.")
+        shutil.copytree(SAMPLES / "assessment-media", args.output_media)
+        for name, source in files.items():
+            shutil.copyfile(source, args.output_media / name)
+            verify_wav(args.output_media, name, name.split("-")[-1][:-4])
+        fixtures["assessment_papers"].append(paper)
     # Use the team's disposable management accounts to verify F03 UI permissions.
     fixtures.update(collections("management-accounts.importer.json"))
     print(json.dumps(fixtures, ensure_ascii=True))
