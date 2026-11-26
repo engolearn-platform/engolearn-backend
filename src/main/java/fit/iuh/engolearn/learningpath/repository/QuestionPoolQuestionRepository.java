@@ -16,12 +16,35 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Update;
+import org.springframework.data.mongodb.core.FindAndModifyOptions;
 import org.springframework.stereotype.Repository;
 
 @Repository
 @RequiredArgsConstructor
 public class QuestionPoolQuestionRepository {
     private final MongoTemplate mongo;
+
+    public QuestionPoolQuestion insert(QuestionPoolQuestion question) {
+        return mongo.insert(question);
+    }
+
+    public Optional<QuestionPoolQuestion> updateDraft(QuestionPoolQuestion question, int revision) {
+        Query query = Query.query(Criteria.where("question_id").is(question.getQuestionId())
+                .and("status").is(QuestionPoolContentStatus.DRAFT).and("revision").is(revision));
+        Update update = new Update().set("skill", question.getSkill()).set("micro_skill", question.getMicroSkill())
+                .set("level", question.getLevel()).set("prompt", question.getPrompt()).set("options", question.getOptions())
+                .set("correct_option_id", question.getCorrectOptionId()).set("explanation", question.getExplanation())
+                .set("updated_at", question.getUpdatedAt()).set("updated_by", question.getUpdatedBy()).inc("revision", 1);
+        if (question.getPassageId() == null) update.unset("passage_id");
+        else update.set("passage_id", question.getPassageId());
+        return Optional.ofNullable(mongo.findAndModify(query, update, FindAndModifyOptions.options().returnNew(true), QuestionPoolQuestion.class));
+    }
+
+    public boolean deleteDraft(String questionId, int revision) {
+        return mongo.findAndRemove(Query.query(Criteria.where("question_id").is(questionId)
+                .and("status").is(QuestionPoolContentStatus.DRAFT).and("revision").is(revision)), QuestionPoolQuestion.class) != null;
+    }
 
     public Optional<QuestionPoolQuestion> findByQuestionId(String questionId) {
         return Optional.ofNullable(mongo.findOne(Query.query(Criteria.where("question_id").is(questionId)),

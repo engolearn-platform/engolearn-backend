@@ -29,6 +29,14 @@ import org.springframework.stereotype.Repository;
 public class QuestionPoolPassageRepository {
     private final MongoTemplate mongo;
 
+    public boolean fenceQuestionReference(String passageId, int revision, String skill, String level,
+            String actor, Instant updatedAt) {
+        Query query = Query.query(Criteria.where("passage_id").is(passageId).and("revision").is(revision)
+                .and("skill").is(skill).and("level").is(level).and("status").in("DRAFT", "ACTIVE", "RETIRED"));
+        return mongo.updateFirst(query, new Update().inc("revision", 1).set("updated_at", updatedAt)
+                .set("updated_by", actor), QuestionPoolPassage.class).getModifiedCount() == 1;
+    }
+
     public Optional<QuestionPoolPassageReadinessSource> findReadinessSource(String passageId) {
         Document source = mongo.findOne(Query.query(Criteria.where("passage_id").is(passageId)),
                 Document.class, "question_pool_passages");

@@ -20,7 +20,9 @@ Base: `/api/management/learning-paths/passages`.
 | 8 | POST | `/{passageId}/retire` | Retire the current ACTIVE passage when no ACTIVE question references it | Implemented |
 
 [Question list/detail and passage-reference lookup](learning-path-question-management-api.md)
-are implemented. Question mutations, including coordinated publication/retirement, remain pending.
+are implemented. [Question DRAFT authoring](learning-path-question-management-api.md#passage-reference-consistency)
+also coordinates passage references transactionally through passage revision guards.
+Question publication/retirement/replacement remain pending.
 Coverage dashboards and an operation-history screen are deferred business scope.
 
 ## POST: create a passage DRAFT
@@ -387,11 +389,12 @@ new Media asset may remain; the original passage reference is retained. Replaced
 also remain in Media because its public contract has no delete/reference cleanup capability.
 The API does not claim an atomic transaction spanning Media and Learning Path.
 
-Reference validation and passage update are separate operations; no lock/transaction with
-future question authoring is introduced. When question create/edit/publication APIs are
-implemented they must enforce passage classification/status and coordinate concurrent
-reference changes. This endpoint alone cannot guarantee cross-document invariants against
-out-of-band database writers.
+Reference validation and passage update remain separate operations in this endpoint.
+[Question DRAFT authoring](learning-path-question-management-api.md#passage-reference-consistency)
+now fences reference writes transactionally through the passage revision, so concurrent
+classification edits cannot win against an incompatible new DRAFT reference. Future
+question publication must also enforce the passage lifecycle. Out-of-band writers that
+ignore these guards remain outside the guarantee.
 
 ## DELETE: remove an unreferenced DRAFT passage
 
@@ -448,8 +451,9 @@ requests both read the same DRAFT before removal, only one conditional delete ca
 the losing request returns 409.
 
 Reference checking and conditional removal are separate operations, with no cross-document
-transaction/lock. As with PATCH, future question-authoring operations must coordinate
-reference changes with passage revision/lifecycle. This endpoint does not guarantee against
+transaction/lock in this endpoint. Question DRAFT reference writes now coordinate through
+the [shared revision guard](learning-path-question-management-api.md#passage-reference-consistency).
+This endpoint does not guarantee against
 out-of-band question inserts between the reference check and removal. No automatic Media
 cleanup or operation-history screen is introduced.
 
@@ -681,8 +685,9 @@ without changing errors for other feature routes or existing multipart operation
 
 Readiness, question-reference reads and the final passage update are separate operations.
 The final revision predicate fences normal passage edits; it is not a cross-document
-transaction or lock on Question Pool. Future question-authoring APIs must coordinate
-reference changes with passage revision/lifecycle, as required for existing PATCH/DELETE.
+transaction or lock on Question Pool. Question DRAFT authoring now coordinates reference
+changes through the [passage revision](learning-path-question-management-api.md#passage-reference-consistency).
+Future question publication/replacement must also coordinate passage lifecycle transitions.
 Out-of-band DB writes that change content without increasing revision, or insert an
 incompatible reference after readiness, are outside this operation's concurrency
 guarantee. No new transaction/locking mechanism or direct DB repair is introduced.
@@ -761,7 +766,8 @@ retain their existing behavior.
 
 The reference count and passage transition are separate operations, without a
 cross-document transaction or Question Pool lock. The conditional write protects
-the passage revision/state only. Future question-authoring APIs must coordinate
+the passage revision/state only. DRAFT reference changes now use the question-authoring
+transaction/revision guard; future question publication/replacement APIs must coordinate
 ACTIVE-reference changes with passage lifecycle/revision before enabling those
 mutations; otherwise a question could become ACTIVE after the count and before
 retirement. Out-of-band DB writes/imports are outside this guarantee. This endpoint

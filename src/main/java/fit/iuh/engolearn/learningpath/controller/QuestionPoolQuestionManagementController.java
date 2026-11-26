@@ -1,6 +1,12 @@
 package fit.iuh.engolearn.learningpath.controller;
 
 import fit.iuh.engolearn.learningpath.dto.request.ListQuestionPoolQuestionsRequest;
+import fit.iuh.engolearn.learningpath.dto.request.CreateQuestionPoolQuestionRequest;
+import fit.iuh.engolearn.learningpath.dto.request.UpdateQuestionPoolQuestionRequest;
+import fit.iuh.engolearn.learningpath.dto.request.CopyQuestionPoolQuestionRequest;
+import fit.iuh.engolearn.learningpath.dto.request.DeleteQuestionPoolQuestionRequest;
+import fit.iuh.engolearn.learningpath.dto.response.QuestionPoolQuestionMutationResponse;
+import fit.iuh.engolearn.learningpath.dto.response.DeleteQuestionPoolQuestionResponse;
 import fit.iuh.engolearn.learningpath.dto.response.QuestionPoolQuestionDetailResponse;
 import fit.iuh.engolearn.learningpath.dto.response.QuestionPoolQuestionListResponse;
 import fit.iuh.engolearn.learningpath.service.QuestionPoolQuestionManagementService;
@@ -10,6 +16,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -17,6 +24,39 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 public class QuestionPoolQuestionManagementController {
     private final QuestionPoolQuestionManagementService questions;
+
+    @PostMapping
+    @ResponseStatus(HttpStatus.CREATED)
+    public ApiResponse<QuestionPoolQuestionMutationResponse> create(@Valid @RequestBody CreateQuestionPoolQuestionRequest request,
+            HttpServletResponse response) {
+        response.setHeader("Cache-Control", "no-store");
+        return ApiResponse.ok(questions.create(request));
+    }
+
+    @PatchMapping("/{questionId}")
+    public ApiResponse<QuestionPoolQuestionMutationResponse> update(
+            @PathVariable @NotBlank @Size(max = 100) String questionId,
+            @Valid @RequestBody UpdateQuestionPoolQuestionRequest request, HttpServletResponse response) {
+        response.setHeader("Cache-Control", "no-store");
+        return ApiResponse.ok(questions.update(questionId, request));
+    }
+
+    @DeleteMapping("/{questionId}")
+    public ApiResponse<DeleteQuestionPoolQuestionResponse> delete(
+            @PathVariable @NotBlank @Size(max = 100) String questionId,
+            @Valid @ModelAttribute DeleteQuestionPoolQuestionRequest request, HttpServletResponse response) {
+        response.setHeader("Cache-Control", "no-store");
+        return ApiResponse.ok(questions.delete(questionId, request.revision()));
+    }
+
+    @PostMapping("/{questionId}/copy")
+    @ResponseStatus(HttpStatus.CREATED)
+    public ApiResponse<QuestionPoolQuestionMutationResponse> copy(
+            @PathVariable @NotBlank @Size(max = 100) String questionId,
+            @Valid @RequestBody CopyQuestionPoolQuestionRequest request, HttpServletResponse response) {
+        response.setHeader("Cache-Control", "no-store");
+        return ApiResponse.ok(questions.copy(questionId, request.revision()));
+    }
 
     @GetMapping
     public ApiResponse<QuestionPoolQuestionListResponse> list(

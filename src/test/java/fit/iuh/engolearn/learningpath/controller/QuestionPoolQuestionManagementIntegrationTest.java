@@ -2,6 +2,9 @@ package fit.iuh.engolearn.learningpath.controller;
 
 import fit.iuh.engolearn.config.AbstractMongoIntegrationTest;
 import fit.iuh.engolearn.learningpath.dto.request.ListQuestionPoolQuestionsRequest;
+import fit.iuh.engolearn.learningpath.dto.request.CreateQuestionPoolQuestionRequest;
+import fit.iuh.engolearn.learningpath.dto.request.UpdateQuestionPoolQuestionRequest;
+import fit.iuh.engolearn.learningpath.repository.QuestionPoolPassageRepository;
 import fit.iuh.engolearn.learningpath.repository.QuestionPoolQuestionRepository;
 import fit.iuh.engolearn.learningpath.service.QuestionPoolQuestionManagementService;
 import fit.iuh.engolearn.media.contract.MediaManagement;
@@ -44,11 +47,380 @@ import static org.mockito.Mockito.*;
 class QuestionPoolQuestionManagementIntegrationTest extends AbstractMongoIntegrationTest {
     private static final String BASE = "/api/management/learning-paths/questions";
     private static final String MICRO_SKILL = "Reading for Gist";
+    private static final String CREATE = """
+            {"skill":"READING","microSkill":"Reading for Gist","level":"B1","prompt":"  Prompt  ",
+             "options":[{"optionId":"A","text":" Option A "},{"optionId":"B","text":"Option B"},
+             {"optionId":"C","text":"Option C"},{"optionId":"D","text":"Option D"}],
+             "correctOptionId":"B","explanation":"  Evidence  "}
+            """;
     private final JsonMapper json = JsonMapper.builder().build();
     @Autowired private JwtTokenService tokens;
     @Autowired private QuestionPoolQuestionManagementService service;
+    @Autowired private fit.iuh.engolearn.learningpath.service.QuestionPoolPassageManagementService passageService;
     @MockitoSpyBean private QuestionPoolQuestionRepository questions;
+    @MockitoSpyBean private QuestionPoolPassageRepository passageRepository;
     @MockitoBean private MediaManagement media;
+
+    @ParameterizedTest
+    @EnumSource(value = UserRole.class, names = {"CONTENT_MANAGER", "ADMIN"})
+    void createsDraftWithTrustedAuditAndEditableContent(UserRole role) {
+        var response = request(HttpMethod.POST, "", CREATE, role);
+        assertThat(response.getStatusCode().value()).as(response.getBody()).isEqualTo(201);
+        var data = json.readTree(response.getBody()).path("data");
+        String id = data.path("questionId").asString();
+        assertThat(id).startsWith("LP-Q-");
+        var saved = question(id);
+        assertThat(saved.getString("status")).isEqualTo("DRAFT");
+        assertThat(saved.getInteger("revision")).isEqualTo(1);
+        assertThat(saved.getString("created_by")).isEqualTo("question-editor");
+        assertThat(saved.getString("updated_by")).isEqualTo("question-editor");
+        assertThat(saved.getString("prompt")).isEqualTo("Prompt");
+        assertThat(saved.getString("explanation")).isEqualTo("Evidence");
+        assertThat(saved.getList("options", Document.class).getFirst().getString("option_id")).isEqualTo("A");
+        assertThat(saved.getList("options", Document.class).getFirst().getString("text")).isEqualTo("Option A");
+        assertThat(saved.get("passage_id")).isNull();
+        assertThat(saved.getDate("created_at")).isNotNull();
+        assertThat(saved.getDate("updated_at")).isNotNull();
+        assertNoLearnerOrMediaWrites();
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"DRAFT", "ACTIVE", "RETIRED"})
+    void listeningDraftCanReferenceExistingMatchingPassageWithoutResolvingAudio(String status) {
+        seedPassage(status, "LISTENING", new Document("transcript", "Transcript").append("audio_media_id", "unavailable"));
+        var before = mongoTemplate.getCollection("question_pool_passages").find().first();
+        var response = request(HttpMethod.POST, "", listeningCreate(), UserRole.ADMIN);
+        assertThat(response.getStatusCode().value()).as(response.getBody()).isEqualTo(201);
+        var saved = mongoTemplate.getCollection("question_pool_passages").find().first();
+        assertThat(saved.getInteger("revision")).isEqualTo(2);
+        assertThat(saved.getString("status")).isEqualTo(status);
+        assertThat(saved.getString("transcript")).isEqualTo(before.getString("transcript"));
+        assertThat(saved.getString("audio_media_id")).isEqualTo("unavailable");
+        assertThat(saved.getString("updated_by")).isEqualTo("question-editor");
+        assertThat(mongoTemplate.getCollection("question_pool").find().first().getString("passage_id")).isEqualTo("p");
+        verifyNoInteractions(media);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"{}", "{", "null",
+            "{\"skill\":\"SPEAKING\"}",
+            "{\"revision\":0}"})
+    void malformedCreationDoesNotWrite(String body) {
+        assertError(request(HttpMethod.POST, "", body, UserRole.ADMIN), 400, "INVALID_QUESTION_REQUEST");
+        assertThat(mongoTemplate.getCollection("question_pool").countDocuments()).isZero();
+    }
+
+    @Test
+    void createValidatesCanonicalSkillOptionIdsAndListeningReference() {
+        for (String body : List.of(
+                CREATE.replace("Reading for Gist", "Unknown skill"),
+                CREATE.replace("Reading for Gist", "Listening for Gist"),
+                CREATE.replace("\"optionId\":\"D\"", "\"optionId\":\"A\""),
+                CREATE.replace("\"skill\":\"READING\"", "\"skill\":\"LISTENING\"").replace("Reading for Gist", "Listening for Gist"))) {
+            assertError(request(HttpMethod.POST, "", body, UserRole.ADMIN), 400, "INVALID_QUESTION");
+        }
+        assertThat(mongoTemplate.getCollection("question_pool").countDocuments()).isZero();
+        assertNoLearnerOrMediaWrites();
+    }
+
+    @Test
+    void rejectsEmptyOrOversizedContentInvalidChoicesAndMissingFields() {
+        for (String body : List.of(
+                CREATE.replace("  Prompt  ", " "),
+                CREATE.replace("  Evidence  ", " "),
+                CREATE.replace("Option B", " "),
+                CREATE.replace("  Prompt  ", "x".repeat(50001)),
+                CREATE.replace("Option B", "x".repeat(10001)),
+                CREATE.replace("\"correctOptionId\":\"B\"", "\"correctOptionId\":\"E\""),
+                CREATE.replace("{\"optionId\":\"D\",\"text\":\"Option D\"}", "null"),
+                CREATE.replace("\"level\":\"B1\",", ""))) {
+            assertError(request(HttpMethod.POST, "", body, UserRole.ADMIN), 400, "INVALID_QUESTION_REQUEST");
+        }
+        assertThat(mongoTemplate.getCollection("question_pool").countDocuments()).isZero();
+    }
+
+    @Test
+    void missingMismatchedOrUnversionedPassageCannotReceiveAReference() {
+        assertError(request(HttpMethod.POST, "", listeningCreate(), UserRole.ADMIN), 400, "INVALID_QUESTION");
+        seedPassage("DRAFT", "READING", new Document("text", "Text"));
+        assertError(request(HttpMethod.POST, "", listeningCreate(), UserRole.ADMIN), 400, "INVALID_QUESTION");
+        mongoTemplate.getCollection("question_pool_passages").updateOne(new Document("passage_id", "p"),
+                new Document("$set", new Document("skill", "LISTENING").append("level", "A2")));
+        assertError(request(HttpMethod.POST, "", listeningCreate(), UserRole.ADMIN), 400, "INVALID_QUESTION");
+        mongoTemplate.getCollection("question_pool_passages").updateOne(new Document("passage_id", "p"),
+                new Document("$set", new Document("level", "B1").append("revision", Integer.MAX_VALUE)));
+        assertError(request(HttpMethod.POST, "", listeningCreate(), UserRole.ADMIN), 409, "QUESTION_WRITE_CONFLICT");
+        assertThat(mongoTemplate.getCollection("question_pool").countDocuments()).isZero();
+    }
+
+    @Test
+    void patchMergesFieldsPreservesCreatorAndUnknownMetadataAndCanDetachReadingPassage() {
+        seedQuestion("q", "DRAFT", "READING", "B1", MICRO_SKILL, "p", "Prompt", 0);
+        mongoTemplate.getCollection("question_pool").updateOne(new Document("question_id", "q"),
+                new Document("$set", new Document("import_marker", "preserve")));
+        var before = question("q");
+        var response = request(HttpMethod.PATCH, "/q", "{\"revision\":3,\"prompt\":\" New prompt \",\"passageId\":\"\"}", UserRole.ADMIN);
+        assertThat(response.getStatusCode().value()).as(response.getBody()).isEqualTo(200);
+        var saved = question("q");
+        assertThat(saved.getString("prompt")).isEqualTo("New prompt");
+        assertThat(saved.get("passage_id")).isNull();
+        assertThat(saved.getInteger("revision")).isEqualTo(4);
+        assertThat(saved.getString("updated_by")).isEqualTo("question-editor");
+        assertThat(saved.getString("created_by")).isEqualTo("author");
+        assertThat(saved.getDate("created_at")).isEqualTo(before.getDate("created_at"));
+        assertThat(saved.get("options")).isEqualTo(before.get("options"));
+        assertThat(saved.getString("import_marker")).isEqualTo("preserve");
+        assertError(request(HttpMethod.PATCH, "/q", "{\"revision\":3,\"prompt\":\"Lost\"}", UserRole.ADMIN), 409, "QUESTION_WRITE_CONFLICT");
+    }
+
+    @Test
+    void changingClassificationRechecksMergedMicroSkillAndPassage() {
+        seedQuestion("q", "DRAFT", "READING", "B1", MICRO_SKILL, null, "Prompt", 0);
+        assertError(request(HttpMethod.PATCH, "/q", "{\"revision\":3,\"skill\":\"LISTENING\"}", UserRole.ADMIN), 400, "INVALID_QUESTION");
+        seedPassage("DRAFT", "LISTENING", new Document("transcript", "Transcript"));
+        var response = request(HttpMethod.PATCH, "/q", "{\"revision\":3,\"skill\":\"LISTENING\",\"microSkill\":\"Listening for Gist\",\"passageId\":\"p\"}", UserRole.ADMIN);
+        assertThat(response.getStatusCode().value()).as(response.getBody()).isEqualTo(200);
+        assertThat(question("q").getString("skill")).isEqualTo("LISTENING");
+        assertError(request(HttpMethod.PATCH, "/q", "{\"revision\":4,\"passageId\":\"\"}", UserRole.ADMIN), 400, "INVALID_QUESTION");
+        assertError(request(HttpMethod.PATCH, "/q", "{\"revision\":4,\"level\":\"A2\"}", UserRole.ADMIN), 400, "INVALID_QUESTION");
+        assertThat(question("q").getInteger("revision")).isEqualTo(4);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"ACTIVE", "RETIRED"})
+    void publishedAndRetiredQuestionsCannotBeEditedOrDeleted(String status) {
+        seedQuestion("q", status, "READING", "B1", MICRO_SKILL, null, "Prompt", 0);
+        var before = question("q");
+        assertError(request(HttpMethod.PATCH, "/q", "{\"revision\":3,\"prompt\":\"New\"}", UserRole.ADMIN), 409, "QUESTION_WRITE_CONFLICT");
+        assertError(request(HttpMethod.DELETE, "/q?revision=3", null, UserRole.ADMIN), 409, "QUESTION_WRITE_CONFLICT");
+        assertThat(question("q")).isEqualTo(before);
+    }
+
+    @Test
+    void patchRejectsNoopBlankContentExhaustedRevisionAndMissingQuestion() {
+        seedQuestion("q", "DRAFT", "READING", "B1", MICRO_SKILL, null, "Prompt", 0);
+        assertError(request(HttpMethod.PATCH, "/q", "{\"revision\":3}", UserRole.ADMIN), 400, "INVALID_QUESTION");
+        assertError(request(HttpMethod.PATCH, "/q", "{\"revision\":3,\"explanation\":\" \"}", UserRole.ADMIN), 400, "INVALID_QUESTION");
+        assertError(request(HttpMethod.PATCH, "/absent", "{\"revision\":3,\"prompt\":\"New\"}", UserRole.ADMIN), 404, "QUESTION_NOT_FOUND");
+        mongoTemplate.getCollection("question_pool").updateOne(new Document("question_id", "q"), new Document("$set", new Document("revision", Integer.MAX_VALUE)));
+        assertError(request(HttpMethod.PATCH, "/q", "{\"revision\":2147483647,\"prompt\":\"New\"}", UserRole.ADMIN), 409, "QUESTION_WRITE_CONFLICT");
+    }
+
+    @Test
+    void draftDeletionRequiresCurrentRevisionAndDoesNotTouchLearnerSnapshots() {
+        seedQuestion("q", "DRAFT", "READING", "B1", MICRO_SKILL, null, "Prompt", 0);
+        mongoTemplate.getCollection("learning_path_questions").insertOne(new Document("question_id", "q").append("prompt", "Pinned"));
+        var snapshot = mongoTemplate.getCollection("learning_path_questions").find().first();
+        assertError(request(HttpMethod.DELETE, "/q?revision=2", null, UserRole.ADMIN), 409, "QUESTION_WRITE_CONFLICT");
+        var response = request(HttpMethod.DELETE, "/q?revision=3", null, UserRole.ADMIN);
+        assertThat(response.getStatusCode().value()).isEqualTo(200);
+        assertThat(data(response).path("deleted").asBoolean()).isTrue();
+        assertThat(question("q")).isNull();
+        assertThat(mongoTemplate.getCollection("learning_path_questions").find().first()).isEqualTo(snapshot);
+        assertError(request(HttpMethod.DELETE, "/q?revision=3", null, UserRole.ADMIN), 404, "QUESTION_NOT_FOUND");
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"DRAFT", "ACTIVE", "RETIRED"})
+    void copyCreatesIndependentDraftWithoutCarryingReviewOrSourceAudit(String status) {
+        seedQuestion("q", status, "READING", "B1", MICRO_SKILL, null, "Prompt", 0);
+        mongoTemplate.getCollection("question_pool").updateOne(new Document("question_id", "q"),
+                new Document("$set", new Document("publication_review", new Document("reviewed_by", "old-editor"))));
+        var source = question("q");
+        var response = request(HttpMethod.POST, "/q/copy", "{\"revision\":3}", UserRole.ADMIN);
+        assertThat(response.getStatusCode().value()).as(response.getBody()).isEqualTo(201);
+        String id = json.readTree(response.getBody()).path("data").path("questionId").asString();
+        assertThat(id).isNotEqualTo("q");
+        var copied = question(id);
+        assertThat(copied.getString("status")).isEqualTo("DRAFT");
+        assertThat(copied.getInteger("revision")).isEqualTo(1);
+        assertThat(copied.get("options")).isEqualTo(source.get("options"));
+        assertThat(copied.getString("correct_option_id")).isEqualTo("B");
+        assertThat(copied.getString("created_by")).isEqualTo("question-editor");
+        assertThat(copied.get("publication_review")).isNull();
+        assertThat(question("q")).isEqualTo(source);
+        assertError(request(HttpMethod.POST, "/q/copy", "{\"revision\":2}", UserRole.ADMIN), 409, "QUESTION_WRITE_CONFLICT");
+    }
+
+    @Test
+    void copyRejectsIncompleteSourceWithoutInventingAnAnswer() {
+        seedQuestion("q", "DRAFT", "READING", "B1", MICRO_SKILL, null, "Prompt", 0);
+        mongoTemplate.getCollection("question_pool").updateOne(new Document("question_id", "q"),
+                new Document("$unset", new Document("options", "").append("correct_option_id", "")));
+        assertError(request(HttpMethod.POST, "/q/copy", "{\"revision\":3}", UserRole.ADMIN), 400, "INVALID_QUESTION");
+        assertThat(mongoTemplate.getCollection("question_pool").countDocuments()).isEqualTo(1);
+        assertThat(question("q").get("correct_option_id")).isNull();
+        assertError(request(HttpMethod.POST, "/absent/copy", "{\"revision\":3}", UserRole.ADMIN), 404, "QUESTION_NOT_FOUND");
+    }
+
+    @Test
+    void mutationsRejectMissingInvalidOrMalformedRevisionAndUnsupportedContentType() {
+        for (String body : List.of("{}", "{\"revision\":0}", "{\"revision\":-1}", "{\"revision\":2147483648}", "{")) {
+            assertError(request(HttpMethod.PATCH, "/q", body, UserRole.ADMIN), 400, "INVALID_QUESTION_REQUEST");
+            assertError(request(HttpMethod.POST, "/q/copy", body, UserRole.ADMIN), 400, "INVALID_QUESTION_REQUEST");
+        }
+        for (String query : List.of("", "?revision=0", "?revision=bad")) {
+            assertError(request(HttpMethod.DELETE, "/q" + query, null, UserRole.ADMIN), 400, "INVALID_QUESTION_REQUEST");
+        }
+        assertError(request(HttpMethod.POST, "", CREATE, UserRole.ADMIN, MediaType.TEXT_PLAIN), 415, "UNSUPPORTED_MEDIA_TYPE");
+        assertError(request(HttpMethod.PATCH, "/q", "{}", UserRole.ADMIN, MediaType.TEXT_PLAIN), 415, "UNSUPPORTED_MEDIA_TYPE");
+        assertError(request(HttpMethod.POST, "/q/copy", "{}", UserRole.ADMIN, MediaType.TEXT_PLAIN), 415, "UNSUPPORTED_MEDIA_TYPE");
+    }
+
+    @Test
+    void mutationHttpAndSpringProxyBoundariesRejectGuestAndLearner() {
+        seedQuestion("q", "DRAFT", "READING", "B1", MICRO_SKILL, null, "Prompt", 0);
+        for (UserRole role : new UserRole[]{null, UserRole.USER}) {
+            int code = role == null ? 401 : 403;
+            String error = role == null ? "AUTHENTICATION_REQUIRED" : "ACCESS_DENIED";
+            assertError(request(HttpMethod.POST, "", CREATE, role), code, error);
+            assertError(request(HttpMethod.PATCH, "/q", "{\"revision\":3,\"prompt\":\"New\"}", role), code, error);
+            assertError(request(HttpMethod.DELETE, "/q?revision=3", null, role), code, error);
+            assertError(request(HttpMethod.POST, "/q/copy", "{\"revision\":3}", role), code, error);
+        }
+        var create = json.readValue(CREATE, CreateQuestionPoolQuestionRequest.class);
+        var update = json.readValue("{\"revision\":3,\"prompt\":\"New\"}", UpdateQuestionPoolQuestionRequest.class);
+        try {
+            SecurityContextHolder.clearContext();
+            assertThatThrownBy(() -> service.create(create)).isInstanceOf(AuthenticationCredentialsNotFoundException.class);
+            assertThatThrownBy(() -> service.update("q", update)).isInstanceOf(AuthenticationCredentialsNotFoundException.class);
+            assertThatThrownBy(() -> service.delete("q", 3)).isInstanceOf(AuthenticationCredentialsNotFoundException.class);
+            assertThatThrownBy(() -> service.copy("q", 3)).isInstanceOf(AuthenticationCredentialsNotFoundException.class);
+            authenticate(UserRole.USER);
+            assertThatThrownBy(() -> service.create(create)).isInstanceOf(AccessDeniedException.class);
+            assertThatThrownBy(() -> service.update("q", update)).isInstanceOf(AccessDeniedException.class);
+            assertThatThrownBy(() -> service.delete("q", 3)).isInstanceOf(AccessDeniedException.class);
+            assertThatThrownBy(() -> service.copy("q", 3)).isInstanceOf(AccessDeniedException.class);
+        } finally { SecurityContextHolder.clearContext(); }
+    }
+
+    @Test
+    void insertFailureRollsBackPassageRevisionAndLeavesNoQuestion() {
+        seedPassage("DRAFT", "LISTENING", new Document("transcript", "Transcript"));
+        var before = mongoTemplate.getCollection("question_pool_passages").find().first();
+        doThrow(new DataAccessResourceFailureException("database secret")).when(questions).insert(any());
+        assertError(request(HttpMethod.POST, "", listeningCreate(), UserRole.ADMIN), 503, "QUESTION_STORAGE_UNAVAILABLE");
+        assertThat(mongoTemplate.getCollection("question_pool_passages").find().first()).isEqualTo(before);
+        assertThat(mongoTemplate.getCollection("question_pool").countDocuments()).isZero();
+    }
+
+    @Test
+    void losingQuestionCasRollsBackPassageFenceInsteadOfLeavingPartialUpdate() {
+        seedQuestion("q", "DRAFT", "READING", "B1", MICRO_SKILL, "p", "Prompt", 0);
+        seedPassage("DRAFT", "READING", new Document("text", "Text"));
+        var before = mongoTemplate.getCollection("question_pool_passages").find().first();
+        doReturn(java.util.Optional.empty()).when(questions).updateDraft(any(), eq(3));
+        assertError(request(HttpMethod.PATCH, "/q", "{\"revision\":3,\"prompt\":\"New\"}", UserRole.ADMIN), 409, "QUESTION_WRITE_CONFLICT");
+        assertThat(mongoTemplate.getCollection("question_pool_passages").find().first()).isEqualTo(before);
+        assertThat(question("q").getString("prompt")).isEqualTo("Prompt");
+    }
+
+    @Test
+    void passageCasLossRejectsCreationWithoutOrphanReference() {
+        seedPassage("DRAFT", "LISTENING", new Document("transcript", "Transcript"));
+        doReturn(false).when(passageRepository).fenceQuestionReference(anyString(), anyInt(), anyString(), anyString(), anyString(), any());
+        assertError(request(HttpMethod.POST, "", listeningCreate(), UserRole.ADMIN), 409, "QUESTION_WRITE_CONFLICT");
+        assertThat(mongoTemplate.getCollection("question_pool").countDocuments()).isZero();
+    }
+
+    @Test
+    void concurrentQuestionEditsProduceOneWinnerAndOneRevisionConflict() throws Exception {
+        seedQuestion("q", "DRAFT", "READING", "B1", MICRO_SKILL, null, "Prompt", 0);
+        assertThat(get("/q", UserRole.ADMIN).getStatusCode().value()).isEqualTo(200);
+        var barrier = new java.util.concurrent.CyclicBarrier(2);
+        doAnswer(invocation -> {
+            var source = invocation.callRealMethod();
+            barrier.await(15, java.util.concurrent.TimeUnit.SECONDS);
+            return source;
+        }).when(questions).findByQuestionId("q");
+        try (var executor = java.util.concurrent.Executors.newFixedThreadPool(2)) {
+            var first = executor.submit(() -> request(HttpMethod.PATCH, "/q", "{\"revision\":3,\"prompt\":\"First\"}", UserRole.ADMIN).getStatusCode().value());
+            var second = executor.submit(() -> request(HttpMethod.PATCH, "/q", "{\"revision\":3,\"prompt\":\"Second\"}", UserRole.ADMIN).getStatusCode().value());
+            assertThat(List.of(first.get(25, java.util.concurrent.TimeUnit.SECONDS), second.get(25, java.util.concurrent.TimeUnit.SECONDS)))
+                    .containsExactlyInAnyOrder(200, 409);
+        }
+        assertThat(question("q").getInteger("revision")).isEqualTo(4);
+    }
+
+    @ParameterizedTest
+    @EnumSource(value = UserRole.class, names = {"CONTENT_MANAGER", "ADMIN"})
+    void authorizedServiceProxyCanCreateEditCopyAndDelete(UserRole role) {
+        try {
+            authenticate(role);
+            var created = service.create(json.readValue(CREATE, CreateQuestionPoolQuestionRequest.class));
+            var updated = service.update(created.questionId(), json.readValue("{\"revision\":1,\"prompt\":\"Updated\"}", UpdateQuestionPoolQuestionRequest.class));
+            assertThat(updated.revision()).isEqualTo(2);
+            var copied = service.copy(created.questionId(), 2);
+            assertThat(copied.questionId()).isNotEqualTo(created.questionId());
+            assertThat(service.delete(created.questionId(), 2).deleted()).isTrue();
+        } finally { SecurityContextHolder.clearContext(); }
+    }
+
+    @Test
+    void patchReplacesAllChoicesUsingStoredOptionIdMapping() {
+        seedQuestion("q", "DRAFT", "READING", "B1", MICRO_SKILL, null, "Prompt", 0);
+        var body = CREATE.replaceFirst("\\{", "{\"revision\":3,").replace("\"correctOptionId\":\"B\"", "\"correctOptionId\":\"D\"");
+        var response = request(HttpMethod.PATCH, "/q", body, UserRole.CONTENT_MANAGER);
+        assertThat(response.getStatusCode().value()).as(response.getBody()).isEqualTo(200);
+        assertThat(question("q").getString("correct_option_id")).isEqualTo("D");
+        assertThat(question("q").getList("options", Document.class).getFirst().getString("option_id")).isEqualTo("A");
+        assertThat(question("q").getList("options", Document.class).getFirst().getString("text")).isEqualTo("Option A");
+    }
+
+    @Test
+    void concurrentPassageDeletionRejectsReferenceInsteadOfCreatingOrphan() throws Exception {
+        referenceRace(false);
+    }
+
+    @Test
+    void concurrentPassageClassificationEditRejectsIncompatibleReference() throws Exception {
+        referenceRace(true);
+    }
+
+    private void referenceRace(boolean edit) throws Exception {
+        seedPassage("DRAFT", "LISTENING", new Document("transcript", "Transcript").append("audio_media_id", "media-id"));
+        var reachedFence = new java.util.concurrent.CountDownLatch(1);
+        var releaseFence = new java.util.concurrent.CountDownLatch(1);
+        doAnswer(invocation -> {
+            reachedFence.countDown();
+            if (!releaseFence.await(15, java.util.concurrent.TimeUnit.SECONDS)) throw new IllegalStateException("Fence wait timed out");
+            return invocation.callRealMethod();
+        }).when(passageRepository).fenceQuestionReference(anyString(), anyInt(), anyString(), anyString(), anyString(), any());
+        try (var executor = java.util.concurrent.Executors.newSingleThreadExecutor()) {
+            var creating = executor.submit(() -> request(HttpMethod.POST, "", listeningCreate(), UserRole.ADMIN));
+            try {
+                assertThat(reachedFence.await(15, java.util.concurrent.TimeUnit.SECONDS)).isTrue();
+                authenticate(UserRole.ADMIN);
+                if (edit) {
+                    passageService.update("p", new fit.iuh.engolearn.learningpath.dto.request.UpdateQuestionPoolPassageRequest(
+                            1, null, fit.iuh.engolearn.shared.enums.CefrLevel.A2, null, null, null), null, null, null, 0);
+                } else {
+                    assertThat(passageService.delete("p", 1).deleted()).isTrue();
+                }
+            } finally {
+                SecurityContextHolder.clearContext();
+                releaseFence.countDown();
+            }
+            assertError(creating.get(25, java.util.concurrent.TimeUnit.SECONDS), 409, "QUESTION_WRITE_CONFLICT");
+        }
+        assertThat(mongoTemplate.getCollection("question_pool").countDocuments()).isZero();
+    }
+
+    private Document question(String id) {
+        return mongoTemplate.getCollection("question_pool").find(new Document("question_id", id)).first();
+    }
+
+    private String listeningCreate() {
+        return CREATE.replace("READING", "LISTENING").replace("Reading for Gist", "Listening for Gist")
+                .replace("\"level\":\"B1\"", "\"level\":\"B1\",\"passageId\":\"p\"");
+    }
+
+    private void assertNoLearnerOrMediaWrites() {
+        for (String name : List.of("learning_paths", "learning_path_questions", "media_assets")) {
+            assertThat(mongoTemplate.getCollection(name).countDocuments()).as(name).isZero();
+        }
+        verifyNoInteractions(media);
+    }
 
     @Test
     void defaultsListAllStatusesWithoutAnswersOrPassageResolution() {
@@ -287,7 +659,21 @@ class QuestionPoolQuestionManagementIntegrationTest extends AbstractMongoIntegra
     }
 
     private ResponseEntity<String> get(String suffix, UserRole role) {
+        return request(HttpMethod.GET, suffix, null, role);
+    }
+
+    private ResponseEntity<String> request(HttpMethod method, String suffix, String body, UserRole role) {
+        return request(method, suffix, body, role, MediaType.APPLICATION_JSON);
+    }
+
+    private ResponseEntity<String> request(HttpMethod method, String suffix, String body, UserRole role, MediaType contentType) {
+        var client = new org.springframework.web.client.RestTemplate(new org.springframework.http.client.JdkClientHttpRequestFactory());
+        return exchange(client, method, suffix, body, authHeaders(role, contentType));
+    }
+
+    private HttpHeaders authHeaders(UserRole role, MediaType contentType) {
         HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(contentType);
         if (role != null) {
             String id = "question-editor";
             mongoTemplate.getCollection("users").replaceOne(new Document("_id", id),
@@ -298,13 +684,18 @@ class QuestionPoolQuestionManagementIntegrationTest extends AbstractMongoIntegra
                     .append("expires_at", Date.from(Instant.now().plusSeconds(3600))).append("revoked", false));
             headers.add(HttpHeaders.COOKIE, "ACCESS_TOKEN=" + tokens.create(id, session, "access", 900));
         }
+        return headers;
+    }
+
+    private ResponseEntity<String> exchange(org.springframework.web.client.RestTemplate client, HttpMethod method,
+            String suffix, String body, HttpHeaders headers) {
         int separator = suffix.indexOf('?');
         String path = separator < 0 ? suffix : suffix.substring(0, separator);
         String query = separator < 0 ? null : suffix.substring(separator + 1);
         var uri = org.springframework.web.util.UriComponentsBuilder.newInstance().scheme("http").host("localhost")
                 .port(port).path(BASE).path(path).query(query).build().encode().toUri();
         try {
-            return restTemplate.exchange(uri, HttpMethod.GET, new HttpEntity<>(headers), String.class);
+            return client.exchange(uri, method, new HttpEntity<>(body, headers), String.class);
         } catch (HttpStatusCodeException exception) {
             return new ResponseEntity<>(exception.getResponseBodyAsString(), exception.getResponseHeaders(), exception.getStatusCode());
         }
