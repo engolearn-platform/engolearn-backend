@@ -6,6 +6,9 @@ import fit.iuh.engolearn.topic.utils.TopicCursorCodec;
 import lombok.RequiredArgsConstructor;
 
 import fit.iuh.engolearn.shared.enums.CefrLevel;
+import fit.iuh.engolearn.topic.contract.TopicSpeakingHistory;
+import fit.iuh.engolearn.topic.contract.dto.TopicSpeakingHistoryDto;
+import fit.iuh.engolearn.topic.contract.dto.TopicSpeakingHistoryDto.LearningStatus;
 import fit.iuh.engolearn.topic.dto.request.GetAvailableTopicRequest;
 import fit.iuh.engolearn.topic.dto.request.GetTopicDetailRequest;
 import fit.iuh.engolearn.topic.dto.response.*;
@@ -22,7 +25,7 @@ import java.util.*;
 
 @Service
 @RequiredArgsConstructor
-public class TopicLearnerCatalogServiceImpl implements TopicLearnerCatalogService {
+public class TopicLearnerCatalogServiceImpl implements TopicLearnerCatalogService, TopicSpeakingHistory {
     private final TopicBrowseService browse;
     private final UserLevelLookup userLevels;
     private final UserTopicProgressRepository topics;
@@ -32,6 +35,10 @@ public class TopicLearnerCatalogServiceImpl implements TopicLearnerCatalogServic
     private final TopicGenerationService generations;
     private final TopicRetryRuntimeRepository retryRuntimes;
     private final TopicRetrySessionMapper retrySessionMapper;
+    private final TopicRepository topicRepository;
+    private final TopicVersionRepository versions;
+    private final TopicItemVersionRepository itemVersions;
+    private final TopicMediaService media;
 
     @Override
     public TopicPageResponse discover(String userId, GetAvailableTopicRequest request) {
@@ -165,15 +172,106 @@ public class TopicLearnerCatalogServiceImpl implements TopicLearnerCatalogServic
         return rows;
     }
 
+    @Override
+    public Map<String, TopicSpeakingHistoryDto> summaries(String learnerId, Collection<String> topicIds) {
+        Map<String, HistoryRelease> releases = historyReleases(topicIds);
+        if (releases.isEmpty()) return Map.of();
+
+        Map<String, TopicItemVersion> versionById = new HashMap<>();
+        Set<String> itemIds = new HashSet<>();
+        for (HistoryRelease row : releases.values()) {
+            if (row.version().getItemVersionIds() != null) itemIds.addAll(row.version().getItemVersionIds());
+        }
+        itemVersions.findAllById(itemIds).forEach(row -> versionById.put(row.getId(), row));
+
+        State state = state(learnerId, releases.keySet());
+        Map<String, TopicSpeakingHistoryDto> result = new HashMap<>();
+        releases.forEach((id, row) -> {
+            Map<String, String> visible = new HashMap<>();
+            if (row.version().getItemVersionIds() != null) {
+                for (String versionId : row.version().getItemVersionIds()) {
+                    TopicItemVersion item = versionById.get(versionId);
+                    if (item != null && id.equals(item.getTopicId()) && item.getStatus() == ContentStatus.PUBLISHED) {
+                        visible.put(item.getTopicItemId(), versionId);
+                    }
+                }
+            }
+            var progress = progress(id, visible, state);
+            LearningStatus status = LearningStatus.valueOf(progress.status());
+            if (row.published()) {
+                result.put(id, new TopicSpeakingHistoryDto(status, title(row.topic()), row.topic().getCefrLevel(),
+                        new TopicSpeakingHistoryDto.Progress(progress.completedItemCount(),
+                                progress.totalItemCount(), progress.percent())));
+            } else if (status != LearningStatus.NOT_STARTED) {
+                result.put(id, new TopicSpeakingHistoryDto(status, null, null, null));
+            }
+        });
+        return Map.copyOf(result);
+    }
+
+    @Override
+    public String publishedTitle(String topicId) {
+        HistoryRelease row = historyReleases(Set.of(topicId)).get(topicId);
+        return row != null && row.published() ? title(row.topic()) : null;
+    }
+
+    @Override
+    public Map<String, String> publishedCovers(Collection<String> topicIds) {
+        Map<String, String> result = new HashMap<>();
+        historyReleases(topicIds).forEach((id, row) -> {
+            if (!row.published()) return;
+            String cover = media.resolveCover(row.topic());
+            if (cover != null) result.put(id, cover);
+        });
+        return Map.copyOf(result);
+    }
+
+    private Map<String, HistoryRelease> historyReleases(Collection<String> topicIds) {
+        if (topicIds.isEmpty()) return Map.of();
+        List<Topic> rows = topicRepository.findAllById(topicIds);
+        List<String> versionIds = rows.stream().map(Topic::getLatestPublishedVersion)
+                .filter(Objects::nonNull).distinct().toList();
+        Map<String, TopicVersion> byVersion = new HashMap<>();
+        versions.findAllById(versionIds).forEach(row -> byVersion.put(row.getId(), row));
+        Map<String, HistoryRelease> result = new HashMap<>();
+        for (Topic row : rows) {
+            TopicVersion release = byVersion.get(row.getLatestPublishedVersion());
+            if (release != null && row.getId().equals(release.getTopicId())
+                    && (release.getStatus() == ContentStatus.PUBLISHED || release.getStatus() == ContentStatus.HIDDEN)) {
+                result.put(row.getId(), new HistoryRelease(row, release));
+            }
+        }
+        return result;
+    }
+
+    private static String title(Topic topic) {
+        String titleVi = topic.getTitleVi();
+        if (titleVi != null && !titleVi.isBlank()) return titleVi;
+        String titleEn = topic.getTitleEn();
+        return titleEn != null && !titleEn.isBlank() ? titleEn : null;
+    }
+
     private State state(String userId) {
-        Map<String, Long> observed = generations.snapshot(userId);
+        return state(userId, null);
+    }
+
+    private State state(String userId, Collection<String> topicIds) {
+        boolean scoped = topicIds != null;
+        Map<String, Long> observed = scoped ? generations.snapshot(userId, topicIds) : generations.snapshot(userId);
         Map<String, UserTopicProgress> owned = new HashMap<>();
-        topics.findByUserId(userId).stream().filter(row -> row.getGeneration() == observed.getOrDefault(row.getTopicId(), 0L)).forEach(row -> owned.put(row.getTopicId(), row));
+        var topicProgress = scoped ? topics.findByUserIdAndTopicIdIn(userId, topicIds) : topics.findByUserId(userId);
+        topicProgress.stream().filter(row -> row.getGeneration() == observed.getOrDefault(row.getTopicId(), 0L))
+                .forEach(row -> owned.put(row.getTopicId(), row));
         Map<String, UserTopicItemProgress> storedProgress = new HashMap<>();
-        items.findByUserId(userId).stream().filter(row -> row.getGeneration() == observed.getOrDefault(row.getTopicId(), 0L)).forEach(row -> storedProgress.put(row.getTopicItemId(), row));
-        List<UserTopicItemAttempt> saved = new ArrayList<>(attempts.findByUserId(userId).stream().filter(row -> row.getGeneration() == observed.getOrDefault(row.getTopicId(), 0L)).toList());
+        var itemProgress = scoped ? items.findByUserIdAndTopicIdIn(userId, topicIds) : items.findByUserId(userId);
+        itemProgress.stream().filter(row -> row.getGeneration() == observed.getOrDefault(row.getTopicId(), 0L))
+                .forEach(row -> storedProgress.put(row.getTopicItemId(), row));
+        var itemAttempts = scoped ? attempts.findByUserIdAndTopicIdIn(userId, topicIds) : attempts.findByUserId(userId);
+        List<UserTopicItemAttempt> saved = new ArrayList<>(itemAttempts.stream()
+                .filter(row -> row.getGeneration() == observed.getOrDefault(row.getTopicId(), 0L)).toList());
         Map<String, TopicRetryRuntime> retryStates = new HashMap<>();
-        for (TopicRetryRuntime runtime : retryRuntimes.findByUserId(userId)) {
+        var runtimes = scoped ? retryRuntimes.findByUserIdAndTopicIdIn(userId, topicIds) : retryRuntimes.findByUserId(userId);
+        for (TopicRetryRuntime runtime : runtimes) {
             if (runtime.getGeneration() != observed.getOrDefault(runtime.getTopicId(), 0L)) continue;
             retryStates.put(runtime.getTopicId(), runtime);
             saved.addAll(runtime.getOfficialResults().values());
@@ -182,8 +280,14 @@ public class TopicLearnerCatalogServiceImpl implements TopicLearnerCatalogServic
         Map<String, UserTopicItemProgress> progress = resolveCompletedProgress(storedProgress, saved);
         List<UserTopicItemAttempt> active = saved.stream().filter(row -> row.getStatus() == AttemptStatus.IN_PROGRESS).toList();
         Set<String> learning = new HashSet<>();
-        sessions.findAllById(active.stream().map(UserTopicItemAttempt::getUserTopicAttemptId).filter(Objects::nonNull).distinct().toList())
-                .forEach(row -> { if (row.getGeneration() == observed.getOrDefault(row.getTopicId(), 0L) && row.getAttemptType() == AttemptType.LEARNING) learning.add(row.getId()); });
+        List<String> parentAttemptIds = active.stream().map(UserTopicItemAttempt::getUserTopicAttemptId)
+                .filter(Objects::nonNull).distinct().toList();
+        var parentAttempts = scoped ? sessions.findByUserIdAndTopicIdInAndIdIn(userId, topicIds, parentAttemptIds)
+                : sessions.findAllById(parentAttemptIds);
+        parentAttempts.forEach(row -> {
+            if (row.getGeneration() == observed.getOrDefault(row.getTopicId(), 0L)
+                    && row.getAttemptType() == AttemptType.LEARNING) learning.add(row.getId());
+        });
         Map<String, UserTopicItemAttempt> running = new HashMap<>();
         active.stream().filter(row -> row.getAttemptType() == AttemptType.LEARNING || learning.contains(row.getUserTopicAttemptId())).forEach(row -> running.put(row.getTopicItemId(), row));
         Set<String> started = new HashSet<>();
@@ -290,4 +394,10 @@ public class TopicLearnerCatalogServiceImpl implements TopicLearnerCatalogServic
     private record State(Map<String, UserTopicProgress> owned, Map<String, UserTopicItemProgress> items,
                          Map<String, UserTopicItemAttempt> running, Set<String> started, Map<String, Instant> recency,
                          Map<String, TopicRetryRuntime> retries, Map<String, Long> generations) {}
+
+    private record HistoryRelease(Topic topic, TopicVersion version) {
+        private boolean published() {
+            return version.getStatus() == ContentStatus.PUBLISHED;
+        }
+    }
 }

@@ -2,6 +2,7 @@ package fit.iuh.engolearn.speaking.utils;
 
 import fit.iuh.engolearn.speaking.utils.port.SpeechSynthesisPort;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import tools.jackson.databind.ObjectMapper;
 
@@ -10,10 +11,15 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
+import java.nio.ByteBuffer;
+import java.util.List;
+import java.util.concurrent.CompletionStage;
+import java.util.concurrent.Flow;
 import java.util.Map;
 
 @Component
 public class CartesiaSpeechSynthesis implements SpeechSynthesisPort {
+    private static final int SAMPLE_RATE = 24_000;
     private final ObjectMapper mapper;
     private volatile HttpClient client;
     private final String apiKey;
@@ -53,23 +59,58 @@ public class CartesiaSpeechSynthesis implements SpeechSynthesisPort {
         try {
             String body = mapper.writeValueAsString(Map.of("model_id", model, "transcript", text,
                     "voice", voice, "language", "en", "output_format",
-                    Map.of("container", "mp3", "sample_rate", 24000, "bit_rate", 128000)));
+                    Map.of("container", "raw", "sample_rate", SAMPLE_RATE, "encoding", "pcm_s16le")));
             HttpRequest request = HttpRequest.newBuilder().uri(URI.create(endpoint))
                     .timeout(timeout).header("Cartesia-Version", apiVersion)
                     .header("Authorization", "Bearer " + apiKey)
                     .header("Content-Type", "application/json")
                     .POST(HttpRequest.BodyPublishers.ofString(body)).build();
-            HttpResponse<byte[]> response = client().send(request, HttpResponse.BodyHandlers.ofByteArray());
+            HttpResponse<byte[]> response = client().send(request, ignored -> new LimitedAudioBody());
             if (response.statusCode() / 100 != 2) {
                 throw new IllegalStateException("Cartesia returned HTTP " + response.statusCode());
             }
-            return response.body();
+            var type = response.headers().firstValue("Content-Type").map(MediaType::parseMediaType)
+                    .orElse(MediaType.APPLICATION_OCTET_STREAM);
+            byte[] pcm = response.body();
+            if ((!"audio".equalsIgnoreCase(type.getType()) && !MediaType.APPLICATION_OCTET_STREAM.includes(type))
+                    || pcm.length == 0 || pcm.length % Short.BYTES != 0) {
+                throw new IllegalStateException("Cartesia response is not complete PCM16 audio");
+            }
+            return SpeakingWav.pcm16Mono(pcm, SAMPLE_RATE);
         } catch (InterruptedException ex) {
             Thread.currentThread().interrupt();
             throw new IllegalStateException("Cartesia request interrupted", ex);
         } catch (Exception ex) {
             throw new IllegalStateException("Cartesia synthesis failed", ex);
         }
+    }
+
+    private static final class LimitedAudioBody implements HttpResponse.BodySubscriber<byte[]> {
+        private final HttpResponse.BodySubscriber<byte[]> delegate = HttpResponse.BodySubscribers.ofByteArray();
+        private Flow.Subscription subscription;
+        private long size;
+
+        @Override public CompletionStage<byte[]> getBody() { return delegate.getBody(); }
+
+        @Override
+        public void onSubscribe(Flow.Subscription subscription) {
+            this.subscription = subscription;
+            delegate.onSubscribe(subscription);
+        }
+
+        @Override
+        public void onNext(List<ByteBuffer> chunks) {
+            for (ByteBuffer chunk : chunks) size += chunk.remaining();
+            if (size > SpeakingWav.MAX_REPLY_BYTES - SpeakingWav.PCM_HEADER_BYTES) {
+                subscription.cancel();
+                onError(new IllegalStateException("Cartesia audio exceeds the response limit"));
+                return;
+            }
+            delegate.onNext(chunks);
+        }
+
+        @Override public void onError(Throwable error) { delegate.onError(error); }
+        @Override public void onComplete() { delegate.onComplete(); }
     }
 
     private HttpClient client() {
