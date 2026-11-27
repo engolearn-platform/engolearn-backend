@@ -6,6 +6,13 @@ import fit.iuh.engolearn.assessment.contract.dto.*;
 import fit.iuh.engolearn.assessment.contract.enums.AssessmentCompanionScope;
 import fit.iuh.engolearn.assessment.repository.AssessmentRepository;
 import java.util.Optional;
+import java.time.Instant;
+import java.util.ArrayList;
+import fit.iuh.engolearn.assessment.contract.enums.AssessmentCompanionHistoryCoverage;
+import fit.iuh.engolearn.assessment.contract.exception.AssessmentHistoryInvalidQueryException;
+import fit.iuh.engolearn.assessment.contract.exception.AssessmentHistoryUnavailableException;
+import fit.iuh.engolearn.assessment.utils.AssessmentHistoryCursorCodec;
+import fit.iuh.engolearn.assessment.utils.AssessmentHistoryCursorCodec.Position;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -25,6 +32,50 @@ public class AssessmentContractsServiceImpl implements AssessmentResults,Assessm
         return store.valid(userId).stream().filter(a->development()||!a.getPaper().isDemonstration())
                 .findFirst().map(a->companionResult(userId,a));
     }
+    @Override
+    public AssessmentCompanionHistoryPageDto historyForCompanion(String learnerId, AssessmentCompanionHistoryQueryDto query) {
+        if (learnerId == null || learnerId.isBlank() || query == null || query.limit() < 2 || query.limit() > 5) {
+            throw new AssessmentHistoryInvalidQueryException();
+        }
+        boolean includeDemo = development();
+        Position position = query.cursor() == null ? null
+                : AssessmentHistoryCursorCodec.decode(query.cursor(), learnerId, includeDemo, query.limit());
+        Instant asOf = Instant.now();
+        try {
+            if (position != null && !store.companionHistoryAnchorExists(learnerId, includeDemo,
+                    position.submittedAt(), position.attemptId())) {
+                throw new AssessmentHistoryInvalidQueryException();
+            }
+            var attempts = store.companionHistory(learnerId, includeDemo,
+                    position == null ? null : position.submittedAt(),
+                    position == null ? null : position.attemptId(), query.limit() + 1);
+            boolean hasMore = attempts.size() > query.limit();
+            var items = new ArrayList<AssessmentCompanionHistoryRowDto>();
+            for (var attempt : attempts.subList(0, Math.min(attempts.size(), query.limit()))) {
+                var paper = attempt.getPaper();
+                if (paper == null || paper.getPaperId() == null || paper.getPaperId().isBlank()
+                        || attempt.getId() == null || attempt.getId().isBlank() || attempt.getSubmittedAt() == null
+                        || (!includeDemo && paper.isDemonstration())) {
+                    throw new AssessmentHistoryUnavailableException();
+                }
+                items.add(new AssessmentCompanionHistoryRowDto(companionResult(learnerId, attempt),
+                        paper.getPaperId(), paper.getVersion(), paper.getRulesVersion(), paper.isDemonstration()));
+            }
+            String nextCursor = null;
+            if (hasMore) {
+                var last = items.getLast().result();
+                nextCursor = AssessmentHistoryCursorCodec.encode(learnerId, includeDemo, query.limit(),
+                        new Position(last.submittedAt(), last.attemptId()));
+            }
+            return new AssessmentCompanionHistoryPageDto(items, hasMore, nextCursor,
+                    AssessmentCompanionHistoryCoverage.COMPLETE, asOf);
+        } catch (AssessmentHistoryInvalidQueryException ex) {
+            throw ex;
+        } catch (RuntimeException ex) {
+            throw new AssessmentHistoryUnavailableException();
+        }
+    }
+
     @Override public Optional<AssessmentResultDto> findCompleted(String userId,String assessmentAttemptId) {
         requireUser(userId);
         if(assessmentAttemptId==null||assessmentAttemptId.isBlank()) throw new IllegalArgumentException("Assessment attempt ID is required");

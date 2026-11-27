@@ -14,6 +14,9 @@ public interface AssessmentRepository {
     AssessmentAttempt active(String user);
     List<AssessmentAttempt> history(String user,int page,int size,boolean includeDemonstration);
     List<AssessmentAttempt> valid(String user);
+    boolean companionHistoryAnchorExists(String user, boolean includeDemonstration, Instant submittedAt, String attemptId);
+    List<AssessmentAttempt> companionHistory(String user, boolean includeDemonstration, Instant beforeAt,
+            String beforeId, int limit);
     List<AssessmentPaper> published();
     List<AssessmentAttempt> due(Instant now);
     AssessmentAttempt save(AssessmentAttempt a);

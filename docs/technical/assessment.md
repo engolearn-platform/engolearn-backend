@@ -230,3 +230,25 @@ account and four historical attempts. For the shared Learning Path dataset, Subs
 account initialization and current demo limits, follow the
 [importer guide](../../tools/mongo-json-importer/README.md#shared-assessment--learning-path-demo).
 Learning Path Listening audio placeholders do not affect the 13 supplied Assessment WAV files.
+
+### AI Companion assessment history
+
+`AssessmentCompanionResults.historyForCompanion(learnerId, query)` returns a bounded
+page of READY dated owner results (limit 2–5), ordered by submitted time descending
+then ID descending. Only dev without prod can include demonstration attempts.
+It uses the same PREVIEW/FULL mapping as latest, rechecking stored revocations
+and current entitlement for each returned attempt, without persisting a grant.
+The versioned continuation is owner, profile and page-limit bound; an anchor
+must still be an eligible result for that owner. Continuation does not guarantee
+a database snapshot across requests.
+
+History rows carry the visible summary and a pinned paper fingerprint (ID,
+version, rules version, demonstration flag) for internal comparison. The
+Companion adapter must omit fingerprint IDs from model-facing evidence unless
+needed and omit skills in SUMMARY mode. Only compare distinct dated non-demo
+attempts with the same pinned paper/version/rules and matching visible skill
+code/section and positive equal denominator; exclude unavailable or mismatched
+metrics. Such differences are descriptive observations, not validated progress
+or global trends. No hidden skills, grants, raw attempts, or question content
+are exposed through this contract. Invalid cursors/queries and unavailable
+history are typed failures, never empty-success substitutes.
