@@ -14,6 +14,7 @@ import java.net.InetSocketAddress;
 import java.net.URI;
 import java.time.Instant;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -34,18 +35,28 @@ public class AssessmentStorageTestSupport {
         private final AtomicInteger attempts = new AtomicInteger();
         private volatile int failOnceAt = -1;
 
+        private final AtomicReference<Runnable> beforeNextRange = new AtomicReference<>();
+        void onNextRange(Runnable hook) { beforeNextRange.set(hook); }
+        byte[] replaceObject(URI url, byte[] bytes) {
+            return files.put(url.getPath().substring(1), bytes);
+        }
+
         LocalStorage() throws IOException {
             server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
             server.createContext("/", exchange -> {
                 try (exchange) {
                     var bytes = files.get(exchange.getRequestURI().getPath().substring(1));
+                    String range = exchange.getRequestHeaders().getFirst("Range");
                     if (bytes == null || unavailablePaths.contains(exchange.getRequestURI().getPath())) {
                         exchange.sendResponseHeaders(404, -1);
-                    } else if ("bytes=0-11".equals(exchange.getRequestHeaders().getFirst("Range"))) {
+                    } else if ("bytes=0-11".equals(range) || "bytes=0-".equals(range)) {
                         exchange.getResponseHeaders().set("Content-Type", "audio/wav");
-                        exchange.getResponseHeaders().set("Content-Range", "bytes 0-11/" + bytes.length);
-                        exchange.sendResponseHeaders(206, 12);
-                        exchange.getResponseBody().write(bytes, 0, 12);
+                        var hook = beforeNextRange.getAndSet(null);
+                        if (hook != null) hook.run();
+                        int length = "bytes=0-11".equals(range) ? Math.min(12, bytes.length) : bytes.length;
+                        exchange.getResponseHeaders().set("Content-Range", "bytes 0-" + (length - 1) + "/" + bytes.length);
+                        exchange.sendResponseHeaders(206, length);
+                        exchange.getResponseBody().write(bytes, 0, length);
                     } else {
                         exchange.getResponseHeaders().set("Content-Type", "audio/wav");
                         exchange.sendResponseHeaders(200, bytes.length);
@@ -61,6 +72,7 @@ public class AssessmentStorageTestSupport {
             unavailablePaths.clear();
             attempts.set(0);
             failOnceAt = -1;
+            beforeNextRange.set(null);
         }
 
         void setAvailable(URI deliveryUrl, boolean available) {

@@ -14,7 +14,7 @@ import java.util.Locale;
 /** Performs bounded signature inspection and counts exact bytes consumed by the provider. */
 final class MediaContentInspector {
 
-    static final int SIGNATURE_BYTES = 12;
+    private static final int SIGNATURE_BYTES = 12;
 
     private MediaContentInspector() {
     }
@@ -76,7 +76,7 @@ final class MediaContentInspector {
         return null;
     }
 
-    static boolean isWav(byte[] bytes) {
+    private static boolean isWav(byte[] bytes) {
         return ascii(bytes, 0, "RIFF") && ascii(bytes, 8, "WAVE");
     }
 

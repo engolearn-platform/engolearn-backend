@@ -149,8 +149,10 @@ In `dev`, the development fixture reads PCM WAV from `ASSESSMENT_MEDIA_DIRECTORY
 defaulting to the bundled sample folder. Uploaded draft files use Media in both profiles.
 Studio preview of a saved revision and publication verify every listening WAV. Start
 verifies the opening WAV and performs the existing reference checks for later units.
-Media reads the delivered WAV signature using a fresh URL. Local dev fixtures retain
-their file, digest and duration checks. A failure reports the affected unit, keeps the
+Media verifies the full download against the recorded size and the SHA-256 from PCM
+validation at upload. Local dev fixtures retain their file, digest and duration checks.
+Start reads at most one 4,000,000-byte file from the provider. Studio checks up to 12
+WAVs in listening order and reports the first failure. A failure reports the affected unit, keeps the
 draft and live paper intact, or leaves Start without an attempt and quota usage.
 The checks run before the write transaction, which rechecks the paper or draft revision
 and, for Start, the learner eligibility. Later playback uses its existing failure flow.
@@ -308,7 +310,10 @@ Use the rollout instructions in the [Mongo importer guide](../../tools/mongo-jso
 ADMIN can list, create, rename and retire via `/api/v1/assessment/admin/micro-skills`.
 New codes without a confirmed mapping are stored pending. Rename and retirement
 leave existing paper/attempt snapshots and legacy pool keys intact. New preview and
-publication reject a retired mapped code. Learning Path recommendations retain their
+publication reject a retired mapped code. Publication rechecks the catalog under the
+same Mongo write gate as retirement, after Media preflight and before replacing the live
+version. Publication takes the catalog gate before the series gate. Retirement takes
+only the catalog gate. Learning Path recommendations retain their
 legacy `name` field as the creation key and read the new optional `displayName`
 from the shared contract. Broader Learning Path catalog and question-bank migration
 remain with the Learning Path owner. Reconcile the collection contract before

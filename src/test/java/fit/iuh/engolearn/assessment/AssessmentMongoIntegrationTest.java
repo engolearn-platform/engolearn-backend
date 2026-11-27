@@ -17,6 +17,7 @@ import fit.iuh.engolearn.subscription.service.SubscriptionPublicationService;
 import fit.iuh.engolearn.subscription.service.SubscriptionService;
 import fit.iuh.engolearn.user.contract.UserAssessmentProgress;
 import java.io.ByteArrayInputStream;
+import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
@@ -201,6 +202,20 @@ class AssessmentMongoIntegrationTest {
 
     @Test
     void submittedPlacementA1EnablesImmediateFirstPeriodicAttemptOnlyForItsOwner() throws Exception {
+        checkOpening(OpeningCase.RECOVERY);
+    }
+
+    @Test void truncatedObjectBeforeStartDoesNotConsumeQuota() throws Exception {
+        checkOpening(OpeningCase.TRUNCATE);
+    }
+
+    @Test void reviewAfterReplacementStillUsesOriginalMediaAndStartReplayIsFree() throws Exception {
+        checkOpening(OpeningCase.REVIEW);
+    }
+
+    private enum OpeningCase { RECOVERY, TRUNCATE, REVIEW }
+
+    private void checkOpening(OpeningCase openingCase) throws Exception {
         mongo.getCollection("assessment_dev_baselines").deleteOne(new Document("_id", USER));
         PlacementTestSet placementSet;
         try (var sample = new ClassPathResource("placement/sample-test-set.json").getInputStream()) {
@@ -274,6 +289,24 @@ class AssessmentMongoIntegrationTest {
         assertThat(remaining()).isEqualTo(1);
 
         storage.setAvailable(url, true);
+        if (openingCase == OpeningCase.TRUNCATE) {
+            storage.replaceObject(url, Arrays.copyOf(wav, 12));
+            var full = http.send(getWav, HttpResponse.BodyHandlers.ofByteArray());
+            var range = http.send(HttpRequest.newBuilder(url).header("Range","bytes=0-11").build(), HttpResponse.BodyHandlers.ofByteArray());
+            assertThat(range.headers().firstValue("Content-Range")).contains("bytes 0-11/12");
+            assertThat(full.body()).hasSize(12);
+            var result = mvc.perform(post(assessmentPath + "/attempts").cookie(userCookie)
+                    .contentType("application/json").content(startBody)).andReturn().getResponse();
+            System.out.printf("AUDIT truncated-start full=%d/%d range=%d/%s start=%d status=%s attempts=%d ledger=%d quota=%d%n",
+                full.statusCode(), full.body().length, range.statusCode(), range.headers().firstValue("Content-Range").orElse("?"),
+                result.getStatus(),mapper.readTree(result.getContentAsString()).at("/data/status").asString(),attempts.countDocuments(),usage.countDocuments(),remaining());
+            assertThat(result.getStatus()).isEqualTo(503);
+            assertThat(mapper.readTree(result.getContentAsString()).path("code").asString()).isEqualTo("MEDIA_UNAVAILABLE");
+            assertThat(remaining()).isEqualTo(1);
+            assertThat(attempts.countDocuments()).isZero();
+            assertThat(usage.countDocuments()).isZero();
+            storage.replaceObject(url, wav);
+        }
         var accepted = mvc.perform(post(assessmentPath + "/attempts").cookie(userCookie)
                         .contentType("application/json").content(startBody))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.data.status").value("ACTIVE"))
@@ -285,6 +318,58 @@ class AssessmentMongoIntegrationTest {
         assertThat(remaining()).isZero();
         assertThat(attempts.countDocuments()).isEqualTo(1);
         assertThat(usage.countDocuments()).isEqualTo(1);
+        System.out.printf("PFC start-recovery mode=%s attempt=%s status=ACTIVE attempts=1 ledger=1 remaining=0%n",
+                openingCase, attemptId);
+        if (openingCase == OpeningCase.REVIEW) {
+            storage.setAvailable(url,false);
+            var replay = mvc.perform(post(assessmentPath + "/attempts").cookie(userCookie)
+                    .contentType("application/json").content(startBody))
+                    .andExpect(status().isOk()).andExpect(jsonPath("$.data.id").value(attemptId)).andReturn().getResponse();
+            var replayState=mapper.readTree(replay.getContentAsString()).path("data");
+            var startState=mapper.readTree(accepted.getContentAsString()).path("data");
+            assertThat(replayState.path("startedAt")).isEqualTo(startState.path("startedAt"));
+            assertThat(replayState.path("deadline")).isEqualTo(startState.path("deadline"));
+            assertThat(usage.countDocuments()).isEqualTo(1);
+            assertThat(attempts.countDocuments()).isEqualTo(1);
+
+            byte[] replacement = wav.clone();
+            replacement[replacement.length-1] ^= 1;
+            var sha=MessageDigest.getInstance("SHA-256");
+            String newDigest = HexFormat.of().formatHex(sha.digest(replacement));
+            var asset2 = mediaManagement.upload(new UploadMediaCommandDto("ASSESSMENT_AUDIO", MediaAccessPolicy.PROTECTED,
+                    "replacement.wav","audio/wav",replacement.length,new ByteArrayInputStream(replacement)));
+            mongo.save(new AssessmentAudioAsset(newDigest,asset2.mediaId(),0.1));
+            int oldVersion = published.getVersion();
+            published.setPublished(false);
+            mongo.save(published);
+            published.setId(published.getId()+"-new");
+            published.setPublished(true);
+            published.setVersion(oldVersion+1);
+            published.getUnits().getFirst().setAudioMediaId(asset2.mediaId());
+            published.getUnits().getFirst().setAudioSha256(newDigest);
+            mongo.save(published);
+
+            clock.at=START.plusSeconds(2);
+            assertThat(service.answer(USER,attemptId,binding,answer(1,1,0),false).savedCount()).isEqualTo(1);
+            assertThat(service.submit(USER,attemptId,binding).status()).isEqualTo("READY");
+            String reviewPath=assessmentPath+"/attempts/"+attemptId+"/review/audio/0";
+            mvc.perform(get(reviewPath).cookie(otherCookie)).andExpect(status().isNotFound());
+            var firstReview=mvc.perform(get(reviewPath).cookie(userCookie)).andExpect(status().isOk()).andReturn().getResponse();
+            var firstUri=URI.create(mapper.readTree(firstReview.getContentAsString()).at("/data/url").asString());
+            assertThat(http.send(HttpRequest.newBuilder(firstUri).build(),HttpResponse.BodyHandlers.discarding()).statusCode()).isEqualTo(404);
+            storage.setAvailable(url,true);
+            var retry=mvc.perform(get(reviewPath).cookie(userCookie)).andExpect(status().isOk()).andReturn().getResponse();
+            var retryUri=URI.create(mapper.readTree(retry.getContentAsString()).at("/data/url").asString());
+            var recovered=http.send(HttpRequest.newBuilder(retryUri).build(),HttpResponse.BodyHandlers.ofByteArray());
+            assertThat(recovered.statusCode()).isEqualTo(200);
+            assertThat(recovered.body()).containsExactly(wav);
+            assertThat(recovered.body()).isNotEqualTo(replacement);
+            assertThat(store.attempt(attemptId,USER).getPaper().getVersion()).isEqualTo(oldVersion);
+            assertThat(store.published().getFirst().getVersion()).isEqualTo(oldVersion+1);
+            System.out.printf("AUDIT history activeReplay=200 sameIdStartDeadline=true attempts=%d ledger=%d remaining=%d oldVersion=%d newVersion=%d foreign=404 oldWav=404 recovered=200 sha=%s newSha=%s%n",
+                    attempts.countDocuments(),usage.countDocuments(),remaining(),oldVersion,oldVersion+1,
+                    HexFormat.of().formatHex(sha.digest(recovered.body())),newDigest);
+        }
     }
 
     @Test

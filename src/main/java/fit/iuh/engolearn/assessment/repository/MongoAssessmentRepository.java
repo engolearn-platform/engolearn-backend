@@ -17,7 +17,7 @@ import static org.springframework.data.mongodb.core.query.Criteria.where;
 public class MongoAssessmentRepository implements AssessmentRepository {
     private final MongoTemplate mongo;
     public void ensureGate(String user) {
-        mongo.upsert(Query.query(where("user_id").is(user)),new Update().setOnInsert("user_id",user).setOnInsert("revision",0),"assessment_gates");
+        mongo.upsert(Query.query(where("user_id").is(user)), new Update().setOnInsert("revision", 0), "assessment_gates");
     }
     public void lock(String user) {
         mongo.findAndModify(Query.query(where("user_id").is(user)),new Update().inc("revision",1),Document.class,"assessment_gates");

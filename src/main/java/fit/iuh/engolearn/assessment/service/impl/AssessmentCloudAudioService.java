@@ -53,7 +53,7 @@ public class AssessmentCloudAudioService implements AssessmentCloudAudio {
     public void verifyWav(AssessmentAudioAsset asset, int maxSeconds) {
         validateAsset(asset, maxSeconds);
         try {
-            media.verifyWavDelivery(asset.getMediaId());
+            media.verifyWavDelivery(asset.getMediaId(), asset.getId(), AssessmentWav.MAX_BYTES);
         } catch (MediaNotFoundException | MediaStorageUnavailableException ex) {
             throw unavailable();
         }

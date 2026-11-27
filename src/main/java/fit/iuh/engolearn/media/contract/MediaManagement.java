@@ -21,9 +21,10 @@ public interface MediaManagement {
     MediaDeliveryDto resolve(String mediaId);
 
     /**
-     * Reads the WAV signature through a fresh provider delivery URL.
+     * Verifies the complete delivered WAV against the registered size and caller's
+     * SHA-256 of the validated source, within the caller's size limit.
      * Call after authorizing the owning content and outside database transactions.
      * Throws MediaNotFoundException or MediaStorageUnavailableException if unavailable.
      */
-    void verifyWavDelivery(String mediaId);
+    void verifyWavDelivery(String mediaId, String sha256, long maximumBytes);
 }

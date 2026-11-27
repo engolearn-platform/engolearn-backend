@@ -13,11 +13,18 @@ This is the primary document for developers integrating Topic, Quiz or another f
 7. The caller opens and closes the upload stream. Media consumes it synchronously and does not close or retain it.
 
 For actions that require an available WAV before committing state, authorize the owning
-content first and call `verifyWavDelivery(mediaId)` outside the database transaction.
-Media requests the first 12 bytes using a fresh provider URL and checks the WAV signature.
-It accepts a full or ranged successful response, with bounded connect/read timeouts and
-redirects disabled. The check returns no URL and does not change the normal delivery or
-renewal contract. Upload validation and listening in the browser cover the rest of the WAV.
+content first and call `verifyWavDelivery(mediaId, sha256, maximumBytes)` outside the
+database transaction. Supply the digest of the source WAV validated before upload.
+Media requests original bytes through a fresh signed URL and hashes the stream within
+the asset's recorded size and the caller's cap. The connection timeout is 3 seconds
+and the complete request has an 8-second deadline. Redirects and content encodings
+other than identity are rejected. HTTP 200 may omit Content-Length. HTTP 206 must
+describe the entire object with Content-Range. If provided, Content-Length must match
+the stored size. Both responses must deliver the expected number of bytes and digest.
+
+Playback and URL renewal continue through `resolve`. A successful check establishes
+the bytes delivered at verification time. Provider availability can change before
+later playback, which uses the owning feature's existing failure handling.
 
 ## Upload example
 

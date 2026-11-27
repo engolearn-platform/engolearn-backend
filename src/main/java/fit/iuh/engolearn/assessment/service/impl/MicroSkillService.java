@@ -6,6 +6,7 @@ import fit.iuh.engolearn.assessment.dto.request.MicroSkillRequest;
 import fit.iuh.engolearn.assessment.exception.AssessmentException;
 import fit.iuh.engolearn.assessment.model.MicroSkill;
 import fit.iuh.engolearn.assessment.repository.MicroSkillRepository;
+import fit.iuh.engolearn.assessment.service.AssessmentTransactions;
 import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
@@ -17,7 +18,10 @@ import org.springframework.stereotype.Service;
 @Service
 @RequiredArgsConstructor
 public class MicroSkillService implements MicroSkillCatalog {
+    static final String PUBLICATION_GATE = "micro-skill-catalog";
+
     private final MicroSkillRepository skills;
+    private final AssessmentTransactions transactions;
 
     @Override
     public List<Entry> list() { return skills.list().stream().map(MicroSkillService::entry).toList(); }
@@ -51,7 +55,7 @@ public class MicroSkillService implements MicroSkillCatalog {
 
     @PreAuthorize("hasRole('ADMIN')")
     public Entry retire(String code) {
-        return updated(code, new Update().set("active", false));
+        return transactions.execute(PUBLICATION_GATE, () -> updated(code, new Update().set("active", false)));
     }
 
     private Entry updated(String code, Update changes) {

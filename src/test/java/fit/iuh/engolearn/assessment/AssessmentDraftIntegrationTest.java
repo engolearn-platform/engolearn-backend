@@ -316,6 +316,24 @@ class AssessmentDraftIntegrationTest {
 
     @Test
     void workbookPreviewAndMediaRetryCreateExactlyOneReviewedRevision() throws Exception {
+        workbook(PublicationCase.RECOVERY);
+    }
+
+    @Test void truncatedObjectBeforePublicationKeepsDraftAndPreviousPaper() throws Exception {
+        workbook(PublicationCase.TRUNCATE);
+    }
+
+    @Test void retiredSkillDuringPublicationKeepsDraftAndPreviousPaper() throws Exception {
+        workbook(PublicationCase.RETIRE);
+    }
+
+    @Test void revisionEditedDuringPublicationKeepsTheNewDraft() throws Exception {
+        workbook(PublicationCase.EDIT_REVISION);
+    }
+
+    private enum PublicationCase { RECOVERY, TRUNCATE, RETIRE, EDIT_REVISION }
+
+    private void workbook(PublicationCase publicationCase) throws Exception {
         String admin = login("ADMIN");
         String learner = login("USER");
         assertThat(call("GET", IMPORTS + "/template", null, learner).statusCode()).isEqualTo(403);
@@ -433,9 +451,102 @@ class AssessmentDraftIntegrationTest {
             assertThat(papers.find(new Document("published", true)).first()).isEqualTo(paper);
             storage.setAvailable(url, true);
         }
-        var published = call("POST", path + "/publish", body, admin);
+        if (publicationCase == PublicationCase.TRUNCATE) {
+            var advertised = call("GET", path + "/preview/audio/0?revision=" + revision, null, admin);
+            var uri = URI.create(json.readTree(advertised.body()).at("/data/url").asString());
+            byte[] original = http.send(HttpRequest.newBuilder(uri).build(), HttpResponse.BodyHandlers.ofByteArray()).body();
+            storage.replaceObject(uri, Arrays.copyOf(original, 12));
+            var full = http.send(HttpRequest.newBuilder(uri).build(), HttpResponse.BodyHandlers.ofByteArray());
+            var range = http.send(HttpRequest.newBuilder(uri).header("Range","bytes=0-11").build(), HttpResponse.BodyHandlers.ofByteArray());
+            assertThat(full.body()).hasSize(12);
+            assertThat(range.headers().firstValue("Content-Range")).contains("bytes 0-11/12");
+            var rechecked = call("POST", path + "/preview", body, admin);
+            var result = call("POST", path + "/publish", body, admin);
+            var live = papers.find(new Document("published", true)).first();
+            System.out.printf("AUDIT truncated-publish url=%d full=%d/%d range=%d/%s preview=%d publish=%d draftCount=%d publishedVersion=%d previousLive=%d revisionMatches=%s%n",
+                advertised.statusCode(),full.statusCode(),full.body().length,range.statusCode(),range.headers().firstValue("Content-Range").orElse("?"),
+                rechecked.statusCode(),result.statusCode(),mongoTemplate.getCollection("assessment_paper_drafts").countDocuments(),
+                live.getInteger("version"),papers.countDocuments(new Document("version",1).append("published",true)),
+                revision.equals(live.getString("published_draft_revision")));
+            for (var rejected : List.of(rechecked, result)) {
+                assertThat(rejected.statusCode()).as(rejected.body()).isEqualTo(503);
+                assertThat(json.readTree(rejected.body()).path("code").asString()).isEqualTo("MEDIA_UNAVAILABLE");
+                assertThat(rejected.body()).contains("Phần 1:");
+            }
+            assertThat(mongoTemplate.getCollection("assessment_paper_drafts").find().first()).isEqualTo(unchangedDraft);
+            assertThat(papers.countDocuments()).isEqualTo(1);
+            assertThat(live).isEqualTo(paper);
+            storage.replaceObject(uri, original);
+        }
+        if (publicationCase == PublicationCase.RETIRE) {
+            assertThat(unchangedDraft.getList("skills",Document.class)).anyMatch(s -> "R02".equals(s.getString("code")));
+            var retired = new java.util.concurrent.atomic.AtomicInteger();
+            var stillOld = new java.util.concurrent.atomic.AtomicInteger();
+            storage.onNextRange(() -> {
+                try {
+                    retired.set(call("POST", SKILLS + "/R02/retire", "{}", admin).statusCode());
+                    stillOld.set(papers.find(new Document("published",true)).first().getInteger("version"));
+                } catch (Exception e) { throw new RuntimeException(e); }
+            });
+            var result = call("POST", path + "/publish", body, admin);
+            assertThat(retired.get()).isEqualTo(200);
+            assertThat(stillOld.get()).isEqualTo(1);
+            var live = papers.find(new Document("published",true)).first();
+            System.out.printf("AUDIT retire-during-range retire=%d liveAtRetire=%d publish=%d liveAfterPublish=%d includesR02=%s activeR02=%s draftCount=%d%n",
+                retired.get(), stillOld.get(), result.statusCode(), live.getInteger("version"),
+                live.getList("skills",Document.class).stream().anyMatch(s -> "R02".equals(s.getString("code"))),
+                mongoTemplate.getCollection("micro_skills").find(new Document("_id","R02")).first().getBoolean("active"),
+                mongoTemplate.getCollection("assessment_paper_drafts").countDocuments());
+            assertThat(result.statusCode()).isEqualTo(422);
+            assertThat(json.readTree(result.body()).path("code").asString()).isEqualTo("MICRO_SKILL_UNAVAILABLE");
+            assertThat(live).isEqualTo(paper);
+            assertThat(papers.countDocuments()).isEqualTo(1);
+            assertThat(mongoTemplate.getCollection("assessment_paper_drafts").find().first()).isEqualTo(unchangedDraft);
+            return;
+        }
+        if (publicationCase == PublicationCase.EDIT_REVISION) {
+            var draftView = json.readTree(call("GET", path, null, admin).body()).path("data");
+            var nextDraft = json.writeValueAsString(Map.of("revision", revision, "name", "Sửa trong lúc kiểm WAV",
+                    "units", draftView.path("units"), "skills", draftView.path("skills")));
+            var edit = new CompletableFuture<HttpResponse<String>>();
+            storage.onNextRange(() -> {
+                try {
+                    edit.complete(call("PUT", path, nextDraft, admin));
+                } catch (Exception failure) {
+                    edit.completeExceptionally(failure);
+                }
+            });
+            var conflictingPublish = call("POST", path + "/publish", body, admin);
+            assertThat(edit.get(2, TimeUnit.SECONDS).statusCode()).isEqualTo(200);
+            assertThat(conflictingPublish.statusCode()).isEqualTo(409);
+            assertThat(json.readTree(conflictingPublish.body()).path("code").asString()).isEqualTo("STALE_DRAFT");
+            var revised = json.readTree(edit.join().body()).path("data").path("revision").asString();
+            var savedDraft = mongoTemplate.getCollection("assessment_paper_drafts").find().first();
+            assertThat(savedDraft.getString("revision")).isEqualTo(revised).isNotEqualTo(revision);
+            assertThat(papers.countDocuments()).isEqualTo(1);
+            assertThat(papers.find(new Document("published", true)).first()).isEqualTo(paper);
+            System.out.printf("PFC revision-race edit=200 publish=409 oldRevision=%s currentRevision=%s live=1%n",
+                    revision, revised);
+            return;
+        }
+
+        HttpResponse<String> published;
+        try (var pool = Executors.newFixedThreadPool(2)) {
+            var go = new CountDownLatch(1);
+            Callable<HttpResponse<String>> publish = () -> { go.await(); return call("POST", path + "/publish", body, admin); };
+            var first = pool.submit(publish);
+            var second = pool.submit(publish);
+            go.countDown();
+            published = first.get(30, TimeUnit.SECONDS);
+            var concurrent = second.get(30, TimeUnit.SECONDS);
+            assertThat(concurrent.statusCode()).as(concurrent.body()).isEqualTo(200);
+            assertThat(json.readTree(concurrent.body()).path("data")).isEqualTo(json.readTree(published.body()).path("data"));
+        }
         assertThat(published.statusCode()).as(published.body()).isEqualTo(200);
         assertThat(json.readTree(published.body()).at("/data/version").asInt()).isEqualTo(2);
+        var liveAfterPublish = papers.find(new Document("published", true)).first();
+        assertThat(call("POST", SKILLS + "/R02/retire", "{}", admin).statusCode()).isEqualTo(200);
+        assertThat(papers.find(new Document("published", true)).first()).isEqualTo(liveAfterPublish);
         var repeated = call("POST", path + "/publish", body, admin);
         assertThat(repeated.statusCode()).as(repeated.body()).isEqualTo(200);
         assertThat(json.readTree(repeated.body()).path("data")).isEqualTo(json.readTree(published.body()).path("data"));
@@ -444,6 +555,7 @@ class AssessmentDraftIntegrationTest {
         assertThat(papers.countDocuments(new Document("published", true).append("published_draft_revision", revision)))
                 .isEqualTo(1);
         assertThat(mongoTemplate.getCollection("assessment_paper_drafts").countDocuments()).isZero();
+        System.out.printf("PFC publish-recovery mode=%s concurrent=200/200 retireAfter=200 replay=200 revision=%s liveVersion=2 papers=2 drafts=0%n",
+                publicationCase, revision);
     }
-
 }

@@ -12,6 +12,7 @@ import fit.iuh.engolearn.assessment.model.AssessmentPaper;
 import fit.iuh.engolearn.assessment.model.AssessmentTimeline;
 import fit.iuh.engolearn.assessment.model.enums.AssessmentUnitKind;
 import fit.iuh.engolearn.assessment.repository.AssessmentDraftRepository;
+import fit.iuh.engolearn.assessment.repository.AssessmentRepository;
 import fit.iuh.engolearn.assessment.service.AssessmentMedia;
 import fit.iuh.engolearn.assessment.service.AssessmentPublishing;
 import fit.iuh.engolearn.assessment.service.AssessmentPaperSelection;
@@ -27,6 +28,7 @@ import org.springframework.stereotype.Service;
 @PreAuthorize("hasRole('CONTENT_MANAGER')")
 public class AssessmentPublishingService implements AssessmentPublishing {
     private final AssessmentDraftRepository drafts;
+    private final AssessmentRepository assessments;
     private final AssessmentPaperSelection selection;
     private final AssessmentTransactions transactions;
     private final AssessmentMedia audio;
@@ -74,10 +76,15 @@ public class AssessmentPublishingService implements AssessmentPublishing {
             throw ex;
         }
 
-        return transactions.execute("paper:" + series, () -> {
+        String seriesGate = "paper:" + series;
+        assessments.ensureGate(seriesGate);
+        // The shared write gate orders catalog retirement and publication before either commits.
+        return transactions.execute(MicroSkillService.PUBLICATION_GATE, () -> {
             var replay = drafts.publishedFromRevision(series, revision);
             if (replay != null) return response(replay);
+            assessments.lock(seriesGate);
             var draft = requireReviewed(series, revision);
+            validateSkills(draft);
             var latest = drafts.latestPaper(series);
             if (latest != null && latest.getVersion() >= draft.getVersion()) throw stale();
             if (!drafts.delete(draft)) throw stale();
@@ -129,15 +136,7 @@ public class AssessmentPublishingService implements AssessmentPublishing {
         if (draft.getName() == null || draft.getName().isBlank()) {
             throw new AssessmentException(422, "PAPER_INVALID", "Tên bộ đề còn trống.");
         }
-        if (draft.getSkills() != null) {
-            for (var skill : draft.getSkills()) {
-                if (skill != null && microSkills.find(skill.getCode())
-                        .filter(entry -> !entry.availableForAssessment()).isPresent()) {
-                    throw new AssessmentException(422, "MICRO_SKILL_UNAVAILABLE",
-                            "Kỹ năng " + skill.getCode() + " đã ngừng dùng hoặc chưa có mapping.");
-                }
-            }
-        }
+        validateSkills(draft);
         var paper = AssessmentPaper.builder()
                 .id("paper:" + draft.getSeries() + ":" + draft.getVersion())
                 .series(draft.getSeries()).name(draft.getName()).version(draft.getVersion())
@@ -152,6 +151,18 @@ public class AssessmentPublishingService implements AssessmentPublishing {
             throw ex;
         }
         return paper;
+    }
+
+    private void validateSkills(AssessmentDraft draft) {
+        if (draft.getSkills() != null) {
+            for (var skill : draft.getSkills()) {
+                if (skill != null && microSkills.find(skill.getCode())
+                        .filter(entry -> !entry.availableForAssessment()).isPresent()) {
+                    throw new AssessmentException(422, "MICRO_SKILL_UNAVAILABLE",
+                            "Kỹ năng " + skill.getCode() + " đã ngừng dùng hoặc chưa có mapping.");
+                }
+            }
+        }
     }
 
     private static ManagedAssessmentPaperResponse response(AssessmentPaper paper) {
