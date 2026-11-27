@@ -4,6 +4,7 @@ import fit.iuh.engolearn.config.AbstractMongoIntegrationTest;
 import fit.iuh.engolearn.config.SpeakingMongoIndexes;
 import fit.iuh.engolearn.quota.contract.dto.AvailabilityResultDto;
 import fit.iuh.engolearn.quota.service.impl.QuotaServiceImpl;
+import fit.iuh.engolearn.quota.contract.exception.QuotaUnavailableException;
 import fit.iuh.engolearn.shared.enums.CefrLevel;
 import fit.iuh.engolearn.shared.enums.UserRole;
 import fit.iuh.engolearn.shared.security.impl.AuthenticatedUserPrincipal;
@@ -17,6 +18,7 @@ import fit.iuh.engolearn.speaking.model.enums.SpeakingAudioStatus;
 import fit.iuh.engolearn.speaking.model.enums.SpeakingSessionStatus;
 import fit.iuh.engolearn.speaking.model.enums.SpeakingTurnStatus;
 import fit.iuh.engolearn.speaking.model.vo.SpeakingOpeningVo;
+import fit.iuh.engolearn.speaking.model.vo.SpeakingTurnVo;
 import fit.iuh.engolearn.speaking.service.SpeakingSessions;
 import fit.iuh.engolearn.speaking.service.SpeakingRuntime;
 import fit.iuh.engolearn.topic.contract.TopicSpeakingAccess;
@@ -367,6 +369,121 @@ class SpeakingFoundationMongoIntegrationTest extends AbstractMongoIntegrationTes
     }
 
     @Test
+    void exhaustedQuotaClosesSessionAndBlocksResumeAndReconnect() {
+        publish(TOPIC, "Cafe");
+        authorize(LEARNER, UserRole.USER);
+        String session = sessions.create(new Create(TOPIC, UUID.randomUUID())).session().sessionId();
+        runtime.completeOpening(session, new SpeakingOpeningVo("Hello", null, SpeakingAudioStatus.TEXT_READY, null));
+        doReturn(new AvailabilityResultDto("SPEAKING_DURATION", 3600, 3600, 0, "SECOND", "DAILY",
+                Instant.now().minusSeconds(1), Instant.now().plusSeconds(3600), Instant.now().minusSeconds(1), "ACTIVE"))
+                .when(quota).checkAvailability(LEARNER, "SPEAKING_DURATION");
+
+        assertCode(() -> sessions.resume(session, new Resume(UUID.randomUUID(), 1L)), "DAILY_QUOTA_REACHED");
+        assertThat(sessions.read(session).status()).isEqualTo(SpeakingSessionStatus.ENDED);
+        assertCode(() -> sessions.ticket(session, 1), "SESSION_ENDED");
+        assertThat(sessions.history(TOPIC, 0, 20).items()).hasSize(1);
+    }
+
+    @Test
+    void quotaOutageBlocksResumeWithoutChangingSessionAndKeepsReadAvailable() {
+        publish(TOPIC, "Cafe");
+        authorize(LEARNER, UserRole.USER);
+        String session = sessions.create(new Create(TOPIC, UUID.randomUUID())).session().sessionId();
+
+        org.mockito.Mockito.doThrow(new QuotaUnavailableException()).when(quota)
+                .checkAvailability(LEARNER, "SPEAKING_DURATION");
+
+        assertCode(() -> sessions.resume(session, new Resume(UUID.randomUUID(), 1L)), "QUOTA_UNAVAILABLE");
+        assertThat(sessions.read(session).status()).isEqualTo(SpeakingSessionStatus.INITIALIZING);
+        assertThat(sessions.read(session).controllerEpoch()).isEqualTo(1);
+        assertCode(() -> sessions.ticket(session, 1), "QUOTA_UNAVAILABLE");
+        assertThat(sessions.read(session).controllerEpoch()).isEqualTo(1);
+    }
+
+    @Test
+    void exhaustedQuotaBlocksTicketIssuanceAndEndsSession() {
+        publish(TOPIC, "Cafe");
+        authorize(LEARNER, UserRole.USER);
+        String session = sessions.create(new Create(TOPIC, UUID.randomUUID())).session().sessionId();
+        doReturn(new AvailabilityResultDto("SPEAKING_DURATION", 3600, 3600, 0, "SECOND", "DAILY",
+                Instant.now().minusSeconds(1), Instant.now().plusSeconds(3600), Instant.now().minusSeconds(1), "ACTIVE"))
+                .when(quota).checkAvailability(LEARNER, "SPEAKING_DURATION");
+
+        assertCode(() -> sessions.ticket(session, 1), "DAILY_QUOTA_REACHED");
+        assertThat(sessions.read(session).status()).isEqualTo(SpeakingSessionStatus.ENDED);
+    }
+
+    @Test
+    void resumeReplayDoesNotRecheckQuotaOrCloseAnAlreadyResumedSession() {
+        publish(TOPIC, "Cafe");
+        authorize(LEARNER, UserRole.USER);
+        String session = sessions.create(new Create(TOPIC, UUID.randomUUID())).session().sessionId();
+        var request = new Resume(UUID.randomUUID(), 1L);
+        assertThat(sessions.resume(session, request).controllerEpoch()).isEqualTo(2);
+        org.mockito.Mockito.clearInvocations(quota);
+        doReturn(new AvailabilityResultDto("SPEAKING_DURATION", 3600, 3600, 0, "SECOND", "DAILY",
+                Instant.now().minusSeconds(1), Instant.now().plusSeconds(3600), Instant.now().minusSeconds(1), "ACTIVE"))
+                .when(quota).checkAvailability(LEARNER, "SPEAKING_DURATION");
+
+        assertThat(sessions.resume(session, request).controllerEpoch()).isEqualTo(2);
+        org.mockito.Mockito.verifyNoInteractions(quota);
+        assertThat(sessions.read(session).status()).isEqualTo(SpeakingSessionStatus.INITIALIZING);
+    }
+
+    @Test
+    void quotaDenialCannotCloseSessionAfterControllerEpochChanges() {
+        publish(TOPIC, "Cafe");
+        authorize(LEARNER, UserRole.USER);
+        String session = sessions.create(new Create(TOPIC, UUID.randomUUID())).session().sessionId();
+        org.mockito.Mockito.doAnswer(invocation -> {
+            SpeakingSession current = repository.findById(session).orElseThrow();
+            current.setControllerEpoch(2L);
+            repository.save(current);
+            return new AvailabilityResultDto("SPEAKING_DURATION", 3600, 3600, 0, "SECOND", "DAILY",
+                    Instant.now().minusSeconds(1), Instant.now().plusSeconds(3600), Instant.now().minusSeconds(1), "ACTIVE");
+        }).when(quota).checkAvailability(LEARNER, "SPEAKING_DURATION");
+
+        assertCode(() -> sessions.ticket(session, 1), "CONTROLLER_CHANGED");
+        assertThat(sessions.read(session).status()).isEqualTo(SpeakingSessionStatus.INITIALIZING);
+        assertThat(sessions.read(session).controllerEpoch()).isEqualTo(2);
+    }
+
+    @Test
+    void exhaustedQuotaBetweenTicketAndSocketConnectionBlocksReconnect() {
+        publish(TOPIC, "Cafe");
+        authorize(LEARNER, UserRole.USER);
+        String session = sessions.create(new Create(TOPIC, UUID.randomUUID())).session().sessionId();
+        var ticket = sessions.ticket(session, 1);
+        doReturn(new AvailabilityResultDto("SPEAKING_DURATION", 3600, 3600, 0, "SECOND", "DAILY",
+                Instant.now().minusSeconds(1), Instant.now().plusSeconds(3600), Instant.now().minusSeconds(1), "ACTIVE"))
+                .when(quota).checkAvailability(LEARNER, "SPEAKING_DURATION");
+
+        assertCode(() -> runtime.consumeTicket(session, ticket.ticket()), "DAILY_QUOTA_REACHED");
+        assertThat(sessions.read(session).status()).isEqualTo(SpeakingSessionStatus.ENDED);
+        assertThat(sessions.history(TOPIC, 0, 20).items()).hasSize(1);
+    }
+
+    @Test
+    void closingSessionCanReconnectToObserveAcceptedTurn() {
+        publish(TOPIC, "Cafe");
+        publish(ITEM, "Order");
+        authorize(LEARNER, UserRole.USER);
+        String session = sessions.create(new Create(TOPIC, UUID.randomUUID())).session().sessionId();
+        runtime.completeOpening(session, new SpeakingOpeningVo("Hello", null, SpeakingAudioStatus.TEXT_READY, null));
+        var lease = runtime.consumeTicket(session, sessions.ticket(session, 1).ticket());
+        var turn = runtime.admit(lease, UUID.randomUUID());
+        runtime.recordingStarted(lease, turn.turnId());
+        runtime.seal(lease, turn.turnId(), null, 3500);
+        assertThat(sessions.replace(new Replace(ITEM, UUID.randomUUID(), session, 1L)).replacingSessionId())
+                .isEqualTo(session);
+        assertThat(sessions.read(session).status()).isEqualTo(SpeakingSessionStatus.CLOSING);
+
+        runtime.releaseLease(lease);
+        var reconnect = runtime.consumeTicket(session, sessions.ticket(session, 1).ticket());
+        assertThat(runtime.state(reconnect).status()).isEqualTo(SpeakingSessionStatus.CLOSING);
+    }
+
+    @Test
     void replacementWaitsForFinalizedTurnCutoffAndRejectsLateWork() {
         publish(TOPIC, "Cafe");
         publish(ITEM, "Order");
@@ -673,6 +790,55 @@ class SpeakingFoundationMongoIntegrationTest extends AbstractMongoIntegrationTes
                 .andExpect(status().isNoContent()).andExpect(content().string(""));
         mvc.perform(get(sessionsPath + "/" + id).cookie(cookie(LEARNER)))
                 .andExpect(status().isNotFound()).andExpect(jsonPath("$.code").value("SESSION_NOT_FOUND"));
+    }
+
+    @Test
+    void deletingSessionPersistsSealedTerminalMarkerForQuotaRecovery() {
+        publish(TOPIC, "Cafe");
+        authorize(LEARNER, UserRole.USER);
+        String sessionId = sessions.create(new Create(TOPIC, UUID.randomUUID())).session().sessionId();
+        String turnId = UUID.randomUUID().toString();
+        var marker = SpeakingTurnVo.builder().turnId(turnId).sequence(1).revision(1L)
+                .status(SpeakingTurnStatus.FAILED).sealedAt(Instant.now()).speechDurationMs(1_500).build();
+        var current = repository.findById(sessionId).orElseThrow();
+        current.setActiveTurn(marker);
+        repository.save(current);
+
+        sessions.delete(sessionId);
+
+        assertThat(turns.findById(turnId)).isPresent();
+        assertThat(turns.findById(turnId).orElseThrow().getValue().getSealedAt()).isNotNull();
+        assertThat(repository.findById(sessionId).orElseThrow().getActiveTurn()).isNull();
+    }
+
+    @Test
+    void deletingSealedNonterminalTurnPreservesMeasuredSpeechAndWaitForRecovery() {
+        publish(TOPIC, "Cafe");
+        authorize(LEARNER, UserRole.USER);
+        String sessionId = sessions.create(new Create(TOPIC, UUID.randomUUID())).session().sessionId();
+        String turnId = UUID.randomUUID().toString();
+        var marker = SpeakingTurnVo.builder().turnId(turnId).sequence(1).revision(2L)
+                .status(SpeakingTurnStatus.GENERATING).sealedAt(Instant.now()).speechDurationMs(1_500)
+                .successfulWaitMs(2_500).build();
+        var current = repository.findById(sessionId).orElseThrow();
+        current.setActiveTurn(marker);
+        repository.save(current);
+
+        sessions.delete(sessionId);
+
+        var obligation = turns.findById(turnId).orElseThrow();
+        assertThat(obligation.getValue().getStatus()).isEqualTo(SpeakingTurnStatus.FAILED);
+        assertThat(obligation.getValue().getSpeechDurationMs()).isEqualTo(1_500);
+        assertThat(obligation.getValue().getSuccessfulWaitMs()).isEqualTo(2_500);
+    }
+
+    @Test
+    void missingAuthoritativeSpeakingRuleHasASeparateAvailabilityCode() {
+        publish(TOPIC, "Cafe");
+        authorize(LEARNER, UserRole.USER);
+        org.mockito.Mockito.doThrow(new QuotaUnavailableException(true)).when(quota)
+                .checkAvailability(LEARNER, "SPEAKING_DURATION");
+        assertCode(() -> sessions.create(new Create(TOPIC, UUID.randomUUID())), "QUOTA_NOT_CONFIGURED");
     }
 
     @Test

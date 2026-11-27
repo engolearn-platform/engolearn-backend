@@ -16,6 +16,9 @@ import java.util.Optional;
 public interface SpeakingSessionRepository extends MongoRepository<SpeakingSession, String> {
     Optional<SpeakingSession> findByOwnerIdAndClientRequestId(String ownerId, String requestId);
     Optional<SpeakingSession> findByUnfinishedOwner(String ownerId);
+    List<SpeakingSession> findTop100ByOwnerIdAndDeletedAtIsNotNullAndActiveTurnSealedAtIsNotNull(String ownerId);
+    List<SpeakingSession> findTop100ByDeletedAtIsNotNullAndActiveTurnSealedAtIsNotNull();
+    boolean existsByOwnerIdAndDeletedAtIsNotNullAndActiveTurnSealedAtIsNotNull(String ownerId);
     Slice<SpeakingSession> findByOwnerIdAndDeletedAtIsNull(String ownerId, Pageable pageable);
     Slice<SpeakingSession> findByOwnerIdAndDeletedAtIsNullAndSnapshotScopeTypeAndSnapshotTopicIdAndSnapshotTopicItemId(
             String ownerId, SpeakingScopeType scopeType, String topicId, String itemId, Pageable pageable);

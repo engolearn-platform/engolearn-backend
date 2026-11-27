@@ -599,11 +599,15 @@ public class SubscriptionProductServiceImpl implements SubscriptionProductServic
 
     private PlanCardResponse card(SubscriptionProduct product, SubscriptionProductVersion version) {
         ProductContentVo content = version.getContent();
+        Long speakingLimit = content.getQuotaRules() == null ? null : content.getQuotaRules().stream()
+                .filter(rule -> "SPEAKING_DURATION".equals(rule.getQuotaType())
+                        && "SECOND".equals(rule.getUnit()) && rule.getPeriod() == QuotaPeriod.DAILY)
+                .map(QuotaRuleVo::getLimit).findFirst().orElse(null);
         return new PlanCardResponse(product.getPlanCode(), content.getDisplayName(), content.getDescription(),
                 content.getBenefits().stream().sorted(Comparator.comparingInt(PlanBenefitVo::getSortOrder)
                         .thenComparing(PlanBenefitVo::getCode)).map(SubscriptionModelMapper::toDto).toList(),
                 content.getBillingOptions().stream().map(SubscriptionModelMapper::toDto).toList(),
-                version.getVersion(), product.getSaleStatus().name());
+                version.getVersion(), product.getSaleStatus().name(), speakingLimit);
     }
 
     private ProductContentVo normalizeDraft(SubscriptionProductContentRequest content) {

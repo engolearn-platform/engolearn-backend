@@ -17,6 +17,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.time.Clock;
+import java.time.Instant;
 import java.util.Optional;
 
 @Service
@@ -39,15 +40,34 @@ public class SpeakingQuotaImpl implements SpeakingQuota {
     }
 
     @Override
-    public void recover() {
-        for (var row : archive.pendingCharges(clock.instant(), 100)) {
+    public boolean pendingOwner(String ownerId) {
+        for (var row : archive.pendingChargesForOwner(ownerId, clock.instant(), 100)) {
             try {
                 sessions.findById(row.getSessionId()).ifPresent(session -> record(session, row));
+            } catch (RuntimeException unavailable) {
+                log.warn("Speaking owner settlement remains pending for turn {}", row.getId());
+                return false;
+            }
+        }
+        return !archive.hasPendingChargesForOwner(ownerId);
+    }
+
+    @Override
+    public java.util.Set<String> recover() {
+        var owners = new java.util.LinkedHashSet<String>();
+        for (var row : archive.pendingCharges(clock.instant(), 100)) {
+            try {
+                var session = sessions.findById(row.getSessionId()).orElse(null);
+                if (session != null) record(session, row);
+                var settled = turns.findById(row.getId()).orElse(null);
+                if (session != null && settled != null && settled.isQuotaRecorded() && settled.getCharge() != null
+                        && settled.getCharge().seconds() > 0) owners.add(session.getOwnerId());
             } catch (RuntimeException failure) {
                 archive.deferCharge(row, clock.instant());
                 log.warn("Speaking charge is still pending for turn {}", row.getId());
             }
         }
+        return owners;
     }
 
     private void record(SpeakingSession session, SpeakingTurn row) {
@@ -75,11 +95,17 @@ public class SpeakingQuotaImpl implements SpeakingQuota {
                     turn.getSuccessfulWaitMs(), turn.getDeliveredAudioMs()), clock.instant());
             if (charge == null) return;
         }
+        String ledgerId = null;
+        Instant recordedAt = null;
         if (charge.seconds() > 0) {
-            quota.recordUsage(new UsageCommandDto(charge.ownerId(), "SPEAKING_DURATION", charge.seconds(),
+            var recorded = quota.recordUsage(new UsageCommandDto(charge.ownerId(), "SPEAKING_DURATION", charge.seconds(),
                     "SPEAKING", "speaking-v2-" + row.getId(), row.getId(), charge.occurredAt()));
+            if (recorded == null || !recorded.accepted() || recorded.ledgerId() == null || recorded.ledgerId().isBlank())
+                throw new IllegalStateException("Speaking quota did not confirm a durable ledger receipt");
+            ledgerId = recorded.ledgerId();
+            recordedAt = recorded.recordedAt();
         }
-        archive.confirmCharge(row.getSessionId(), row.getId(), clock.instant());
+        archive.confirmCharge(row.getSessionId(), row.getId(), charge.ownerId(), ledgerId, recordedAt, clock.instant());
     }
 
     private static boolean retryOpen(SpeakingSession session, SpeakingTurn row) {

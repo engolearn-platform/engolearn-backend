@@ -14,8 +14,11 @@ import fit.iuh.engolearn.shared.security.impl.JwtTokenService;
 import fit.iuh.engolearn.speaking.model.SpeakingAudioAssessment;
 import fit.iuh.engolearn.speaking.model.SpeakingSession;
 import fit.iuh.engolearn.speaking.model.enums.SpeakingAssessmentStatus;
+import fit.iuh.engolearn.speaking.model.enums.SpeakingEndReason;
 import fit.iuh.engolearn.speaking.model.enums.SpeakingAudioAssessmentStatus;
+import fit.iuh.engolearn.speaking.model.enums.SpeakingAudioStatus;
 import fit.iuh.engolearn.speaking.model.enums.SpeakingTurnStatus;
+import fit.iuh.engolearn.speaking.model.enums.SpeakingSessionStatus;
 import fit.iuh.engolearn.speaking.service.SpeakingAssessment;
 import fit.iuh.engolearn.speaking.service.SpeakingQuota;
 import fit.iuh.engolearn.speaking.service.SpeakingRuntime;
@@ -79,6 +82,7 @@ import static org.mockito.Mockito.*;
 @ActiveProfiles("dev")
 @Import(SpeakingRealtimeMongoIntegrationTest.TestEvents.class)
 @TestPropertySource(properties = {"engolearn.speaking.recovery.enabled=false",
+        "engolearn.speaking.realtime.max-frames-per-second=256",
         "engolearn.security.jwt.secret=speaking-realtime-db-only-integration-secret"})
 class SpeakingRealtimeMongoIntegrationTest extends AbstractMongoIntegrationTest {
     private static final String BASE = "/api/v1/speaking";
@@ -111,6 +115,7 @@ class SpeakingRealtimeMongoIntegrationTest extends AbstractMongoIntegrationTest 
     @Autowired private ObjectMapper mapper;
     @Autowired private JwtTokenService tokens;
     @Autowired private SpeakingTurnRepository turns;
+    @Autowired private SpeakingTurnArchive archive;
     @Autowired private SpeakingSessionRepository sessions;
     @Autowired private SpeakingAssessmentRepository assessments;
     @Autowired private SpeakingAssessment assessmentWorker;
@@ -156,7 +161,8 @@ class SpeakingRealtimeMongoIntegrationTest extends AbstractMongoIntegrationTest 
         doAnswer(call -> {
             quotaCalls.add(call.getArgument(0));
             if (quotaFailures.getAndUpdate(n -> Math.max(0, n - 1)) > 0) throw new IllegalStateException("quota offline");
-            return null;
+            return new fit.iuh.engolearn.quota.contract.dto.UsageResultDto(true, "test-speaking-ledger",
+                    call.getArgument(0, UsageCommandDto.class).amount(), Instant.now(), "test-allowance", null);
         }).when(quota).recordUsage(any());
         when(media.upload(any())).thenAnswer(call -> {
             var input = call.getArgument(0, fit.iuh.engolearn.media.contract.dto.UploadMediaCommandDto.class);
@@ -486,11 +492,97 @@ class SpeakingRealtimeMongoIntegrationTest extends AbstractMongoIntegrationTest 
         awaitCondition(() -> turns.findById(turn.toString()).orElseThrow().isQuotaRecorded());
         assertThat(quotaCalls).hasSize(2);
         assertThat(quotaCalls.get(0)).isEqualTo(quotaCalls.get(1));
+        assertThat(turns.findById(turn.toString()).orElseThrow().getLedgerId()).isEqualTo("test-speaking-ledger");
 
         renewed.command("RETRY_TURN", turn, Map.of());
         assertThat(renewed.next("ERROR").path("payload").path("code").asString()).isEqualTo("STALE_TURN");
         assertThat(generationCalls.get()).isEqualTo(2);
         assertThat(data(request("GET", BASE + "/sessions/" + id, OWNER, null)).path("finalizedTurnCount").asInt()).isEqualTo(1);
+    }
+
+    @Test
+    void exhaustedQuotaImmediatelyClosesAfterAnOverrunAndRejectsNextTurn() throws Exception {
+        doReturn(new AvailabilityResultDto("SPEAKING_DURATION", 0, 1, 1, "SECOND", "DAILY",
+                Instant.now().minusSeconds(1), Instant.now().plusSeconds(3600), Instant.now().minusSeconds(1), "ACTIVE"))
+                .when(quota).checkAvailability(OWNER, "SPEAKING_DURATION");
+        String id = create();
+        ready(id, "Good morning! What can I get you?");
+        Socket socket = socket(id, ticket(id, 1));
+        socket.next("SESSION_STATE");
+        UUID turn = start(socket);
+        doReturn(new AvailabilityResultDto("SPEAKING_DURATION", 1, 1, 0, "SECOND", "DAILY",
+                Instant.now().minusSeconds(1), Instant.now().plusSeconds(3600), Instant.now().minusSeconds(1), "ACTIVE"))
+                .when(quota).checkAvailability(OWNER, "SPEAKING_DURATION");
+        for (int i = 0; i < 20; i++) socket.binary(frame(turn, i, VOICE));
+        socket.command("END_TURN", turn, Map.of());
+        socket.next("TURN_PROCESSING");
+        socket.next("TRANSCRIPT_FINAL");
+        socket.next("TURN_RESULT");
+        socket.next("TTS_COMPLETED");
+
+        awaitCondition(() -> sessions.findById(id).orElseThrow().getStatus() == SpeakingSessionStatus.ENDED);
+
+        var settled = turns.findById(turn.toString()).orElseThrow();
+        assertThat(settled.isQuotaRecorded()).isTrue();
+        assertThat(settled.getCharge().seconds()).isGreaterThan(1);
+        assertThat(quotaCalls).singleElement().satisfies(command -> assertThat(command.amount()).isGreaterThan(1));
+        assertThat(sessions.findById(id).orElseThrow().getEndReason()).isEqualTo(SpeakingEndReason.DAILY_QUOTA_REACHED);
+        socket.command("START_TURN", null, Map.of("clientTurnId", UUID.randomUUID()));
+        socket.next("SESSION_ENDED");
+        assertThat(turns.findBySessionIdOrderByValueSequenceAsc(id)).hasSize(1);
+    }
+
+    @Test
+    void pendingReceiptBlocksFreshTurnAndOwnerGateReplaysTheStoredCommand() throws Exception {
+        String id = create();
+        ready(id, "Good morning! What can I get you?");
+        Socket socket = socket(id, ticket(id, 1));
+        socket.next("SESSION_STATE");
+        quotaFailures.set(2);
+        transcript.set("Yes!");
+        answer.set("{\"reply\":\"One juice, coming right up!\"}");
+        UUID turn = start(socket);
+        socket.binary(frame(turn, 0, VOICE));
+        socket.command("END_TURN", turn, Map.of());
+        socket.next("TURN_PROCESSING");
+        socket.next("TRANSCRIPT_FINAL");
+        socket.next("TURN_RESULT");
+        socket.next("TTS_COMPLETED");
+        awaitCondition(() -> quotaCalls.size() == 1);
+        var prepared = turns.findById(turn.toString()).orElseThrow();
+        assertThat(prepared.isQuotaRecorded()).isFalse();
+
+        socket.command("START_TURN", null, Map.of("clientTurnId", UUID.randomUUID()));
+        assertThat(socket.next("ERROR").path("payload").path("code").asString()).isEqualTo("QUOTA_SETTLEMENT_PENDING");
+        assertThat(turns.findById(turn.toString()).orElseThrow().isQuotaRecorded()).isFalse();
+
+        quotaFailures.set(0);
+        socket.command("START_TURN", null, Map.of("clientTurnId", UUID.randomUUID()));
+        socket.next("TURN_ACCEPTED");
+        var settled = turns.findById(turn.toString()).orElseThrow();
+        assertThat(settled.isQuotaRecorded()).isTrue();
+        assertThat(settled.getLedgerId()).isEqualTo("test-speaking-ledger");
+        assertThat(quotaCalls).hasSize(3);
+        assertThat(quotaCalls.get(0)).isEqualTo(quotaCalls.get(1)).isEqualTo(quotaCalls.get(2));
+    }
+
+    @Test
+    void ownerSettlementFindsLegacyPendingRowsWithoutOwnerField() throws Exception {
+        String sessionId = create();
+        String turnId = UUID.randomUUID().toString();
+        var value = fit.iuh.engolearn.speaking.model.vo.SpeakingTurnVo.builder().turnId(turnId).sequence(1)
+                .revision(1L).status(SpeakingTurnStatus.FAILED).audioStatus(SpeakingAudioStatus.TEXT_READY)
+                .sealedAt(Instant.now()).recordingStartedAt(Instant.now()).speechDurationMs(1_500).build();
+        turns.save(fit.iuh.engolearn.speaking.model.SpeakingTurn.builder().id(turnId).sessionId(sessionId)
+                .value(value).build());
+
+        assertThat(archive.pendingChargesForOwner(OWNER, Instant.now(), 100)).extracting("id").contains(turnId);
+        assertThat(speakingQuota.pendingOwner(OWNER)).isTrue();
+
+        var settled = turns.findById(turnId).orElseThrow();
+        assertThat(settled.getOwnerId()).isEqualTo(OWNER);
+        assertThat(settled.isQuotaRecorded()).isTrue();
+        assertThat(settled.getLedgerId()).isEqualTo("test-speaking-ledger");
     }
 
     @Test

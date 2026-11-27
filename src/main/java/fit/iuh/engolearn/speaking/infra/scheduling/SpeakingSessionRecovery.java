@@ -21,6 +21,7 @@ public class SpeakingSessionRecovery {
     void recover() {
         runtime.recover();
         realtime.recover();
-        quota.recover();
+        var owners = quota.recover();
+        runtime.recheckActiveQuotaAfterRecovery(owners);
     }
 }

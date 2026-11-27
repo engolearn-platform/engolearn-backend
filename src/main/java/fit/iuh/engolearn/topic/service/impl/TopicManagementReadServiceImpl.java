@@ -58,15 +58,16 @@ public class TopicManagementReadServiceImpl implements TopicManagementReadServic
     public TopicManagementListResponse list(TopicManagementListQuery query) {
         var result = queries.findPage(query.search(), enumValue(query.cefr(), CefrLevel.class),
                 enumValue(query.category(), TopicCategory.class),
-                query.status() == null ? null : query.status().equals("published"), query.page(), query.size());
+                query.status(), query.page(), query.size());
         var stats = queries.itemStats(result.getContent().stream().map(Topic::getId).toList());
         var rows = result.getContent().stream().map(topic -> new TopicManagementListResponse.Item(
                 topic.getId(), topic.getTitleEn(), topic.getTitleVi(), topic.getCefrLevel(), topic.getCategory(),
                 publicationLabel(topic), stats.getOrDefault(topic.getId(), ItemStats.EMPTY).count(), topic.getUpdatedAt())).toList();
-        long published = queries.countByPublication(true);
-        long draft = queries.countByPublication(false);
+        long published = queries.countByPublication("published");
+        long draft = queries.countByPublication("draft");
+        long unpublished = queries.countByPublication("unpublished");
         return new TopicManagementListResponse(rows, query.page(), query.size(), result.getTotalElements(), result.getTotalPages(),
-                new TopicManagementListResponse.Counters(published + draft, published, draft));
+                new TopicManagementListResponse.Counters(published + draft + unpublished, published, draft, unpublished));
     }
 
     @Override
@@ -102,6 +103,19 @@ public class TopicManagementReadServiceImpl implements TopicManagementReadServic
     @Override
     public TopicManagementItemDetail item(String topicId, String itemId) {
         return itemMapper.detail(authoringItem(topicId, itemId));
+    }
+
+    @Override
+    public TopicManagementItemDetail publishedItem(String topicId, String itemId) {
+        Topic topic = requireTopic(topicId);
+        topicItems.findByIdAndTopicId(itemId, topicId)
+                .orElseThrow(() -> new TopicItemNotFoundException("Topic item was not found"));
+        TopicItemVersion released = versions.findManagementMetadataForItem(topicId, itemId).stream()
+                .filter(version -> manifest(topic).contains(version.getId()))
+                .max(VERSION_ORDER)
+                .flatMap(version -> versions.findByIdAndTopicIdAndTopicItemId(version.getId(), topicId, itemId))
+                .orElseThrow(() -> new TopicItemNotFoundException("No version of this Item exists in the current release"));
+        return itemMapper.detail(released);
     }
 
     @Override
@@ -164,7 +178,8 @@ public class TopicManagementReadServiceImpl implements TopicManagementReadServic
     }
 
     private static String publicationLabel(Topic topic) {
-        return hasPublicationPointer(topic) ? "published" : "draft";
+        if (!hasPublicationPointer(topic)) return "draft";
+        return Boolean.TRUE.equals(topic.getPublicationSuspended()) ? "unpublished" : "published";
     }
 
     private static <T extends Enum<T>> T enumValue(String value, Class<T> type) {

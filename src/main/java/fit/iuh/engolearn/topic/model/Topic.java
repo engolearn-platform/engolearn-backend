@@ -22,6 +22,9 @@ public class Topic extends BaseDocument {
     @Field("latest_published_version")
     private String latestPublishedVersion;
 
+    @Field("publication_suspended")
+    private Boolean publicationSuspended;
+
     @Field("latest_beta_version")
     private Integer latestBetaVersion;
 

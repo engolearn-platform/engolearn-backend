@@ -16,3 +16,21 @@
 3. Mongo recovery reconciles sealed turns against registered jobs, including a crash before event delivery or after an attempt was claimed. After checking the job's live session and sealed turn, Speaking resolves an unexpired protected learner Media reference and validates the stored mono 16 kHz PCM WAV. Missing, expired or corrupt evidence has a recorded reason. Timeout, transient retry, quota and bounded-queue failures are tracked separately.
 4. A session may end while assessment is still FINALIZING. Gemini language assessment uses the pinned context, original transcripts across the complete session, and replies with server delivery evidence within the closing cutoff. An outstanding reply can settle through that cutoff. The language request uses its own schema and role-separated messages through the shared Gemini transport. It ends with a backend-generated user command outside the evidence index. Each rubric component validates independently, and original examples must be quoted from their referenced learner turns.
 5. After work settles or reaches its deadline, session pronunciation weights eligible turn scores by recognized words, and fluency weights its eligible turns by the recognized speech duration that supports each fluency score. Each acoustic criterion uses assessed timing for its minimum total duration. Both criteria count learner turns, even when Azure emits multiple recognition segments. Grammar and vocabulary each average their two independently validated components. The four criterion fields and final status publish together in a single fenced Mongo update. Missing evidence retains a nullable score, and late work cannot edit the published result.
+
+## Quota settlement and recovery runbook
+
+An accepted audio turn records server-measured voiced speech, successful AI wait capped at 10 seconds, and the length of a WAV sent in full over the socket. A skipped or stopped playback after successful delivery and a replay do not change the charge. Opening and empty audio contribute zero. A failed turn retains verified speech and successful eligible wait already measured. The server rounds the total up once and records no zero-amount usage.
+
+The archive stores the prepared measurement before a positive Quota write. Replay uses `speaking-v2-<turnId>` with the same owner, amount, reference and occurrence time. On confirmation the archive records the ledger ID and recording timestamp. The first successful Quota write assigns the full amount to its current Asia/Ho_Chi_Minh window, even if the amount exceeds the remaining allowance. A fresh availability check drives quota closure and the next admission.
+
+For a stuck `QUOTA_SETTLEMENT_PENDING` or usage discrepancy:
+
+1. Inspect the authenticated usage response and correlate the session and turn with the archived charge. Check `quota_recorded`, `ledger_id` and `recorded_at` using read-only diagnostics. For a deleted session, check whether a sealed turn still awaits archival.
+2. Check the Speaking recovery scheduler and Quota availability, then allow the existing recovery to retry the stored command. A transient error leaves the charge available for replay.
+3. Verify one accepted ledger record for the stable key and refresh the usage endpoint. If the balance is exhausted, verify the terminal reason and that further turns are denied. For payload conflicts, preserve the prepared charge and investigate before retrying any corrective operation.
+
+Do not edit ledger rows, replace turn keys, or reset counters as a recovery or rollback step. Run the focused backend suites against isolated MongoDB before deployment.
+
+```powershell
+.\mvnw.cmd -ntp "-Dtest=QuotaIntegrationTest,SpeakingFoundationMongoIntegrationTest,SpeakingRealtimeMongoIntegrationTest,SubscriptionProductServiceImplTest" test
+```
