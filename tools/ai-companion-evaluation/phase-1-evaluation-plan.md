@@ -26,3 +26,8 @@ Explicit preference for practical examples: assert owner/category/committed reco
 ## Execution order
 Design -> baseline -> classify failure -> targeted correction -> regression -> release decision.
 Quota admission must work first. Runtime policy publication/activation and snapshots must be coherent; never mutate historical snapshots or bypass quota merely to get a passing eval.
+
+
+## Multi-tool expansion (2026-11-27)
+
+See [Multi-tool evaluation scenarios](multi-tool-evaluation-scenarios.md) for nine agreed learner prompts across Guidance, Discovery and Reflection. These extend the scenario inventory; detailed fixtures, tool expectations and execution remain pending capability discovery.
