@@ -93,7 +93,7 @@ public class LearningPathRecommendationServiceImpl implements LearningPathRecomm
                 .toList();
         if (eligible.isEmpty()) {
             return response(State.NO_ELIGIBLE_SKILLS,
-                    "Không có micro-skill nào cần luyện tập, hãy giữ vững phong độ nhé",
+                    "Các kỹ năng yếu chưa đủ điều kiện tạo lộ trình ở level hiện tại hoặc đang được luyện tập",
                     null, level, eligible);
         }
         return response(State.AVAILABLE, null, null, level, eligible);
