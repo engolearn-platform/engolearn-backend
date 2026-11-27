@@ -1,5 +1,8 @@
 package fit.iuh.engolearn.learningpath.service;
 
+import fit.iuh.engolearn.learningpath.service.impl.LearningPathAudioServiceImpl;
+import fit.iuh.engolearn.media.contract.MediaManagement;
+
 import com.mongodb.client.MongoClient;
 import fit.iuh.engolearn.shared.enums.CefrLevel;
 import com.mongodb.client.MongoClients;
@@ -78,7 +81,8 @@ class LearningPathCreationStandaloneIntegrationTest {
                 LearningPathRecommendationService recommendations = new LearningPathRecommendationServiceImpl(
                         periodicTests, paths, questionPool, user -> Optional.of(CefrLevel.B1));
                 LearningPathCreationService creation = new LearningPathCreationServiceImpl(
-                        recommendations, periodicTests, paths, questionPool);
+                        recommendations, periodicTests, paths, questionPool,
+                        new LearningPathAudioServiceImpl(mock(MediaManagement.class)));
                 CreateLearningPathRequest request = new CreateLearningPathRequest(
                         attemptId, List.of("Reading for Gist"), "B1");
 

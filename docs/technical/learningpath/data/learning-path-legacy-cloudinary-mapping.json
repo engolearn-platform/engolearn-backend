@@ -1,0 +1,62 @@
+{
+  "version": 1,
+  "scope": "Legacy saved Listening snapshot audio only",
+  "recordings": [
+    {
+      "passageId": "LP-PASS-L-ATTITUDE-B1",
+      "title": "Invitation to a neighborhood clean-up",
+      "skill": "LISTENING",
+      "level": "B1",
+      "file": "public/learning-path-audio/listening-attitude-b1.mp3",
+      "currentUrl": "/learning-path-audio/listening-attitude-b1.mp3",
+      "fileSha256": "23f1d7856d36103404aaa0c257d3cc0ea7fa7f6a9185c82267fc6c227eb3ffc0",
+      "snapshotCount": 30,
+      "durationSec": 17.142333,
+      "bytes": 275756,
+      "mediaId": "4f83a319-47fe-4fdc-8938-752db1cac668",
+      "transcriptSha256": "bef43dca29dcff4b0e94e0ba0e3dcb3da3d311d7d8c330deb3e6fd4ac521d283"
+    },
+    {
+      "passageId": "LP-PASS-L-DETAIL-B1",
+      "title": "Planning a community fair",
+      "skill": "LISTENING",
+      "level": "B1",
+      "file": "public/learning-path-audio/listening-detail-b1.mp3",
+      "currentUrl": "/learning-path-audio/listening-detail-b1.mp3",
+      "fileSha256": "d78387807eb31200fe212a5ae77f71666a2c658b8afc0ca43aa772cb972e90f6",
+      "snapshotCount": 60,
+      "durationSec": 23.29675,
+      "bytes": 374060,
+      "mediaId": "5ebc6dd2-3d98-49a3-ab89-da1acc2898a3",
+      "transcriptSha256": "04d8f5e877965b5e444be7d38e3718e26934dd1fdf2bf01cd839d4ed12e98519"
+    },
+    {
+      "passageId": "LP-PASS-L-GIST-B1",
+      "title": "Library opening hours announcement",
+      "skill": "LISTENING",
+      "level": "B1",
+      "file": "public/learning-path-audio/listening-gist-b1.mp3",
+      "currentUrl": "/learning-path-audio/listening-gist-b1.mp3",
+      "fileSha256": "02a370629a51045728d645596a54b545db094e1d93a49134c120db94ded494c3",
+      "snapshotCount": 90,
+      "durationSec": 19.184083,
+      "bytes": 308396,
+      "mediaId": "673e6aeb-199e-46bc-bf8e-2df60382d09b",
+      "transcriptSha256": "2deee9fad8daf37c25ee1f1204337edcd113c554dc7dcd34dc4b1d5755ced680"
+    },
+    {
+      "passageId": "LP-PASS-L-SPECIFIC-B1",
+      "title": "Saturday workshop details",
+      "skill": "LISTENING",
+      "level": "B1",
+      "file": "public/learning-path-audio/listening-specific-b1.mp3",
+      "currentUrl": "/learning-path-audio/listening-specific-b1.mp3",
+      "fileSha256": "ffb300a8ea9f122f9638123939551621af5814649638e4723ecc44d17ad8cac2",
+      "snapshotCount": 120,
+      "durationSec": 16.436042,
+      "bytes": 264236,
+      "mediaId": "8032a066-4684-4f6a-8f55-770993f5cb13",
+      "transcriptSha256": "50f35a375cea60010ed581bd6a96935e804529d9472d1db58460a32ba168a9ea"
+    }
+  ]
+}

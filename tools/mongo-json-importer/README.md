@@ -162,7 +162,7 @@ manifest. The broader development catalog remains a separate explicit import des
 | File in samples/ | Collections / documents |
 | --- | --- |
 | `assessment-demo.json` | 9 / 12: demo account/profile and Subscription account, baseline/gate, version-2 paper, four historical attempts and Assessment profile |
-| `learning-path-demo.json` | 4 / 766: 6 paths, 390 referenced question snapshots, 360 pool questions and 10 passages |
+| `learning-path-demo.json` | 5 / 1160: 6 paths, 390 referenced question snapshots, 660 pool questions, 70 passages and 34 Media assets |
 
 The Assessment file replaces `assessment-paper-v2.json`; keeping the old file alongside it
 would duplicate the paper ID during multi-file preflight. No `attempts` or `micro_skill_results`
@@ -219,10 +219,20 @@ Public development credentials: `assessment-demo@example.test` / `EngoLearn-Demo
 
 Historical dates are fixed. Startup/scheduled lifecycle processing may close days, advance
 weeks or cancel overdue active paths as time passes; importing with skip does not restart them.
-**Learning Path Listening audio is not supplied:** its five audio URLs are example.com
-placeholders. Question rendering, answers, grading and review can be demonstrated, but real
-Listening playback cannot. Assessment audio is a separate, complete set; it must not be
-substituted for unrelated Learning Path exercise audio.
+The file also includes the new B1-V2 catalog: 60 DRAFT passages, 300 DRAFT questions
+and 30 protected Cloudinary recordings. These retain their DRAFT status and require
+normal editorial review/publication; consolidation does not activate them or retire
+the legacy catalog. There is one shared Learning Path import file, with no separate
+Media import required.
+
+The 240 saved Listening snapshots in this demo reference four additional protected Cloudinary
+Media assets, included in the same file (34 Media assets total). Configure the backend for the same Cloudinary
+account holding those recordings. Source pool/passages are preserved as historical demo
+content; their legacy URLs are not the delivery source for migrated saved snapshots.
+Use the [legacy migration record](../../docs/technical/learningpath/learning-path-legacy-audio-migration-2026-11-27.md)
+for the historical snapshot migration scope. Do not replace existing learner collections
+with demo data to migrate audio. Assessment recordings must not be substituted for
+unrelated Learning Path exercises. Cancelled-path access rules remain unchanged.
 
 ## Shared Placement V3 data
 

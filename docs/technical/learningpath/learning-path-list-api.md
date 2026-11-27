@@ -137,6 +137,11 @@ standalone local MongoDB can still create a path from an existing completed resu
 or concurrent losing writes may leave orphaned snapshots; they are never used by the winning
 path. Automatic orphan cleanup is not implemented.
 
+Selected passage Media references are resolved before these writes. New managed
+audio snapshots retain the stable `audio_media_id`, never a delivery URL; see the
+[snapshot audio contract](learning-path-day-practice-api.md#snapshot-audio-and-delivery-renewal).
+Legacy snapshots and source recordings are not migrated by creation.
+
 The path freezes its source `assessment_attempt_id`, `paper_id`, completion time and baseline
 scores. Baselines identify each measured skill with `skill_code`, together with the source
 Assessment ID; there is no separate `micro_skill_results.result_id` reference. Practice and

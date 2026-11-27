@@ -1,6 +1,7 @@
 package fit.iuh.engolearn.learningpath.service.impl;
 
 import fit.iuh.engolearn.learningpath.service.LearningPathCreationService;
+import fit.iuh.engolearn.learningpath.service.LearningPathAudioService;
 import fit.iuh.engolearn.assessment.contract.AssessmentResults;
 import fit.iuh.engolearn.learningpath.mapper.LearningPathAssessmentMapper;
 import fit.iuh.engolearn.learningpath.service.LearningPathRecommendationService;
@@ -54,6 +55,7 @@ public class LearningPathCreationServiceImpl implements LearningPathCreationServ
     private final AssessmentResults assessmentResults;
     private final LearningPathRepository paths;
     private final QuestionPoolRepository questionPool;
+    private final LearningPathAudioService audio;
     private final LearningPlanGenerator planGenerator = new LearningPlanGenerator();
 
     public CreateLearningPathResponse createForAssessment(CreateLearningPathByAssessmentRequest request,
@@ -127,6 +129,8 @@ public class LearningPathCreationServiceImpl implements LearningPathCreationServ
                 .filter(id -> id != null)
                 .collect(Collectors.toSet());
         Map<String, Document> passages = questionPool.findPassages(passageIds);
+        // Resolve before any snapshot/path write, without persisting delivery URLs.
+        passages.values().forEach(audio::resolve);
         Date createdAt = Date.from(Instant.now());
         LocalDate createdDate = createdAt.toInstant().atOffset(LEARNING_ZONE).toLocalDate();
         LearningPath path = buildPath(test, current, results, selected, createdAt, createdDate);

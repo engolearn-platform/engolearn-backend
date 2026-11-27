@@ -23,9 +23,7 @@ public record StartLearningPathDayResponse(
             String selectedOptionId
     ) {}
 
-    public record Passage(String title, String text, Audio audio) {}
-
-    public record Audio(String url, Integer durationSec, String format) {}
+    public record Passage(String title, String text, LearningPathAudioResponse audio) {}
 
     public record Option(String optionId, String text) {}
 }

@@ -3,7 +3,8 @@
 Implemented scope: all ten backend APIs — list, detail, create/edit/delete DRAFT, copy,
 readiness, publish, retire and replace. Business rules are in the
 [workspace business entry](../../../../AGENT.md), section 17.12. Section 17.13 tracks the
-deferred learner Media delivery work; its capability blocker remains enforced.
+learner Media delivery and the remaining local-audio migration. The temporary
+capability blocker was removed after [live verification](learning-path-media-verification.md).
 Passage CRUD and audio preview are owned by the [passage contract](learning-path-management-api-plan.md).
 
 ## Access and persistence
@@ -307,9 +308,11 @@ Question blocker codes: `INVALID_STORED_FIELD`, `QUESTION_NOT_DRAFT`, `INVALID_R
 Reused passage issues retain their existing code and prefix field paths with `passage.`;
 these include `PASSAGE_NOT_ACTIVE`, invalid/missing text, transcript and audio.
 
-Media-backed Listening still blocks with `LEARNER_AUDIO_DELIVERY_UNSUPPORTED`, even if
-Media resolves successfully or legacy audio also exists. Learner snapshots/practice do
-not yet deliver audio_media_id; never silently fall back to the older file. Missing Media
+Media-backed Listening is publishable with valid delivery and all required review
+confirmations. The temporary learner-delivery blocker was removed after
+[live verification](learning-path-media-verification.md). Backend snapshot/start/result
+delivery and renewal are described in the [learner audio contract](learning-path-day-practice-api.md#snapshot-audio-and-delivery-renewal).
+Never silently fall back to the older file. Missing Media
 is an automated `AUDIO_MEDIA_NOT_FOUND` blocker. Unavailable storage/database fails the
 request with 503, not a misleading content failure. Legacy usable URLs retain
 `LEGACY_AUDIO_PLAYBACK_UNVERIFIED`: the server does not fetch arbitrary URLs or assert

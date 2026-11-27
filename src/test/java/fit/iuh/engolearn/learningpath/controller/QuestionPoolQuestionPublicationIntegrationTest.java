@@ -225,22 +225,37 @@ class QuestionPoolQuestionPublicationIntegrationTest extends AbstractMongoIntegr
     }
 
     @Test
-    void mediaBackedListeningRemainsBlockedAndNeverFallsBackToLegacyAudio() {
+    void mediaBackedListeningIsReadyButMissingOrUnavailableMediaNeverFallsBackToLegacyAudio() {
         seedQuestion(true, "p");
         seedPassage(true, "ACTIVE");
         setPassage(new Document("audio_media_id", "media-id"));
         when(media.resolve("media-id")).thenReturn(new MediaDeliveryDto(URI.create("https://example.test/private-signed.mp3"), Instant.now().plusSeconds(60), "audio/mpeg"));
         var before = snapshot();
         var ready = readReady();
-        assertThat(codes(ready, "blockers")).contains("LEARNER_AUDIO_DELIVERY_UNSUPPORTED");
+        assertThat(codes(ready, "blockers")).isEmpty();
+        assertThat(ready.path("structurallyValid").asBoolean()).isTrue();
         assertThat(ready.toString()).doesNotContain("private-signed.mp3");
-        assertError(request(HttpMethod.POST, "/q/publish", publication(3, List.of(QuestionReviewCheck.values())), UserRole.ADMIN), 422, "QUESTION_NOT_READY");
         doThrow(new MediaNotFoundException("media-id")).when(media).resolve("media-id");
-        assertThat(codes(readReady(), "blockers")).contains("AUDIO_MEDIA_NOT_FOUND", "LEARNER_AUDIO_DELIVERY_UNSUPPORTED");
+        assertThat(codes(readReady(), "blockers")).contains("AUDIO_MEDIA_NOT_FOUND");
+        assertError(request(HttpMethod.POST, "/q/publish", publication(3, List.of(QuestionReviewCheck.values())), UserRole.ADMIN), 422, "QUESTION_NOT_READY");
         doThrow(new MediaStorageUnavailableException("provider secret")).when(media).resolve("media-id");
         assertError(request(HttpMethod.GET, "/q/readiness", null, UserRole.ADMIN), 503, "MEDIA_STORAGE_UNAVAILABLE");
         assertError(request(HttpMethod.POST, "/q/publish", publication(3, List.of(QuestionReviewCheck.values())), UserRole.ADMIN), 503, "MEDIA_STORAGE_UNAVAILABLE");
         assertThat(snapshot()).isEqualTo(before);
+    }
+
+    @Test
+    void reviewedManagedListeningPublishesWithoutCopyingItsDeliveryUrl() {
+        seedQuestion(true, "p");
+        seedPassage(true, "ACTIVE");
+        setPassage(new Document("audio_media_id", "media-id"));
+        when(media.resolve("media-id")).thenReturn(new MediaDeliveryDto(URI.create("https://example.test/private-signed.mp3"), Instant.now().plusSeconds(60), "audio/mpeg"));
+        var response = request(HttpMethod.POST, "/q/publish", publication(3, List.of(QuestionReviewCheck.values())), UserRole.ADMIN);
+        assertThat(response.getStatusCode().value()).as(response.getBody()).isEqualTo(200);
+        assertThat(question().getString("status")).isEqualTo("ACTIVE");
+        assertThat(passage().getString("audio_media_id")).isEqualTo("media-id");
+        assertThat(question().toJson() + passage().toJson()).doesNotContain("private-signed.mp3");
+        assertThat(question().get("publication_review", Document.class).getList("confirmed_checks", String.class)).hasSize(9);
     }
 
     @Test
