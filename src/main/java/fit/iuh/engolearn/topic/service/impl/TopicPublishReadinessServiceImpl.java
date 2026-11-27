@@ -5,6 +5,8 @@ import fit.iuh.engolearn.topic.dto.response.TopicManagementItemSummary;
 import fit.iuh.engolearn.topic.dto.response.TopicManagementResponse;
 import fit.iuh.engolearn.topic.dto.response.TopicPublishReadinessResponse;
 import fit.iuh.engolearn.topic.dto.response.TopicPublishReadinessResponse.Violation;
+import fit.iuh.engolearn.topic.exception.TopicItemNotFoundException;
+import fit.iuh.engolearn.topic.model.enums.ChangeType;
 import fit.iuh.engolearn.topic.model.enums.ContentStatus;
 import fit.iuh.engolearn.topic.model.Topic;
 import fit.iuh.engolearn.topic.model.enums.TopicMediaKind;
@@ -19,14 +21,20 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.EnumMap;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.regex.Pattern;
 
-/** Checks presence of media references; legacy URLs do not retain enough information to verify file type or size. */
+/** Applies the same readiness rules to the saved candidate in previews and publish commands. */
 @Service
 @RequiredArgsConstructor
 @PreAuthorize("hasRole('CONTENT_MANAGER')")
 public class TopicPublishReadinessServiceImpl implements TopicPublishReadinessService {
+    private static final String MANAGED_PREFIX = "topic-media:";
+    private static final Pattern RESOURCE_INDEX = Pattern.compile("\\[\\d+\\]");
+
     private final TopicManagementReadService readService;
     private final TopicRepository topics;
     private final TopicMediaService media;
@@ -41,7 +49,10 @@ public class TopicPublishReadinessServiceImpl implements TopicPublishReadinessSe
         required(violations, "topic.cefr", topic.cefr());
         required(violations, "topic.category", topic.category());
         required(violations, "topic.description", topic.description());
-        validateMedia(violations, entity, "topic.coverUrl", topic.coverUrl(), TopicMediaKind.IMAGE, true);
+        boolean released = entity != null && !blank(entity.getLatestPublishedVersion());
+        if (!released || managed(topic.coverUrl())) {
+            validateMedia(violations, entity, "topic.coverUrl", topic.coverUrl(), TopicMediaKind.IMAGE, true);
+        }
 
         List<TopicManagementItemSummary> visible = readService.items(topicId).stream()
                 .filter(item -> item.status() != ContentStatus.HIDDEN).toList();
@@ -49,36 +60,95 @@ public class TopicPublishReadinessServiceImpl implements TopicPublishReadinessSe
             add(violations, "topic.items", "ITEM_COUNT", "Topic must have between 5 and 20 visible items.");
         }
         for (TopicManagementItemSummary summary : visible) {
+            if (released && summary.status() == ContentStatus.PUBLISHED) continue;
             TopicManagementItemDetail item = readService.item(topicId, summary.id());
-            required(violations, "items[" + summary.id() + "].order", summary.order());
-            validateItem(item, violations, entity);
+            TopicManagementItemDetail baseline = released ? majorBaseline(topicId, item) : null;
+            if (baseline == null || !Objects.equals(baseline.order(), summary.order())) {
+                required(violations, "items[" + summary.id() + "].order", summary.order());
+            }
+            validateItem(item, baseline, violations, candidateMedia(violations, entity, baseline));
         }
         return new TopicPublishReadinessResponse(violations.isEmpty(), violations);
     }
 
-    private void validateItem(TopicManagementItemDetail item, List<Violation> violations, Topic topic) {
-        String base = "items[" + item.id() + "]";
-        required(violations, base + ".title", item.title());
-        required(violations, base + ".durationMinutes", item.durationMinutes());
-        if (item.context() == null) {
-            add(violations, base + ".context.scenarioDescription", "REQUIRED", "Context scenario description is required.");
-        } else {
-            required(violations, base + ".context.scenarioDescription", item.context().scenarioDescription());
+    private TopicManagementItemDetail majorBaseline(String topicId, TopicManagementItemDetail item) {
+        if (item.status() != ContentStatus.DRAFT || item.changeType() != ChangeType.MAJOR
+                || blank(item.previousItemVersionId())) return null;
+        try {
+            TopicManagementItemDetail published = readService.publishedItem(topicId, item.id());
+            return item.previousItemVersionId().equals(published.versionId()) ? published : null;
+        } catch (TopicItemNotFoundException missingReleaseItem) {
+            return null;
         }
-        if (item.context() != null) {
-            List<TopicManagementItemDetail.DialogueTurn> dialogue = safe(item.context().dialogue());
-            for (int i = 0; i < dialogue.size(); i++) {
-                var turn = dialogue.get(i);
-                if (turn != null) validateMedia(violations, topic, base + ".context.dialogue[" + i + "].audioUrl",
-                        turn.audioUrl(), TopicMediaKind.AUDIO, false);
-            }
-        }
-        validateVocabulary(item, base, violations, topic);
-        validateExpressions(item, base, violations, topic);
-        validateQuizzes(item, base, violations, topic);
     }
 
-    private void validateVocabulary(TopicManagementItemDetail item, String base, List<Violation> violations, Topic topic) {
+    private MediaCheck candidateMedia(List<Violation> violations, Topic topic, TopicManagementItemDetail baseline) {
+        Map<LegacyAudio, Integer> retained = new HashMap<>();
+        if (baseline != null) {
+            validateItem(baseline, null, new ArrayList<>(), (path, value, required) -> {
+                if (!managed(value) && (!blank(value) || required)) {
+                    retained.merge(legacyAudio(path, value), 1, Integer::sum);
+                }
+            });
+        }
+        return (path, value, required) -> {
+            if (!managed(value) && (!blank(value) || required) && !retained.isEmpty()) {
+                // Reordering changes array indices. Each inherited reference can be reused only once
+                // for the same field shape within this Item.
+                LegacyAudio key = legacyAudio(path, value);
+                Integer remaining = retained.get(key);
+                if (remaining != null) {
+                    if (remaining == 1) retained.remove(key);
+                    else retained.put(key, remaining - 1);
+                    return;
+                }
+            }
+            validateMedia(violations, topic, path, value, TopicMediaKind.AUDIO, required);
+        };
+    }
+
+    private static LegacyAudio legacyAudio(String path, String value) {
+        return new LegacyAudio(RESOURCE_INDEX.matcher(path).replaceAll("[]"), blank(value) ? null : value);
+    }
+
+    private void validateItem(TopicManagementItemDetail item, TopicManagementItemDetail baseline,
+                              List<Violation> violations, MediaCheck audio) {
+        String base = "items[" + item.id() + "]";
+        if (baseline == null || !Objects.equals(item.title(), baseline.title())) {
+            required(violations, base + ".title", item.title());
+        }
+        if (baseline == null || !Objects.equals(item.durationMinutes(), baseline.durationMinutes())) {
+            required(violations, base + ".durationMinutes", item.durationMinutes());
+        }
+        if (baseline == null || !Objects.equals(item.context(), baseline.context())) {
+            validateContext(item.context(), base, violations, audio);
+        }
+        if (baseline == null || !Objects.equals(item.vocabularies(), baseline.vocabularies())) {
+            validateVocabulary(item, base, violations, audio);
+        }
+        if (baseline == null || !Objects.equals(item.expressions(), baseline.expressions())) {
+            validateExpressions(item, base, violations, audio);
+        }
+        if (baseline == null || !Objects.equals(item.quizzes(), baseline.quizzes())) {
+            validateQuizzes(item, base, violations, audio);
+        }
+    }
+
+    private void validateContext(TopicManagementItemDetail.Context context, String base,
+                                 List<Violation> violations, MediaCheck audio) {
+        if (context == null) {
+            add(violations, base + ".context.scenarioDescription", "REQUIRED", "Context scenario description is required.");
+            return;
+        }
+        required(violations, base + ".context.scenarioDescription", context.scenarioDescription());
+        List<TopicManagementItemDetail.DialogueTurn> dialogue = safe(context.dialogue());
+        for (int i = 0; i < dialogue.size(); i++) {
+            var turn = dialogue.get(i);
+            if (turn != null) audio.validate(base + ".context.dialogue[" + i + "].audioUrl", turn.audioUrl(), false);
+        }
+    }
+
+    private void validateVocabulary(TopicManagementItemDetail item, String base, List<Violation> violations, MediaCheck audio) {
         List<TopicManagementItemDetail.Vocabulary> words = safe(item.vocabularies());
         count(violations, base + ".vocabularies", words.size(), 3, 5, "Vocabulary count must be between 3 and 5.");
         for (int i = 0; i < words.size(); i++) {
@@ -95,9 +165,9 @@ public class TopicPublishReadinessServiceImpl implements TopicPublishReadinessSe
                 required(violations, path + ".snapshot.word", snapshot.word());
                 required(violations, path + ".snapshot.phonetic", snapshot.phonetic());
                 required(violations, path + ".snapshot.describeVi", snapshot.describeVi());
-                validateMedia(violations, topic, path + ".snapshot.audioEnUrl", snapshot.audioEnUrl(), TopicMediaKind.AUDIO, true);
-                validateMedia(violations, topic, path + ".snapshot.audioUsUrl", snapshot.audioUsUrl(), TopicMediaKind.AUDIO, true);
-                validateMedia(violations, topic, path + ".snapshot.audioUrl", snapshot.audioUrl(), TopicMediaKind.AUDIO, false);
+                audio.validate(path + ".snapshot.audioEnUrl", snapshot.audioEnUrl(), true);
+                audio.validate(path + ".snapshot.audioUsUrl", snapshot.audioUsUrl(), true);
+                audio.validate(path + ".snapshot.audioUrl", snapshot.audioUrl(), false);
             }
             List<TopicManagementItemDetail.Collocation> collocations = safe(word.collocations());
             count(violations, path + ".collocations", collocations.size(), 0, 5,
@@ -114,19 +184,19 @@ public class TopicPublishReadinessServiceImpl implements TopicPublishReadinessSe
                 }
                 required(violations, examplePath + ".textEn", example.textEn());
                 required(violations, examplePath + ".textVi", example.textVi());
-                validateMedia(violations, topic, examplePath + ".audioUrl", example.audioUrl(), TopicMediaKind.AUDIO, true);
+                audio.validate(examplePath + ".audioUrl", example.audioUrl(), true);
             }
             if (word.quickCheck() != null && word.quickCheck().sentence() != null) {
                 var sentence = word.quickCheck().sentence();
-                validateMedia(violations, topic, path + ".quickCheck.sentence.audioUrl",
-                        sentence.audioUrl(), TopicMediaKind.AUDIO, false);
-                validateMedia(violations, topic, path + ".quickCheck.sentence.audioUrlSlow",
-                        sentence.audioUrlSlow(), TopicMediaKind.AUDIO, false);
+                audio.validate(path + ".quickCheck.sentence.audioUrl",
+                        sentence.audioUrl(), false);
+                audio.validate(path + ".quickCheck.sentence.audioUrlSlow",
+                        sentence.audioUrlSlow(), false);
             }
         }
     }
 
-    private void validateExpressions(TopicManagementItemDetail item, String base, List<Violation> violations, Topic topic) {
+    private void validateExpressions(TopicManagementItemDetail item, String base, List<Violation> violations, MediaCheck audio) {
         List<TopicManagementItemDetail.ExpressionPurpose> groups = safe(item.expressions()).stream()
                 .filter(block -> block != null).flatMap(block -> safe(block.purposes()).stream()).toList();
         count(violations, base + ".expressionGroups", groups.size(), 1, 3,
@@ -153,12 +223,12 @@ public class TopicPublishReadinessServiceImpl implements TopicPublishReadinessSe
                 required(violations, expressionPath + ".textEn", expression.textEn());
                 required(violations, expressionPath + ".textVi", expression.textVi());
                 required(violations, expressionPath + ".usageNote", expression.usageNote());
-                validateMedia(violations, topic, expressionPath + ".audioUrl", expression.audioUrl(), TopicMediaKind.AUDIO, true);
+                audio.validate(expressionPath + ".audioUrl", expression.audioUrl(), true);
             }
         }
     }
 
-    private void validateQuizzes(TopicManagementItemDetail item, String base, List<Violation> violations, Topic topic) {
+    private void validateQuizzes(TopicManagementItemDetail item, String base, List<Violation> violations, MediaCheck audio) {
         Map<QuizType, List<QuestionRef>> byType = new EnumMap<>(QuizType.class);
         List<TopicManagementItemDetail.QuizModule> modules = safe(item.quizzes());
         for (int m = 0; m < modules.size(); m++) {
@@ -181,10 +251,10 @@ public class TopicPublishReadinessServiceImpl implements TopicPublishReadinessSe
                     String questionPath = modulePath + ".questions[" + q + "]";
                     var question = questions.get(q);
                     refs.add(new QuestionRef(question, questionPath));
-                    validateMedia(violations, topic, questionPath + ".audioUrl", question.audioUrl(), TopicMediaKind.AUDIO, false);
+                    audio.validate(questionPath + ".audioUrl", question.audioUrl(), false);
                     if (question.sentence() != null) {
-                        validateMedia(violations, topic, questionPath + ".sentence.audioUrl", question.sentence().audioUrl(), TopicMediaKind.AUDIO, false);
-                        validateMedia(violations, topic, questionPath + ".sentence.audioUrlSlow", question.sentence().audioUrlSlow(), TopicMediaKind.AUDIO, false);
+                        audio.validate(questionPath + ".sentence.audioUrl", question.sentence().audioUrl(), false);
+                        audio.validate(questionPath + ".sentence.audioUrlSlow", question.sentence().audioUrlSlow(), false);
                     }
                 }
             }
@@ -258,18 +328,27 @@ public class TopicPublishReadinessServiceImpl implements TopicPublishReadinessSe
 
     private static boolean blank(String value) { return value == null || value.isBlank(); }
 
+    private static boolean managed(String value) { return value != null && value.startsWith(MANAGED_PREFIX); }
+
     private void validateMedia(List<Violation> violations, Topic topic, String path, String value,
                                TopicMediaKind kind, boolean required) {
         if (blank(value)) {
             if (required) add(violations, path, "REQUIRED", "Required managed media is missing.");
             return;
         }
-        if (!value.startsWith("topic-media:") || !media.isReference(topic, value, kind)) {
+        if (!managed(value) || !media.isReference(topic, value, kind)) {
             add(violations, path, "INVALID_MEDIA", "Media must be a Topic-owned managed asset of the required kind.");
         }
     }
 
     private static <T> List<T> safe(List<T> values) { return values == null ? List.of() : values; }
+
+    @FunctionalInterface
+    private interface MediaCheck {
+        void validate(String path, String value, boolean required);
+    }
+
+    private record LegacyAudio(String field, String value) { }
 
     private record QuestionRef(TopicManagementItemDetail.QuizQuestion question, String path) { }
 }
