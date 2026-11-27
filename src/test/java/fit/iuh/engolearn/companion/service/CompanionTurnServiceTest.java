@@ -207,7 +207,7 @@ class CompanionTurnServiceTest {
             return value;
         });
         when(toolRegistry.execute(eq("getLatestAssessmentResult"), anyMap(), eq("learner-1"), any(Runnable.class),
-                any(CompanionMemoryToolContext.class)))
+                any(CompanionMemoryToolContext.class), any(CompanionBusinessTurnContext.class)))
                 .thenAnswer(invocation -> {
                     invocation.<Runnable>getArgument(3).run();
                     return "{\"status\":\"SUCCESS\"}";
@@ -244,7 +244,7 @@ class CompanionTurnServiceTest {
                         new CompanionToolCall("call-1", "getLatestAssessmentResult", java.util.Map.of()))),
                 new CompanionModelEvent.RoundCompleted(new CompanionUsage(4))));
         when(toolRegistry.execute(eq("getLatestAssessmentResult"), anyMap(), eq("learner-1"), any(Runnable.class),
-                any(CompanionMemoryToolContext.class)))
+                any(CompanionMemoryToolContext.class), any(CompanionBusinessTurnContext.class)))
                 .thenAnswer(invocation -> {
                     invocation.<Runnable>getArgument(3).run();
                     return "{\"status\":\"SUCCESS\"}";
@@ -293,7 +293,7 @@ class CompanionTurnServiceTest {
                         new CompanionModelEvent.RoundCompleted(new CompanionUsage(4))),
                 completedText("Answer", 3));
         when(toolRegistry.execute(eq("otherTool"), anyMap(), eq("learner-1"), any(Runnable.class),
-                any(CompanionMemoryToolContext.class)))
+                any(CompanionMemoryToolContext.class), any(CompanionBusinessTurnContext.class)))
                 .thenReturn("{\"status\":\"ERROR\"}");
         var prepared = service.prepareTurn(conversationId,
                 new CompanionTurnRequest(UUID.fromString(turnId), "How did I do?", false));
@@ -304,9 +304,67 @@ class CompanionTurnServiceTest {
         assertEquals("Answer", result.assistantMessage().content());
         assertTrue(statuses.isEmpty());
         verify(toolRegistry).execute(eq("otherTool"), anyMap(), eq("learner-1"), any(Runnable.class),
-                any(CompanionMemoryToolContext.class));
+                any(CompanionMemoryToolContext.class), any(CompanionBusinessTurnContext.class));
         verify(toolRegistry, never()).execute(eq("getLatestAssessmentResult"), anyMap(), eq("learner-1"), any(Runnable.class),
-                any(CompanionMemoryToolContext.class));
+                any(CompanionMemoryToolContext.class), any(CompanionBusinessTurnContext.class));
+    }
+
+
+    @Test void multiDomainRoundsKeepOneTrustedTimeOrderedResultsAndPartialFailure() {
+        stubUsageRecording();
+        stubPrompt();
+        stubMemorySettings();
+        String conversationId = "conversation-multi-domain";
+        String turnId = UUID.randomUUID().toString();
+        when(conversations.findOwned(conversationId, "learner-1"))
+                .thenReturn(Optional.of(conversation(conversationId, 0, 1, null, null)),
+                        Optional.of(conversation(conversationId, 2, 3, null, null)));
+        when(messages.findByTurnAndRole(conversationId, turnId, CompanionMessage.Role.USER)).thenReturn(Optional.empty());
+        when(messages.findByTurnAndRole(conversationId, turnId, CompanionMessage.Role.ASSISTANT)).thenReturn(Optional.empty());
+        when(conversations.admitNew(eq(conversationId), eq("learner-1"), eq(turnId), eq(1L), any(), any(), eq(100)))
+                .thenReturn(Optional.of(conversation(conversationId, 1, 2, turnId, 1L)));
+        when(messages.insert(any())).thenAnswer(invocation -> {
+            CompanionMessage value = invocation.getArgument(0);
+            value.setId("message-" + value.getSequence());
+            return value;
+        });
+        when(conversations.finish(eq(conversationId), eq("learner-1"), eq(turnId), eq(1L), eq(2L), any())).thenReturn(true);
+        var first = new CompanionModelContinuation() {};
+        var second = new CompanionModelContinuation() {};
+        var a = new CompanionToolCall("topic-1", "findLearningTopics", java.util.Map.of());
+        var b = new CompanionToolCall("path-1", "getLearningPathProgress", java.util.Map.of("mode","ACTIVE"));
+        var c = new CompanionToolCall("path-2", "getLearningPathProgress", java.util.Map.of("mode","ACTIVE","cursor","next"));
+        var d = new CompanionToolCall("history-1", "getAssessmentHistory", java.util.Map.of());
+        when(model.stream(any())).thenReturn(
+                Flux.just(new CompanionModelEvent.ToolCalls(first,List.of(a,b)),new CompanionModelEvent.RoundCompleted(new CompanionUsage(4))),
+                Flux.just(new CompanionModelEvent.ToolCalls(second,List.of(c,d)),new CompanionModelEvent.RoundCompleted(new CompanionUsage(5))),
+                completedText("Partial grounded answer",3));
+        var scopes = new java.util.concurrent.CopyOnWriteArrayList<CompanionBusinessTurnContext>();
+        var names = new java.util.concurrent.CopyOnWriteArrayList<String>();
+        when(toolRegistry.execute(anyString(), anyMap(), eq("learner-1"), any(Runnable.class),
+                any(CompanionMemoryToolContext.class), any(CompanionBusinessTurnContext.class))).thenAnswer(invocation -> {
+            scopes.add(invocation.getArgument(5));
+            String name = invocation.getArgument(0);
+            names.add(name);
+            return "getAssessmentHistory".equals(name) ? "{\"status\":\"ERROR\"}" : "{\"status\":\"SUCCESS\"}";
+        });
+        var prepared = service.prepareTurn(conversationId,
+                new CompanionTurnRequest(UUID.fromString(turnId), "Guide me", false));
+        var statuses = new ArrayList<CompanionTurnService.TurnStatus>();
+        assertEquals("Partial grounded answer",service.streamPreparedTurn(prepared,observer(statuses)).assistantMessage().content());
+        assertEquals(List.of(a.name(),b.name(),c.name(),d.name()),names);
+        assertEquals(4,scopes.size());
+        scopes.forEach(scope -> assertSame(scopes.getFirst(),scope));
+        assertTrue(statuses.isEmpty());
+        var requests = org.mockito.ArgumentCaptor.forClass(CompanionModelRequest.class);
+        verify(model,times(3)).stream(requests.capture());
+        var sent = requests.getAllValues();
+        assertSame(first,sent.get(1).continuation());
+        assertSame(second,sent.get(2).continuation());
+        assertEquals(List.of("topic-1","path-1"),sent.get(1).toolResults().stream().map(CompanionToolResult::callId).toList());
+        assertEquals(List.of("path-2","history-1"),sent.get(2).toolResults().stream().map(CompanionToolResult::callId).toList());
+        assertTrue(sent.get(2).toolResults().getLast().json().contains("ERROR"));
+        verify(quotaUsage).recordUsage(argThat(command -> command.amount() == 12));
     }
 
     @Test void missingAuthoritativeUsageFailsWithoutAssistantPersistenceOrCharge() {

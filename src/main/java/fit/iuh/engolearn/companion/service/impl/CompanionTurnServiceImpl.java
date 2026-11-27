@@ -16,6 +16,7 @@ import fit.iuh.engolearn.companion.service.CompanionModelEvent;
 import fit.iuh.engolearn.companion.service.CompanionModelRequest;
 import fit.iuh.engolearn.companion.service.CompanionPromptMessage;
 import fit.iuh.engolearn.companion.service.CompanionToolCall;
+import fit.iuh.engolearn.companion.service.CompanionBusinessTurnContext;
 import fit.iuh.engolearn.companion.service.CompanionToolResult;
 import fit.iuh.engolearn.companion.service.CompanionUsage;
 import fit.iuh.engolearn.companion.service.CompanionTurnResult;
@@ -145,7 +146,8 @@ public class CompanionTurnServiceImpl implements CompanionTurnService {
     }
 
     @Override public CompanionTurnResult streamPreparedTurn(PreparedTurn prepared, TurnObserver observer) {
-        Instant turnDeadline = Instant.now().plus(properties.getTurnTimeout());
+        var businessContext = new CompanionBusinessTurnContext(Instant.now());
+        Instant turnDeadline = businessContext.asOf().plus(properties.getTurnTimeout());
         StringBuilder output = new StringBuilder();
         Sinks.Empty<Void> cancellation = Sinks.empty();
         try {
@@ -238,14 +240,14 @@ public class CompanionTurnServiceImpl implements CompanionTurnService {
                     String json;
                     if (toolCallsExecuted >= properties.getMaxToolCalls()) {
                         log.info("Companion tool call: tool={}, decision=skip, stage=tool_budget, code=CALL_LIMIT_REACHED",
-                                safeToolName(call.name()));
+                                toolRegistry.safeName(call.name()));
                         json = toolError("The tool call budget is exhausted.");
                         toolsDisabled = true;
                     } else {
                         toolCallsExecuted++;
                         log.info("Companion tool call: tool={}, decision=invoke, stage=provider_response, code=TOOL_CALL_RECEIVED",
-                                safeToolName(call.name()));
-                        json = executeTool(call, prepared, turnDeadline, observer, memoryCursor);
+                                toolRegistry.safeName(call.name()));
+                        json = executeTool(call, prepared, turnDeadline, observer, memoryCursor, businessContext, toolRounds, toolCallsExecuted);
                     }
                     results.add(new CompanionToolResult(call.callId(), call.name(), json));
                 }
@@ -412,7 +414,9 @@ public class CompanionTurnServiceImpl implements CompanionTurnService {
     }
 
     private String executeTool(CompanionToolCall call, PreparedTurn prepared, Instant turnDeadline,
-            TurnObserver observer, CompanionMemoryOperationCursor memoryCursor) {
+            TurnObserver observer, CompanionMemoryOperationCursor memoryCursor,
+            CompanionBusinessTurnContext businessContext, int round, int ordinal) {
+        long startedNanos = System.nanoTime();
         Duration remaining = Duration.between(Instant.now(), turnDeadline);
         if (remaining.isNegative() || remaining.isZero()) {
             throw new CompanionException(504, "COMPANION_TURN_TIMEOUT", "The companion response timed out", true);
@@ -425,11 +429,11 @@ public class CompanionTurnServiceImpl implements CompanionTurnService {
         Future<String> future;
         try {
             future = companionToolExecutor.submit(() -> toolRegistry.execute(call.name(), call.arguments(),
-                    prepared.learnerId(), () -> notifyAssessmentLookup(observer), memoryContext));
+                    prepared.learnerId(), () -> notifyAssessmentLookup(observer), memoryContext, businessContext));
         } catch (RejectedExecutionException saturated) {
             log.info("Companion tool call: tool={}, decision=error, stage=tool_executor, code=EXECUTOR_SATURATED",
-                    safeToolName(call.name()));
-            return toolError("Assessment context is temporarily unavailable.");
+                    toolRegistry.safeName(call.name()));
+            return toolError("getLatestAssessmentResult".equals(call.name()) ? "Assessment context is temporarily unavailable." : "Business context is temporarily unavailable.");
         }
         Instant toolDeadline = Instant.now().plus(timeout);
         try {
@@ -442,16 +446,16 @@ public class CompanionTurnServiceImpl implements CompanionTurnService {
                 if (remaining.isNegative() || remaining.isZero()) {
                     future.cancel(true);
                     log.info("Companion tool call: tool={}, decision=error, stage=tool_timeout, code=TOOL_TIMEOUT",
-                            safeToolName(call.name()));
+                            toolRegistry.safeName(call.name()));
                     if (!Instant.now().isBefore(turnDeadline)) {
                         throw new CompanionException(504, "COMPANION_TURN_TIMEOUT", "The companion response timed out", true);
                     }
-                    return toolError("Assessment context took too long to load.");
+                    return toolError("getLatestAssessmentResult".equals(call.name()) ? "Assessment context took too long to load." : "Business context took too long to load.");
                 }
                 try {
                     String response = future.get(Math.min(100, Math.max(1, remaining.toMillis())), TimeUnit.MILLISECONDS);
-                    log.info("Companion tool call: tool={}, decision=result, stage=tool_handler, code={}",
-                            safeToolName(call.name()), toolResultStatus(response));
+                    log.info("Companion tool call: tool={}, decision=result, stage=tool_handler, code={}, round={}, ordinal={}, elapsedMs={}",
+                            toolRegistry.safeName(call.name()), toolResultStatus(response), round, ordinal, TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startedNanos));
                     return response;
                 } catch (TimeoutException waiting) {
                     // Polling keeps cancellation responsive while the bounded read runs separately.
@@ -469,26 +473,30 @@ public class CompanionTurnServiceImpl implements CompanionTurnService {
             if (failure.getCause() instanceof CompanionException turnFailure
                     && "TURN_CONFLICT".equals(turnFailure.getCode())) throw turnFailure;
             log.info("Companion tool call: tool={}, decision=error, stage=tool_execution, code=TOOL_EXECUTION_FAILED",
-                    safeToolName(call.name()));
-            return toolError("Assessment context is temporarily unavailable.");
+                    toolRegistry.safeName(call.name()));
+            return toolError("getLatestAssessmentResult".equals(call.name()) ? "Assessment context is temporarily unavailable." : "Business context is temporarily unavailable.");
         }
     }
 
-    private static String safeToolName(String name) {
-        return switch (name == null ? "" : name) {
-            case "getLatestAssessmentResult", "searchMemory", "createMemory", "updateMemory", "deleteMemory" -> name;
-            default -> "UNKNOWN_TOOL";
-        };
-    }
+    private static final tools.jackson.databind.json.JsonMapper TRACE_JSON =
+            tools.jackson.databind.json.JsonMapper.builder().build();
 
     private static String toolResultStatus(String response) {
         if (response == null) return "EMPTY_RESULT";
-        for (String status : List.of("SUCCESS", "NO_DATA", "FORBIDDEN", "INVALID_ARGUMENTS", "CONFLICT", "ERROR")) {
-            if (response.contains("\"status\":\"" + status + "\"")) return status;
+        try {
+            var tree = TRACE_JSON.readTree(response);
+            if (tree == null || !tree.isObject()) return "MALFORMED_RESULT";
+            var value = tree.get("status");
+            if (value == null || !value.isTextual()) return "UNKNOWN_RESULT";
+            String status = value.asText();
+            return switch (status) {
+                case "SUCCESS", "NO_DATA", "FORBIDDEN", "INVALID_ARGUMENTS", "CONFLICT", "ERROR" -> status;
+                default -> "UNKNOWN_RESULT";
+            };
+        } catch (RuntimeException malformed) {
+            return "MALFORMED_RESULT";
         }
-        return "UNKNOWN_RESULT";
     }
-
     private void fenceMemoryWrite(PreparedTurn prepared, Instant turnDeadline) {
         Instant now = Instant.now();
         if (!now.isBefore(turnDeadline)) {

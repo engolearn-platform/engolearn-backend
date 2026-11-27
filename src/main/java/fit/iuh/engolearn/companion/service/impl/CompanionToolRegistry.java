@@ -1,6 +1,7 @@
 package fit.iuh.engolearn.companion.service.impl;
 
 import fit.iuh.engolearn.companion.service.CompanionMemoryToolContext;
+import fit.iuh.engolearn.companion.service.CompanionBusinessTurnContext;
 import fit.iuh.engolearn.companion.service.CompanionToolDefinition;
 import fit.iuh.engolearn.companion.service.CompanionToolExecutionContext;
 import fit.iuh.engolearn.companion.service.CompanionToolHandler;
@@ -29,6 +30,10 @@ public class CompanionToolRegistry {
         handlers = Map.copyOf(routes);
     }
 
+    public String safeName(String name) {
+        return name != null && handlers.containsKey(name) ? name : "UNKNOWN_TOOL";
+    }
+
     public List<CompanionToolDefinition> definitions(boolean enabled) {
         return enabled ? definitions : List.of();
     }
@@ -43,8 +48,14 @@ public class CompanionToolRegistry {
 
     public String execute(String name, Map<String, Object> arguments, String learnerId,
             Runnable onAssessmentLookup, CompanionMemoryToolContext memoryContext) {
+        return execute(name, arguments, learnerId, onAssessmentLookup, memoryContext, null);
+    }
+
+    public String execute(String name, Map<String, Object> arguments, String learnerId,
+            Runnable onAssessmentLookup, CompanionMemoryToolContext memoryContext,
+            CompanionBusinessTurnContext businessContext) {
         CompanionToolHandler handler = name == null ? null : handlers.get(name);
         if (handler == null) return "{\"status\":\"ERROR\",\"message\":\"The requested tool is unavailable.\"}";
-        return handler.execute(name, arguments, new CompanionToolExecutionContext(learnerId, onAssessmentLookup, memoryContext));
+        return handler.execute(name, arguments, new CompanionToolExecutionContext(learnerId, onAssessmentLookup, memoryContext, businessContext));
     }
 }
