@@ -84,6 +84,7 @@ def main():
         fixtures["assessment_papers"].append(paper)
     # Use the team's disposable management accounts to verify F03 UI permissions.
     fixtures.update(collections("management-accounts.importer.json"))
+    fixtures.update(collections("micro-skills-pfc-compat.importer.json"))
     print(json.dumps(fixtures, ensure_ascii=True))
 
 
