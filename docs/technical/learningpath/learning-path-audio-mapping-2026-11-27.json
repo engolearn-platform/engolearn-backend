@@ -1,0 +1,1408 @@
+{
+  "schemaVersion": 1,
+  "reviewStatus": "PENDING_OWNER_APPROVAL",
+  "generatedAt": "2026-11-27T07:26:09.983Z",
+  "scope": "Read-only local DB/files/JSON inventory; no upload or DB/source JSON mutation",
+  "checks": {
+    "listeningPassages": 36,
+    "statusCounts": {
+      "DRAFT": 1,
+      "RETIRED": 5,
+      "ACTIVE": 30
+    },
+    "localMp3Files": 35,
+    "missingReferencedLocalFiles": 0,
+    "duplicateFileHashes": 0,
+    "unreferencedLocalFiles": 0,
+    "nonMp3Streams": 0,
+    "activeSourceContentMismatch": 0,
+    "activeSourceUrlMismatch": 0,
+    "activePartMismatch": 0,
+    "snapshotTranscriptMismatchGroups": 0,
+    "listeningSnapshots": 300,
+    "placeholderSnapshots": 240,
+    "localSnapshots": 60,
+    "existingUploadMatchesSourceHash": true,
+    "existingDraftMatchesActiveContent": true,
+    "activeUploadCandidates": 29,
+    "activeQuestions": 150
+  },
+  "passages": [
+    {
+      "passageId": "LP-PASS-118fbaf8-8105-4aa2-8aaf-876279ff4500",
+      "title": "Updates to the Number 42 Bus Route",
+      "status": "DRAFT",
+      "revision": 1,
+      "level": "B1",
+      "currentUrl": null,
+      "currentMediaId": "6d649d45-1f23-4e1b-8a70-5a26802a9327",
+      "candidateExistingMediaId": "6d649d45-1f23-4e1b-8a70-5a26802a9327",
+      "file": "public/learning-path-audio/b1-v2/listening-001.mp3",
+      "fileSha256": "72580eeaaacb3c8fbeebb66594c3cbc3b250f793c1088c779a5d413035222785",
+      "bytes": 559628,
+      "durationSec": 46.581333,
+      "activeQuestions": 0,
+      "retiredQuestions": 0,
+      "savedSnapshots": 0,
+      "sourceJson": null,
+      "sourceContentMatchesDb": null,
+      "sourceUrlMatchesDb": null,
+      "partMatchesDb": null,
+      "group": "EXISTING_MANAGED_DRAFT",
+      "proposedAction": "Giữ DRAFT và Media hiện có; không upload lại"
+    },
+    {
+      "passageId": "LP-PASS-L-ATTITUDE-B1",
+      "title": "Invitation to a neighborhood clean-up",
+      "status": "RETIRED",
+      "revision": 2,
+      "level": "B1",
+      "currentUrl": "/learning-path-audio/listening-attitude-b1.mp3",
+      "currentMediaId": null,
+      "candidateExistingMediaId": null,
+      "file": "public/learning-path-audio/listening-attitude-b1.mp3",
+      "fileSha256": "23f1d7856d36103404aaa0c257d3cc0ea7fa7f6a9185c82267fc6c227eb3ffc0",
+      "bytes": 275756,
+      "durationSec": 17.142333,
+      "activeQuestions": 0,
+      "retiredQuestions": 36,
+      "savedSnapshots": 30,
+      "sourceJson": "tools/mongo-json-importer/samples/learning-path-demo.json",
+      "sourceContentMatchesDb": true,
+      "sourceUrlMatchesDb": false,
+      "partMatchesDb": null,
+      "group": "LEGACY_REVIEW_ONLY",
+      "proposedAction": "Để riêng; chưa upload/chưa sửa snapshot"
+    },
+    {
+      "passageId": "LP-PASS-L-B1-V2-001",
+      "title": "Updates to the Number 42 Bus Route",
+      "status": "ACTIVE",
+      "revision": 1,
+      "level": "B1",
+      "currentUrl": "/learning-path-audio/b1-v2/listening-001.mp3",
+      "currentMediaId": null,
+      "candidateExistingMediaId": "6d649d45-1f23-4e1b-8a70-5a26802a9327",
+      "file": "public/learning-path-audio/b1-v2/listening-001.mp3",
+      "fileSha256": "72580eeaaacb3c8fbeebb66594c3cbc3b250f793c1088c779a5d413035222785",
+      "bytes": 559628,
+      "durationSec": 46.581333,
+      "activeQuestions": 5,
+      "retiredQuestions": 0,
+      "savedSnapshots": 0,
+      "sourceJson": "tools/learning-path-authoring/b1-replacement/b1-replacement-draft.json",
+      "sourceContentMatchesDb": true,
+      "sourceUrlMatchesDb": true,
+      "partMatchesDb": true,
+      "group": "ACTIVE_MIGRATION",
+      "proposedAction": "Dùng lại Media đã upload; cần duyệt trước khi gắn vào ACTIVE"
+    },
+    {
+      "passageId": "LP-PASS-L-B1-V2-002",
+      "title": "Evening Museum Hours for Workers",
+      "status": "ACTIVE",
+      "revision": 1,
+      "level": "B1",
+      "currentUrl": "/learning-path-audio/b1-v2/listening-002.mp3",
+      "currentMediaId": null,
+      "candidateExistingMediaId": null,
+      "file": "public/learning-path-audio/b1-v2/listening-002.mp3",
+      "fileSha256": "623b0f928a04499673fa807345e86663c55d073692603c7f96a1b9e3efc1e61d",
+      "bytes": 442700,
+      "durationSec": 36.834188,
+      "activeQuestions": 5,
+      "retiredQuestions": 0,
+      "savedSnapshots": 0,
+      "sourceJson": "tools/learning-path-authoring/b1-replacement/b1-replacement-draft.json",
+      "sourceContentMatchesDb": true,
+      "sourceUrlMatchesDb": true,
+      "partMatchesDb": true,
+      "group": "ACTIVE_MIGRATION",
+      "proposedAction": "Upload mới 1 file sau khi duyệt"
+    },
+    {
+      "passageId": "LP-PASS-L-B1-V2-003",
+      "title": "Riverside Clean-up Changes",
+      "status": "ACTIVE",
+      "revision": 1,
+      "level": "B1",
+      "currentUrl": "/learning-path-audio/b1-v2/listening-003.mp3",
+      "currentMediaId": null,
+      "candidateExistingMediaId": null,
+      "file": "public/learning-path-audio/b1-v2/listening-003.mp3",
+      "fileSha256": "201367fefe560817934ef3c725fbceff7540ad1206f0a846e7f516241426522c",
+      "bytes": 608588,
+      "durationSec": 50.656021,
+      "activeQuestions": 5,
+      "retiredQuestions": 0,
+      "savedSnapshots": 0,
+      "sourceJson": "tools/learning-path-authoring/b1-replacement/b1-replacement-draft.json",
+      "sourceContentMatchesDb": true,
+      "sourceUrlMatchesDb": true,
+      "partMatchesDb": true,
+      "group": "ACTIVE_MIGRATION",
+      "proposedAction": "Upload mới 1 file sau khi duyệt"
+    },
+    {
+      "passageId": "LP-PASS-L-B1-V2-004",
+      "title": "A New Club Meeting Place",
+      "status": "ACTIVE",
+      "revision": 1,
+      "level": "B1",
+      "currentUrl": "/learning-path-audio/b1-v2/listening-004.mp3",
+      "currentMediaId": null,
+      "candidateExistingMediaId": null,
+      "file": "public/learning-path-audio/b1-v2/listening-004.mp3",
+      "fileSha256": "b5632bd37477e87681d2b6b60339cf69b2b07c3925f5b620fda2994221083db5",
+      "bytes": 581516,
+      "durationSec": 48.405771,
+      "activeQuestions": 5,
+      "retiredQuestions": 0,
+      "savedSnapshots": 0,
+      "sourceJson": "tools/learning-path-authoring/b1-replacement/b1-replacement-draft.json",
+      "sourceContentMatchesDb": true,
+      "sourceUrlMatchesDb": true,
+      "partMatchesDb": true,
+      "group": "ACTIVE_MIGRATION",
+      "proposedAction": "Upload mới 1 file sau khi duyệt"
+    },
+    {
+      "passageId": "LP-PASS-L-B1-V2-005",
+      "title": "A Greener Way to Shop",
+      "status": "ACTIVE",
+      "revision": 1,
+      "level": "B1",
+      "currentUrl": "/learning-path-audio/b1-v2/listening-005.mp3",
+      "currentMediaId": null,
+      "candidateExistingMediaId": null,
+      "file": "public/learning-path-audio/b1-v2/listening-005.mp3",
+      "fileSha256": "190248713f63027f146de59e43f7f4525245dd76d43be797209538f6955f66c5",
+      "bytes": 572588,
+      "durationSec": 47.663771,
+      "activeQuestions": 5,
+      "retiredQuestions": 0,
+      "savedSnapshots": 0,
+      "sourceJson": "tools/learning-path-authoring/b1-replacement/b1-replacement-draft.json",
+      "sourceContentMatchesDb": true,
+      "sourceUrlMatchesDb": true,
+      "partMatchesDb": true,
+      "group": "ACTIVE_MIGRATION",
+      "proposedAction": "Upload mới 1 file sau khi duyệt"
+    },
+    {
+      "passageId": "LP-PASS-L-B1-V2-006",
+      "title": "New Clinic Appointment System",
+      "status": "ACTIVE",
+      "revision": 1,
+      "level": "B1",
+      "currentUrl": "/learning-path-audio/b1-v2/listening-006.mp3",
+      "currentMediaId": null,
+      "candidateExistingMediaId": null,
+      "file": "public/learning-path-audio/b1-v2/listening-006.mp3",
+      "fileSha256": "e7b1d683daf101086a0049f4ec83e8a8564590ae61278a8bd20c2363daba2696",
+      "bytes": 438380,
+      "durationSec": 36.456979,
+      "activeQuestions": 5,
+      "retiredQuestions": 0,
+      "savedSnapshots": 0,
+      "sourceJson": "tools/learning-path-authoring/b1-replacement/b1-replacement-draft.json",
+      "sourceContentMatchesDb": true,
+      "sourceUrlMatchesDb": true,
+      "partMatchesDb": true,
+      "group": "ACTIVE_MIGRATION",
+      "proposedAction": "Upload mới 1 file sau khi duyệt"
+    },
+    {
+      "passageId": "LP-PASS-L-B1-V2-007",
+      "title": "Library Workshop Move",
+      "status": "ACTIVE",
+      "revision": 1,
+      "level": "B1",
+      "currentUrl": "/learning-path-audio/b1-v2/listening-007.mp3",
+      "currentMediaId": null,
+      "candidateExistingMediaId": null,
+      "file": "public/learning-path-audio/b1-v2/listening-007.mp3",
+      "fileSha256": "676d1e28faca493504251e006b0b49c3452065575868f6916b397d0e50799a1f",
+      "bytes": 528236,
+      "durationSec": 43.949813,
+      "activeQuestions": 5,
+      "retiredQuestions": 0,
+      "savedSnapshots": 0,
+      "sourceJson": "tools/learning-path-authoring/b1-replacement/b1-replacement-draft.json",
+      "sourceContentMatchesDb": true,
+      "sourceUrlMatchesDb": true,
+      "partMatchesDb": true,
+      "group": "ACTIVE_MIGRATION",
+      "proposedAction": "Upload mới 1 file sau khi duyệt"
+    },
+    {
+      "passageId": "LP-PASS-L-B1-V2-008",
+      "title": "A Safer Ride for the Weekend",
+      "status": "ACTIVE",
+      "revision": 1,
+      "level": "B1",
+      "currentUrl": "/learning-path-audio/b1-v2/listening-008.mp3",
+      "currentMediaId": null,
+      "candidateExistingMediaId": null,
+      "file": "public/learning-path-audio/b1-v2/listening-008.mp3",
+      "fileSha256": "63074bbc816096629a4660e5b1b01c1f59a0b5526a8c347fa5c0589f16356c7b",
+      "bytes": 586700,
+      "durationSec": 48.836729,
+      "activeQuestions": 5,
+      "retiredQuestions": 0,
+      "savedSnapshots": 0,
+      "sourceJson": "tools/learning-path-authoring/b1-replacement/b1-replacement-draft.json",
+      "sourceContentMatchesDb": true,
+      "sourceUrlMatchesDb": true,
+      "partMatchesDb": true,
+      "group": "ACTIVE_MIGRATION",
+      "proposedAction": "Upload mới 1 file sau khi duyệt"
+    },
+    {
+      "passageId": "LP-PASS-L-B1-V2-009",
+      "title": "Town Festival Schedule Change",
+      "status": "ACTIVE",
+      "revision": 1,
+      "level": "B1",
+      "currentUrl": "/learning-path-audio/b1-v2/listening-009.mp3",
+      "currentMediaId": null,
+      "candidateExistingMediaId": null,
+      "file": "public/learning-path-audio/b1-v2/listening-009.mp3",
+      "fileSha256": "6c1f1375341f7bb49fe18f53a44013f80ad7d2ecf573bbf9ba157edeac1bf4ca",
+      "bytes": 593900,
+      "durationSec": 49.416979,
+      "activeQuestions": 5,
+      "retiredQuestions": 0,
+      "savedSnapshots": 0,
+      "sourceJson": "tools/learning-path-authoring/b1-replacement/b1-replacement-draft.json",
+      "sourceContentMatchesDb": true,
+      "sourceUrlMatchesDb": true,
+      "partMatchesDb": true,
+      "group": "ACTIVE_MIGRATION",
+      "proposedAction": "Upload mới 1 file sau khi duyệt"
+    },
+    {
+      "passageId": "LP-PASS-L-B1-V2-010",
+      "title": "A Bountiful Day at Oak Street Garden",
+      "status": "ACTIVE",
+      "revision": 1,
+      "level": "B1",
+      "currentUrl": "/learning-path-audio/b1-v2/listening-010.mp3",
+      "currentMediaId": null,
+      "candidateExistingMediaId": null,
+      "file": "public/learning-path-audio/b1-v2/listening-010.mp3",
+      "fileSha256": "b040d3dc1219d05b815e8971d7927277dfeb03955fcee6830d528d902e830b31",
+      "bytes": 584396,
+      "durationSec": 48.629854,
+      "activeQuestions": 5,
+      "retiredQuestions": 0,
+      "savedSnapshots": 0,
+      "sourceJson": "tools/learning-path-authoring/b1-replacement/b1-replacement-draft.json",
+      "sourceContentMatchesDb": true,
+      "sourceUrlMatchesDb": true,
+      "partMatchesDb": true,
+      "group": "ACTIVE_MIGRATION",
+      "proposedAction": "Upload mới 1 file sau khi duyệt"
+    },
+    {
+      "passageId": "LP-PASS-L-B1-V2-011",
+      "title": "A New Chapter for Lunch at The Green Bistro",
+      "status": "ACTIVE",
+      "revision": 1,
+      "level": "B1",
+      "currentUrl": "/learning-path-audio/b1-v2/listening-011.mp3",
+      "currentMediaId": null,
+      "candidateExistingMediaId": null,
+      "file": "public/learning-path-audio/b1-v2/listening-011.mp3",
+      "fileSha256": "45cea98d67162aeff468e0f7123e6e0a0e121be4261f24d18b192a79dacefb93",
+      "bytes": 583244,
+      "durationSec": 48.535208,
+      "activeQuestions": 5,
+      "retiredQuestions": 0,
+      "savedSnapshots": 0,
+      "sourceJson": "tools/learning-path-authoring/b1-replacement/b1-replacement-draft.json",
+      "sourceContentMatchesDb": true,
+      "sourceUrlMatchesDb": true,
+      "partMatchesDb": true,
+      "group": "ACTIVE_MIGRATION",
+      "proposedAction": "Upload mới 1 file sau khi duyệt"
+    },
+    {
+      "passageId": "LP-PASS-L-B1-V2-012",
+      "title": "Evening Career Workshop",
+      "status": "ACTIVE",
+      "revision": 2,
+      "level": "B1",
+      "currentUrl": "/learning-path-audio/b1-v2/listening-012.mp3",
+      "currentMediaId": null,
+      "candidateExistingMediaId": null,
+      "file": "public/learning-path-audio/b1-v2/listening-012.mp3",
+      "fileSha256": "77f2ef6657c3ed21fd74e0539e22c08b005e587178df3261c604724b71bf4b6b",
+      "bytes": 556172,
+      "durationSec": 46.284896,
+      "activeQuestions": 5,
+      "retiredQuestions": 0,
+      "savedSnapshots": 0,
+      "sourceJson": "tools/learning-path-authoring/b1-replacement/b1-replacement-draft.json",
+      "sourceContentMatchesDb": true,
+      "sourceUrlMatchesDb": true,
+      "partMatchesDb": true,
+      "group": "ACTIVE_MIGRATION",
+      "proposedAction": "Upload mới 1 file sau khi duyệt"
+    },
+    {
+      "passageId": "LP-PASS-L-B1-V2-013",
+      "title": "Quiet Mornings at the Sports Center",
+      "status": "ACTIVE",
+      "revision": 1,
+      "level": "B1",
+      "currentUrl": "/learning-path-audio/b1-v2/listening-013.mp3",
+      "currentMediaId": null,
+      "candidateExistingMediaId": null,
+      "file": "public/learning-path-audio/b1-v2/listening-013.mp3",
+      "fileSha256": "d24c709bcc7517970a768cd51d8baa9612fcd19ab28ffb18243bdca2fd1f9f79",
+      "bytes": 657260,
+      "durationSec": 54.719729,
+      "activeQuestions": 5,
+      "retiredQuestions": 0,
+      "savedSnapshots": 0,
+      "sourceJson": "tools/learning-path-authoring/b1-replacement/b1-replacement-draft.json",
+      "sourceContentMatchesDb": true,
+      "sourceUrlMatchesDb": true,
+      "partMatchesDb": true,
+      "group": "ACTIVE_MIGRATION",
+      "proposedAction": "Upload mới 1 file sau khi duyệt"
+    },
+    {
+      "passageId": "LP-PASS-L-B1-V2-014",
+      "title": "Platform Shift at Central Station",
+      "status": "ACTIVE",
+      "revision": 1,
+      "level": "B1",
+      "currentUrl": "/learning-path-audio/b1-v2/listening-014.mp3",
+      "currentMediaId": null,
+      "candidateExistingMediaId": null,
+      "file": "public/learning-path-audio/b1-v2/listening-014.mp3",
+      "fileSha256": "8323bdacf6130cb07f654c1adbd80812279e4c120cbfbae7cae803a6c647a943",
+      "bytes": 632204,
+      "durationSec": 52.616104,
+      "activeQuestions": 5,
+      "retiredQuestions": 0,
+      "savedSnapshots": 0,
+      "sourceJson": "tools/learning-path-authoring/b1-replacement/b1-replacement-draft.json",
+      "sourceContentMatchesDb": true,
+      "sourceUrlMatchesDb": true,
+      "partMatchesDb": true,
+      "group": "ACTIVE_MIGRATION",
+      "proposedAction": "Upload mới 1 file sau khi duyệt"
+    },
+    {
+      "passageId": "LP-PASS-L-B1-V2-015",
+      "title": "The Community Repair Cafe",
+      "status": "ACTIVE",
+      "revision": 1,
+      "level": "B1",
+      "currentUrl": "/learning-path-audio/b1-v2/listening-015.mp3",
+      "currentMediaId": null,
+      "candidateExistingMediaId": null,
+      "file": "public/learning-path-audio/b1-v2/listening-015.mp3",
+      "fileSha256": "2846b9e63a9eb2a8862fe9e0a42b4dc4479b0e95e9a8690bdfabb0678f4eefa8",
+      "bytes": 675692,
+      "durationSec": 56.245042,
+      "activeQuestions": 5,
+      "retiredQuestions": 0,
+      "savedSnapshots": 0,
+      "sourceJson": "tools/learning-path-authoring/b1-replacement/b1-replacement-draft.json",
+      "sourceContentMatchesDb": true,
+      "sourceUrlMatchesDb": true,
+      "partMatchesDb": true,
+      "group": "ACTIVE_MIGRATION",
+      "proposedAction": "Upload mới 1 file sau khi duyệt"
+    },
+    {
+      "passageId": "LP-PASS-L-B1-V2-016",
+      "title": "Organizing Our Book Drive",
+      "status": "ACTIVE",
+      "revision": 1,
+      "level": "B1",
+      "currentUrl": "/learning-path-audio/b1-v2/listening-016.mp3",
+      "currentMediaId": null,
+      "candidateExistingMediaId": null,
+      "file": "public/learning-path-audio/b1-v2/listening-016.mp3",
+      "fileSha256": "4ae8f2aad85ed89771e510674b7772e2beb58cea2ac83223082baf9bbb504563",
+      "bytes": 631628,
+      "durationSec": 52.560979,
+      "activeQuestions": 5,
+      "retiredQuestions": 0,
+      "savedSnapshots": 0,
+      "sourceJson": "tools/learning-path-authoring/b1-replacement/b1-replacement-draft.json",
+      "sourceContentMatchesDb": true,
+      "sourceUrlMatchesDb": true,
+      "partMatchesDb": true,
+      "group": "ACTIVE_MIGRATION",
+      "proposedAction": "Upload mới 1 file sau khi duyệt"
+    },
+    {
+      "passageId": "LP-PASS-L-B1-V2-017",
+      "title": "A Greener Living Space",
+      "status": "ACTIVE",
+      "revision": 1,
+      "level": "B1",
+      "currentUrl": "/learning-path-audio/b1-v2/listening-017.mp3",
+      "currentMediaId": null,
+      "candidateExistingMediaId": null,
+      "file": "public/learning-path-audio/b1-v2/listening-017.mp3",
+      "fileSha256": "054faaaf40fecac04ea126e02f287a2f60c2b1b1b8f06124d7ccd63b6aebcc6a",
+      "bytes": 735884,
+      "durationSec": 61.260104,
+      "activeQuestions": 5,
+      "retiredQuestions": 0,
+      "savedSnapshots": 0,
+      "sourceJson": "tools/learning-path-authoring/b1-replacement/b1-replacement-draft.json",
+      "sourceContentMatchesDb": true,
+      "sourceUrlMatchesDb": true,
+      "partMatchesDb": true,
+      "group": "ACTIVE_MIGRATION",
+      "proposedAction": "Upload mới 1 file sau khi duyệt"
+    },
+    {
+      "passageId": "LP-PASS-L-B1-V2-018",
+      "title": "Welcome to the Language Exchange",
+      "status": "ACTIVE",
+      "revision": 1,
+      "level": "B1",
+      "currentUrl": "/learning-path-audio/b1-v2/listening-018.mp3",
+      "currentMediaId": null,
+      "candidateExistingMediaId": null,
+      "file": "public/learning-path-audio/b1-v2/listening-018.mp3",
+      "fileSha256": "8e275be62ad3479e891ea06a0f0fe41dc895192ccff41a17e83485ee64263d93",
+      "bytes": 619244,
+      "durationSec": 51.540729,
+      "activeQuestions": 5,
+      "retiredQuestions": 0,
+      "savedSnapshots": 0,
+      "sourceJson": "tools/learning-path-authoring/b1-replacement/b1-replacement-draft.json",
+      "sourceContentMatchesDb": true,
+      "sourceUrlMatchesDb": true,
+      "partMatchesDb": true,
+      "group": "ACTIVE_MIGRATION",
+      "proposedAction": "Upload mới 1 file sau khi duyệt"
+    },
+    {
+      "passageId": "LP-PASS-L-B1-V2-019",
+      "title": "The Oakwood Park Trail Update",
+      "status": "ACTIVE",
+      "revision": 1,
+      "level": "B1",
+      "currentUrl": "/learning-path-audio/b1-v2/listening-019.mp3",
+      "currentMediaId": null,
+      "candidateExistingMediaId": null,
+      "file": "public/learning-path-audio/b1-v2/listening-019.mp3",
+      "fileSha256": "c73af72c1ec7ce51b22c9a9ad4d5eebc63b489ec90aa3077c29fb2ef353d5966",
+      "bytes": 630476,
+      "durationSec": 52.475917,
+      "activeQuestions": 5,
+      "retiredQuestions": 0,
+      "savedSnapshots": 0,
+      "sourceJson": "tools/learning-path-authoring/b1-replacement/b1-replacement-draft.json",
+      "sourceContentMatchesDb": true,
+      "sourceUrlMatchesDb": true,
+      "partMatchesDb": true,
+      "group": "ACTIVE_MIGRATION",
+      "proposedAction": "Upload mới 1 file sau khi duyệt"
+    },
+    {
+      "passageId": "LP-PASS-L-B1-V2-020",
+      "title": "A Bargain at the Grand Theater",
+      "status": "ACTIVE",
+      "revision": 1,
+      "level": "B1",
+      "currentUrl": "/learning-path-audio/b1-v2/listening-020.mp3",
+      "currentMediaId": null,
+      "candidateExistingMediaId": null,
+      "file": "public/learning-path-audio/b1-v2/listening-020.mp3",
+      "fileSha256": "4fc9759644dc33efaa1122b8c63f1f03277b56bc1b0902138f22c6c7b11dbe13",
+      "bytes": 605996,
+      "durationSec": 50.435479,
+      "activeQuestions": 5,
+      "retiredQuestions": 0,
+      "savedSnapshots": 0,
+      "sourceJson": "tools/learning-path-authoring/b1-replacement/b1-replacement-draft.json",
+      "sourceContentMatchesDb": true,
+      "sourceUrlMatchesDb": true,
+      "partMatchesDb": true,
+      "group": "ACTIVE_MIGRATION",
+      "proposedAction": "Upload mới 1 file sau khi duyệt"
+    },
+    {
+      "passageId": "LP-PASS-L-B1-V2-021",
+      "title": "A Kitchen Challenge",
+      "status": "ACTIVE",
+      "revision": 1,
+      "level": "B1",
+      "currentUrl": "/learning-path-audio/b1-v2/listening-021.mp3",
+      "currentMediaId": null,
+      "candidateExistingMediaId": null,
+      "file": "public/learning-path-audio/b1-v2/listening-021.mp3",
+      "fileSha256": "2c941f8d1fa05e0f9cdf81566d00c85a954c5d2aab102593c6cb431ab005efc7",
+      "bytes": 653804,
+      "durationSec": 54.410667,
+      "activeQuestions": 5,
+      "retiredQuestions": 0,
+      "savedSnapshots": 0,
+      "sourceJson": "tools/learning-path-authoring/b1-replacement/b1-replacement-draft.json",
+      "sourceContentMatchesDb": true,
+      "sourceUrlMatchesDb": true,
+      "partMatchesDb": true,
+      "group": "ACTIVE_MIGRATION",
+      "proposedAction": "Upload mới 1 file sau khi duyệt"
+    },
+    {
+      "passageId": "LP-PASS-L-B1-V2-022",
+      "title": "The New Pick-up Point",
+      "status": "ACTIVE",
+      "revision": 1,
+      "level": "B1",
+      "currentUrl": "/learning-path-audio/b1-v2/listening-022.mp3",
+      "currentMediaId": null,
+      "candidateExistingMediaId": null,
+      "file": "public/learning-path-audio/b1-v2/listening-022.mp3",
+      "fileSha256": "60106690dfe7bde21cf1d3fdb3d4ac1eb55e04cc002251205f22a0e75a5fd7a8",
+      "bytes": 590156,
+      "durationSec": 49.121958,
+      "activeQuestions": 5,
+      "retiredQuestions": 0,
+      "savedSnapshots": 0,
+      "sourceJson": "tools/learning-path-authoring/b1-replacement/b1-replacement-draft.json",
+      "sourceContentMatchesDb": true,
+      "sourceUrlMatchesDb": true,
+      "partMatchesDb": true,
+      "group": "ACTIVE_MIGRATION",
+      "proposedAction": "Upload mới 1 file sau khi duyệt"
+    },
+    {
+      "passageId": "LP-PASS-L-B1-V2-023",
+      "title": "Focusing on Our Gallery Opening",
+      "status": "ACTIVE",
+      "revision": 1,
+      "level": "B1",
+      "currentUrl": "/learning-path-audio/b1-v2/listening-023.mp3",
+      "currentMediaId": null,
+      "candidateExistingMediaId": null,
+      "file": "public/learning-path-audio/b1-v2/listening-023.mp3",
+      "fileSha256": "1991d85e2fd6f4476e818c69c1232e1e74a65d272ddf15143ddde84d46748dd6",
+      "bytes": 615212,
+      "durationSec": 51.205542,
+      "activeQuestions": 5,
+      "retiredQuestions": 0,
+      "savedSnapshots": 0,
+      "sourceJson": "tools/learning-path-authoring/b1-replacement/b1-replacement-draft.json",
+      "sourceContentMatchesDb": true,
+      "sourceUrlMatchesDb": true,
+      "partMatchesDb": true,
+      "group": "ACTIVE_MIGRATION",
+      "proposedAction": "Upload mới 1 file sau khi duyệt"
+    },
+    {
+      "passageId": "LP-PASS-L-B1-V2-024",
+      "title": "Convenience at Corner Market",
+      "status": "ACTIVE",
+      "revision": 1,
+      "level": "B1",
+      "currentUrl": "/learning-path-audio/b1-v2/listening-024.mp3",
+      "currentMediaId": null,
+      "candidateExistingMediaId": null,
+      "file": "public/learning-path-audio/b1-v2/listening-024.mp3",
+      "fileSha256": "d2be3321d9a56cef93e92235e41ebe79fd0ca68bef9a2531f280179e209e5c16",
+      "bytes": 559916,
+      "durationSec": 46.601542,
+      "activeQuestions": 5,
+      "retiredQuestions": 0,
+      "savedSnapshots": 0,
+      "sourceJson": "tools/learning-path-authoring/b1-replacement/b1-replacement-draft.json",
+      "sourceContentMatchesDb": true,
+      "sourceUrlMatchesDb": true,
+      "partMatchesDb": true,
+      "group": "ACTIVE_MIGRATION",
+      "proposedAction": "Upload mới 1 file sau khi duyệt"
+    },
+    {
+      "passageId": "LP-PASS-L-B1-V2-025",
+      "title": "The Final Push",
+      "status": "ACTIVE",
+      "revision": 1,
+      "level": "B1",
+      "currentUrl": "/learning-path-audio/b1-v2/listening-025.mp3",
+      "currentMediaId": null,
+      "candidateExistingMediaId": null,
+      "file": "public/learning-path-audio/b1-v2/listening-025.mp3",
+      "fileSha256": "5016bd3dbc6ff0b77833017c79b77b33a79bac0c661d1298a87c5246e7f7d4ea",
+      "bytes": 643724,
+      "durationSec": 53.575479,
+      "activeQuestions": 5,
+      "retiredQuestions": 0,
+      "savedSnapshots": 0,
+      "sourceJson": "tools/learning-path-authoring/b1-replacement/b1-replacement-draft.json",
+      "sourceContentMatchesDb": true,
+      "sourceUrlMatchesDb": true,
+      "partMatchesDb": true,
+      "group": "ACTIVE_MIGRATION",
+      "proposedAction": "Upload mới 1 file sau khi duyệt"
+    },
+    {
+      "passageId": "LP-PASS-L-B1-V2-026",
+      "title": "Protecting Our Shoreline",
+      "status": "ACTIVE",
+      "revision": 1,
+      "level": "B1",
+      "currentUrl": "/learning-path-audio/b1-v2/listening-026.mp3",
+      "currentMediaId": null,
+      "candidateExistingMediaId": null,
+      "file": "public/learning-path-audio/b1-v2/listening-026.mp3",
+      "fileSha256": "52421410fa243b789b3b28699fb3a29e213e4f7a4b0558faf320804d4aa5f339",
+      "bytes": 649196,
+      "durationSec": 54.040188,
+      "activeQuestions": 5,
+      "retiredQuestions": 0,
+      "savedSnapshots": 0,
+      "sourceJson": "tools/learning-path-authoring/b1-replacement/b1-replacement-draft.json",
+      "sourceContentMatchesDb": true,
+      "sourceUrlMatchesDb": true,
+      "partMatchesDb": true,
+      "group": "ACTIVE_MIGRATION",
+      "proposedAction": "Upload mới 1 file sau khi duyệt"
+    },
+    {
+      "passageId": "LP-PASS-L-B1-V2-027",
+      "title": "Updates to Summer Swim Lessons",
+      "status": "ACTIVE",
+      "revision": 1,
+      "level": "B1",
+      "currentUrl": "/learning-path-audio/b1-v2/listening-027.mp3",
+      "currentMediaId": null,
+      "candidateExistingMediaId": null,
+      "file": "public/learning-path-audio/b1-v2/listening-027.mp3",
+      "fileSha256": "5555f28f2fcb9f80381458a8611a717a64241fb44f44db7b874ba883c8514327",
+      "bytes": 605708,
+      "durationSec": 50.415563,
+      "activeQuestions": 5,
+      "retiredQuestions": 0,
+      "savedSnapshots": 0,
+      "sourceJson": "tools/learning-path-authoring/b1-replacement/b1-replacement-draft.json",
+      "sourceContentMatchesDb": true,
+      "sourceUrlMatchesDb": true,
+      "partMatchesDb": true,
+      "group": "ACTIVE_MIGRATION",
+      "proposedAction": "Upload mới 1 file sau khi duyệt"
+    },
+    {
+      "passageId": "LP-PASS-L-B1-V2-028",
+      "title": "Greening Oak Street",
+      "status": "ACTIVE",
+      "revision": 1,
+      "level": "B1",
+      "currentUrl": "/learning-path-audio/b1-v2/listening-028.mp3",
+      "currentMediaId": null,
+      "candidateExistingMediaId": null,
+      "file": "public/learning-path-audio/b1-v2/listening-028.mp3",
+      "fileSha256": "3c59bc909c4129bd688292aa968147472ab8e7a59ff0d9207cab176439ea0833",
+      "bytes": 568268,
+      "durationSec": 47.291292,
+      "activeQuestions": 5,
+      "retiredQuestions": 0,
+      "savedSnapshots": 0,
+      "sourceJson": "tools/learning-path-authoring/b1-replacement/b1-replacement-draft.json",
+      "sourceContentMatchesDb": true,
+      "sourceUrlMatchesDb": true,
+      "partMatchesDb": true,
+      "group": "ACTIVE_MIGRATION",
+      "proposedAction": "Upload mới 1 file sau khi duyệt"
+    },
+    {
+      "passageId": "LP-PASS-L-B1-V2-029",
+      "title": "A Change of Venue for the Orchestra",
+      "status": "ACTIVE",
+      "revision": 1,
+      "level": "B1",
+      "currentUrl": "/learning-path-audio/b1-v2/listening-029.mp3",
+      "currentMediaId": null,
+      "candidateExistingMediaId": null,
+      "file": "public/learning-path-audio/b1-v2/listening-029.mp3",
+      "fileSha256": "1e08ba4e272b65c93e8f9f928cc1720ee01c67e1b3df941e67a5a9b075b6d178",
+      "bytes": 564236,
+      "durationSec": 46.95625,
+      "activeQuestions": 5,
+      "retiredQuestions": 0,
+      "savedSnapshots": 0,
+      "sourceJson": "tools/learning-path-authoring/b1-replacement/b1-replacement-draft.json",
+      "sourceContentMatchesDb": true,
+      "sourceUrlMatchesDb": true,
+      "partMatchesDb": true,
+      "group": "ACTIVE_MIGRATION",
+      "proposedAction": "Upload mới 1 file sau khi duyệt"
+    },
+    {
+      "passageId": "LP-PASS-L-B1-V2-030",
+      "title": "Town Hall: The Riverside Project",
+      "status": "ACTIVE",
+      "revision": 1,
+      "level": "B1",
+      "currentUrl": "/learning-path-audio/b1-v2/listening-030.mp3",
+      "currentMediaId": null,
+      "candidateExistingMediaId": null,
+      "file": "public/learning-path-audio/b1-v2/listening-030.mp3",
+      "fileSha256": "9f35307f0ed7e30b06411056fe4424f801147d34dd306558940f977017195585",
+      "bytes": 626444,
+      "durationSec": 52.134833,
+      "activeQuestions": 5,
+      "retiredQuestions": 0,
+      "savedSnapshots": 0,
+      "sourceJson": "tools/learning-path-authoring/b1-replacement/b1-replacement-draft.json",
+      "sourceContentMatchesDb": true,
+      "sourceUrlMatchesDb": true,
+      "partMatchesDb": true,
+      "group": "ACTIVE_MIGRATION",
+      "proposedAction": "Upload mới 1 file sau khi duyệt"
+    },
+    {
+      "passageId": "LP-PASS-L-DETAIL-B1",
+      "title": "Planning a community fair",
+      "status": "RETIRED",
+      "revision": 2,
+      "level": "B1",
+      "currentUrl": "/learning-path-audio/listening-detail-b1.mp3",
+      "currentMediaId": null,
+      "candidateExistingMediaId": null,
+      "file": "public/learning-path-audio/listening-detail-b1.mp3",
+      "fileSha256": "d78387807eb31200fe212a5ae77f71666a2c658b8afc0ca43aa772cb972e90f6",
+      "bytes": 374060,
+      "durationSec": 23.29675,
+      "activeQuestions": 0,
+      "retiredQuestions": 36,
+      "savedSnapshots": 60,
+      "sourceJson": "tools/mongo-json-importer/samples/learning-path-demo.json",
+      "sourceContentMatchesDb": true,
+      "sourceUrlMatchesDb": false,
+      "partMatchesDb": null,
+      "group": "LEGACY_REVIEW_ONLY",
+      "proposedAction": "Để riêng; chưa upload/chưa sửa snapshot"
+    },
+    {
+      "passageId": "LP-PASS-L-GIST-B1",
+      "title": "Library opening hours announcement",
+      "status": "RETIRED",
+      "revision": 2,
+      "level": "B1",
+      "currentUrl": "/learning-path-audio/listening-gist-b1.mp3",
+      "currentMediaId": null,
+      "candidateExistingMediaId": null,
+      "file": "public/learning-path-audio/listening-gist-b1.mp3",
+      "fileSha256": "02a370629a51045728d645596a54b545db094e1d93a49134c120db94ded494c3",
+      "bytes": 308396,
+      "durationSec": 19.184083,
+      "activeQuestions": 0,
+      "retiredQuestions": 36,
+      "savedSnapshots": 90,
+      "sourceJson": "tools/mongo-json-importer/samples/learning-path-demo.json",
+      "sourceContentMatchesDb": true,
+      "sourceUrlMatchesDb": false,
+      "partMatchesDb": null,
+      "group": "LEGACY_REVIEW_ONLY",
+      "proposedAction": "Để riêng; chưa upload/chưa sửa snapshot"
+    },
+    {
+      "passageId": "LP-PASS-L-INFERENCE-B1",
+      "title": "A change in the weather",
+      "status": "RETIRED",
+      "revision": 2,
+      "level": "B1",
+      "currentUrl": "/learning-path-audio/listening-inference-b1.mp3",
+      "currentMediaId": null,
+      "candidateExistingMediaId": null,
+      "file": "public/learning-path-audio/listening-inference-b1.mp3",
+      "fileSha256": "da6a7e4bb392bb71a51b93230498e577a35661cc6dd2ef7b210867d56d91ed5b",
+      "bytes": 220844,
+      "durationSec": 13.712125,
+      "activeQuestions": 0,
+      "retiredQuestions": 36,
+      "savedSnapshots": 0,
+      "sourceJson": "tools/mongo-json-importer/samples/learning-path-demo.json",
+      "sourceContentMatchesDb": true,
+      "sourceUrlMatchesDb": false,
+      "partMatchesDb": null,
+      "group": "LEGACY_REVIEW_ONLY",
+      "proposedAction": "Để riêng; chưa upload/chưa sửa snapshot"
+    },
+    {
+      "passageId": "LP-PASS-L-SPECIFIC-B1",
+      "title": "Saturday workshop details",
+      "status": "RETIRED",
+      "revision": 2,
+      "level": "B1",
+      "currentUrl": "/learning-path-audio/listening-specific-b1.mp3",
+      "currentMediaId": null,
+      "candidateExistingMediaId": null,
+      "file": "public/learning-path-audio/listening-specific-b1.mp3",
+      "fileSha256": "ffb300a8ea9f122f9638123939551621af5814649638e4723ecc44d17ad8cac2",
+      "bytes": 264236,
+      "durationSec": 16.436042,
+      "activeQuestions": 0,
+      "retiredQuestions": 36,
+      "savedSnapshots": 120,
+      "sourceJson": "tools/mongo-json-importer/samples/learning-path-demo.json",
+      "sourceContentMatchesDb": true,
+      "sourceUrlMatchesDb": false,
+      "partMatchesDb": null,
+      "group": "LEGACY_REVIEW_ONLY",
+      "proposedAction": "Để riêng; chưa upload/chưa sửa snapshot"
+    }
+  ],
+  "files": [
+    {
+      "file": "public/learning-path-audio/b1-v2/listening-001.mp3",
+      "url": "/learning-path-audio/b1-v2/listening-001.mp3",
+      "bytes": 559628,
+      "sha256": "72580eeaaacb3c8fbeebb66594c3cbc3b250f793c1088c779a5d413035222785",
+      "durationSec": 46.581333,
+      "streams": [
+        {
+          "codec_name": "mp3",
+          "sample_rate": "48000",
+          "channels": 1
+        }
+      ]
+    },
+    {
+      "file": "public/learning-path-audio/b1-v2/listening-002.mp3",
+      "url": "/learning-path-audio/b1-v2/listening-002.mp3",
+      "bytes": 442700,
+      "sha256": "623b0f928a04499673fa807345e86663c55d073692603c7f96a1b9e3efc1e61d",
+      "durationSec": 36.834188,
+      "streams": [
+        {
+          "codec_name": "mp3",
+          "sample_rate": "48000",
+          "channels": 1
+        }
+      ]
+    },
+    {
+      "file": "public/learning-path-audio/b1-v2/listening-003.mp3",
+      "url": "/learning-path-audio/b1-v2/listening-003.mp3",
+      "bytes": 608588,
+      "sha256": "201367fefe560817934ef3c725fbceff7540ad1206f0a846e7f516241426522c",
+      "durationSec": 50.656021,
+      "streams": [
+        {
+          "codec_name": "mp3",
+          "sample_rate": "48000",
+          "channels": 1
+        }
+      ]
+    },
+    {
+      "file": "public/learning-path-audio/b1-v2/listening-004.mp3",
+      "url": "/learning-path-audio/b1-v2/listening-004.mp3",
+      "bytes": 581516,
+      "sha256": "b5632bd37477e87681d2b6b60339cf69b2b07c3925f5b620fda2994221083db5",
+      "durationSec": 48.405771,
+      "streams": [
+        {
+          "codec_name": "mp3",
+          "sample_rate": "48000",
+          "channels": 1
+        }
+      ]
+    },
+    {
+      "file": "public/learning-path-audio/b1-v2/listening-005.mp3",
+      "url": "/learning-path-audio/b1-v2/listening-005.mp3",
+      "bytes": 572588,
+      "sha256": "190248713f63027f146de59e43f7f4525245dd76d43be797209538f6955f66c5",
+      "durationSec": 47.663771,
+      "streams": [
+        {
+          "codec_name": "mp3",
+          "sample_rate": "48000",
+          "channels": 1
+        }
+      ]
+    },
+    {
+      "file": "public/learning-path-audio/b1-v2/listening-006.mp3",
+      "url": "/learning-path-audio/b1-v2/listening-006.mp3",
+      "bytes": 438380,
+      "sha256": "e7b1d683daf101086a0049f4ec83e8a8564590ae61278a8bd20c2363daba2696",
+      "durationSec": 36.456979,
+      "streams": [
+        {
+          "codec_name": "mp3",
+          "sample_rate": "48000",
+          "channels": 1
+        }
+      ]
+    },
+    {
+      "file": "public/learning-path-audio/b1-v2/listening-007.mp3",
+      "url": "/learning-path-audio/b1-v2/listening-007.mp3",
+      "bytes": 528236,
+      "sha256": "676d1e28faca493504251e006b0b49c3452065575868f6916b397d0e50799a1f",
+      "durationSec": 43.949813,
+      "streams": [
+        {
+          "codec_name": "mp3",
+          "sample_rate": "48000",
+          "channels": 1
+        }
+      ]
+    },
+    {
+      "file": "public/learning-path-audio/b1-v2/listening-008.mp3",
+      "url": "/learning-path-audio/b1-v2/listening-008.mp3",
+      "bytes": 586700,
+      "sha256": "63074bbc816096629a4660e5b1b01c1f59a0b5526a8c347fa5c0589f16356c7b",
+      "durationSec": 48.836729,
+      "streams": [
+        {
+          "codec_name": "mp3",
+          "sample_rate": "48000",
+          "channels": 1
+        }
+      ]
+    },
+    {
+      "file": "public/learning-path-audio/b1-v2/listening-009.mp3",
+      "url": "/learning-path-audio/b1-v2/listening-009.mp3",
+      "bytes": 593900,
+      "sha256": "6c1f1375341f7bb49fe18f53a44013f80ad7d2ecf573bbf9ba157edeac1bf4ca",
+      "durationSec": 49.416979,
+      "streams": [
+        {
+          "codec_name": "mp3",
+          "sample_rate": "48000",
+          "channels": 1
+        }
+      ]
+    },
+    {
+      "file": "public/learning-path-audio/b1-v2/listening-010.mp3",
+      "url": "/learning-path-audio/b1-v2/listening-010.mp3",
+      "bytes": 584396,
+      "sha256": "b040d3dc1219d05b815e8971d7927277dfeb03955fcee6830d528d902e830b31",
+      "durationSec": 48.629854,
+      "streams": [
+        {
+          "codec_name": "mp3",
+          "sample_rate": "48000",
+          "channels": 1
+        }
+      ]
+    },
+    {
+      "file": "public/learning-path-audio/b1-v2/listening-011.mp3",
+      "url": "/learning-path-audio/b1-v2/listening-011.mp3",
+      "bytes": 583244,
+      "sha256": "45cea98d67162aeff468e0f7123e6e0a0e121be4261f24d18b192a79dacefb93",
+      "durationSec": 48.535208,
+      "streams": [
+        {
+          "codec_name": "mp3",
+          "sample_rate": "48000",
+          "channels": 1
+        }
+      ]
+    },
+    {
+      "file": "public/learning-path-audio/b1-v2/listening-012.mp3",
+      "url": "/learning-path-audio/b1-v2/listening-012.mp3",
+      "bytes": 556172,
+      "sha256": "77f2ef6657c3ed21fd74e0539e22c08b005e587178df3261c604724b71bf4b6b",
+      "durationSec": 46.284896,
+      "streams": [
+        {
+          "codec_name": "mp3",
+          "sample_rate": "48000",
+          "channels": 1
+        }
+      ]
+    },
+    {
+      "file": "public/learning-path-audio/b1-v2/listening-013.mp3",
+      "url": "/learning-path-audio/b1-v2/listening-013.mp3",
+      "bytes": 657260,
+      "sha256": "d24c709bcc7517970a768cd51d8baa9612fcd19ab28ffb18243bdca2fd1f9f79",
+      "durationSec": 54.719729,
+      "streams": [
+        {
+          "codec_name": "mp3",
+          "sample_rate": "48000",
+          "channels": 1
+        }
+      ]
+    },
+    {
+      "file": "public/learning-path-audio/b1-v2/listening-014.mp3",
+      "url": "/learning-path-audio/b1-v2/listening-014.mp3",
+      "bytes": 632204,
+      "sha256": "8323bdacf6130cb07f654c1adbd80812279e4c120cbfbae7cae803a6c647a943",
+      "durationSec": 52.616104,
+      "streams": [
+        {
+          "codec_name": "mp3",
+          "sample_rate": "48000",
+          "channels": 1
+        }
+      ]
+    },
+    {
+      "file": "public/learning-path-audio/b1-v2/listening-015.mp3",
+      "url": "/learning-path-audio/b1-v2/listening-015.mp3",
+      "bytes": 675692,
+      "sha256": "2846b9e63a9eb2a8862fe9e0a42b4dc4479b0e95e9a8690bdfabb0678f4eefa8",
+      "durationSec": 56.245042,
+      "streams": [
+        {
+          "codec_name": "mp3",
+          "sample_rate": "48000",
+          "channels": 1
+        }
+      ]
+    },
+    {
+      "file": "public/learning-path-audio/b1-v2/listening-016.mp3",
+      "url": "/learning-path-audio/b1-v2/listening-016.mp3",
+      "bytes": 631628,
+      "sha256": "4ae8f2aad85ed89771e510674b7772e2beb58cea2ac83223082baf9bbb504563",
+      "durationSec": 52.560979,
+      "streams": [
+        {
+          "codec_name": "mp3",
+          "sample_rate": "48000",
+          "channels": 1
+        }
+      ]
+    },
+    {
+      "file": "public/learning-path-audio/b1-v2/listening-017.mp3",
+      "url": "/learning-path-audio/b1-v2/listening-017.mp3",
+      "bytes": 735884,
+      "sha256": "054faaaf40fecac04ea126e02f287a2f60c2b1b1b8f06124d7ccd63b6aebcc6a",
+      "durationSec": 61.260104,
+      "streams": [
+        {
+          "codec_name": "mp3",
+          "sample_rate": "48000",
+          "channels": 1
+        }
+      ]
+    },
+    {
+      "file": "public/learning-path-audio/b1-v2/listening-018.mp3",
+      "url": "/learning-path-audio/b1-v2/listening-018.mp3",
+      "bytes": 619244,
+      "sha256": "8e275be62ad3479e891ea06a0f0fe41dc895192ccff41a17e83485ee64263d93",
+      "durationSec": 51.540729,
+      "streams": [
+        {
+          "codec_name": "mp3",
+          "sample_rate": "48000",
+          "channels": 1
+        }
+      ]
+    },
+    {
+      "file": "public/learning-path-audio/b1-v2/listening-019.mp3",
+      "url": "/learning-path-audio/b1-v2/listening-019.mp3",
+      "bytes": 630476,
+      "sha256": "c73af72c1ec7ce51b22c9a9ad4d5eebc63b489ec90aa3077c29fb2ef353d5966",
+      "durationSec": 52.475917,
+      "streams": [
+        {
+          "codec_name": "mp3",
+          "sample_rate": "48000",
+          "channels": 1
+        }
+      ]
+    },
+    {
+      "file": "public/learning-path-audio/b1-v2/listening-020.mp3",
+      "url": "/learning-path-audio/b1-v2/listening-020.mp3",
+      "bytes": 605996,
+      "sha256": "4fc9759644dc33efaa1122b8c63f1f03277b56bc1b0902138f22c6c7b11dbe13",
+      "durationSec": 50.435479,
+      "streams": [
+        {
+          "codec_name": "mp3",
+          "sample_rate": "48000",
+          "channels": 1
+        }
+      ]
+    },
+    {
+      "file": "public/learning-path-audio/b1-v2/listening-021.mp3",
+      "url": "/learning-path-audio/b1-v2/listening-021.mp3",
+      "bytes": 653804,
+      "sha256": "2c941f8d1fa05e0f9cdf81566d00c85a954c5d2aab102593c6cb431ab005efc7",
+      "durationSec": 54.410667,
+      "streams": [
+        {
+          "codec_name": "mp3",
+          "sample_rate": "48000",
+          "channels": 1
+        }
+      ]
+    },
+    {
+      "file": "public/learning-path-audio/b1-v2/listening-022.mp3",
+      "url": "/learning-path-audio/b1-v2/listening-022.mp3",
+      "bytes": 590156,
+      "sha256": "60106690dfe7bde21cf1d3fdb3d4ac1eb55e04cc002251205f22a0e75a5fd7a8",
+      "durationSec": 49.121958,
+      "streams": [
+        {
+          "codec_name": "mp3",
+          "sample_rate": "48000",
+          "channels": 1
+        }
+      ]
+    },
+    {
+      "file": "public/learning-path-audio/b1-v2/listening-023.mp3",
+      "url": "/learning-path-audio/b1-v2/listening-023.mp3",
+      "bytes": 615212,
+      "sha256": "1991d85e2fd6f4476e818c69c1232e1e74a65d272ddf15143ddde84d46748dd6",
+      "durationSec": 51.205542,
+      "streams": [
+        {
+          "codec_name": "mp3",
+          "sample_rate": "48000",
+          "channels": 1
+        }
+      ]
+    },
+    {
+      "file": "public/learning-path-audio/b1-v2/listening-024.mp3",
+      "url": "/learning-path-audio/b1-v2/listening-024.mp3",
+      "bytes": 559916,
+      "sha256": "d2be3321d9a56cef93e92235e41ebe79fd0ca68bef9a2531f280179e209e5c16",
+      "durationSec": 46.601542,
+      "streams": [
+        {
+          "codec_name": "mp3",
+          "sample_rate": "48000",
+          "channels": 1
+        }
+      ]
+    },
+    {
+      "file": "public/learning-path-audio/b1-v2/listening-025.mp3",
+      "url": "/learning-path-audio/b1-v2/listening-025.mp3",
+      "bytes": 643724,
+      "sha256": "5016bd3dbc6ff0b77833017c79b77b33a79bac0c661d1298a87c5246e7f7d4ea",
+      "durationSec": 53.575479,
+      "streams": [
+        {
+          "codec_name": "mp3",
+          "sample_rate": "48000",
+          "channels": 1
+        }
+      ]
+    },
+    {
+      "file": "public/learning-path-audio/b1-v2/listening-026.mp3",
+      "url": "/learning-path-audio/b1-v2/listening-026.mp3",
+      "bytes": 649196,
+      "sha256": "52421410fa243b789b3b28699fb3a29e213e4f7a4b0558faf320804d4aa5f339",
+      "durationSec": 54.040188,
+      "streams": [
+        {
+          "codec_name": "mp3",
+          "sample_rate": "48000",
+          "channels": 1
+        }
+      ]
+    },
+    {
+      "file": "public/learning-path-audio/b1-v2/listening-027.mp3",
+      "url": "/learning-path-audio/b1-v2/listening-027.mp3",
+      "bytes": 605708,
+      "sha256": "5555f28f2fcb9f80381458a8611a717a64241fb44f44db7b874ba883c8514327",
+      "durationSec": 50.415563,
+      "streams": [
+        {
+          "codec_name": "mp3",
+          "sample_rate": "48000",
+          "channels": 1
+        }
+      ]
+    },
+    {
+      "file": "public/learning-path-audio/b1-v2/listening-028.mp3",
+      "url": "/learning-path-audio/b1-v2/listening-028.mp3",
+      "bytes": 568268,
+      "sha256": "3c59bc909c4129bd688292aa968147472ab8e7a59ff0d9207cab176439ea0833",
+      "durationSec": 47.291292,
+      "streams": [
+        {
+          "codec_name": "mp3",
+          "sample_rate": "48000",
+          "channels": 1
+        }
+      ]
+    },
+    {
+      "file": "public/learning-path-audio/b1-v2/listening-029.mp3",
+      "url": "/learning-path-audio/b1-v2/listening-029.mp3",
+      "bytes": 564236,
+      "sha256": "1e08ba4e272b65c93e8f9f928cc1720ee01c67e1b3df941e67a5a9b075b6d178",
+      "durationSec": 46.95625,
+      "streams": [
+        {
+          "codec_name": "mp3",
+          "sample_rate": "48000",
+          "channels": 1
+        }
+      ]
+    },
+    {
+      "file": "public/learning-path-audio/b1-v2/listening-030.mp3",
+      "url": "/learning-path-audio/b1-v2/listening-030.mp3",
+      "bytes": 626444,
+      "sha256": "9f35307f0ed7e30b06411056fe4424f801147d34dd306558940f977017195585",
+      "durationSec": 52.134833,
+      "streams": [
+        {
+          "codec_name": "mp3",
+          "sample_rate": "48000",
+          "channels": 1
+        }
+      ]
+    },
+    {
+      "file": "public/learning-path-audio/listening-attitude-b1.mp3",
+      "url": "/learning-path-audio/listening-attitude-b1.mp3",
+      "bytes": 275756,
+      "sha256": "23f1d7856d36103404aaa0c257d3cc0ea7fa7f6a9185c82267fc6c227eb3ffc0",
+      "durationSec": 17.142333,
+      "streams": [
+        {
+          "codec_name": "mp3",
+          "sample_rate": "24000",
+          "channels": 1
+        }
+      ]
+    },
+    {
+      "file": "public/learning-path-audio/listening-detail-b1.mp3",
+      "url": "/learning-path-audio/listening-detail-b1.mp3",
+      "bytes": 374060,
+      "sha256": "d78387807eb31200fe212a5ae77f71666a2c658b8afc0ca43aa772cb972e90f6",
+      "durationSec": 23.29675,
+      "streams": [
+        {
+          "codec_name": "mp3",
+          "sample_rate": "24000",
+          "channels": 1
+        }
+      ]
+    },
+    {
+      "file": "public/learning-path-audio/listening-gist-b1.mp3",
+      "url": "/learning-path-audio/listening-gist-b1.mp3",
+      "bytes": 308396,
+      "sha256": "02a370629a51045728d645596a54b545db094e1d93a49134c120db94ded494c3",
+      "durationSec": 19.184083,
+      "streams": [
+        {
+          "codec_name": "mp3",
+          "sample_rate": "24000",
+          "channels": 1
+        }
+      ]
+    },
+    {
+      "file": "public/learning-path-audio/listening-inference-b1.mp3",
+      "url": "/learning-path-audio/listening-inference-b1.mp3",
+      "bytes": 220844,
+      "sha256": "da6a7e4bb392bb71a51b93230498e577a35661cc6dd2ef7b210867d56d91ed5b",
+      "durationSec": 13.712125,
+      "streams": [
+        {
+          "codec_name": "mp3",
+          "sample_rate": "24000",
+          "channels": 1
+        }
+      ]
+    },
+    {
+      "file": "public/learning-path-audio/listening-specific-b1.mp3",
+      "url": "/learning-path-audio/listening-specific-b1.mp3",
+      "bytes": 264236,
+      "sha256": "ffb300a8ea9f122f9638123939551621af5814649638e4723ecc44d17ad8cac2",
+      "durationSec": 16.436042,
+      "streams": [
+        {
+          "codec_name": "mp3",
+          "sample_rate": "24000",
+          "channels": 1
+        }
+      ]
+    }
+  ],
+  "snapshots": [
+    {
+      "_id": {
+        "passageId": "LP-PASS-L-ATTITUDE-B1",
+        "url": "https://example.com/mock-audio/listening-attitude-b1.mp3"
+      },
+      "count": 30,
+      "transcriptSha256": "bef43dca29dcff4b0e94e0ba0e3dcb3da3d311d7d8c330deb3e6fd4ac521d283",
+      "matchesCurrentPassageTranscript": true
+    },
+    {
+      "_id": {
+        "passageId": "LP-PASS-L-GIST-B1",
+        "url": "https://example.com/mock-audio/listening-gist-b1.mp3"
+      },
+      "count": 60,
+      "transcriptSha256": "2deee9fad8daf37c25ee1f1204337edcd113c554dc7dcd34dc4b1d5755ced680",
+      "matchesCurrentPassageTranscript": true
+    },
+    {
+      "_id": {
+        "passageId": "LP-PASS-L-SPECIFIC-B1",
+        "url": "https://example.com/mock-audio/listening-specific-b1.mp3"
+      },
+      "count": 90,
+      "transcriptSha256": "50f35a375cea60010ed581bd6a96935e804529d9472d1db58460a32ba168a9ea",
+      "matchesCurrentPassageTranscript": true
+    },
+    {
+      "_id": {
+        "passageId": "LP-PASS-L-GIST-B1",
+        "url": "/learning-path-audio/listening-gist-b1.mp3"
+      },
+      "count": 30,
+      "transcriptSha256": "2deee9fad8daf37c25ee1f1204337edcd113c554dc7dcd34dc4b1d5755ced680",
+      "matchesCurrentPassageTranscript": true
+    },
+    {
+      "_id": {
+        "passageId": "LP-PASS-L-SPECIFIC-B1",
+        "url": "/learning-path-audio/listening-specific-b1.mp3"
+      },
+      "count": 30,
+      "transcriptSha256": "50f35a375cea60010ed581bd6a96935e804529d9472d1db58460a32ba168a9ea",
+      "matchesCurrentPassageTranscript": true
+    },
+    {
+      "_id": {
+        "passageId": "LP-PASS-L-DETAIL-B1",
+        "url": "https://example.com/mock-audio/listening-detail-b1.mp3"
+      },
+      "count": 60,
+      "transcriptSha256": "04d8f5e877965b5e444be7d38e3718e26934dd1fdf2bf01cd839d4ed12e98519",
+      "matchesCurrentPassageTranscript": true
+    }
+  ]
+}

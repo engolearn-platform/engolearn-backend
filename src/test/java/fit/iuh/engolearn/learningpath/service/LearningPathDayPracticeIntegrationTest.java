@@ -1,5 +1,9 @@
 package fit.iuh.engolearn.learningpath.service;
 
+import fit.iuh.engolearn.learningpath.service.impl.LearningPathAudioServiceImpl;
+import fit.iuh.engolearn.media.contract.MediaManagement;
+import fit.iuh.engolearn.shared.security.CurrentUserProvider;
+
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
 import fit.iuh.engolearn.learningpath.model.LearningPath;
@@ -38,6 +42,9 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 class LearningPathDayPracticeIntegrationTest {
+    private static LearningPathAudioService audio() {
+        return new LearningPathAudioServiceImpl(mock(MediaManagement.class));
+    }
 
     private static final Instant STARTED_AT = Instant.parse("2026-10-09T03:00:00Z");
     private static final Date AUTO_CLOSE_AT = Date.from(Instant.parse("2026-10-09T17:00:00Z"));
@@ -76,7 +83,8 @@ class LearningPathDayPracticeIntegrationTest {
                                 .and("user_id").is(userId)), LearningPath.class)));
                 LearningPathDayPracticeService service = new LearningPathDayPracticeService(
                         paths, new LearningPathPracticeRepository(template),
-                        new LearningPathQuestionRepository(template), Clock.fixed(STARTED_AT, ZoneOffset.UTC));
+                        new LearningPathQuestionRepository(template), audio(), Clock.fixed(STARTED_AT, ZoneOffset.UTC),
+                        mock(CurrentUserProvider.class));
 
                 var first = service.start(pathId.toHexString(), 1, 1, userId);
                 var repeated = service.start(pathId.toHexString(), 1, 1, userId);
@@ -119,7 +127,7 @@ class LearningPathDayPracticeIntegrationTest {
                 LearningPathQuestionRepository questions = new LearningPathQuestionRepository(template);
                 Clock clock = Clock.fixed(STARTED_AT, ZoneOffset.UTC);
                 LearningPathDayPracticeService dayService = new LearningPathDayPracticeService(
-                        paths, practice, questions, clock);
+                        paths, practice, questions, audio(), clock, mock(CurrentUserProvider.class));
                 LearningPathAnswerDraftService draftService = new LearningPathAnswerDraftService(
                         paths, practice, questions, clock);
                 dayService.start(pathId.toHexString(), 1, 1, userId);
@@ -164,7 +172,8 @@ class LearningPathDayPracticeIntegrationTest {
                 LearningPathPracticeRepository practice = new LearningPathPracticeRepository(template);
                 LearningPathQuestionRepository questions = new LearningPathQuestionRepository(template);
                 Clock clock = Clock.fixed(STARTED_AT, ZoneOffset.UTC);
-                new LearningPathDayPracticeService(paths, practice, questions, clock)
+                new LearningPathDayPracticeService(paths, practice, questions, audio(), clock,
+                        mock(CurrentUserProvider.class))
                         .start(pathId.toHexString(), 1, 1, userId);
                 LearningPathAnswerDraftService drafts = new LearningPathAnswerDraftService(paths, practice, questions, clock);
                 drafts.save(pathId.toHexString(), 1, 1, "q-1", userId, new SaveLearningPathAnswerDraftRequest("A"));
@@ -177,7 +186,7 @@ class LearningPathDayPracticeIntegrationTest {
                 assertThat(submission.wrong()).isEqualTo(1);
                 assertThat(submission.completionRate()).isEqualTo(20.0);
                 assertThat(submission.practiceScore()).isEqualTo(50.0);
-                var review = new LearningPathDayResultService(paths, questions)
+                var review = new LearningPathDayResultService(paths, questions, audio())
                         .getResult(pathId.toHexString(), 1, 1, userId);
                 assertThat(review.questions()).hasSize(10);
                 assertThat(review.status()).isEqualTo("SUBMITTED");
@@ -246,7 +255,8 @@ class LearningPathDayPracticeIntegrationTest {
                 LearningPathPracticeRepository practice = new LearningPathPracticeRepository(template);
                 LearningPathQuestionRepository questions = new LearningPathQuestionRepository(template);
                 Clock clock = Clock.fixed(STARTED_AT, ZoneOffset.UTC);
-                new LearningPathDayPracticeService(paths, practice, questions, clock)
+                new LearningPathDayPracticeService(paths, practice, questions, audio(), clock,
+                        mock(CurrentUserProvider.class))
                         .start(pathId.toHexString(), 1, 1, userId);
                 LearningPathAnswerDraftService drafts = new LearningPathAnswerDraftService(paths, practice, questions, clock);
                 for (int index = 1; index <= 10; index++) {

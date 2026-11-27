@@ -24,10 +24,12 @@ import org.springframework.web.server.ResponseStatusException;
 public class LearningPathDayResultService {
     private final LearningPathRepository paths;
     private final LearningPathQuestionRepository questions;
+    private final LearningPathAudioService audio;
 
-    public LearningPathDayResultService(LearningPathRepository paths, LearningPathQuestionRepository questions) {
+    public LearningPathDayResultService(LearningPathRepository paths, LearningPathQuestionRepository questions, LearningPathAudioService audio) {
         this.paths = paths;
         this.questions = questions;
+        this.audio = audio;
     }
 
     public LearningPathDayResultResponse getResult(String pathId, int weekNo, int dayNo, String userId) {
@@ -95,11 +97,8 @@ public class LearningPathDayResultService {
         Document passage = snapshot.get("passage", Document.class);
         LearningPathDayResultResponse.Passage passageInfo = null;
         if (passage != null) {
-            Document audio = passage.get("audio", Document.class);
-            var audioInfo = audio == null ? null : new LearningPathDayResultResponse.Audio(
-                    audio.getString("url"), audio.getInteger("duration_sec"), audio.getString("format"));
             passageInfo = new LearningPathDayResultResponse.Passage(
-                    passage.getString("title"), passage.getString("text"), audioInfo, passage.getString("transcript"));
+                    passage.getString("title"), passage.getString("text"), audio.resolve(passage), passage.getString("transcript"));
         }
         LearningPathAnswer answer = item.getAnswer();
         if (answer != null && (answer.getSelectedOptionId() == null || answer.getCorrect() == null)) {

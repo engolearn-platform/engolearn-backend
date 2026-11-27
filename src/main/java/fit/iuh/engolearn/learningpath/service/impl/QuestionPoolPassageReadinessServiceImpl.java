@@ -89,8 +89,6 @@ public class QuestionPoolPassageReadinessServiceImpl implements QuestionPoolPass
             List<QuestionPoolPassageReadinessIssueResponse> blockers,
             List<QuestionPoolPassageReadinessIssueResponse> warnings) {
         if (!blank(source.audioMediaId())) {
-            // Learner snapshots currently copy legacy audio.url and cannot deliver an audio_media_id.
-            blockers.add(issue("LEARNER_AUDIO_DELIVERY_UNSUPPORTED", "audio", "Luồng tạo lộ trình và luyện tập chưa hỗ trợ audio tải qua Media."));
             try {
                 var delivery = media.resolve(source.audioMediaId());
                 if (delivery.url() == null || !validAudioUrl(delivery.url().toString(), false)) {

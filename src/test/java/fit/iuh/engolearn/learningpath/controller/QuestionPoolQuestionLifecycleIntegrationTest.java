@@ -224,7 +224,7 @@ class QuestionPoolQuestionLifecycleIntegrationTest extends AbstractMongoIntegrat
     }
 
     @Test
-    void replacementKeepsTheLearnerMediaDeliveryBlocker() {
+    void replacementAcceptsManagedListeningWithFullProfessionalReview() {
         seedBank(1);
         seedQuestion("new", "DRAFT", "Listening for Gist", "B1");
         setQuestion("new", new Document("skill", "LISTENING").append("passage_id", "p"));
@@ -234,13 +234,14 @@ class QuestionPoolQuestionLifecycleIntegrationTest extends AbstractMongoIntegrat
                         .append("transcript", "Transcript").append("audio_media_id", "media-id")));
         when(media.resolve("media-id")).thenReturn(new fit.iuh.engolearn.media.contract.dto.MediaDeliveryDto(
                 java.net.URI.create("https://example.test/audio.mp3"), Instant.now().plusSeconds(60), "audio/mpeg"));
-        var before = snapshot();
         var body = json.writeValueAsString(new ReplaceQuestionPoolQuestionRequest(3, "new", 3,
                 EnumSet.allOf(QuestionReviewCheck.class), true));
         var response = request("/old/replace", body, UserRole.ADMIN);
-        assertError(response, 422, "QUESTION_NOT_READY");
-        assertThat(response.getBody()).contains("LEARNER_AUDIO_DELIVERY_UNSUPPORTED");
-        assertThat(snapshot()).isEqualTo(before);
+        assertThat(response.getStatusCode().value()).as(response.getBody()).isEqualTo(200);
+        assertThat(question("new").getString("status")).isEqualTo("ACTIVE");
+        assertThat(question("old").getString("status")).isEqualTo("RETIRED");
+        assertThat(question("new").get("publication_review", Document.class).getList("confirmed_checks", String.class)).hasSize(9);
+        assertThat(question("new").toJson()).doesNotContain("https://example.test/audio.mp3");
     }
 
     @Test

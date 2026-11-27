@@ -14,6 +14,9 @@ import fit.iuh.engolearn.learningpath.model.vo.LearningPathWeek;
 import fit.iuh.engolearn.learningpath.repository.LearningPathPracticeRepository;
 import fit.iuh.engolearn.learningpath.repository.LearningPathQuestionRepository;
 import fit.iuh.engolearn.learningpath.repository.LearningPathRepository;
+import fit.iuh.engolearn.learningpath.service.impl.LearningPathAudioServiceImpl;
+import fit.iuh.engolearn.media.contract.MediaManagement;
+import fit.iuh.engolearn.shared.security.CurrentUserProvider;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
@@ -47,7 +50,8 @@ class LearningPathDayPracticeServiceTest {
     private final LearningPathPracticeRepository practice = mock(LearningPathPracticeRepository.class);
     private final LearningPathQuestionRepository questions = mock(LearningPathQuestionRepository.class);
     private final LearningPathDayPracticeService service = new LearningPathDayPracticeService(
-            paths, practice, questions, Clock.fixed(NOW, ZoneOffset.UTC));
+            paths, practice, questions, new LearningPathAudioServiceImpl(mock(MediaManagement.class)),
+            Clock.fixed(NOW, ZoneOffset.UTC), mock(CurrentUserProvider.class));
     private final ObjectId pathId = new ObjectId();
     private final String userId = "pfc-demo-learner-v2";
 

@@ -14,9 +14,7 @@ public record LearningPathDayResultResponse(
             String correctOptionId, String explanation, String answerStatus
     ) {}
 
-    public record Passage(String title, String text, Audio audio, String transcript) {}
-
-    public record Audio(String url, Integer durationSec, String format) {}
+    public record Passage(String title, String text, LearningPathAudioResponse audio, String transcript) {}
 
     public record Option(String optionId, String text) {}
 }

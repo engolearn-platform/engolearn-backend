@@ -21,7 +21,8 @@ and the same ten questions in their saved order.
 The response `data` contains `pathId`, `weekNo`, `dayNo`, `status`, `startedAt`,
 `autoCloseAt`, and `questions`. Each question contains `order`, `questionId`,
 `microSkill`, `skill`, `prompt`, four `{ optionId, text }` options, and an optional
-`passage` with `title`, `text`, and optional `audio { url, durationSec, format }`.
+`passage` with `title`, `text`, and optional
+`audio { url, expiresAt, contentType, durationSec, format }`.
 It also contains `selectedOptionId`, which is null until a draft is saved and
 restores the latest selection when an in-progress day is reopened.
 Content is read from the immutable `learning_path_questions` snapshots, never
@@ -90,3 +91,71 @@ comes from the saved snapshots; missing or inconsistent result data is a server 
 
 Legacy days stored as `CLOSED` with `close_reason: SUBMITTED` are returned as
 `SUBMITTED` by both the detail and result APIs. Other closed days remain `CLOSED`.
+
+## Snapshot audio and delivery renewal
+
+New snapshots copy the stable `passage.audio_media_id` when present and do not
+copy its expiring delivery URL or legacy recording metadata. Creation resolves
+the selected passages through `media.contract.MediaManagement` before writing
+snapshots/path; response URLs are discarded. Existing standalone creation and
+orphan-snapshot limitations are unchanged. No Media collection or migration is added.
+
+Start and result resolve Media from the owned snapshot after checking access,
+never from the current pool passage. Replacing/retiring a source or changing its
+audio reference does not switch the recording assigned to an existing path.
+Managed delivery returns URL, `expiresAt`, content type and a format derived from
+the audio MIME type; duration is null because the Media delivery contract does
+not provide it. Legacy snapshots without a Media reference continue returning
+their stored audio URL/format/duration, with null expiry/content type. A present
+but invalid Media reference fails; missing/unavailable Media never falls back to
+the legacy recording. Provider details are not exposed in errors.
+
+`GET /api/learning-paths/{pathId}/weeks/{weekNo}/days/{dayNo}/questions/{questionId}/audio`
+returns `{ data: { url, expiresAt, contentType, durationSec, format }, timestamp }`.
+It is authenticated, uses the trusted session user and returns `Cache-Control: no-store`.
+Start/result responses also explicitly use `no-store` for delivery URLs.
+
+- A foreign/missing path, week/day, question outside that day, or question without
+  audio returns 404. IDs/ranges use the same validation as day APIs (400).
+- A day must already be IN_PROGRESS and still satisfy the start flow's path,
+  week/day deadlines and inactivity guards, or be COMPLETED/SUBMITTED/CLOSED and
+  accessible under the result flow's non-cancelled rule. NOT_STARTED/expired
+  in-progress/cancelled access returns 409. Completed-day audio remains readable
+  after its practice deadline, just like review.
+- Snapshot lookup is scoped by path ID, owner and the question assigned to that day.
+  Duplicates/missing/inconsistent saved data are server errors, not pool fallback.
+- This GET does not start/resume a day, extend deadlines/activity, save drafts,
+  grade, select new questions, or modify any snapshot/path/source/Media asset.
+  It returns only audio delivery data, without transcript, options or answer fields.
+- Missing Media returns 404 `MEDIA_NOT_FOUND`; unavailable delivery or a non-audio
+  asset returns 503 `MEDIA_STORAGE_UNAVAILABLE`. No generic public Media endpoint,
+  manual Cloudinary access or automatic provider retry is introduced.
+
+Frontend expiry recovery and real Cloudinary playback/seeking have now been
+verified in steps 4–5. Publication readiness no longer adds the temporary
+`LEARNER_AUDIO_DELIVERY_UNSUPPORTED` blocker. Automated delivery validation and
+professional review remain required. See the [live verification record](learning-path-media-verification.md).
+Data rollout is recorded separately: [30 ACTIVE passages](learning-path-media-migration-2026-11-27.md)
+and [300 legacy Listening snapshots](learning-path-legacy-audio-migration-2026-11-27.md)
+now use Media references. Normal ownership/state restrictions still apply.
+
+### Verification (2026-11-27)
+
+`./mvnw.cmd "-Dtest=ArchitectureTest,LearningPath*,QuestionPool*IntegrationTest" "-Dsurefire.useManifestOnlyJar=false" verify`
+completed with BUILD SUCCESS: 434 tests passed, no failures/errors/skips. This
+includes nine architecture checks, 23 new `LearningPathMediaHttpIntegrationTest`
+cases and the existing learner/authoring/publication/lifecycle regressions.
+Log: `target/learning-path-media-verification.log`. The full repository suite was
+not run; verification is scoped to Learning Path and architecture.
+
+New tests use real HTTP cookie authentication, the Spring method-security proxy,
+MediaManagement and isolated MongoDB. Only the external Media storage-provider
+port is substituted to avoid Cloudinary upload/network operations. They verify
+snapshot identity and unchanged content after source edits/retirement, creation
+failures before writes, fresh delivery and no-store, secrecy, every inherited
+owner role, unauthenticated/foreign/locked callers, practice deadlines and closed
+review access, missing/wrong-kind/unavailable Media without legacy fallback,
+legacy URLs and malformed/missing/duplicate snapshots. The provider double does
+not establish real Cloudinary playback, seeking, URL expiry/recovery or frontend
+integration; these remain manual/follow-up checks. No live business DB, source
+JSON or local media files were migrated or uploaded.
