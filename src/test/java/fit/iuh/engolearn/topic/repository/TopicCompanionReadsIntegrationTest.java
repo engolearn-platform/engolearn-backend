@@ -135,6 +135,31 @@ class TopicCompanionReadsIntegrationTest extends AbstractMongoIntegrationTest {
         assertThat(reads.discover(OWNER, new TopicDiscoveryQueryDto(null, null, 3, null)).items()).hasSize(1);
     }
 
+    @Test void currentStandaloneLearningAttemptIsVisibleOnlyToOwnerAndDoesNotRequireLegacyParent() {
+        profiles();
+        Fixture active = topic("Current", CefrLevel.B1, 1, ContentStatus.PUBLISHED);
+        Fixture unstarted = topic("New", CefrLevel.B1, 2, ContentStatus.PUBLISHED);
+        var attempt = UserTopicItemAttempt.builder().id(id()).userId(OWNER).topicId(active.topic())
+                .topicItemId(active.item()).topicItemVersionId(active.version()).attemptType(AttemptType.LEARNING)
+                .startRequestKey("start-key").startFingerprint("start|" + active.item() + "|LEARN")
+                .status(AttemptStatus.IN_PROGRESS).startedAt(AT).lastAccessedAt(AT).build();
+        mongoTemplate.insert(attempt);
+        var before = snapshot();
+        var page = reads.resume(OWNER, new TopicPageQueryDto(3, null));
+        assertThat(page.items()).hasSize(1);
+        assertThat(page.items().getFirst().activeLearningItem().attemptId()).isEqualTo(attempt.getId());
+        assertThat(page.items().getFirst().nextEligibleItem()).isNull();
+        assertThat(reads.discover(OWNER, new TopicDiscoveryQueryDto(null, null, 3, null)).items())
+                .extracting(TopicDiscoveryPageDto.RowDto::topicId).containsExactly(unstarted.topic());
+        assertThat(reads.counts(OWNER).completedTopicItems()).isZero();
+        assertThat(reads.resume(FOREIGN, new TopicPageQueryDto(3, null)).items()).isEmpty();
+        assertThat(snapshot()).isEqualTo(before);
+        attempt.setStartFingerprint("invalid");
+        mongoTemplate.save(attempt);
+        assertThatThrownBy(() -> reads.resume(OWNER, new TopicPageQueryDto(3, null)))
+                .isExactlyInstanceOf(IllegalStateException.class);
+    }
+
     @Test void completionCountsResolveOfficialRetryAndExcludeOtherOwnerHiddenAndReset() {
         profiles();
         Fixture completed = topic("Completed", CefrLevel.B1, 1, ContentStatus.PUBLISHED);

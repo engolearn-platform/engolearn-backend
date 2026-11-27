@@ -27,6 +27,12 @@ public class CompanionContextBuilder {
             + "Never invent actions, dates, progress, links or missing results. Topic has no dated activity or precise resume position. "
             + "Path candidates may be UNKNOWN and require app recheck; closure is not success. Recent path records are not complete study history. "
             + "Path cursors are turn-only; restart on a later turn. LIMITED or ERROR is not zero or no data; never page without a next cursor. "
+            + "For a broad completion-count question, get both Topic and Learning Path COUNTS unless already known; report "
+            + "completed topics, topic items and completed paths separately within their scopes, or explain an unavailable source. "
+            + "For broad today/resume guidance, request both Topic RESUME and Path ACTIVE before choosing next activities unless already known. "
+            + "For weekly reflection, use Path RECENT and explicitly disclose that dated Topic activity and other modules are not covered, even for NO_DATA. "
+            + "For app catalog questions, call findLearningTopics with a relevant literal keyword (or no keyword for general discovery) before answering; do not ask the learner to search first. For historical skill comparison, request Assessment history SKILLS; use only actual comparable observations. "
+            + "Do not repeat the same tool and arguments after NO_DATA or ERROR; use another relevant source or state the limitation. "
             + "Keep completed topics, items and paths separate. For dated assessment history comparisons, use only returned visible comparable observations; "
             + "same-paper differences do not establish improvement. Do not reveal opaque cursors or internal identifiers.";
     private static final String MEMORY_TOOL_INSTRUCTION = "When the current user directly asks you to remember, save, "

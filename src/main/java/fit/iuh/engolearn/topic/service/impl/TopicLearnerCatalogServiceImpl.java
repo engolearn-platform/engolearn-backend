@@ -551,6 +551,15 @@ public class TopicLearnerCatalogServiceImpl implements TopicLearnerCatalogServic
             for (var row : active) {
                 var parent = parents.get(row.getUserTopicAttemptId());
                 if (row.getAttemptType() == AttemptType.RETRY) continue;
+                // The current LEARN endpoint persists a standalone item attempt; legacy attempts use a parent.
+                if (row.getUserTopicAttemptId() == null && row.getAttemptType() == AttemptType.LEARNING
+                        && row.getStartRequestKey() != null && !row.getStartRequestKey().isBlank()
+                        && Objects.equals(row.getStartFingerprint(), "start|" + row.getTopicItemId() + "|LEARN")
+                        && row.getStartedAt() != null) {
+                    if (running.put(row.getTopicItemId(), row) != null)
+                        throw new IllegalStateException("Multiple learning attempts");
+                    continue;
+                }
                 if (parent == null || !userId.equals(parent.getUserId()) || !row.getTopicId().equals(parent.getTopicId())
                         || parent.getGeneration() != row.getGeneration() || parent.getAttemptType() != AttemptType.LEARNING
                         || parent.getStatus() != AttemptStatus.IN_PROGRESS

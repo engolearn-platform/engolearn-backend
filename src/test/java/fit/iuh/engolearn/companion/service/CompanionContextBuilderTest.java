@@ -77,7 +77,13 @@ class CompanionContextBuilderTest {
         assertThat(prompt).contains("For dated assessment history comparisons, use only returned visible comparable observations",
                 "For skill advice, request mode SKILLS without skillCodes",
                 "For PREVIEW results, discuss only returned rows and do not rank or compare unreturned skills",
-                "Never guess hidden results or treat one result as a trend");
+                "Never guess hidden results or treat one result as a trend",
+                "get both Topic and Learning Path COUNTS unless already known",
+                "completed topics, topic items and completed paths separately",
+                "request both Topic RESUME and Path ACTIVE",
+                "use Path RECENT and explicitly disclose that dated Topic activity and other modules are not covered",
+                "request Assessment history SKILLS",
+                "Do not repeat the same tool and arguments after NO_DATA or ERROR");
     }
 
     @Test
