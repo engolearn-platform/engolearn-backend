@@ -42,7 +42,10 @@ mapping was explicitly confirmed by the user; Vietnamese display labels are not 
 Only these five Assessment codes currently have an agreed mapping; the pool's broader catalog
 does not define codes for Assessment. Unknown codes, duplicate/incomplete measured skills,
 missing level/band, invalid counts or inconsistent percentages return 409, without guessing
-an equivalent skill. Learning Path still uses the test's level when checking pool eligibility.
+an equivalent skill. Learning Path reads the current profile level through
+`user.contract.UserLevelLookup` for pool eligibility and creation. Missing profile/level
+returns 409 for a new recommendation. Existing paths return their stored level without
+requiring a current profile. Assessment level remains source metadata.
 
 ## List and search
 
@@ -73,8 +76,14 @@ Recommendation is read-only. It returns `state`, `level`, `durationWeeks=3`, `da
 `questionsPerDay=10`, and `microSkills`. States remain `AVAILABLE`, `NO_WEAK_SKILLS`,
 `NO_ELIGIBLE_SKILLS`, and `ALREADY_CREATED` (including `existingPathId`).
 
+`NO_ELIGIBLE_SKILLS` means weak skills exist but none can currently be selected,
+not that the learner has no weaknesses. Its `message` is:
+“Các kỹ năng yếu chưa đủ điều kiện tạo lộ trình ở level hiện tại hoặc đang được luyện tập”.
+The frontend displays this message without offering creation. `NO_WEAK_SKILLS`
+continues to mean there are no skills below 50%, and has no message.
+
 Only skills below 50% qualify. An occupied skill in an active path or one with fewer than
-30 ACTIVE pool questions at the Assessment level is excluded. Recommendation does not
+30 ACTIVE pool questions at the current user level is excluded. Recommendation does not
 sample questions, write snapshots, reserve skills or start a schedule. Returned score/band
 values come from Assessment; band names are `NEEDS_PRACTICE`, `MONITOR`, `MEETS_THRESHOLD`.
 
@@ -85,14 +94,18 @@ The current endpoint is `POST /api/learning-paths/by-assessment`:
 ```json
 {
   "assessmentAttemptId": "<native Assessment ID>",
-  "microSkills": ["Inference & Author's View"]
+  "microSkills": ["Inference & Author's View"],
+  "level": "B1"
 }
 ```
 
 The alias `POST /api/learning-paths` accepts the same native source under the field
 `attemptId`. Both require 1–5 nonblank skill names matching the complete latest AVAILABLE
-recommendation. Creation rereads the source and recalculates eligibility. A stale confirmation
+recommendation, plus a required `level` exactly equal to the recommendation the learner
+confirmed. Accepted values are A1, A2, B1, B2, C1 and C2; missing/null/blank or unsupported
+values return 400. Creation rereads the source and recalculates eligibility. A stale confirmation
 returns `409 ProblemDetail` with the current `recommendation`; refresh and reconfirm before retrying.
+This includes a changed current user level even when the eligible skill names are unchanged.
 Missing/foreign/non-READY sources return 404, invalid bodies 400 and unauthenticated requests 401.
 
 The response remains `{ pathId, created: true|false }` in the shared `ApiResponse` envelope.
@@ -102,7 +115,23 @@ the native Mongo ID is an ObjectId. A unique partial index on the native source 
 concurrent duplicate creation; the active owner/micro-skill unique index prevents overlaps.
 Indexes are declared on `LearningPath` and initialized by `LearningPathIndexConfig`.
 
-Creation samples 30 distinct ACTIVE questions per eligible skill and builds all three weeks.
+Creation freezes the recalculated recommendation level, samples 30 distinct ACTIVE questions
+at that level per eligible skill and builds all three weeks. Later profile changes do not
+change existing paths or their question snapshots.
+
+The supplied level is a confirmation value, not an override: UserLevelLookup remains
+authoritative through the recalculated recommendation. A mismatch is rejected before any
+question selection or snapshot/path writes. A matching request freezes the recalculated
+level. Once an owned path already exists for the source, a well-formed request still returns
+that same path with created=false, regardless of a changed or missing current profile.
+There is no cross-module User lock: the level is checked at the recommendation read that
+decides creation; later profile changes do not rewrite the plan.
+
+Compatibility: both create endpoints now require level. Existing frontend callers that
+send only the source and skills receive 400 until updated to submit the level captured at
+dialog opening, show it during confirmation and refresh/reconfirm after 409. This backend
+change does not update the frontend itself. No persistence migration is needed.
+
 It saves question snapshots first, then the path, without a cross-module transaction, so
 standalone local MongoDB can still create a path from an existing completed result. Failed
 or concurrent losing writes may leave orphaned snapshots; they are never used by the winning
@@ -115,3 +144,19 @@ lifecycle grading continue reading immutable Learning Path question snapshots.
 
 The frontend still opens a confirmation dialog, sends POST only after confirmation, disables
 actions during creation and navigates to `/learning-paths/:pathId?week=1` on success.
+
+## Level confirmation verification — 2026-11-26
+
+- `./mvnw.cmd "-Dtest=LearningPath*,QuestionPoolPassageManagementIntegrationTest,SecurityIntegrationTest#*LearningPath*+learningPath*" "-Dsurefire.useManifestOnlyJar=false" clean verify`:
+  BUILD SUCCESS; 301 tests, zero failures/errors/skips. The launcher option avoids
+  the known Windows manifest classpath issue on this workspace without changing tests.
+- Real HTTP/MongoDB coverage exercises both create endpoints: identical skills
+  with A2-to-B1 level change return 409/current B1 recommendation before writes;
+  reconfirming B1 creates B1 path/snapshots while preserving the source Assessment;
+  missing/invalid levels and malformed JSON return 400; existing source idempotency
+  survives subsequent profile changes/removal. A level change with no eligible
+  pool returns the current NO_ELIGIBLE_SKILLS recommendation without writes.
+- 33 Learning Path security cases passed; standalone Mongo creation and existing
+  practice/lifecycle/passage regressions also passed. `git diff --check` passed.
+- Frontend integration was not changed or verified here. Its create payload must
+  be updated as described above before testing the full confirmation dialog flow.

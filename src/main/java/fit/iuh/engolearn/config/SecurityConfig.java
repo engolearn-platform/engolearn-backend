@@ -78,9 +78,19 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/placement/attempts/*/result", "/api/v1/placement/attempts/*/review",
                                 "/api/v1/placement/attempts/*/learning").hasRole("USER")
                         .requestMatchers("/api/v1/subscription/me", "/api/v1/subscription/me/**", "/api/v1/quota/me/**").authenticated()
-                        .requestMatchers("/api/v1/speaking/**").authenticated()
+                        // The upgrade interceptor authenticates the one-time control ticket.
+                        .requestMatchers(HttpMethod.GET, "/ws/speaking/*").permitAll()
+                        .requestMatchers("/ws/speaking", "/ws/speaking/**").denyAll()
+                        .requestMatchers("/api/v1/speaking", "/api/v1/speaking/**").hasRole("USER")
+                        .requestMatchers(HttpMethod.PUT, "/api/management/topics/*/speaking-profile",
+                                "/api/management/topics/*/items/*/speaking-profile").hasRole("CONTENT_MANAGER")
+                        .requestMatchers(HttpMethod.POST, "/api/management/topics/*/speaking-profile/publish",
+                                "/api/management/topics/*/items/*/speaking-profile/publish").hasRole("CONTENT_MANAGER")
                         .requestMatchers("/api/learning-paths", "/api/learning-paths/**").authenticated()
+                        .requestMatchers("/api/management/learning-paths", "/api/management/learning-paths/**").hasRole("CONTENT_MANAGER")
                         .requestMatchers(HttpMethod.POST, "/api/management/topics").hasRole("CONTENT_MANAGER")
+                        .requestMatchers(HttpMethod.POST, "/api/management/topics/*/publish", "/api/management/topics/*/unpublish").hasRole("CONTENT_MANAGER")
+                        .requestMatchers(HttpMethod.POST, "/api/management/topics/*/items/*/working-draft").hasRole("CONTENT_MANAGER")
                         .requestMatchers(HttpMethod.POST, "/api/management/topics/*/media/*").hasRole("CONTENT_MANAGER")
                         .requestMatchers(HttpMethod.GET, "/api/management/topics/*/media/*").hasRole("CONTENT_MANAGER")
                         .requestMatchers(HttpMethod.PATCH, "/api/management/topics/*").hasRole("CONTENT_MANAGER")
@@ -151,6 +161,7 @@ public class SecurityConfig {
                 || path.startsWith("/api/v1/grammar/") || path.startsWith("/api/v1/placement/")
                 || path.equals("/api/v1/companion") || path.startsWith("/api/v1/companion/")
                 || path.equals("/api/learning-paths") || path.startsWith("/api/learning-paths/")
+                || path.equals("/api/management/learning-paths") || path.startsWith("/api/management/learning-paths/")
                 || path.equals("/api/management/topics") || path.startsWith("/api/management/topics/")) {
             problemDetail.setDetail(status == HttpStatus.UNAUTHORIZED ? "Authentication is required" : "Access is denied");
             problemDetail.setInstance(URI.create(path));

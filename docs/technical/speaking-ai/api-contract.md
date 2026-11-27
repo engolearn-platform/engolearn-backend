@@ -1,57 +1,50 @@
-# Speaking AI REST and WebSocket contract
+# Speaking V2 API
 
-The REST controller is [`SpeakingController`](../../../src/main/java/fit/iuh/engolearn/speaking/controller/SpeakingController.java) under `/api/v1/speaking`. `SpeakingSessionService` resolves the learner through `CurrentUserProvider` using cookie-backed authentication. Success is HTTP 200 with `{data, timestamp}`. `data` is nullable for the current-session read. The FE sends `X-Speaking-Contract: 0.8.3` and `contractVersion=0.8.3` on the socket URL. Both runtime profiles accept those values without version negotiation. The [shared v0.8.3 addendum](../../../../docs/system-design/speaking-demo-contract-v0.8.3-addendum.md) defines the accepted compatibility gate for unavailable payloads, which this runtime does not emit.
+See the [shared contract](../../../../docs/system-design/speaking-v2-contract.md) for request and response fields, stable codes, status values and SPK2 framing.
 
-## REST routes
+Topic profile read, save and publish use the Content Manager authority for Topic and Item scopes. Learner REST uses the authenticated User role and verifies ownership. Deleted sessions cannot be retrieved or replayed. History is independent of current Topic visibility and quota.
 
-| Method and path | Request | Behavior |
-| --- | --- | --- |
-| `GET /items/{itemId}/config` | Path `itemId` | Returns the published Speaking config for an openable Topic item. |
-| `GET /sessions/current` | None | Returns the learner's current open session, if present. |
-| `GET /sessions?itemId={itemId}` | Optional query | Lists non-deleted learner sessions, optionally for an item. |
-| `GET /sessions/{id}` | Path `id` | Returns a learner-owned session. |
-| `POST /sessions` | `CreateSpeakingSessionRequest`: `itemId`, `requestId` | Creates a session unless an open session already prevents it. |
-| `POST /sessions/replace` | `CreateSpeakingSessionRequest` | Creates with replacement semantics for the learner's existing open session. |
-| `POST /sessions/{id}/resume` | `SpeakingControlRequest`: `controllerEpoch`, `requestId` | Ownership is checked, supplied epoch is not used, and resume advances the epoch. Replaying the last resume request ID returns the snapshot without advancing again. |
-| `POST /sessions/{id}/end` | `SpeakingControlRequest`: `controllerEpoch`, `requestId` | Checks the current epoch while the session is open and waits for the terminal snapshot. Returns the existing terminal snapshot if already ended. |
-| `POST /sessions/{id}/opening/retry` | `SpeakingControlRequest`: `controllerEpoch`, `requestId` | Retries a failed opening on an active, non-closing session under the current epoch. A repeated retry request ID returns the current snapshot. |
-| `GET /sessions/{id}/opening/audio` | Path `id` | Issues a playback URL for the caller's `READY` opening when the audio exists and is within its playback window. |
-| `POST /sessions/{id}/socket-ticket` | `SpeakingControlRequest`: `controllerEpoch`, `requestId` | Issues `{ticket, expiresInSeconds: 30}` bound to learner, session and epoch. The request ID is required by the DTO but is not used as a ticket replay key. |
-| `DELETE /sessions/{id}` | Path `id` | Soft-deletes the learner-owned session; an open session is settled first. |
-| `DELETE /sessions` | None | Soft-deletes the learner's non-deleted sessions; returns the affected count. |
-| `GET /sessions/{id}/turns/{turnId}/audio/{kind}` | Turn audio kind `LEARNER_RECORDING` or `AI_REPLY` | Returns `{url, expiresInSeconds: 60}` after ownership and turn membership checks. Opening audio uses its own endpoint and the same URL lifetime. |
+## Speaking profile authoring
 
-The exact Java request and response shapes are [`CreateSpeakingSessionRequest`](../../../src/main/java/fit/iuh/engolearn/speaking/dto/request/CreateSpeakingSessionRequest.java), [`SpeakingControlRequest`](../../../src/main/java/fit/iuh/engolearn/speaking/dto/request/SpeakingControlRequest.java), [`SpeakingSessionResponse`](../../../src/main/java/fit/iuh/engolearn/speaking/dto/response/SpeakingSessionResponse.java), [`SpeakingSocketTicketResponse`](../../../src/main/java/fit/iuh/engolearn/speaking/dto/response/SpeakingSocketTicketResponse.java), and the other DTOs in those folders. Their names and serialized identifiers are compatibility surface; consult the source for exact field constraints.
+GET and PUT use `/api/management/topics/{topicId}/speaking-profile` or `/api/management/topics/{topicId}/items/{itemId}/speaking-profile`. POST appends `/publish`. The GET projection includes the write revision, draft, stored publication, Speaking publication version, optional source defaults, owning Item groups and resource options. An unreleased scope may have a draft and source defaults. Publish requires an existing release and an explicitly saved draft. An enabled profile is validated against the current exact catalog. Validation failures include field paths and stable reason codes. A stale write revision returns `REQUEST_CONFLICT`.
 
-REST and snapshot-bearing socket events use `SpeakingSessionResponse`. It carries pinned content, goal and turn results, opening state, `controllerEpoch`, `revision` and `canStartTurn`. See the [data model](data-model.md#snapshots-and-audio) for how persisted records become this response.
+Resource IDs identify explicit Item occurrences. Authoring uses the saved working Item version, including DRAFT, within the exact scope. An existing selection remains checked if its canonical occurrence still exists. Removed or replaced occurrences stay in the draft as stale references until the editor removes or replaces them. Publish validation and learner admission use the current published catalog, and the learner snapshot deduplicates equivalent text and meaning. At publication and new-session admission, Topic checks the serialized static payload against the application envelope configured by `speaking.context.total-limit-bytes` (768 KiB default, with 256 KiB held for dynamic conversation and generation). A newer learning release can supply current resources to an existing published profile. Missing occurrences return `PROFILE_RESOURCES_STALE` at admission, and over-budget profiles return `CONTEXT_BUDGET_EXCEEDED`. Existing sessions continue to read their saved snapshots.
 
-## Socket handshake and messages
+Only the Speaking profile document is written by these management operations. Topic Learning readiness evaluates its own content and never promotes a Speaking draft.
 
-The backend registers `/ws/speaking/*` with configured allowed origins. Request a ticket from `POST /sessions/{id}/socket-ticket`, then connect to `/ws/speaking/{sessionId}?ticket={ticket}`. The ticket is single-use and binds the learner, session and epoch. The session service rejects invalid, expired and stale tickets. A missing ticket or failed asynchronous connection setup closes the socket with policy violation. Replacing a controller fences its old connection.
+## Learner admission
 
-Text messages are JSON. Supported commands are:
+New sessions, replacements and Practice Again check the authoritative Topic CEFR against the learner's current CEFR. A published Topic can be practiced before the learner starts Topic Learning. An Item also has to be visible under its parent and accessible under Topic Learning's sequence rules. Availability reports `LEVEL_TOO_HIGH` or `ITEM_LOCKED` for the corresponding admission failure. Create and replace return the same reason as a 403 code. An explicit resume of an unfinished owned session still uses its pinned snapshot and existing controller checks.
 
-```json
-{"type":"START_TURN","turnId":"…","controllerEpoch":1}
-{"type":"END_OF_TURN","turnId":"…","controllerEpoch":1}
-{"type":"CANCEL_TURN","turnId":"…","controllerEpoch":1}
-```
+## History
 
-Binary frames carry mono 16 kHz signed 16-bit little-endian PCM. The backend bounds recording to 120 seconds and 3,840,000 bytes; input past the bound triggers `TURN_FAILED`. Commands use a turn ID matching `[A-Za-z0-9_-]{1,64}` and the current controller epoch.
-
-| Server event | Meaning |
+| GET under `/api/v1/speaking` | Returned data |
 | --- | --- |
-| `CONNECTED`, `OPENING_UPDATED`, `SESSION_ENDED` | Server snapshots for connection, opening changes or terminal state. `CONNECTED` follows STT stream setup. |
-| `STT_READY`, `INTERIM_TRANSCRIPT`, `TURN_ACCEPTED` | Provider ready, provisional text, and committed transcript respectively. |
-| `TURN_CANCELED`, `TURN_EMPTY`, `TURN_FAILED`, `STT_ERROR` | Canceled recording, no finalized text to commit, failed turn, or recognition error. |
-| `TURN_RESULT`, `PROCESSING_ERROR` | Settled result or evaluation error with snapshot on the evaluation path. Manager decisions can add optional `demoDecision`; clients must not depend on it for lifecycle state. |
-| `AI_AUDIO_READY`, `TTS_ERROR`, `AUDIO_ERROR` | Audio becomes available after the result, synthesis fails, or recording persistence fails. Ready events carry no snapshot; refresh session detail for availability. |
-| `CONTROLLER_CHANGED`, `ERROR` | Control has moved, or the handler rejected a message. |
+| `/sessions` | Existing session page across all owned visible history. An optional `scopeType`, `topicId` and (for TOPIC_ITEM only) `topicItemId` select exact scope. |
+| `/history/topics?group=IN_PROGRESS\|COMPLETED\|OTHER` | Topic summaries and full distinct-Topic totals in `totals.inProgress`, `totals.completed` and `totals.other`. Each row carries `topicId`, `title`, `level`, `coverUrl`, `learningStatus`, `learningProgress`, `sessionCount` and `latestSessionCreatedAt`. |
+| `/history/topics/{topicId}/sessions` | Summary page across Topic and Item sessions for one parent. The response also includes `topicId`, `title` and `sessionCount`. Each row carries `sessionId`, `scope`, `context` with the pinned titles, `createdAt`, `committedTurnCount`, `speechDurationMs`, `status` and `assessmentStatus`. |
 
-Realtime events carry `controllerEpoch` and `revision`, with a `turnId` for turn events. Handler-level `ERROR` can contain only `type` and `message`. See [`SpeakingRealtimeService`](../../../src/main/java/fit/iuh/engolearn/speaking/service/SpeakingRealtimeService.java), the [runtime flows](runtime-flows.md) and the [FE client contract](../../../../engolearn-frontend/docs/features/speaking-with-ai/api-contract.md).
+All pages use `items`, `page`, `size` and `hasNext`, with page 0 and size 20 by default. Size ranges from 1 to 100. Invalid scope filters and mixed history requests return 400. The grouped and parent routes accept only their listed query parameters, once each. A parent page past the end retains the header and full count. Session order is newest creation time first and ID descending on ties. Topic order is latest own visible session first and Topic ID ascending on ties.
 
-Unknown text message types produce an `ERROR` event. Parse/audio exceptions also produce `ERROR` with the exception message when present. Failure to send an event closes the connection with server error. The browser's Vite proxy is configured on the frontend and is not part of this backend contract.
+Topic Learning classifies summaries from the current learner generation. NOT_STARTED and UNKNOWN map to OTHER. Hidden content with established learning status can retain that status. Current title, level, cover and progress require published Topic metadata. Saved parent title and level provide fallback display data. The parent header uses the latest available saved parent title if the published title is unavailable. An owner with zero sessions for that parent receives an empty list, zero count and null title. If grouped metadata cannot be read, the grouped route returns a retryable `503 HISTORY_UNAVAILABLE`. Recent, exact and parent history can still read the learner's saved sessions.
 
-## Error boundaries
+## Session runtime
 
-Speaking routes use the application's normal authentication and authorization rules in both runtime profiles. Protected REST requires authentication (401); [`SpeakingExceptionHandler`](../../../src/main/java/fit/iuh/engolearn/speaking/controller/SpeakingExceptionHandler.java) maps validation to 400, business exceptions to their status and code, and optimistic-lock/unhandled duplicate-key conflicts to 409 `STATE_CHANGED`. Examples: 403 `ITEM_UNAVAILABLE` or `SESSION_FORBIDDEN`, 409 `SESSION_EXISTS` or `CONTROLLER_CHANGED`, 410 `AUDIO_EXPIRED`, 429 `DAILY_QUOTA`, and 503 `CONFIG_MISSING` or `CONFIG_INVALID`. Socket access continues to require the authenticated single-use ticket and an allowed origin. Socket errors after upgrade are events or close statuses.
+Creating a session returns the persisted INITIALIZING state and upgrade path without waiting for providers. The upgrade requires an exact configured Origin and the one-time ticket issued on the authenticated REST route. The server consumes the ticket before upgrading and binds the socket to the resulting lease. A reconnect uses a fresh ticket at the same epoch. A takeover increments the epoch. A sealed turn can still settle, and subsequent events use its original server turn ID and sequence.
+
+The server sends `SESSION_STATE` on connection and returns it on `SYNC_SESSION`. To receive live opening audio, clients can connect while the session is INITIALIZING. Reconnect relies on saved opening and turn text with separately authorized playback of available WAV files. Browser playback is outside server delivery state.
+
+The assessment endpoint exposes PENDING and FINALIZING with nullable scores until assessment finalization. READY has all four criteria assessed, PARTIAL has one to three, and UNAVAILABLE has none. Criterion status and reason distinguish insufficient evidence from technical failure. Session history reports the stored assessment status and the owner can open the result without a socket.
+
+## Speaking quota contract
+
+Speaking uses the account-level `SPEAKING_DURATION` allowance for both Topic and Topic Item. The client reads `GET /api/v1/quota/me/usage` and selects the daily item in seconds. The Quota Engine supplies the effective limit, used seconds, remaining seconds, status and window end. The account Speaking History view is the sole Speaking surface for the quota card.
+
+| Code | Where it is returned | Client behavior |
+| --- | --- | --- |
+| `DAILY_QUOTA_REACHED` | Availability denial, HTTP 429 for a rejected interactive operation, or WebSocket error/terminal session reason | Prevent new audio, follow the existing close/result flow for an exhausted session, and keep history accessible. |
+| `QUOTA_NOT_CONFIGURED` | HTTP 503 or WebSocket error when the effective policy lacks the Speaking rule | Show a configuration-specific message and prevent new interaction. |
+| `QUOTA_UNAVAILABLE` | HTTP 503 or WebSocket error when Quota availability cannot be read | Show a retryable availability error and prevent new interaction. |
+| `QUOTA_SETTLEMENT_PENDING` | Retryable WebSocket error for `START_TURN` while an earlier account obligation is unresolved | Wait for settlement before trying a new turn. |
+
+A reconnect to a closing session may observe its result. Manual end and authorized history, result and deletion operations remain available. The learner Subscription plan response can include nullable `speakingDurationDailyLimitSeconds` from the published plan rule. History offers an upgrade when an on-sale billable option has a higher allowance and links to the existing `/subscription` route.

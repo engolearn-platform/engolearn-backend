@@ -5,6 +5,7 @@ import fit.iuh.engolearn.topic.dto.response.TopicManagementItemSummary;
 import fit.iuh.engolearn.topic.dto.response.TopicManagementListResponse;
 import fit.iuh.engolearn.topic.dto.response.TopicManagementResponse;
 import fit.iuh.engolearn.topic.dto.request.TopicManagementListQuery;
+import fit.iuh.engolearn.topic.model.TopicItemVersion;
 import jakarta.validation.Valid;
 import org.springframework.validation.annotation.Validated;
 
@@ -19,4 +20,8 @@ public interface TopicManagementReadService {
     List<TopicManagementItemSummary> items(String topicId);
 
     TopicManagementItemDetail item(String topicId, String itemId);
+
+    TopicManagementItemDetail publishedItem(String topicId, String itemId);
+
+    List<TopicItemVersion> speakingAuthoringItems(String topicId, String itemId);
 }

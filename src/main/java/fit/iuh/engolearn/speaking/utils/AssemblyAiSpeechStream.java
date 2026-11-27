@@ -12,6 +12,8 @@ import java.net.http.WebSocket;
 import java.nio.ByteBuffer;
 import java.time.Duration;
 import java.util.Map;
+import java.util.TreeMap;
+import java.util.stream.Collectors;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ConcurrentHashMap;
@@ -33,8 +35,11 @@ public class AssemblyAiSpeechStream implements SpeechStreamPort {
         private final Listener listener;
         private volatile WebSocket socket;
         private volatile CompletableFuture<String> ending;
-        private volatile String latest = "";
-        private final StringBuilder finalized = new StringBuilder();
+        private String latest = "";
+        private int order = -1;
+        private final TreeMap<Integer, String> finalized = new TreeMap<>();
+        private volatile boolean endpointSent;
+        private long acceptedAudioFrames;
         private volatile boolean active;
         private final StringBuilder buffer = new StringBuilder();
         private final AtomicInteger pendingFrames = new AtomicInteger();
@@ -68,19 +73,22 @@ public class AssemblyAiSpeechStream implements SpeechStreamPort {
                 new IllegalStateException("AssemblyAI API key is not configured"));
         Stream state = new Stream(listener);
         Stream previous = streams.put(sessionId, state);
-        if (previous != null && previous.socket != null) {
-            previous.active = false;
-            previous.socket.sendClose(WebSocket.NORMAL_CLOSURE, "new controller");
-        }
+        if (previous != null) terminate(previous);
         String separator = endpoint.contains("?") ? "&" : "?";
         URI uri = URI.create(endpoint + separator
                 + "sample_rate=16000&encoding=pcm_s16le&speech_model=" + model);
-        return client().newWebSocketBuilder().header("Authorization", apiKey)
+        return client().newWebSocketBuilder().connectTimeout(connectTimeout).header("Authorization", apiKey)
                 .buildAsync(uri, new WebSocket.Listener() {
                     @Override public void onOpen(WebSocket socket) { socket.request(1); }
 
                     @Override public CompletionStage<?> onText(WebSocket socket, CharSequence data, boolean last) {
                         synchronized (state.buffer) {
+                            if (state.buffer.length() + data.length() > 64 * 1024) {
+                                state.buffer.setLength(0);
+                                fail(state, "STT response is too large");
+                                socket.abort();
+                                return CompletableFuture.completedFuture(null);
+                            }
                             state.buffer.append(data);
                             if (last) {
                                 String message = state.buffer.toString();
@@ -102,7 +110,10 @@ public class AssemblyAiSpeechStream implements SpeechStreamPort {
                         fail(state, "STT connection failed");
                         streams.remove(sessionId, state);
                     }
-                }).thenAccept(socket -> state.socket = socket).whenComplete((ok, error) -> {
+                }).thenAccept(socket -> {
+                    state.socket = socket;
+                    if (streams.get(sessionId) != state) terminate(state);
+                }).whenComplete((ok, error) -> {
                     if (error != null) streams.remove(sessionId, state);
                 });
     }
@@ -110,22 +121,32 @@ public class AssemblyAiSpeechStream implements SpeechStreamPort {
     private void receive(Stream state, String message) {
         try {
             JsonNode event = mapper.readTree(message);
+            String interim = null;
+            String finished = null;
+            CompletableFuture<String> ending;
             synchronized (state) {
                 if (!"Turn".equalsIgnoreCase(event.path("type").asText("")) || !state.active) return;
-                String transcript = event.path("transcript").asText("").trim();
-                if (!transcript.isEmpty()) {
-                    state.latest = transcript;
-                    state.listener.onInterim(combined(state));
+                int order = event.path("turn_order").asInt(Math.max(0, state.order));
+                boolean terminal = event.path("end_of_turn").asBoolean(false);
+                if (order < 0 || order < state.order || state.finalized.containsKey(order)) return;
+                if (order > state.order) {
+                    state.order = order;
+                    state.latest = "";
                 }
-                if (event.path("end_of_turn").asBoolean(false)) {
-                    if (!state.latest.isEmpty()) {
-                        if (!state.finalized.isEmpty()) state.finalized.append(' ');
-                        state.finalized.append(state.latest);
-                        state.latest = "";
-                    }
-                    if (state.ending != null) state.ending.complete(state.finalized.toString());
+                String transcript = event.path("transcript").asText("");
+                if (!transcript.isBlank()) {
+                    state.latest = transcript;
+                    interim = combined(state);
+                }
+                ending = state.ending;
+                if (terminal) {
+                    state.finalized.put(order, state.latest);
+                    state.latest = "";
+                    if (ending != null && state.endpointSent) finished = combined(state);
                 }
             }
+            if (interim != null) state.listener.onInterim(interim);
+            if (finished != null) ending.complete(finished);
         } catch (Exception ex) {
             fail(state, "STT response could not be read");
         }
@@ -138,9 +159,9 @@ public class AssemblyAiSpeechStream implements SpeechStreamPort {
     }
 
     private String combined(Stream state) {
-        if (state.finalized.isEmpty()) return state.latest;
-        if (state.latest.isEmpty()) return state.finalized.toString();
-        return state.finalized + " " + state.latest;
+        String prior = state.finalized.values().stream().filter(text -> !text.isBlank()).collect(Collectors.joining(" "));
+        if (prior.isEmpty()) return state.latest;
+        return state.latest.isEmpty() ? prior : prior + " " + state.latest;
     }
 
     @Override public void beginTurn(String sessionId) {
@@ -148,8 +169,11 @@ public class AssemblyAiSpeechStream implements SpeechStreamPort {
         synchronized (state) {
             if (state.active) throw new IllegalStateException("STT turn is already active");
             state.latest = "";
-            state.finalized.setLength(0);
+            state.finalized.clear();
             state.ending = null;
+            state.order = -1;
+            state.endpointSent = false;
+            state.acceptedAudioFrames = 0;
             state.active = true;
         }
     }
@@ -164,6 +188,7 @@ public class AssemblyAiSpeechStream implements SpeechStreamPort {
             throw new IllegalStateException("STT connection is too slow");
         }
         synchronized (state) {
+            state.acceptedAudioFrames++;
             state.outbound = state.outbound.thenCompose(ignored ->
                     state.socket.sendBinary(ByteBuffer.wrap(pcm), true));
             state.outbound.whenComplete((ignored, error) -> {
@@ -179,20 +204,27 @@ public class AssemblyAiSpeechStream implements SpeechStreamPort {
             if (!state.active || state.ending != null) {
                 return CompletableFuture.failedFuture(new IllegalStateException("No active STT turn"));
             }
-            if (!state.finalized.isEmpty() && state.latest.isEmpty()) {
+            if (state.acceptedAudioFrames == 0 && !state.finalized.isEmpty() && state.latest.isEmpty()) {
                 state.active = false;
-                return CompletableFuture.completedFuture(state.finalized.toString());
+                return CompletableFuture.completedFuture(combined(state));
             }
             state.ending = new CompletableFuture<>();
-            state.outbound = state.outbound.thenCompose(ignored ->
-                    state.socket.sendText("{\"type\":\"ForceEndpoint\"}", true));
+            state.outbound = state.outbound.thenCompose(ignored -> {
+                state.endpointSent = true;
+                return state.socket.sendText("{\"type\":\"ForceEndpoint\"}", true);
+            });
             state.outbound.whenComplete((ignored, error) -> {
                 if (error != null) fail(state, "STT endpoint request failed");
             });
-            return state.ending.orTimeout(finalizationTimeout.toMillis(), TimeUnit.MILLISECONDS).whenComplete((text, error) -> {
+            return state.ending.orTimeout(finalizationTimeout.toMillis(), TimeUnit.MILLISECONDS).handle((text, error) -> {
                 synchronized (state) {
                     state.active = false;
                     state.ending = null;
+                    if (error == null) return text;
+                    // A provider can have already endpointed all speech before a forced endpoint.
+                    if (error instanceof java.util.concurrent.TimeoutException && state.endpointSent
+                            && state.latest.isBlank() && !combined(state).isBlank()) return combined(state);
+                    throw new java.util.concurrent.CompletionException(error);
                 }
             });
         }
@@ -204,17 +236,29 @@ public class AssemblyAiSpeechStream implements SpeechStreamPort {
             state.active = false;
             state.ending = null;
             state.latest = "";
-            state.finalized.setLength(0);
+            state.finalized.clear();
         }
         state.socket.sendText("{\"type\":\"ForceEndpoint\"}", true);
     }
 
     @Override public void close(String sessionId) {
         Stream state = streams.remove(sessionId);
-        if (state == null || state.socket == null) return;
+        if (state != null) terminate(state);
+    }
+
+    private void terminate(Stream state) {
+        WebSocket socket = state.socket;
         state.active = false;
-        state.socket.sendText("{\"type\":\"Terminate\"}", true);
-        state.socket.sendClose(WebSocket.NORMAL_CLOSURE, "closed");
+        if (socket == null) return;
+        synchronized (state) {
+            state.outbound.handle((ignored, failure) -> socket)
+                    .thenCompose(active -> active.sendText("{\"type\":\"Terminate\"}", true))
+                    .orTimeout(2, TimeUnit.SECONDS)
+                    .whenComplete((ignored, error) -> {
+                        if (error == null) socket.sendClose(WebSocket.NORMAL_CLOSURE, "closed");
+                        else socket.abort();
+                    });
+        }
     }
 
     private Stream ready(String sessionId) {

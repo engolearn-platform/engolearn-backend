@@ -64,6 +64,19 @@ class AssemblyAiSpeechStreamTest {
         assertEquals(List.of("Hello.", "Hello. How are", "Hello. How are you?"), fixture.interims);
     }
 
+    @Test void ignoresDuplicateAndOlderProviderTurnsWithinOneLearnerRecording() throws Exception {
+        Fixture fixture = new Fixture();
+        fixture.stream.beginTurn("session");
+        fixture.turn(0, "One.", true);
+        fixture.turn(0, "One.", true);
+        fixture.turn(1, "Tw", false);
+        var ending = fixture.stream.endTurn("session");
+        fixture.turn(0, "One again.", true);
+        assertFalse(ending.isDone());
+        fixture.turn(1, "Two.", true);
+        assertEquals("One. Two.", ending.join());
+    }
+
     @Test void endTurnSendsForceEndpointAfterPendingAudio() throws Exception {
         Fixture fixture = new Fixture();
         CompletableFuture<WebSocket> audioSent = new CompletableFuture<>();
@@ -94,6 +107,7 @@ class AssemblyAiSpeechStreamTest {
         private final WebSocket socket = mock(WebSocket.class);
         private final List<String> interims = new ArrayList<>();
         private final WebSocket.Listener receiver;
+        private int providerOrder;
 
         private Fixture() throws Exception {
             this(Duration.ofSeconds(2));
@@ -106,6 +120,7 @@ class AssemblyAiSpeechStreamTest {
             AtomicReference<WebSocket.Listener> listener = new AtomicReference<>();
             when(client.newWebSocketBuilder()).thenReturn(builder);
             when(builder.header(anyString(), anyString())).thenReturn(builder);
+            when(builder.connectTimeout(any())).thenReturn(builder);
             when(builder.buildAsync(any(), any())).thenAnswer(invocation -> {
                 listener.set(invocation.getArgument(1));
                 return CompletableFuture.completedFuture(socket);
@@ -122,8 +137,13 @@ class AssemblyAiSpeechStreamTest {
         }
 
         private void turn(String transcript, boolean finalTurn) {
+            turn(providerOrder, transcript, finalTurn);
+            if (finalTurn) providerOrder++;
+        }
+
+        private void turn(int order, String transcript, boolean finalTurn) {
             String message = "{\"type\":\"Turn\",\"transcript\":\"" + transcript
-                    + "\",\"end_of_turn\":" + finalTurn + "}";
+                    + "\",\"turn_order\":" + order + ",\"end_of_turn\":" + finalTurn + "}";
             receiver.onText(socket, message, true).toCompletableFuture().join();
         }
     }

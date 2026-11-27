@@ -11,5 +11,5 @@ public record TopicManagementListResponse(List<Item> items, int page, int size, 
     public record Item(String id, String titleEn, String titleVi, CefrLevel cefr, TopicCategory category,
                        String status, long itemCount, Instant updatedAt) {}
 
-    public record Counters(long total, long published, long draft) {}
+    public record Counters(long total, long published, long draft, long unpublished) {}
 }

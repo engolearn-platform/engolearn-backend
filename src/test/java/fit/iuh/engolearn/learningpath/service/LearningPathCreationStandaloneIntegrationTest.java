@@ -1,6 +1,7 @@
 package fit.iuh.engolearn.learningpath.service;
 
 import com.mongodb.client.MongoClient;
+import fit.iuh.engolearn.shared.enums.CefrLevel;
 import com.mongodb.client.MongoClients;
 import fit.iuh.engolearn.learningpath.dto.request.CreateLearningPathRequest;
 import fit.iuh.engolearn.learningpath.model.LearningPath;
@@ -76,11 +77,11 @@ class LearningPathCreationStandaloneIntegrationTest {
                         mock(fit.iuh.engolearn.assessment.service.AssessmentAccess.class));
                 QuestionPoolRepository questionPool = new QuestionPoolRepository(template);
                 LearningPathRecommendationService recommendations = new LearningPathRecommendationServiceImpl(
-                        periodicTests, paths, questionPool);
+                        periodicTests, paths, questionPool, user -> Optional.of(CefrLevel.B1));
                 LearningPathCreationService creation = new LearningPathCreationServiceImpl(
                         recommendations, periodicTests, paths, questionPool);
                 CreateLearningPathRequest request = new CreateLearningPathRequest(
-                        attemptId, List.of("Reading for Gist"));
+                        attemptId, List.of("Reading for Gist"), "B1");
 
                 var first = creation.create(request, userId);
                 var repeated = creation.create(request, userId);
@@ -90,6 +91,10 @@ class LearningPathCreationStandaloneIntegrationTest {
                 assertThat(repeated.pathId()).isEqualTo(first.pathId());
                 LearningPath saved = template.findById(new ObjectId(first.pathId()), LearningPath.class);
                 assertThat(saved).isNotNull();
+                assertThat(saved.getLevel()).isEqualTo("B1");
+                assertThat(template.getCollection("learning_path_questions")
+                        .find(new Document("path_id", new ObjectId(first.pathId()))))
+                        .allSatisfy(question -> assertThat(question.getString("level")).isEqualTo("B1"));
                 Document persisted = template.getCollection("learning_paths")
                         .find(new Document("_id", new ObjectId(first.pathId()))).first();
                 assertThat(persisted).isNotNull();
@@ -133,7 +138,7 @@ class LearningPathCreationStandaloneIntegrationTest {
             questions.add(new Document("question_id", "reading-gist-" + index)
                     .append("micro_skill", "Reading for Gist")
                     .append("skill", "READING")
-                    .append("level", "A2")
+                    .append("level", "B1")
                     .append("status", "ACTIVE")
                     .append("prompt", "Question " + index)
                     .append("options", options)

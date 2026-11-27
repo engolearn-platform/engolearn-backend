@@ -58,7 +58,7 @@ public class LearningPathCreationServiceImpl implements LearningPathCreationServ
 
     public CreateLearningPathResponse createForAssessment(CreateLearningPathByAssessmentRequest request,
                                                           String actorUserId) {
-        return create(new CreateLearningPathRequest(request.assessmentAttemptId(), request.microSkills()), actorUserId);
+        return create(new CreateLearningPathRequest(request.assessmentAttemptId(), request.microSkills(), request.level()), actorUserId);
     }
 
     public CreateLearningPathResponse create(CreateLearningPathRequest request, String actorUserId) {
@@ -99,6 +99,7 @@ public class LearningPathCreationServiceImpl implements LearningPathCreationServ
                 .collect(Collectors.toSet());
         Set<String> confirmed = new HashSet<>(request.microSkills());
         if (current.state() != LearningPathRecommendationResponse.State.AVAILABLE
+                || !current.level().equals(request.level())
                 || expected.size() != request.microSkills().size()
                 || !expected.equals(confirmed)) {
             throw new RecommendationChangedException(current);
@@ -114,7 +115,7 @@ public class LearningPathCreationServiceImpl implements LearningPathCreationServ
         Map<String, List<Document>> selected = new LinkedHashMap<>();
         List<Document> allQuestions = new ArrayList<>();
         for (LearningPathRecommendationResponse.MicroSkill skill : current.microSkills()) {
-            List<Document> questions = questionPool.sampleActive(skill.name(), test.level(), 30);
+            List<Document> questions = questionPool.sampleActive(skill.name(), current.level(), 30);
             if (questions.size() != 30) {
                 throw new RecommendationChangedException(recommendations.recommend(userId, attemptId));
             }
@@ -152,7 +153,7 @@ public class LearningPathCreationServiceImpl implements LearningPathCreationServ
         path.setSource(source);
         path.setCreatedAt(createdAt.toInstant());
         path.setCreatedDate(createdDate.toString());
-        path.setLevel(test.level());
+        path.setLevel(recommendation.level());
         path.setK(skills.size());
         path.setStatus(LearningPathStatus.NOT_STARTED);
         path.setActive(true);

@@ -30,4 +30,6 @@ public interface TopicItemVersionRepository extends MongoRepository<TopicItemVer
 
     @Query(value = "{ '_id': ?0 }", fields = "{ topic_id: 1, topic_item_id: 1, title: 1, description: 1, status: 1, version: 1, 'context.scenario_description': 1, 'expressions.tips': 1, 'expressions.purposes.purpose_en': 1, 'expressions.purposes.purpose_vi': 1, 'expressions.purposes.order_index': 1, 'expressions.purposes.examples.text_en': 1, 'expressions.purposes.examples.text_vi': 1, 'expressions.purposes.examples.usage_note': 1 }")
     Optional<TopicItemVersion> findScreenExpressions(String id);
+
+    List<TopicItemVersion> findAllByTopicId(String topicId);
 }

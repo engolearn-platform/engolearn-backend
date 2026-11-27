@@ -43,7 +43,9 @@ public class TopicManagementReadController {
     }
 
     @GetMapping("/{topicId}/items/{itemId}")
-    public ApiResponse<TopicManagementItemDetail> item(@PathVariable String topicId, @PathVariable String itemId) {
-        return ApiResponse.ok(service.item(topicId, itemId));
+    public ApiResponse<TopicManagementItemDetail> item(@PathVariable String topicId, @PathVariable String itemId,
+                                                        @RequestParam(required = false) String view) {
+        return ApiResponse.ok("published".equals(view)
+                ? service.publishedItem(topicId, itemId) : service.item(topicId, itemId));
     }
 }

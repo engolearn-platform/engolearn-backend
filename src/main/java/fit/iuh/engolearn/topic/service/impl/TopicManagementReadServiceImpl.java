@@ -58,15 +58,16 @@ public class TopicManagementReadServiceImpl implements TopicManagementReadServic
     public TopicManagementListResponse list(TopicManagementListQuery query) {
         var result = queries.findPage(query.search(), enumValue(query.cefr(), CefrLevel.class),
                 enumValue(query.category(), TopicCategory.class),
-                query.status() == null ? null : query.status().equals("published"), query.page(), query.size());
+                query.status(), query.page(), query.size());
         var stats = queries.itemStats(result.getContent().stream().map(Topic::getId).toList());
         var rows = result.getContent().stream().map(topic -> new TopicManagementListResponse.Item(
                 topic.getId(), topic.getTitleEn(), topic.getTitleVi(), topic.getCefrLevel(), topic.getCategory(),
                 publicationLabel(topic), stats.getOrDefault(topic.getId(), ItemStats.EMPTY).count(), topic.getUpdatedAt())).toList();
-        long published = queries.countByPublication(true);
-        long draft = queries.countByPublication(false);
+        long published = queries.countByPublication("published");
+        long draft = queries.countByPublication("draft");
+        long unpublished = queries.countByPublication("unpublished");
         return new TopicManagementListResponse(rows, query.page(), query.size(), result.getTotalElements(), result.getTotalPages(),
-                new TopicManagementListResponse.Counters(published + draft, published, draft));
+                new TopicManagementListResponse.Counters(published + draft + unpublished, published, draft, unpublished));
     }
 
     @Override
@@ -85,6 +86,10 @@ public class TopicManagementReadServiceImpl implements TopicManagementReadServic
 
     @Override
     public List<TopicManagementItemSummary> items(String topicId) {
+        return selectedItems(topicId).stream().map(itemMapper::summary).toList();
+    }
+
+    private List<TopicItemVersion> selectedItems(String topicId) {
         Topic topic = requireTopic(topicId);
         Set<String> manifest = manifest(topic);
         var byItem = versions.findManagementMetadata(List.of(topicId)).stream()
@@ -92,18 +97,53 @@ public class TopicManagementReadServiceImpl implements TopicManagementReadServic
                 .collect(Collectors.groupingBy(TopicItemVersion::getTopicItemId));
         return topicItems.findAllByTopicId(topicId).stream()
                 .map(item -> select(item, byItem.getOrDefault(item.getId(), List.of()), manifest))
-                .sorted(ITEM_ORDER).map(itemMapper::summary).toList();
+                .sorted(ITEM_ORDER).toList();
     }
 
     @Override
     public TopicManagementItemDetail item(String topicId, String itemId) {
+        return itemMapper.detail(authoringItem(topicId, itemId));
+    }
+
+    @Override
+    public TopicManagementItemDetail publishedItem(String topicId, String itemId) {
+        Topic topic = requireTopic(topicId);
+        topicItems.findByIdAndTopicId(itemId, topicId)
+                .orElseThrow(() -> new TopicItemNotFoundException("Topic item was not found"));
+        TopicItemVersion released = versions.findManagementMetadataForItem(topicId, itemId).stream()
+                .filter(version -> manifest(topic).contains(version.getId()))
+                .max(VERSION_ORDER)
+                .flatMap(version -> versions.findByIdAndTopicIdAndTopicItemId(version.getId(), topicId, itemId))
+                .orElseThrow(() -> new TopicItemNotFoundException("No version of this Item exists in the current release"));
+        return itemMapper.detail(released);
+    }
+
+    @Override
+    public List<TopicItemVersion> speakingAuthoringItems(String topicId, String itemId) {
+        if (itemId != null) {
+            var item = authoringItem(topicId, itemId);
+            return selectable(item) ? List.of(item) : List.of();
+        }
+        var selected = selectedItems(topicId).stream().filter(TopicManagementReadServiceImpl::selectable).toList();
+        var byId = versions.findAllById(selected.stream().map(TopicItemVersion::getId).toList()).stream()
+                .filter(item -> topicId.equals(item.getTopicId()))
+                .collect(Collectors.toMap(TopicItemVersion::getId, item -> item));
+        return selected.stream().map(item -> byId.get(item.getId()))
+                .filter(Objects::nonNull).filter(TopicManagementReadServiceImpl::selectable).toList();
+    }
+
+    private static boolean selectable(TopicItemVersion item) {
+        return item.getStatus() == ContentStatus.DRAFT || item.getStatus() == ContentStatus.PUBLISHED;
+    }
+
+    private TopicItemVersion authoringItem(String topicId, String itemId) {
         Topic topic = requireTopic(topicId);
         TopicItem item = topicItems.findByIdAndTopicId(itemId, topicId)
                 .orElseThrow(() -> new TopicItemNotFoundException("Topic item was not found"));
         TopicItemVersion selected = select(item, versions.findManagementMetadataForItem(topicId, itemId), manifest(topic));
-        if (selected.getId() == null) return itemMapper.detail(selected);
-        return itemMapper.detail(versions.findByIdAndTopicIdAndTopicItemId(selected.getId(), topicId, itemId)
-                .orElseThrow(() -> new TopicItemNotFoundException("Topic item version was not found")));
+        if (selected.getId() == null) return selected;
+        return versions.findByIdAndTopicIdAndTopicItemId(selected.getId(), topicId, itemId)
+                .orElseThrow(() -> new TopicItemNotFoundException("Topic item version was not found"));
     }
 
     private Topic requireTopic(String topicId) {
@@ -138,7 +178,8 @@ public class TopicManagementReadServiceImpl implements TopicManagementReadServic
     }
 
     private static String publicationLabel(Topic topic) {
-        return hasPublicationPointer(topic) ? "published" : "draft";
+        if (!hasPublicationPointer(topic)) return "draft";
+        return Boolean.TRUE.equals(topic.getPublicationSuspended()) ? "unpublished" : "published";
     }
 
     private static <T extends Enum<T>> T enumValue(String value, Class<T> type) {

@@ -95,7 +95,7 @@ public class QuotaEntitlementsImpl implements QuotaEntitlements {
     }
     public QuotaRuleDto rule(EffectiveEntitlementDto entitlement, String type) {
         return entitlement.policySnapshot().rules().stream().filter(rule -> rule.quotaType().equals(type)).findFirst()
-                .orElseThrow(QuotaUnavailableException::new);
+                .orElseThrow(() -> new QuotaUnavailableException(true));
     }
     private EffectiveEntitlementDto decode(QuotaEntitlementProjection projection) {
         QuotaPolicySnapshot policy = store.findSnapshot(projection.getPolicySnapshotId());

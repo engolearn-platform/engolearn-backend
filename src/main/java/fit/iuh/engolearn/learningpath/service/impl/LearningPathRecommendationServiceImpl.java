@@ -2,6 +2,7 @@ package fit.iuh.engolearn.learningpath.service.impl;
 
 import fit.iuh.engolearn.learningpath.service.LearningPathRecommendationService;
 import fit.iuh.engolearn.assessment.contract.AssessmentResults;
+import fit.iuh.engolearn.user.contract.UserLevelLookup;
 import fit.iuh.engolearn.learningpath.mapper.LearningPathAssessmentMapper;
 
 import fit.iuh.engolearn.learningpath.dto.response.LearningPathRecommendationResponse.MicroSkill;
@@ -27,6 +28,7 @@ public class LearningPathRecommendationServiceImpl implements LearningPathRecomm
     private final AssessmentResults assessmentResults;
     private final LearningPathRepository paths;
     private final QuestionPoolRepository questionPool;
+    private final UserLevelLookup userLevels;
 
     public LearningPathRecommendationResponse recommendForAssessment(String userId, String assessmentAttemptId) {
         return recommend(userId, assessmentAttemptId);
@@ -61,14 +63,18 @@ public class LearningPathRecommendationServiceImpl implements LearningPathRecomm
         if (existing != null) {
             if (!userId.equals(existing.getUserId())) throw new ResponseStatusException(HttpStatus.NOT_FOUND);
             return response(State.ALREADY_CREATED, null, existing.getId(),
-                    test.level(), List.of());
+                    existing.getLevel(), List.of());
         }
+
+        String level = userLevels.findLevel(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.CONFLICT,
+                        "Current user level is required to create a learning path")).name();
 
         List<PeriodicTestSnapshot.MicroSkillResult> weak = test.results().stream()
                 .filter(result -> result.valid() && result.percent() < 50)
                 .toList();
         if (weak.isEmpty()) {
-            return response(State.NO_WEAK_SKILLS, null, null, test.level(), List.of());
+            return response(State.NO_WEAK_SKILLS, null, null, level, List.of());
         }
 
         Set<String> occupied = new HashSet<>();
@@ -81,16 +87,16 @@ public class LearningPathRecommendationServiceImpl implements LearningPathRecomm
         }
         List<MicroSkill> eligible = weak.stream()
                 .filter(result -> !occupied.contains(result.microSkill()))
-                .filter(result -> questionPool.countActive(result.microSkill(), test.level()) >= 30)
+                .filter(result -> questionPool.countActive(result.microSkill(), level) >= 30)
                 .map(result -> new MicroSkill(result.microSkill(), result.skill(), result.correct(),
                         result.total(), result.percent(), result.band()))
                 .toList();
         if (eligible.isEmpty()) {
             return response(State.NO_ELIGIBLE_SKILLS,
-                    "Không có micro-skill nào cần luyện tập, hãy giữ vững phong độ nhé",
-                    null, test.level(), eligible);
+                    "Các kỹ năng yếu chưa đủ điều kiện tạo lộ trình ở level hiện tại hoặc đang được luyện tập",
+                    null, level, eligible);
         }
-        return response(State.AVAILABLE, null, null, test.level(), eligible);
+        return response(State.AVAILABLE, null, null, level, eligible);
     }
 
     private LearningPathRecommendationResponse response(State state, String message,
