@@ -147,6 +147,14 @@ running until expiry. There is no pause, resume or clock-bypass endpoint.
 
 In `dev`, the development fixture reads PCM WAV from `ASSESSMENT_MEDIA_DIRECTORY`,
 defaulting to the bundled sample folder. Uploaded draft files use Media in both profiles.
+Studio preview of a saved revision and publication verify every listening WAV. Start
+verifies the opening WAV and performs the existing reference checks for later units.
+Media reads the delivered WAV signature using a fresh URL. Local dev fixtures retain
+their file, digest and duration checks. A failure reports the affected unit, keeps the
+draft and live paper intact, or leaves Start without an attempt and quota usage.
+The checks run before the write transaction, which rechecks the paper or draft revision
+and, for Start, the learner eligibility. Later playback uses its existing failure flow.
+
 In `prod`, playback resolves protected URLs through `MediaManagement` after binding,
 phase or review authorization. For a taking request the server resolves delivery outside
 the transaction and rechecks the unit, deadline and issue ID before accepting issuance.

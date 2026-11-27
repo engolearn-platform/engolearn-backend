@@ -333,6 +333,11 @@ class AssessmentDraftIntegrationTest {
         }
         var source = Document.parse(Files.readString(Path.of("tools/mongo-json-importer/samples/assessment-demo.json")));
         var paper = source.get("collections", Document.class).getList("assessment_papers", Document.class).getFirst();
+        paper.put("_id", "paper:PFC-EXCEL-TEST:1");
+        paper.put("series", "PFC-EXCEL-TEST");
+        paper.put("version", 1);
+        var papers = mongoTemplate.getCollection("assessment_papers");
+        papers.insertOne(paper);
         Path dir = Path.of("tools/mongo-json-importer/samples/assessment-media");
         var wavs = new ArrayList<Part>();
         for (int index = 0; index < 12; index++) {
@@ -408,9 +413,36 @@ class AssessmentDraftIntegrationTest {
         assertThat(call("POST", path + "/publish", body, admin).statusCode()).isEqualTo(409);
         assertThat(call("POST", path + "/preview", body, admin).statusCode()).isEqualTo(200);
         assertThat(call("POST", path + "/review", body, admin).statusCode()).isEqualTo(204);
-        assertThat(call("POST", path + "/publish", body, admin).statusCode()).isEqualTo(200);
+        var unchangedDraft = mongoTemplate.getCollection("assessment_paper_drafts").find().first();
+        for (int index : List.of(0, 10)) {
+            var advertised = call("GET", path + "/preview/audio/" + index + "?revision=" + revision, null, admin);
+            assertThat(advertised.statusCode()).isEqualTo(200);
+            var url = URI.create(json.readTree(advertised.body()).at("/data/url").asString());
+            var request = HttpRequest.newBuilder(url).build();
+            assertThat(http.send(request, HttpResponse.BodyHandlers.discarding()).statusCode()).isEqualTo(200);
+            storage.setAvailable(url, false);
+            assertThat(http.send(request, HttpResponse.BodyHandlers.discarding()).statusCode()).isEqualTo(404);
+            for (String action : List.of("/preview", "/publish")) {
+                var failed = call("POST", path + action, body, admin);
+                assertThat(failed.statusCode()).as(failed.body()).isEqualTo(503);
+                assertThat(json.readTree(failed.body()).path("code").asString()).isEqualTo("MEDIA_UNAVAILABLE");
+                assertThat(failed.body()).contains("Phần " + (index + 1) + ":");
+            }
+            assertThat(mongoTemplate.getCollection("assessment_paper_drafts").find().first()).isEqualTo(unchangedDraft);
+            assertThat(papers.countDocuments()).isEqualTo(1);
+            assertThat(papers.find(new Document("published", true)).first()).isEqualTo(paper);
+            storage.setAvailable(url, true);
+        }
+        var published = call("POST", path + "/publish", body, admin);
+        assertThat(published.statusCode()).as(published.body()).isEqualTo(200);
+        assertThat(json.readTree(published.body()).at("/data/version").asInt()).isEqualTo(2);
+        var repeated = call("POST", path + "/publish", body, admin);
+        assertThat(repeated.statusCode()).as(repeated.body()).isEqualTo(200);
+        assertThat(json.readTree(repeated.body()).path("data")).isEqualTo(json.readTree(published.body()).path("data"));
         assertThat(multipart(IMPORTS, admin, workbook, manifest, token).statusCode()).isEqualTo(409);
-        assertThat(mongoTemplate.getCollection("assessment_papers").countDocuments()).isEqualTo(1);
+        assertThat(papers.countDocuments()).isEqualTo(2);
+        assertThat(papers.countDocuments(new Document("published", true).append("published_draft_revision", revision)))
+                .isEqualTo(1);
         assertThat(mongoTemplate.getCollection("assessment_paper_drafts").countDocuments()).isZero();
     }
 

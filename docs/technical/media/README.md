@@ -35,6 +35,7 @@ Package: `fit.iuh.engolearn.media.contract`
 |---|---|
 | `upload(UploadMediaCommandDto)` | Upload one asset and return an internal `mediaId` |
 | `resolve(String mediaId)` | Generate a delivery URL from persisted metadata |
+| `verifyWavDelivery(String mediaId)` | Check the WAV signature via a fresh provider URL before committing a feature action |
 
 There is deliberately no public delete operation in Phase 1. Internal provider destroy is used only as best-effort compensation if upload succeeds but metadata persistence fails.
 

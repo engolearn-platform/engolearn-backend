@@ -19,4 +19,11 @@ public interface MediaManagement {
     MediaUploadResultDto upload(UploadMediaCommandDto command);
 
     MediaDeliveryDto resolve(String mediaId);
+
+    /**
+     * Reads the WAV signature through a fresh provider delivery URL.
+     * Call after authorizing the owning content and outside database transactions.
+     * Throws MediaNotFoundException or MediaStorageUnavailableException if unavailable.
+     */
+    void verifyWavDelivery(String mediaId);
 }

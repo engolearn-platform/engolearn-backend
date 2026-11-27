@@ -40,13 +40,27 @@ public class AssessmentCloudAudioService implements AssessmentCloudAudio {
     }
 
     public AssessmentMediaResponse resolve(AssessmentAudioAsset asset, int maxSeconds) {
-        if (asset == null || asset.getDurationSeconds() <= 0 || asset.getDurationSeconds() > maxSeconds) {
-            throw unavailable();
-        }
+        validateAsset(asset, maxSeconds);
         try {
             var delivery = media.resolve(asset.getMediaId());
             return new AssessmentMediaResponse(delivery.contentType(), null, delivery.url(), delivery.expiresAt());
         } catch (MediaNotFoundException | MediaStorageUnavailableException ex) {
+            throw unavailable();
+        }
+    }
+
+    @Override
+    public void verifyWav(AssessmentAudioAsset asset, int maxSeconds) {
+        validateAsset(asset, maxSeconds);
+        try {
+            media.verifyWavDelivery(asset.getMediaId());
+        } catch (MediaNotFoundException | MediaStorageUnavailableException ex) {
+            throw unavailable();
+        }
+    }
+
+    private static void validateAsset(AssessmentAudioAsset asset, int maxSeconds) {
+        if (asset == null || asset.getDurationSeconds() <= 0 || asset.getDurationSeconds() > maxSeconds) {
             throw unavailable();
         }
     }

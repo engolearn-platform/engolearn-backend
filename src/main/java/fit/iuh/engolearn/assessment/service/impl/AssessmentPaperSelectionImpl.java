@@ -15,17 +15,22 @@ import org.springframework.stereotype.Service;
 @lombok.RequiredArgsConstructor
 public class AssessmentPaperSelectionImpl implements AssessmentPaperSelection {
     private final AssessmentMedia media;
-    public void validate(AssessmentPaper p) {
-        validate(p, true);
+    private enum MediaCheck { NONE, START, PUBLICATION }
+
+    public void validateForPublication(AssessmentPaper p) {
+        validate(p, MediaCheck.PUBLICATION);
+    }
+    public void validateForStart(AssessmentPaper p) {
+        validate(p, MediaCheck.START);
     }
     public void validateStructure(AssessmentPaper p) {
-        validate(p, false);
+        validate(p, MediaCheck.NONE);
     }
-    private void validate(AssessmentPaper p, boolean resolveMedia) {
-        try {validateDefinition(p, resolveMedia);}
+    private void validate(AssessmentPaper p, MediaCheck mediaCheck) {
+        try {validateDefinition(p, mediaCheck);}
         catch(NullPointerException | IllegalArgumentException malformed) {invalid();}
     }
-    private void validateDefinition(AssessmentPaper p, boolean resolveMedia) {
+    private void validateDefinition(AssessmentPaper p, MediaCheck mediaCheck) {
         if(p.getId()==null||p.getId().isBlank()||p.getSeries()==null||p.getSeries().isBlank()||p.getVersion()<1) invalid();
         if(p.getSkills()==null || p.getSkills().size()!=5 || p.getUnits()==null || p.getUnits().size()!=26) invalid();
         boolean modern = p.getRulesVersion() == 2;
@@ -80,7 +85,11 @@ public class AssessmentPaperSelectionImpl implements AssessmentPaperSelection {
                         ? (modern ? AssessmentTimeline.listeningSingleAudioLimitSeconds() : 50)
                         : 120;
                 try {
-                    if (resolveMedia) media.delivery(u, maxAudioSeconds);
+                    if (mediaCheck == MediaCheck.PUBLICATION || (mediaCheck == MediaCheck.START && i == 0)) {
+                        media.verifyWav(u, maxAudioSeconds);
+                    } else if (mediaCheck == MediaCheck.START) {
+                        media.delivery(u, maxAudioSeconds);
+                    }
                 } catch (AssessmentException ex) {
                     throw new AssessmentException(ex.status(), ex.code(), "Phần " + (i + 1) + ": " + ex.getMessage(), ex);
                 }

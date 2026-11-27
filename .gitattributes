@@ -1,4 +1,5 @@
 /mvnw text eol=lf
+/init-mongo.sh text eol=lf
 *.cmd text eol=crlf
 /tools/mongo/*.sh text eol=lf
 

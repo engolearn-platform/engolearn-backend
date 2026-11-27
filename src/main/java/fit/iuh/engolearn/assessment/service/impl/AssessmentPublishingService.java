@@ -144,7 +144,7 @@ public class AssessmentPublishingService implements AssessmentPublishing {
                 .rulesVersion(2).published(true).demonstration(draft.isDemonstration())
                 .publishedDraftRevision(draft.getRevision()).units(draft.getUnits()).skills(draft.getSkills()).build();
         try {
-            selection.validate(paper);
+            selection.validateForPublication(paper);
         } catch (AssessmentException ex) {
             if ("PAPER_INVALID".equals(ex.code())) {
                 throw new AssessmentException(422, ex.code(), ex.getMessage(), ex);

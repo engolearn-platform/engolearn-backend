@@ -14,6 +14,7 @@ import java.net.InetSocketAddress;
 import java.net.URI;
 import java.time.Instant;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.springframework.boot.test.context.TestConfiguration;
@@ -29,6 +30,7 @@ public class AssessmentStorageTestSupport {
     static final class LocalStorage implements MediaStorageProvider, AutoCloseable {
         private final HttpServer server;
         private final Map<String, byte[]> files = new ConcurrentHashMap<>();
+        private final Set<String> unavailablePaths = ConcurrentHashMap.newKeySet();
         private final AtomicInteger attempts = new AtomicInteger();
         private volatile int failOnceAt = -1;
 
@@ -37,8 +39,13 @@ public class AssessmentStorageTestSupport {
             server.createContext("/", exchange -> {
                 try (exchange) {
                     var bytes = files.get(exchange.getRequestURI().getPath().substring(1));
-                    if (bytes == null) {
+                    if (bytes == null || unavailablePaths.contains(exchange.getRequestURI().getPath())) {
                         exchange.sendResponseHeaders(404, -1);
+                    } else if ("bytes=0-11".equals(exchange.getRequestHeaders().getFirst("Range"))) {
+                        exchange.getResponseHeaders().set("Content-Type", "audio/wav");
+                        exchange.getResponseHeaders().set("Content-Range", "bytes 0-11/" + bytes.length);
+                        exchange.sendResponseHeaders(206, 12);
+                        exchange.getResponseBody().write(bytes, 0, 12);
                     } else {
                         exchange.getResponseHeaders().set("Content-Type", "audio/wav");
                         exchange.sendResponseHeaders(200, bytes.length);
@@ -49,7 +56,17 @@ public class AssessmentStorageTestSupport {
             server.start();
         }
 
-        void reset() { files.clear(); attempts.set(0); failOnceAt = -1; }
+        void reset() {
+            files.clear();
+            unavailablePaths.clear();
+            attempts.set(0);
+            failOnceAt = -1;
+        }
+
+        void setAvailable(URI deliveryUrl, boolean available) {
+            if (available) unavailablePaths.remove(deliveryUrl.getPath());
+            else unavailablePaths.add(deliveryUrl.getPath());
+        }
         int stored() { return files.size(); }
         void failOnceAt(int attempt) { failOnceAt = attempt; }
 

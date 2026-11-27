@@ -14,7 +14,7 @@ import java.util.Locale;
 /** Performs bounded signature inspection and counts exact bytes consumed by the provider. */
 final class MediaContentInspector {
 
-    private static final int SIGNATURE_BYTES = 12;
+    static final int SIGNATURE_BYTES = 12;
 
     private MediaContentInspector() {
     }
@@ -67,13 +67,17 @@ final class MediaContentInspector {
         if (bytes.length >= 12 && ascii(bytes, 0, "RIFF") && ascii(bytes, 8, "WEBP")) {
             return new MediaFileDescriptor("image/webp", "webp", MediaResourceType.IMAGE);
         }
-        if (bytes.length >= 12 && ascii(bytes, 0, "RIFF") && ascii(bytes, 8, "WAVE")) {
+        if (isWav(bytes)) {
             return new MediaFileDescriptor("audio/wav", "wav", MediaResourceType.VIDEO);
         }
         if (ascii(bytes, 0, "ID3") || hasMp3FrameHeader(bytes)) {
             return new MediaFileDescriptor("audio/mpeg", "mp3", MediaResourceType.VIDEO);
         }
         return null;
+    }
+
+    static boolean isWav(byte[] bytes) {
+        return ascii(bytes, 0, "RIFF") && ascii(bytes, 8, "WAVE");
     }
 
     private static boolean hasMp3FrameHeader(byte[] bytes) {

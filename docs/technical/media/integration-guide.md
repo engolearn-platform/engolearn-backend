@@ -12,6 +12,13 @@ This is the primary document for developers integrating Topic, Quiz or another f
 6. When returning content to a client, authorize access to that content first, then call `resolve(mediaId)` and include the resulting URL in your feature response.
 7. The caller opens and closes the upload stream. Media consumes it synchronously and does not close or retain it.
 
+For actions that require an available WAV before committing state, authorize the owning
+content first and call `verifyWavDelivery(mediaId)` outside the database transaction.
+Media requests the first 12 bytes using a fresh provider URL and checks the WAV signature.
+It accepts a full or ranged successful response, with bounded connect/read timeouts and
+redirects disabled. The check returns no URL and does not change the normal delivery or
+renewal contract. Upload validation and listening in the browser cover the rest of the WAV.
+
 ## Upload example
 
 A feature service can accept JDK values rather than depending on Spring's `MultipartFile`:

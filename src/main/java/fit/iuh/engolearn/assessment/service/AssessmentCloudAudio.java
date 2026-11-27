@@ -9,5 +9,6 @@ public interface AssessmentCloudAudio {
 
     AssessmentAudioAsset find(String digest);
     AssessmentMediaResponse resolve(AssessmentAudioAsset asset, int maxSeconds);
+    void verifyWav(AssessmentAudioAsset asset, int maxSeconds);
     String upload(InputStream input, String expectedDigest, boolean soundCheck);
 }

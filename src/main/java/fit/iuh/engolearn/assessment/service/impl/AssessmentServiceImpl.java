@@ -80,8 +80,8 @@ public class AssessmentServiceImpl implements AssessmentService {
         var paper = plan.paper();
         AssessmentPaperSnapshotVo snapshot;
         try {
-            // File reads and Media resolution stay outside the short transaction that owns usage.
-            selection.validate(paper);
+            // File reads and the provider availability check stay outside the quota transaction.
+            selection.validateForStart(paper);
             snapshot = AssessmentMapper.snapshot(paper);
             for (var unit : snapshot.getUnits()) unit.setAudioMediaId(media.durableReference(unit));
         } catch (AssessmentException ex) {

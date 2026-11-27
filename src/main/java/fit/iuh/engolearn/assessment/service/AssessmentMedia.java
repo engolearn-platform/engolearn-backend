@@ -6,5 +6,6 @@ public interface AssessmentMedia {
     AssessmentMediaResponse encode(byte[] bytes);
     AssessmentMediaResponse sample();
     AssessmentMediaResponse delivery(AssessmentUnitVo unit, int maxSeconds);
+    void verifyWav(AssessmentUnitVo unit, int maxSeconds);
     String durableReference(AssessmentUnitVo unit);
 }

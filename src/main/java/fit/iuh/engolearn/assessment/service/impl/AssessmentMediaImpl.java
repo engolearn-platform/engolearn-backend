@@ -69,6 +69,15 @@ public class AssessmentMediaImpl implements AssessmentMedia {
         return cloud.resolve(matchingAsset(unit), maxSeconds);
     }
 
+    @Override
+    public void verifyWav(AssessmentUnitVo unit, int maxSeconds) {
+        if (unit.getAudioMediaId() == null && directory != null) {
+            read(unit.getAudioPath(), unit.getAudioSha256(), maxSeconds);
+        } else {
+            cloud.verifyWav(matchingAsset(unit), maxSeconds);
+        }
+    }
+
     private AssessmentAudioAsset matchingAsset(AssessmentUnitVo unit) {
         var asset = cloud.find(unit.getAudioSha256());
         if (asset != null && unit.getAudioMediaId() != null && !unit.getAudioMediaId().equals(asset.getMediaId())) {

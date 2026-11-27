@@ -7,6 +7,9 @@ import fit.iuh.engolearn.assessment.exception.AssessmentException;
 import fit.iuh.engolearn.assessment.model.*;
 import fit.iuh.engolearn.assessment.repository.AssessmentRepository;
 import fit.iuh.engolearn.assessment.service.*;
+import fit.iuh.engolearn.media.contract.MediaManagement;
+import fit.iuh.engolearn.media.contract.dto.UploadMediaCommandDto;
+import fit.iuh.engolearn.media.contract.enums.MediaAccessPolicy;
 import fit.iuh.engolearn.placement.model.PlacementTestSet;
 import fit.iuh.engolearn.quota.contract.QuotaAvailability;
 import fit.iuh.engolearn.subscription.dto.request.PublicationManifestRequest;
@@ -14,6 +17,9 @@ import fit.iuh.engolearn.subscription.service.SubscriptionPublicationService;
 import fit.iuh.engolearn.subscription.service.SubscriptionService;
 import fit.iuh.engolearn.user.contract.UserAssessmentProgress;
 import java.io.ByteArrayInputStream;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.nio.file.*;
 import java.security.MessageDigest;
 import java.time.*;
@@ -47,7 +53,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest(properties={"engolearn.security.jwt.secret=isolated-assessment-test-secret-at-least-32-bytes", "engolearn.security.cookies.secure=false", "engolearn.messaging.enabled=false", "engolearn.assessment.expiry-delay-ms=3600000","engolearn.subscription.activation-delay-ms=3600000","engolearn.mongodb.bootstrap.enabled=false","spring.mongodb.username=","spring.mongodb.password="})
 @AutoConfigureMockMvc
 @ActiveProfiles("dev")
-@Import(AssessmentMongoIntegrationTest.TimeConfiguration.class)
+@Import({AssessmentMongoIntegrationTest.TimeConfiguration.class, AssessmentStorageTestSupport.class})
 @EnabledIfEnvironmentVariable(named="ASSESSMENT_TEST_MONGO_URI",matches=".+")
 class AssessmentMongoIntegrationTest {
     String USER;
@@ -69,6 +75,8 @@ class AssessmentMongoIntegrationTest {
     @TestConfiguration static class TimeConfiguration {@Bean @Primary MutableClock assessmentTestClock(){return new MutableClock();}}
     @Autowired MutableClock clock;
     @Autowired MongoTemplate mongo;
+    @Autowired MediaManagement mediaManagement;
+    @Autowired AssessmentStorageTestSupport.LocalStorage storage;
     @Autowired AssessmentService service;
     @MockitoSpyBean AssessmentMedia media;
     @Autowired AssessmentRepository store;
@@ -85,6 +93,7 @@ class AssessmentMongoIntegrationTest {
     @BeforeEach void setup() throws Exception {
         assertThat(mongo.getDb().getName()).isEqualTo("engolearn_pfc_test");
         for(String collection:mongo.getCollectionNames()) if(collection.startsWith("assessment_")||collection.startsWith("quota_")||collection.startsWith("subscription_")) mongo.remove(new Query(),collection);
+        storage.reset();
         clock.at=START;binding=UUID.randomUUID().toString();
         var registered = mvc.perform(post("/api/v1/auth/register").contentType("application/json")
                 .content("{\"email\":\"pfc-" + UUID.randomUUID() + "@example.test\",\"password\":\"Isolated-test-123!\"}"))
@@ -134,7 +143,7 @@ class AssessmentMongoIntegrationTest {
                         new Update().set("published", false), AssessmentPaper.class);
             }
             return invocation.callRealMethod();
-        }).when(media).delivery(any(), anyInt());
+        }).when(media).verifyWav(any(), anyInt());
 
         assertThatThrownBy(() -> service.start(USER, command())).isInstanceOfSatisfying(
                 AssessmentException.class, e -> assertThat(e.code()).isEqualTo("PAPER_CHANGED"));
@@ -237,12 +246,45 @@ class AssessmentMongoIntegrationTest {
                 .andExpect(jsonPath("$.data.cooldownSatisfied").value(true))
                 .andExpect(jsonPath("$.data.paperAvailable").value(true))
                 .andExpect(jsonPath("$.data.initialLevel").value("A1"));
+        var published = store.published().getFirst();
+        var unit = published.getUnits().getFirst();
+        byte[] wav = Files.readAllBytes(MEDIA.resolve(unit.getAudioPath()));
+        var asset = mediaManagement.upload(new UploadMediaCommandDto("ASSESSMENT_AUDIO", MediaAccessPolicy.PROTECTED,
+                "first-question.wav", "audio/wav", wav.length, new ByteArrayInputStream(wav)));
+        mongo.save(new AssessmentAudioAsset(unit.getAudioSha256(), asset.mediaId(), 0.1));
+        unit.setAudioMediaId(asset.mediaId());
+        mongo.save(published);
+
+        var url = mediaManagement.resolve(asset.mediaId()).url();
+        var getWav = HttpRequest.newBuilder(url).build();
+        var http = HttpClient.newHttpClient();
+        assertThat(http.send(getWav, HttpResponse.BodyHandlers.discarding()).statusCode()).isEqualTo(200);
+        storage.setAvailable(url, false);
+        assertThat(http.send(getWav, HttpResponse.BodyHandlers.discarding()).statusCode()).isEqualTo(404);
+        mvc.perform(get(assessmentPath + "/sound-check").cookie(userCookie)).andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.base64").isNotEmpty());
         assertThat(remaining()).isEqualTo(1);
         mvc.perform(post(assessmentPath + "/attempts").cookie(userCookie)
                         .contentType("application/json").content(startBody))
-                .andExpect(status().isOk()).andExpect(jsonPath("$.data.status").value("ACTIVE"));
+                .andExpect(status().isServiceUnavailable()).andExpect(jsonPath("$.code").value("MEDIA_UNAVAILABLE"));
+        var attempts = mongo.getCollection("assessment_attempts");
+        var usage = mongo.getCollection("quota_usage_ledger");
+        assertThat(attempts.countDocuments()).isZero();
+        assertThat(usage.countDocuments()).isZero();
+        assertThat(remaining()).isEqualTo(1);
+
+        storage.setAvailable(url, true);
+        var accepted = mvc.perform(post(assessmentPath + "/attempts").cookie(userCookie)
+                        .contentType("application/json").content(startBody))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.data.status").value("ACTIVE"))
+                .andReturn().getResponse();
+        String attemptId = mapper.readTree(accepted.getContentAsString()).at("/data/id").asString();
+        mvc.perform(post(assessmentPath + "/attempts").cookie(userCookie)
+                        .contentType("application/json").content(startBody))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.data.id").value(attemptId));
         assertThat(remaining()).isZero();
-        assertThat(mongo.getCollection("quota_usage_ledger").countDocuments()).isEqualTo(1);
+        assertThat(attempts.countDocuments()).isEqualTo(1);
+        assertThat(usage.countDocuments()).isEqualTo(1);
     }
 
     @Test
