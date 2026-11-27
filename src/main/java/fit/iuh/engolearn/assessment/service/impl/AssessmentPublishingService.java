@@ -1,5 +1,6 @@
 package fit.iuh.engolearn.assessment.service.impl;
 
+import fit.iuh.engolearn.assessment.contract.MicroSkillCatalog;
 import fit.iuh.engolearn.assessment.dto.response.AssessmentDraftResponse;
 import fit.iuh.engolearn.assessment.dto.response.AssessmentMediaResponse;
 import fit.iuh.engolearn.assessment.dto.response.ManagedAssessmentPaperResponse;
@@ -30,6 +31,7 @@ public class AssessmentPublishingService implements AssessmentPublishing {
     private final AssessmentTransactions transactions;
     private final AssessmentMedia audio;
     private final CurrentUserProvider users;
+    private final MicroSkillCatalog microSkills;
 
     public AssessmentDraftResponse preview(String series, String revision) {
         var draft = requireDraft(series, revision);
@@ -126,6 +128,15 @@ public class AssessmentPublishingService implements AssessmentPublishing {
     private AssessmentPaper validate(AssessmentDraft draft) {
         if (draft.getName() == null || draft.getName().isBlank()) {
             throw new AssessmentException(422, "PAPER_INVALID", "Tên bộ đề còn trống.");
+        }
+        if (draft.getSkills() != null) {
+            for (var skill : draft.getSkills()) {
+                if (skill != null && microSkills.find(skill.getCode())
+                        .filter(entry -> !entry.availableForAssessment()).isPresent()) {
+                    throw new AssessmentException(422, "MICRO_SKILL_UNAVAILABLE",
+                            "Kỹ năng " + skill.getCode() + " đã ngừng dùng hoặc chưa có mapping.");
+                }
+            }
         }
         var paper = AssessmentPaper.builder()
                 .id("paper:" + draft.getSeries() + ":" + draft.getVersion())

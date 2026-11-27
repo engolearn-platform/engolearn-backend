@@ -22,7 +22,11 @@ public record LearningPathRecommendationResponse(
             int correct,
             int total,
             double percent,
-            String band
+            String band,
+            String displayName
     ) {
+        public MicroSkill(String name, String skill, int correct, int total, double percent, String band) {
+            this(name, skill, correct, total, percent, band, null);
+        }
     }
 }

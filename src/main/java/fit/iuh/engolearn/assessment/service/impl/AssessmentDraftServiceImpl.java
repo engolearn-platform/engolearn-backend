@@ -1,6 +1,7 @@
 package fit.iuh.engolearn.assessment.service.impl;
 
-import fit.iuh.engolearn.assessment.contract.AssessmentSkillCatalog;
+import fit.iuh.engolearn.assessment.contract.MicroSkillCatalog;
+import fit.iuh.engolearn.assessment.model.enums.AssessmentSection;
 import fit.iuh.engolearn.assessment.dto.request.*;
 import fit.iuh.engolearn.assessment.dto.response.*;
 import fit.iuh.engolearn.assessment.exception.AssessmentException;
@@ -22,6 +23,7 @@ import lombok.RequiredArgsConstructor;
 @PreAuthorize("hasRole('CONTENT_MANAGER')")
 public class AssessmentDraftServiceImpl implements AssessmentDraftService {
     private final AssessmentDraftRepository drafts;
+    private final MicroSkillCatalog microSkills;
     private final AssessmentCloudAudio audio;
     private final AssessmentTransactions transactions;
 
@@ -31,8 +33,8 @@ public class AssessmentDraftServiceImpl implements AssessmentDraftService {
         return draft;
     }
     public List<AssessmentSkillOptionResponse> skillCatalog() {
-        return Arrays.stream(AssessmentSkillCatalog.values())
-                .map(skill -> new AssessmentSkillOptionResponse(skill.name(), skill.label(), skill.section())).toList();
+        return microSkills.list().stream().filter(MicroSkillCatalog.Entry::availableForAssessment)
+                .map(skill -> new AssessmentSkillOptionResponse(skill.code(), skill.label(), skill.section())).toList();
     }
 
     public AssessmentDraftResponse get(String series) { return AssessmentDraftMapper.response(requireDraft(series)); }
@@ -94,7 +96,22 @@ public class AssessmentDraftServiceImpl implements AssessmentDraftService {
                 throw new AssessmentException(400, "INVALID_SOURCE_AUDIO", "Tham chiếu audio nằm ngoài đề nguồn.");
             }
         }
-        AssessmentDraftMapper.applyContent(draft, input, source, uploaded);
+        var definitions = microSkills.list().stream().collect(java.util.stream.Collectors.toMap(
+                MicroSkillCatalog.Entry::code, definition -> definition));
+        var skills = input.skills().stream().map(skill -> {
+            if (skill.code() == null || skill.code().isBlank()) return skill;
+            var entry = definitions.get(skill.code());
+            // Manual drafts can be incomplete. Publication still validates the full matrix.
+            if (entry == null) return skill;
+            if (!entry.availableForAssessment()) {
+                throw new AssessmentException(422, "MICRO_SKILL_UNAVAILABLE",
+                        "Kỹ năng " + skill.code() + " chưa có mapping hoạt động hoặc đã ngừng sử dụng.");
+            }
+            return new DraftContentRequest.Skill(entry.code(), entry.label(), skill.example(),
+                    AssessmentSection.valueOf(entry.section()));
+        }).toList();
+        var content = new DraftContentRequest(input.revision(), input.name(), skills, input.units());
+        AssessmentDraftMapper.applyContent(draft, content, source, uploaded);
         draft.setRevision(UUID.randomUUID().toString());
         if (!drafts.replace(input.revision(), draft)) throw stale();
         return AssessmentDraftMapper.response(draft);

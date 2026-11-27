@@ -3,6 +3,8 @@ import fit.iuh.engolearn.assessment.controller.AssessmentController;
 import fit.iuh.engolearn.assessment.controller.AssessmentDraftController;
 import fit.iuh.engolearn.assessment.controller.AssessmentAudioAdminController;
 import fit.iuh.engolearn.assessment.controller.AssessmentPublishingController;
+import fit.iuh.engolearn.assessment.controller.AssessmentDraftImportController;
+import fit.iuh.engolearn.assessment.controller.MicroSkillAdminController;
 
 import fit.iuh.engolearn.assessment.exception.AssessmentException;
 import fit.iuh.engolearn.quota.contract.exception.QuotaUnavailableException;
@@ -18,13 +20,16 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MissingRequestHeaderException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
+import org.springframework.web.multipart.support.MissingServletRequestPartException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
-@RestControllerAdvice(assignableTypes={AssessmentController.class, AssessmentDraftController.class, AssessmentAudioAdminController.class, AssessmentPublishingController.class})
+@RestControllerAdvice(assignableTypes={AssessmentController.class, AssessmentDraftController.class, AssessmentAudioAdminController.class, AssessmentPublishingController.class,
+        AssessmentDraftImportController.class, MicroSkillAdminController.class})
 public class AssessmentExceptionHandler {
     @ExceptionHandler({AssessmentException.class,UnauthenticatedException.class,QuotaUnavailableException.class,SubscriptionUnavailableException.class,
             MethodArgumentNotValidException.class,HandlerMethodValidationException.class,HttpMessageNotReadableException.class,
-            MissingRequestHeaderException.class,MethodArgumentTypeMismatchException.class,UserLevelPromotionException.class,org.springframework.dao.DataAccessException.class})
+            MissingRequestHeaderException.class, MissingServletRequestParameterException.class, MissingServletRequestPartException.class,MethodArgumentTypeMismatchException.class,UserLevelPromotionException.class,org.springframework.dao.DataAccessException.class})
     public ProblemDetail handle(Exception e,HttpServletRequest request,HttpServletResponse response) {
         int status=503;String code="UPSTREAM_UNAVAILABLE",detail="Không xác nhận được quyền hoặc hạn mức. Hãy thử lại.";
         if(e instanceof AssessmentException a) {status=a.status();code=a.code();detail=a.getMessage();}
@@ -35,7 +40,9 @@ public class AssessmentExceptionHandler {
         }
         else if(e instanceof org.springframework.dao.DataAccessException) {status=503;code="ASSESSMENT_STORAGE_UNAVAILABLE";detail="Không lưu được bài. Hãy thử lại cùng yêu cầu.";}
         else if(e instanceof MethodArgumentNotValidException || e instanceof HandlerMethodValidationException
-                || e instanceof HttpMessageNotReadableException || e instanceof MissingRequestHeaderException || e instanceof MethodArgumentTypeMismatchException) {
+                || e instanceof HttpMessageNotReadableException || e instanceof MissingRequestHeaderException
+                || e instanceof MissingServletRequestParameterException || e instanceof MissingServletRequestPartException
+                || e instanceof MethodArgumentTypeMismatchException) {
             status=400;code="INVALID_REQUEST";detail="Dữ liệu yêu cầu chưa hợp lệ.";
         }
         var p=ProblemDetail.forStatusAndDetail(HttpStatusCode.valueOf(status),detail);

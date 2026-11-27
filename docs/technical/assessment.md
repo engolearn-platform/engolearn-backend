@@ -287,3 +287,40 @@ group may close it during preparation. A confirmation crossing the audio-start b
 remains valid for the same unit. Old-unit and duplicate commands cannot close a later group.
 
 Admin draft creation may supply expectedSourceId. If supplied, the latest paper must match that ID under the series transaction or the server returns 409 DRAFT_SOURCE_CHANGED. The local import instructions are in tools/assessment/README.md.
+
+### Studio micro-skill and workbook import
+
+The Studio options endpoint reads `micro_skills`. Its stable document ID is the PFC
+code. `label` is the current shared display name, `section` is READING or LISTENING,
+`legacy_name` is the established Learning Path pool key, and `active` controls selection
+in Studio. The confirmed compatibility mapping covers R01/R02/R04/L01/L03. Install
+the missing five records using the scoped catalog import on the test database.
+Use the rollout instructions in the [Mongo importer guide](../../tools/mongo-json-importer/README.md).
+
+ADMIN can list, create, rename and retire via `/api/v1/assessment/admin/micro-skills`.
+New codes without a confirmed mapping are stored pending. Rename and retirement
+leave existing paper/attempt snapshots and legacy pool keys intact. New preview and
+publication reject a retired mapped code. Learning Path recommendations retain their
+legacy `name` field as the creation key and read the new optional `displayName`
+from the shared contract. Broader Learning Path catalog and question-bank migration
+remain with the Learning Path owner. Reconcile the collection contract before
+adding production mappings beyond the five confirmed entries.
+
+ADMIN and CONTENT_MANAGER use `/api/v1/assessment/admin/draft-imports`.
+Download the template envelope at GET `/template`. POST `/inspect-audio` validates a
+single WAV and returns its digest and duration. POST `/preview` accepts multipart
+`workbook` and JSON part `manifest`. It validates the three template sheets and
+reuses the Assessment paper matrix. Preview uses the selected local WAVs in the
+browser. The inputs use 50 questions, 26 units and 12 distinct PCM WAVs.
+`De.AmThuWav` can reference a separate, optional WAV (at most 50 seconds).
+
+After confirmation, the browser sends each checked WAV and its digest through
+the existing protected Assessment-to-Media endpoint. The final multipart POST
+accepts the same workbook, manifest and preview `token`, verifies registered Media
+against the manifest, then writes the draft and one durable import receipt in
+the existing series transaction. Retries reuse registered assets and return the
+same draft. A completed receipt prevents the same package from creating a new
+draft after publication or deletion. An upload interrupted before commit can leave
+reusable Media assets. Existing draft preview, review and publication remain
+bound to the saved revision. Use the separate sound-check action to change the
+global WAV. Dev can use its packaged sound before a global asset is registered.

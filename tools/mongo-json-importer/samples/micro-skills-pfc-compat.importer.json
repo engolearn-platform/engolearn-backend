@@ -1,0 +1,41 @@
+{
+  "collections": {
+    "micro_skills": [
+      {
+        "_id": "R01",
+        "section": "READING",
+        "label": "Đọc tìm thông tin cụ thể",
+        "legacy_name": "Reading for Specific Information",
+        "active": true
+      },
+      {
+        "_id": "R02",
+        "section": "READING",
+        "label": "Đọc tìm ý chính",
+        "legacy_name": "Reading for Gist",
+        "active": true
+      },
+      {
+        "_id": "R04",
+        "section": "READING",
+        "label": "Đọc suy luận và quan điểm tác giả",
+        "legacy_name": "Inference & Author's View",
+        "active": true
+      },
+      {
+        "_id": "L01",
+        "section": "LISTENING",
+        "label": "Nghe ý chính",
+        "legacy_name": "Listening for Gist",
+        "active": true
+      },
+      {
+        "_id": "L03",
+        "section": "LISTENING",
+        "label": "Nghe tìm thông tin cụ thể",
+        "legacy_name": "Listening for Specific Information",
+        "active": true
+      }
+    ]
+  }
+}

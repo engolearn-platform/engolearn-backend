@@ -9,6 +9,8 @@ public interface AssessmentDraftRepository {
     AssessmentPaper latestPaper(String series);
     AssessmentPaper sourcePaper(String id);
     void insert(AssessmentDraft draft);
+    AssessmentDraftImport importReceipt(String token);
+    void insertImportReceipt(AssessmentDraftImport receipt);
     boolean replace(String expectedRevision, AssessmentDraft draft);
     boolean markPreviewed(AssessmentDraft draft, String userId);
     boolean markReviewed(AssessmentDraft draft, String userId);

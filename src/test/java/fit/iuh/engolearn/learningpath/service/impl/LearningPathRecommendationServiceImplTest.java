@@ -29,7 +29,9 @@ class LearningPathRecommendationServiceImplTest {
     private final LearningPathRepository paths = mock(LearningPathRepository.class);
     private final QuestionPoolRepository pool = mock(QuestionPoolRepository.class);
     private final UserLevelLookup levels = mock(UserLevelLookup.class);
-    private final LearningPathRecommendationServiceImpl service = new LearningPathRecommendationServiceImpl(results, paths, pool, levels);
+    private final fit.iuh.engolearn.assessment.contract.MicroSkillCatalog catalog =
+            mock(fit.iuh.engolearn.assessment.contract.MicroSkillCatalog.class);
+    private final LearningPathRecommendationServiceImpl service = new LearningPathRecommendationServiceImpl(results, paths, pool, levels, catalog);
 
     @BeforeEach
     void profileLevel() {
@@ -47,6 +49,20 @@ class LearningPathRecommendationServiceImplTest {
         verify(results, never()).latest(any());
         verify(pool, never()).sampleActive(any(), any(), anyInt());
         verify(paths, never()).save(any());
+    }
+
+    @Test
+    void displaysTheSharedCatalogLabelWhileKeepingTheLegacyQuestionPoolKey() {
+        when(results.findCompleted("learner", "native-old")).thenReturn(Optional.of(result(20)));
+        when(pool.countActive("Reading for Gist", "B1")).thenReturn(30L);
+        when(catalog.find("R02")).thenReturn(Optional.of(
+                new fit.iuh.engolearn.assessment.contract.MicroSkillCatalog.Entry(
+                        "R02", "Đọc ý chính mới", "READING", true, "Reading for Gist")));
+        var recommendation = service.recommendForAssessment("learner", "native-old");
+        var skill = recommendation.microSkills().getFirst();
+        assertThat(skill.name()).isEqualTo("Reading for Gist");
+        assertThat(skill.displayName()).isEqualTo("Đọc ý chính mới");
+        verify(pool).countActive("Reading for Gist", "B1");
     }
 
     @Test

@@ -2,6 +2,7 @@ package fit.iuh.engolearn.learningpath.service.impl;
 
 import fit.iuh.engolearn.learningpath.service.LearningPathRecommendationService;
 import fit.iuh.engolearn.assessment.contract.AssessmentResults;
+import fit.iuh.engolearn.assessment.contract.MicroSkillCatalog;
 import fit.iuh.engolearn.user.contract.UserLevelLookup;
 import fit.iuh.engolearn.learningpath.mapper.LearningPathAssessmentMapper;
 
@@ -29,6 +30,7 @@ public class LearningPathRecommendationServiceImpl implements LearningPathRecomm
     private final LearningPathRepository paths;
     private final QuestionPoolRepository questionPool;
     private final UserLevelLookup userLevels;
+    private final MicroSkillCatalog microSkills;
 
     public LearningPathRecommendationResponse recommendForAssessment(String userId, String assessmentAttemptId) {
         return recommend(userId, assessmentAttemptId);
@@ -97,7 +99,10 @@ public class LearningPathRecommendationServiceImpl implements LearningPathRecomm
         List<MicroSkill> eligible = skillsOutsideActivePaths.stream()
                 .filter(result -> questionPool.countActive(result.microSkill(), level) >= 30)
                 .map(result -> new MicroSkill(result.microSkill(), result.skill(), result.correct(),
-                        result.total(), result.percent(), result.band()))
+                        result.total(), result.percent(), result.band(),
+                        microSkills.find(result.code())
+                                .filter(entry -> result.microSkill().equals(entry.legacyName()))
+                                .map(MicroSkillCatalog.Entry::label).orElse(null)))
                 .toList();
         if (eligible.isEmpty()) {
             String message = skillsOutsideActivePaths.size() == weak.size()

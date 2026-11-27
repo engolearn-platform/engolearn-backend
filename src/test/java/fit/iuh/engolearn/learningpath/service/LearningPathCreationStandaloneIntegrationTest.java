@@ -79,7 +79,8 @@ class LearningPathCreationStandaloneIntegrationTest {
                         mock(AssessmentTransactions.class), new org.springframework.mock.env.MockEnvironment());
                 QuestionPoolRepository questionPool = new QuestionPoolRepository(template);
                 LearningPathRecommendationService recommendations = new LearningPathRecommendationServiceImpl(
-                        periodicTests, paths, questionPool, user -> Optional.of(CefrLevel.B1));
+                        periodicTests, paths, questionPool, user -> Optional.of(CefrLevel.B1),
+                        org.mockito.Mockito.mock(fit.iuh.engolearn.assessment.contract.MicroSkillCatalog.class));
                 LearningPathCreationService creation = new LearningPathCreationServiceImpl(
                         recommendations, periodicTests, paths, questionPool,
                         new LearningPathAudioServiceImpl(mock(MediaManagement.class)));

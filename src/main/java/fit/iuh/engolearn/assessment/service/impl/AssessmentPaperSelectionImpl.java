@@ -16,10 +16,16 @@ import org.springframework.stereotype.Service;
 public class AssessmentPaperSelectionImpl implements AssessmentPaperSelection {
     private final AssessmentMedia media;
     public void validate(AssessmentPaper p) {
-        try {validateDefinition(p);}
+        validate(p, true);
+    }
+    public void validateStructure(AssessmentPaper p) {
+        validate(p, false);
+    }
+    private void validate(AssessmentPaper p, boolean resolveMedia) {
+        try {validateDefinition(p, resolveMedia);}
         catch(NullPointerException | IllegalArgumentException malformed) {invalid();}
     }
-    private void validateDefinition(AssessmentPaper p) {
+    private void validateDefinition(AssessmentPaper p, boolean resolveMedia) {
         if(p.getId()==null||p.getId().isBlank()||p.getSeries()==null||p.getSeries().isBlank()||p.getVersion()<1) invalid();
         if(p.getSkills()==null || p.getSkills().size()!=5 || p.getUnits()==null || p.getUnits().size()!=26) invalid();
         boolean modern = p.getRulesVersion() == 2;
@@ -74,7 +80,7 @@ public class AssessmentPaperSelectionImpl implements AssessmentPaperSelection {
                         ? (modern ? AssessmentTimeline.listeningSingleAudioLimitSeconds() : 50)
                         : 120;
                 try {
-                    media.delivery(u, maxAudioSeconds);
+                    if (resolveMedia) media.delivery(u, maxAudioSeconds);
                 } catch (AssessmentException ex) {
                     throw new AssessmentException(ex.status(), ex.code(), "Phần " + (i + 1) + ": " + ex.getMessage(), ex);
                 }

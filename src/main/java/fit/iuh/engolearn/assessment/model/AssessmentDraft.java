@@ -16,6 +16,7 @@ public class AssessmentDraft extends BaseDocument {
     private String name;
     private int version;
     private String revision;
+    @Field("import_token") private String importToken;
     @Field("previewed_by") private List<String> previewedBy;
     @Field("reviewed_revision") private String reviewedRevision;
     @Field("source_paper_id") private String sourcePaperId;

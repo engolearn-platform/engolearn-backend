@@ -48,8 +48,9 @@ public class AssessmentMediaImpl implements AssessmentMedia {
     }
     public AssessmentMediaResponse encode(byte[] bytes) {return new AssessmentMediaResponse("audio/wav",Base64.getEncoder().encodeToString(bytes));}
     public AssessmentMediaResponse sample() {
-        if (directory != null) return encode(read("sound-check.wav", null, 50));
-        return cloud.resolve(cloud.find(AssessmentCloudAudio.SOUND_CHECK), 50);
+        var registered = cloud.find(AssessmentCloudAudio.SOUND_CHECK);
+        if (registered == null && directory != null) return encode(read("sound-check.wav", null, 50));
+        return cloud.resolve(registered, 50);
     }
 
     @Override

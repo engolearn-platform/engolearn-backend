@@ -1,6 +1,8 @@
 package fit.iuh.engolearn.assessment;
 
+import java.io.ByteArrayOutputStream;
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
 import java.net.http.*;
 import java.nio.file.*;
 import java.util.*;
@@ -12,6 +14,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.context.annotation.Import;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.testcontainers.mongodb.MongoDBContainer;
 import org.testcontainers.utility.DockerImageName;
@@ -25,6 +28,7 @@ import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.node.ObjectNode;
 import static org.assertj.core.api.Assertions.assertThat;
 
+@Import(AssessmentStorageTestSupport.class)
 @EnabledIf("mongoAvailable")
 @ActiveProfiles("dev")
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
@@ -38,6 +42,7 @@ class AssessmentDraftIntegrationTest {
     private static MongoDBContainer container;
     @Autowired private MongoTemplate mongoTemplate;
     @LocalServerPort private int port;
+    @Autowired private AssessmentStorageTestSupport.LocalStorage storage;
     private static final String DISPOSABLE_MONGO = System.getenv("ASSESSMENT_DRAFT_TEST_MONGO_URI");
 
     static boolean mongoAvailable() {
@@ -65,11 +70,16 @@ class AssessmentDraftIntegrationTest {
     }
 
     @BeforeEach
-    void clearFixtures() {
+    void clearFixtures() throws Exception {
         assertThat(mongoTemplate.getDb().getName()).isEqualTo(DATABASE);
         for (String name : mongoTemplate.getCollectionNames()) {
             mongoTemplate.getCollection(name).deleteMany(new Document());
         }
+        var skills = Document.parse(Files.readString(Path.of(
+                "tools/mongo-json-importer/samples/micro-skills-pfc-compat.importer.json")));
+        mongoTemplate.getCollection("micro_skills").insertMany(skills.get("collections", Document.class)
+                .getList("micro_skills", Document.class));
+        storage.reset();
     }
 
     private static final String DRAFTS = "/api/v1/assessment/admin/drafts";
@@ -245,4 +255,163 @@ class AssessmentDraftIntegrationTest {
         assertThat(papers.countDocuments(new Document("series", series).append("published", true))).isZero();
         assertThat(papers.countDocuments(new Document("series", series))).isEqualTo(2);
     }
+    private static final String IMPORTS = "/api/v1/assessment/admin/draft-imports";
+    private static final String SKILLS = "/api/v1/assessment/admin/micro-skills";
+
+    private record Part(String name, String filename, String contentType, byte[] bytes) {
+        static Part text(String name, String type, String text) {
+            return new Part(name, null, type, text.getBytes(StandardCharsets.UTF_8));
+        }
+    }
+
+    private HttpResponse<String> multipart(String route, String cookie, Part... parts) throws Exception {
+        var boundary = "TestBoundary" + UUID.randomUUID();
+        var data = new ByteArrayOutputStream();
+        for (Part part : parts) {
+            String disposition = "--" + boundary + "\r\nContent-Disposition: form-data; name=\"" + part.name() + "\"";
+            if (part.filename() != null) disposition += "; filename=\"" + part.filename() + "\"";
+            data.write((disposition + "\r\nContent-Type: " + part.contentType() + "\r\n\r\n")
+                    .getBytes(StandardCharsets.UTF_8));
+            data.write(part.bytes());
+            data.write("\r\n".getBytes(StandardCharsets.UTF_8));
+        }
+        data.write(("--" + boundary + "--\r\n").getBytes(StandardCharsets.UTF_8));
+        var request = HttpRequest.newBuilder(URI.create("http://127.0.0.1:" + port + route))
+                .timeout(java.time.Duration.ofSeconds(25))
+                .header("Cookie", cookie).header("Content-Type", "multipart/form-data; boundary=" + boundary)
+                .POST(HttpRequest.BodyPublishers.ofByteArray(data.toByteArray())).build();
+        return http.send(request, HttpResponse.BodyHandlers.ofString());
+    }
+
+    @Test
+    void adminCatalogUsesStableCodesAndNeverRewritesPublishedSkills() throws Exception {
+        String admin = login("ADMIN");
+        String content = login("CONTENT_MANAGER");
+        String learner = login("USER");
+        assertThat(call("GET", SKILLS, null, null).statusCode()).isEqualTo(401);
+        assertThat(call("GET", SKILLS, null, learner).statusCode()).isEqualTo(403);
+        assertThat(call("GET", SKILLS, null, content).statusCode()).isEqualTo(403);
+        assertThat(json.readTree(call("GET", SKILLS, null, admin).body()).path("data").size()).isEqualTo(5);
+        var newSkill = "{\"code\":\"R99\",\"label\":\"Chờ mapping\",\"section\":\"READING\"}";
+        assertThat(call("POST", SKILLS, newSkill, content).statusCode()).isEqualTo(403);
+        var created = call("POST", SKILLS, newSkill, admin);
+        assertThat(created.statusCode()).as(created.body()).isEqualTo(201);
+        assertThat(json.readTree(created.body()).at("/data/active").asBoolean()).isFalse();
+        assertThat(call("POST", SKILLS, newSkill, admin).statusCode()).isEqualTo(409);
+
+        var sample = Document.parse(Files.readString(Path.of("tools/mongo-json-importer/samples/assessment-demo.json")));
+        var paper = sample.get("collections", Document.class).getList("assessment_papers", Document.class).getFirst();
+        var papers = mongoTemplate.getCollection("assessment_papers");
+        papers.insertOne(paper);
+        var before = papers.find().first();
+        var renamed = call("PATCH", SKILLS + "/R02", "{\"label\":\"Đọc ý chính mới\"}", admin);
+        assertThat(renamed.statusCode()).as(renamed.body()).isEqualTo(200);
+        assertThat(json.readTree(renamed.body()).at("/data/legacyName").asString()).isEqualTo("Reading for Gist");
+        var options = json.readTree(call("GET", DRAFTS + "/skill-catalog", null, content).body()).path("data");
+        assertThat(options.toString()).contains("Đọc ý chính mới").doesNotContain("R99");
+        assertThat(call("POST", SKILLS + "/R02/retire", "{}", admin).statusCode()).isEqualTo(200);
+        assertThat(call("GET", DRAFTS + "/skill-catalog", null, content).body()).doesNotContain("R02");
+        assertThat(papers.find().first()).isEqualTo(before);
+    }
+
+    @Test
+    void workbookPreviewAndMediaRetryCreateExactlyOneReviewedRevision() throws Exception {
+        String admin = login("ADMIN");
+        String learner = login("USER");
+        assertThat(call("GET", IMPORTS + "/template", null, learner).statusCode()).isEqualTo(403);
+        var template = call("GET", IMPORTS + "/template", null, admin);
+        assertThat(template.statusCode()).isEqualTo(200);
+        assertThat(Base64.getDecoder().decode(json.readTree(template.body()).at("/data/base64").asString()))
+                .startsWith((byte) 'P', (byte) 'K');
+        var bad = new Part("file", "bad.wav", "audio/wav", "broken".getBytes(StandardCharsets.UTF_8));
+        assertThat(multipart(IMPORTS + "/inspect-audio", admin, bad).statusCode()).isEqualTo(422);
+
+        Part workbook;
+        try (var input = getClass().getResourceAsStream("/assessment/pfc-workbook-fixture.xlsx")) {
+            workbook = new Part("workbook", "valid.xlsx",
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", input.readAllBytes());
+        }
+        var source = Document.parse(Files.readString(Path.of("tools/mongo-json-importer/samples/assessment-demo.json")));
+        var paper = source.get("collections", Document.class).getList("assessment_papers", Document.class).getFirst();
+        Path dir = Path.of("tools/mongo-json-importer/samples/assessment-media");
+        var wavs = new ArrayList<Part>();
+        for (int index = 0; index < 12; index++) {
+            var filename = paper.getList("units", Document.class).get(index).getString("audio_path");
+            wavs.add(new Part("file", "nghe-%02d.wav".formatted(index + 1), "audio/wav", Files.readAllBytes(dir.resolve(filename))));
+        }
+        wavs.add(new Part("file", "am-thu.wav", "audio/wav", Files.readAllBytes(dir.resolve("sound-check.wav"))));
+        var checked = json.createArrayNode();
+        for (var wav : wavs) {
+            var inspected = multipart(IMPORTS + "/inspect-audio", admin, wav);
+            assertThat(inspected.statusCode()).as(inspected.body()).isEqualTo(200);
+            checked.add(json.readTree(inspected.body()).path("data"));
+        }
+        var incomplete = checked.deepCopy();
+        incomplete.remove(0);
+        var missing = multipart(IMPORTS + "/preview", admin, workbook,
+                Part.text("manifest", "application/json", incomplete.toString()));
+        assertThat(missing.statusCode()).as(missing.body()).isEqualTo(422);
+        assertThat(json.readTree(missing.body()).path("detail").asString()).contains("Phan", "nghe-01.wav");
+        var duplicate = checked.deepCopy();
+        ((ObjectNode) duplicate.get(1)).put("sha256", duplicate.get(0).path("sha256").asString());
+        assertThat(multipart(IMPORTS + "/preview", admin, workbook,
+                Part.text("manifest", "application/json", duplicate.toString())).statusCode()).isEqualTo(422);
+        var brokenWorkbook = new Part("workbook", "broken.xlsx", workbook.contentType(),
+                "not xlsx".getBytes(StandardCharsets.UTF_8));
+        assertThat(multipart(IMPORTS + "/preview", admin, brokenWorkbook,
+                Part.text("manifest", "application/json", checked.toString())).statusCode()).isEqualTo(422);
+        var manifest = Part.text("manifest", "application/json", checked.toString());
+        var preview = multipart(IMPORTS + "/preview", admin, workbook, manifest);
+        assertThat(preview.statusCode()).as(preview.body()).isEqualTo(200);
+        var dryRun = json.readTree(preview.body()).path("data");
+        assertThat(dryRun.at("/draft/units").size()).isEqualTo(26);
+        assertThat(dryRun.path("audioFiles").size()).isEqualTo(12);
+        assertThat(dryRun.path("soundCheckFile").asString()).isEqualTo("am-thu.wav");
+        assertThat(storage.stored()).isZero();
+        assertThat(mongoTemplate.getCollection("assessment_paper_drafts").countDocuments()).isZero();
+        var token = Part.text("token", "text/plain", dryRun.path("token").asString());
+        assertThat(multipart(IMPORTS, admin, workbook, manifest,
+                Part.text("token", "text/plain", "stale")).statusCode()).isEqualTo(409);
+        assertThat(multipart(IMPORTS, admin, workbook, manifest, token).statusCode()).isEqualTo(422);
+
+        storage.failOnceAt(3);
+        for (int i = 0; i < 3; i++) {
+            var upload = multipart("/api/v1/assessment/admin/media", admin, wavs.get(i));
+            assertThat(upload.statusCode()).as(upload.body()).isEqualTo(i == 2 ? 503 : 200);
+        }
+        assertThat(storage.stored()).isEqualTo(2);
+        assertThat(mongoTemplate.getCollection("assessment_paper_drafts").countDocuments()).isZero();
+        for (int i = 0; i < wavs.size(); i++) {
+            var sha = Part.text("sha256", "text/plain", checked.get(i).path("sha256").asString());
+            var upload = multipart("/api/v1/assessment/admin/media", admin, wavs.get(i), sha);
+            assertThat(upload.statusCode()).as(upload.body()).isEqualTo(200);
+        }
+        assertThat(storage.stored()).isEqualTo(13);
+        try (var pool = Executors.newFixedThreadPool(2)) {
+            var first = pool.submit(() -> multipart(IMPORTS, admin, workbook, manifest, token));
+            var second = pool.submit(() -> multipart(IMPORTS, admin, workbook, manifest, token));
+            var a = first.get(30, TimeUnit.SECONDS);
+            var b = second.get(30, TimeUnit.SECONDS);
+            assertThat(a.statusCode()).as(a.body()).isEqualTo(200);
+            assertThat(b.statusCode()).as(b.body()).isEqualTo(200);
+            assertThat(json.readTree(a.body()).path("data")).isEqualTo(json.readTree(b.body()).path("data"));
+        }
+        assertThat(mongoTemplate.getCollection("assessment_paper_drafts").countDocuments()).isEqualTo(1);
+        assertThat(mongoTemplate.getCollection("assessment_draft_imports").countDocuments()).isEqualTo(1);
+        var same = multipart(IMPORTS, admin, workbook, manifest, token);
+        String revision = json.readTree(same.body()).at("/data/revision").asString();
+        var draft = mongoTemplate.getCollection("assessment_paper_drafts").find().first();
+        assertThat(draft.getList("units", Document.class).getFirst().getString("audio_media_id")).isNotBlank();
+        assertThat(draft.getList("units", Document.class).getFirst().getString("audio_path")).isNull();
+        String path = DRAFTS + "/PFC-EXCEL-TEST";
+        String body = json.writeValueAsString(Map.of("revision", revision));
+        assertThat(call("POST", path + "/publish", body, admin).statusCode()).isEqualTo(409);
+        assertThat(call("POST", path + "/preview", body, admin).statusCode()).isEqualTo(200);
+        assertThat(call("POST", path + "/review", body, admin).statusCode()).isEqualTo(204);
+        assertThat(call("POST", path + "/publish", body, admin).statusCode()).isEqualTo(200);
+        assertThat(multipart(IMPORTS, admin, workbook, manifest, token).statusCode()).isEqualTo(409);
+        assertThat(mongoTemplate.getCollection("assessment_papers").countDocuments()).isEqualTo(1);
+        assertThat(mongoTemplate.getCollection("assessment_paper_drafts").countDocuments()).isZero();
+    }
+
 }

@@ -169,6 +169,15 @@ would duplicate the paper ID during multi-file preflight. No `attempts` or `micr
 projection is included. Snapshot/path IDs remain ObjectIds; owner IDs are strings. The 210
 orphaned local question snapshots are not part of the shared dataset.
 
+### Seed the confirmed PFC skill mappings
+
+In a disposable project database, use the existing importer with
+`MONGO_IMPORT_CONFLICT_POLICY=skip` and `MONGO_IMPORT_OBJECT_ID_FIELDS=none`.
+Preflight and apply `samples/micro-skills-pfc-compat.importer.json`. It seeds five
+string IDs in `micro_skills` and preserves any existing rename or retirement.
+Review the final catalog with the Learning Path owner before enabling additional
+mappings in a shared environment.
+
 ### Import and initialize
 
 Use a development replica-set database. Configure both the importer and backend for that

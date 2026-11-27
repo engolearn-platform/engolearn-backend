@@ -31,6 +31,12 @@ public class MongoAssessmentDraftRepository implements AssessmentDraftRepository
     public AssessmentPaper sourcePaper(String id) { return mongo.findById(id, AssessmentPaper.class); }
     public void insert(AssessmentDraft draft) { mongo.insert(draft); }
 
+    public AssessmentDraftImport importReceipt(String token) {
+        return mongo.findById(token, AssessmentDraftImport.class);
+    }
+
+    public void insertImportReceipt(AssessmentDraftImport receipt) { mongo.insert(receipt); }
+
     public boolean replace(String expectedRevision, AssessmentDraft draft) {
         var query = Query.query(where("_id").is(draft.getId()).and("revision").is(expectedRevision));
         var changes = new Update().set("name", draft.getName()).set("skills", draft.getSkills())
