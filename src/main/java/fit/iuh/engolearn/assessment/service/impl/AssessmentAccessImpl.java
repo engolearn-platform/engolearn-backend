@@ -21,7 +21,7 @@ public class AssessmentAccessImpl implements AssessmentAccess {
                 || e.serviceRights().contains("ASSESSMENT_FULL_ANALYSIS");
         if(!granted
                 ||e.effectiveAt().isAfter(at)||e.validUntil()!=null&&!at.isBefore(e.validUntil())) return Optional.empty();
-        String source=e.policyScope()+":"+e.policySnapshotId()+":"+e.effectiveAt();
+        String source=AssessmentAccess.sourceKey(e.policyScope(), e.policySnapshotId(), e.effectiveAt());
         return store.revoked(user,source)?Optional.empty():Optional.of(source);
     }
 }

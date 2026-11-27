@@ -3,6 +3,7 @@ import fit.iuh.engolearn.assessment.model.enums.*;
 import fit.iuh.engolearn.assessment.model.vo.*;
 
 import fit.iuh.engolearn.assessment.model.*;
+import fit.iuh.engolearn.user.contract.dto.UserAssessmentProgressDto;
 import fit.iuh.engolearn.assessment.dto.response.*;
 import java.time.Instant;
 import java.util.*;
@@ -13,7 +14,7 @@ public final class AssessmentMapper {
         var skills=paper.getSkills().stream().map(s->new AssessmentSkillVo(s.getCode(),s.getName(),s.getExample(),s.getSection())).toList();
         var units=paper.getUnits().stream().map(u->new AssessmentUnitVo(u.getKind(),u.getPassage(),u.getAudioPath(),u.getAudioSha256(),
                 u.getQuestions().stream().map(q->new AssessmentQuestionVo(q.getNumber(),q.getLevel(),q.getSkillCode(),q.getPrompt(),
-                        List.copyOf(q.getOptions()),q.getCorrectOption(),q.getExplanation(),q.getTranscript())).toList())).toList();
+                        List.copyOf(q.getOptions()),q.getCorrectOption(),q.getExplanation(),q.getTranscript())).toList(),u.getAudioMediaId())).toList();
         return new AssessmentPaperSnapshotVo(paper.getId(),paper.getSeries(),paper.getVersion(),paper.getRulesVersion(),paper.isDemonstration(),skills,units);
     }
     public static AssessmentStateResponse state(AssessmentAttempt a, Instant now, boolean dev) {
@@ -61,12 +62,12 @@ public final class AssessmentMapper {
         return new AssessmentHistoryItemResponse(a.getId(),a.getStatus().name(),a.getSubmittedAt(),scored?a.getPaper().getSeries():null,
                 scored?a.getPaper().getVersion():null,scored?a.getCorrectCount()*2:null,scored?a.getLevel():null);
     }
-    public static AssessmentResultResponse result(AssessmentAttempt a,AssessmentProfile p,boolean full,boolean dev) {
+    public static AssessmentResultResponse result(AssessmentAttempt a,UserAssessmentProgressDto p,boolean full,boolean dev) {
         List<AssessmentSkillResponse> skills=a.getSkillResults().stream().limit(full?5:2).map(s->new AssessmentSkillResponse(s.getCode(),s.getName(),s.getExample(),
                 s.getSection().name(),s.getCorrect(),s.getTotal(),s.getPercentage(),s.getBand().name())).toList();
         return new AssessmentResultResponse(a.getId(),a.getStatus().name(),a.getSubmittedAt(),a.getPaper().getSeries(),a.getPaper().getVersion(),a.getCorrectCount(),
                 a.getCorrectCount()==null?null:a.getCorrectCount()*2,a.getReadingCorrect(),a.getListeningCorrect(),a.getLevel(),
-                p==null?null:p.getInitialLevel(),p==null?null:p.getCurrentLevel(),p==null?null:p.getHighestLevel(),skills,
+                p==null?null:p.initialLevel(),p==null?null:p.currentLevel(),p==null?null:p.highestLevel(),skills,
                 a.getSkillResults().size(),full,dev);
     }
     public static AssessmentReviewResponse review(AssessmentAttempt a,AssessmentResultResponse result) {
@@ -75,7 +76,7 @@ public final class AssessmentMapper {
             var u=a.getPaper().getUnits().get(index);
             for(var q:u.getQuestions()) questions.add(new AssessmentReviewQuestionResponse(q.getNumber(),q.getPrompt(),q.getOptions(),
                     a.getAnswers().get(""+q.getNumber()),q.getCorrectOption(),q.getExplanation(),q.getTranscript(),
-                    u.getKind().name().startsWith("READING")?"READING":"LISTENING",u.getPassage(),index,u.getAudioPath()!=null));
+                    u.getKind().name().startsWith("READING")?"READING":"LISTENING",u.getPassage(),index,u.hasAudio()));
         }
         return new AssessmentReviewResponse(result,questions);
     }

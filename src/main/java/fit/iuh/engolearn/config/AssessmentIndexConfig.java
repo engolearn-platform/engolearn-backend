@@ -14,7 +14,7 @@ public class AssessmentIndexConfig {
         return args -> {
             if(transactions.getIfAvailable()==null) return;
             var resolver=new MongoPersistentEntityIndexResolver(mongo.getConverter().getMappingContext());
-            for(var type:List.of(AssessmentPaper.class,AssessmentAttempt.class,AssessmentProfile.class,AssessmentGate.class,AssessmentGrantRevocationDocument.class)) {
+            for(var type:List.of(AssessmentPaper.class,AssessmentAttempt.class,AssessmentGate.class,AssessmentGrantRevocationDocument.class,AssessmentDraft.class,AssessmentAudioAsset.class)) {
                 if(!mongo.collectionExists(type)) mongo.createCollection(type);
                 resolver.resolveIndexFor(type).forEach(index->mongo.indexOps(type).ensureIndex(index));
             }

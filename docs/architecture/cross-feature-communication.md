@@ -56,7 +56,7 @@ A new dependency needs an explicit reason and approval. Keep this table in sync 
 
 | Feature | May depend on, through contract |
 |---|---|
-| `assessment` | `subscription.contract` (effective entitlements), `quota.contract` (atomic consumption) |
+| `assessment` | `subscription.contract` (effective entitlements and verified Premium refund facts), `quota.contract` (atomic consumption), `placement.contract.PlacementBaselineLookup` (owned baseline), `media.contract.MediaManagement` (protected audio), `user.contract.UserAssessmentProgress` (periodic progress), `user.contract.UserLevelPromotion` (monotonic learning level) |
 | `learningpath` | `assessment.contract.AssessmentResults` for owner-scoped READY results and batch source validation; no direct Assessment collection access; `user.contract.UserLevelLookup` for current practice level (user-approved learning-path level fix); `media.contract.MediaManagement` for protected passage audio upload, authorized preview/readiness, creation-time media validation and owner-authorized learner snapshot audio delivery/renewal (owner-approved admin and learner Media flows) |
 | `dictionary` | None |
 | `topic` | `dictionary`, `user.contract`, `media.contract.MediaManagement` for Topic-owned protected content media |

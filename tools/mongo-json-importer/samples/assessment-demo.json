@@ -1029,7 +1029,17 @@
     "user_profiles": [
       {
         "_id": "pfc-demo-learner-v2",
-        "cefr_level": "A2"
+        "cefr_level": "A2",
+        "assessment_progress": {
+          "initial_level": "A2",
+          "current_level": "B1",
+          "highest_level": "B1",
+          "latest_valid_at": {
+            "$date": "2026-10-03T00:00:00.000Z"
+          },
+          "latest_valid_attempt_id": "demo-history-64",
+          "development_data": true
+        }
       }
     ],
     "subscription_accounts": [
@@ -5374,20 +5384,6 @@
         "audio_failures": {},
         "analysis_grants": [],
         "skill_results": []
-      }
-    ],
-    "assessment_profiles": [
-      {
-        "_id": "pfc-demo-v2-assessment_profiles",
-        "user_id": "pfc-demo-learner-v2",
-        "initial_level": "A2",
-        "current_level": "B1",
-        "highest_level": "B1",
-        "latest_valid_at": {
-          "$date": "2026-10-03T00:00:00.000Z"
-        },
-        "latest_valid_attempt_id": "demo-history-64",
-        "development_data": true
       }
     ]
   }

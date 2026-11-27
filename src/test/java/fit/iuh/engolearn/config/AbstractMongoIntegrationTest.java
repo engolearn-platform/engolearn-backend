@@ -1,5 +1,6 @@
 package fit.iuh.engolearn.config;
 
+import com.github.dockerjava.api.model.Ulimit;
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -25,7 +26,9 @@ public abstract class AbstractMongoIntegrationTest {
     // prerequisite for real @Transactional behaviour.
     private static final MongoDBContainer MONGO = new MongoDBContainer(
             DockerImageName.parse("mongo:8.0.29-noble"))
-            .withReplicaSet();
+            .withReplicaSet()
+            .withCreateContainerCmdModifier(cmd -> cmd.getHostConfig()
+                    .withUlimits(new Ulimit[]{new Ulimit("nofile", 64000L, 64000L)}));
 
     static {
         if (DockerClientFactory.instance().isDockerAvailable()) {

@@ -15,10 +15,9 @@ public interface AssessmentRepository {
     List<AssessmentAttempt> history(String user,int page,int size,boolean includeDemonstration);
     List<AssessmentAttempt> valid(String user);
     List<AssessmentPaper> published();
+    boolean isPublished(String paperId);
     List<AssessmentAttempt> due(Instant now);
     AssessmentAttempt save(AssessmentAttempt a);
-    AssessmentProfile profile(String user);
-    void saveProfile(AssessmentProfile profile);
     boolean revoked(String user,String source);
     void revoke(String user,String source);
     DevelopmentBaseline devBaseline(String user);

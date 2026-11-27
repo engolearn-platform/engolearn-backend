@@ -161,7 +161,7 @@ manifest. The broader development catalog remains a separate explicit import des
 
 | File in samples/ | Collections / documents |
 | --- | --- |
-| `assessment-demo.json` | 9 / 12: demo account/profile and Subscription account, baseline/gate, version-2 paper, four historical attempts and Assessment profile |
+| `assessment-demo.json` | 8 / 11: demo account/profile with periodic progress, Subscription account, baseline/gate, version-2 paper and four historical attempts |
 | `learning-path-demo.json` | 5 / 1160: 6 paths, 390 referenced question snapshots, 660 pool questions, 70 passages and 34 Media assets |
 
 The Assessment file replaces `assessment-paper-v2.json`; keeping the old file alongside it

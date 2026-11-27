@@ -9,13 +9,13 @@ before beans or startup runners execute. Do not store `spring.profiles.active` i
 
 | Layer | Owns |
 | --- | --- |
-| application.yaml | Shared application configuration, local Mongo connection defaults, enabled transactions, Placement Mongo/level-sync wiring, common auth and integration properties |
+| application.yaml | Shared application configuration, shared MongoDB URI and default application database, enabled transactions, Placement Mongo/level-sync wiring, common auth and integration properties |
 | application-dev.yaml | Development resources, HTTP cookie defaults, optional test helpers, bundled media paths and VNPay sandbox defaults |
-| application-prod.yaml | Managed MongoDB connection URI, application database, Render-aware HTTP port, CORS and a production-appropriate server-selection timeout |
+| application-prod.yaml | Required application database, Render-aware HTTP port, CORS and a production-appropriate server-selection timeout |
 
 Both environments require a replica-set-capable MongoDB deployment because business flows use
 transactions. `dev` uses the team local single-node replica set; `prod` uses a managed replica
-set such as MongoDB Atlas. The production URI owns the connection topology and credentials.
+set such as MongoDB Atlas. The URI owns connection topology and credentials for both profiles.
 Use separate databases, credentials and provider resources; never share development data with
 production. Both use real cookie/JWT authentication. Profile selection must not choose a subset
 of business modules or weaken their rules.
@@ -27,7 +27,7 @@ java -jar target/engolearn-0.0.1-SNAPSHOT.jar --spring.profiles.active=prod
 ```
 
 The entry-point initializer enforces profile selection, Placement Mongo mode and enabled
-transactions; prod additionally requires deployment inputs and secure cookies. Focused
+transactions, and a MongoDB URI; prod additionally requires deployment inputs and secure cookies. Focused
 unit/slice tests may construct small contexts and explicit sample adapters; they do not
 certify application runtime readiness. CI defaults to prod with disposable infrastructure
 and test-only inputs, not production resources. Tests that explicitly select profiles or
@@ -43,11 +43,11 @@ Production may supply process environment or a deployment secret store. Existing
 
 | Environment input | Meaning / policy |
 | --- | --- |
-| MONGO_HOST, MONGO_PORT, MONGO_REPLICA_SET | Local `dev` Mongo address and replica set; defaults are localhost:27017 and engolearn-rs. Not used by `prod` when a URI is configured |
-| MONGODB_URI | Required in `prod`; complete managed MongoDB connection string, normally the `mongodb+srv://` URI copied from Atlas. Keep it in the deployment secret store, never in Git |
+| MONGO_PORT | Published host port for local Compose. The backend takes connection settings from MONGODB_URI |
+| MONGODB_URI | Required in both profiles. Use the local replica-set URI in `dev` and the managed URI in `prod` (typically `mongodb+srv://` for Atlas). Keep real values in your ignored local environment or deployment secret store |
 | PORT | HTTP listener port; Render Web Services supply `10000` by default. `prod` falls back to `8080` outside Render |
 | APP_DB | Application database name in both profiles; `spring.mongodb.database` overrides any database name embedded in the URI |
-| APP_USER, APP_PASSWORD | Local `dev` application database credentials; Atlas credentials are supplied inside `MONGODB_URI` |
+| APP_USER, APP_PASSWORD | Local Compose application user initialization. The running backend gets its credentials from MONGODB_URI |
 | MONGO_USER, MONGO_PASS | Compose/tool root credentials, not the application identity |
 | AUTH_JWT_SECRET, AUTH_JWT_ISSUER | Real JWT configuration; existing signing-key validation applies |
 | AUTH_COOKIE_SECURE | Dev HTTP/HTTPS override; prod requires secure cookies regardless of this alias |
@@ -99,10 +99,10 @@ Features persist mediaId, then authorize and resolve delivery through MediaManag
 Do not persist expiring delivery URLs. See the [Media integration guide](../technical/media/integration-guide.md).
 
 Production no longer accepts media-directory inputs as a deployment requirement.
-The legacy Placement filesystem route is not registered in prod. The existing
-Assessment filesystem reader refuses prod access with 503 MEDIA_UNAVAILABLE until
-its owner integrates storage. This is an explicit incomplete integration, not a
-replacement implementation or a claim of working production playback.
+The legacy Placement filesystem route is not registered in prod. Assessment
+disables local reads in prod and resolves stored Media references, including
+registered legacy WAV digests. Missing mappings or storage failures still
+return 503 MEDIA_UNAVAILABLE. Verify playback on the configured demo account.
 
 Each module owner MUST complete this checklist before marking the module VERIFIED:
 
@@ -129,7 +129,7 @@ Do not restore module-named runtime profiles.
 | Placement | Mongo/transaction/level-sync defaults configured. MEDIA NOT PROD-INTEGRATED: migrate local audio to Media storage and persist references in Mongo; verify current and historical playback without repository files |
 | Subscription / Payment / Quota | Shared Mongo and transactions; import development catalog only to a disposable local database; verify Admin updates, provider and durable delivery independently |
 | Speaking | Speaking V2 profile, session and control persistence are shared by `dev` and `prod`. Provider orchestration and real-provider verification follow the Speaking V2 phase gates |
-| Assessment | NOT FULLY PROD-INTEGRATED: real baseline integration and storage-backed audio are required. Filesystem playback is refused in prod; verify preparation/attempt/review after integrating Media |
+| Assessment | Owned Placement baseline and Media delivery are wired. Register historical files and sound check, then verify preparation, attempt and review on the production-profile demo environment |
 | Auth / Media / others | Verify real identity/authorization and storage integration in both profiles; no production dependency on repository samples or local media directories |
 
 The [Speaking module contract](../technical/speaking-ai/module-contract.md#runtime-configuration)

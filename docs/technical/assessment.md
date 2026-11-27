@@ -52,18 +52,35 @@ Controllers return typed `ApiResponse` DTOs; failures use `ProblemDetail`. No Ma
 module/dependency has been added. Root documents extend `BaseDocument`; embedded values
 implement `EmbeddedDocument`; owned persisted fields have explicit snake_case mappings.
 
-Collections: `assessment_papers`, `assessment_attempts`, `assessment_profiles`,
-`assessment_gates`, `assessment_grant_revocations`. The attempt embeds a copied
+Collections: `assessment_papers`, `assessment_attempts`,
+`assessment_gates`, `assessment_grant_revocations`, `assessment_paper_drafts`,
+and `assessment_audio_assets`. The attempt embeds a copied
 `AssessmentPaperSnapshotVo`, not an indexed paper root. History paginates/project rows
 without loading question snapshots. Indexes belong to models and feature configuration.
 The per-user gate serializes actions in real Mongo replica-set transactions. Consumption
-joins the start transaction; failed profile/attempt writes roll back consumption. Retries
+joins the start transaction; failed profile/attempt writes roll back consumption.
+The selected paper and audio are validated outside that transaction. The final start
+rechecks eligibility and publication while holding the same series gate as publish
+and archive. The timer starts after those checks. A withdrawn version returns
+`PAPER_CHANGED` before creating an attempt or consuming quota. Retries
 are bounded. Request/command IDs and answer sequences protect replays and stale writes.
 
-Assessment calls Subscription/Quota only through their public contracts and does not read
-their collections. It does not write User or Learning Path state. The result-provider contract is described below. A real Placement integration must supply
-`AssessmentBaselineSource`; absent baseline blocks starting. The dev baseline adapter is
-active only in `dev & !prod`. Demonstration papers/attempts are excluded outside development.
+Assessment gets an owned, completed baseline through `PlacementBaselineLookup`.
+When there is no valid baseline or prior result, an eligible new attempt is blocked.
+The test-only baseline adapter can fill a missing Placement baseline in `dev & !prod`.
+Demonstration papers and attempts are excluded elsewhere. The User contract stores
+the Placement starting level, latest periodic level, highest periodic level and last
+valid attempt in `user_profiles.assessment_progress`. The latest periodic level can
+decrease. For an official paper, `UserLevelPromotion` advances the shared learning
+unlock level `user_profiles.cefr_level` monotonically in the same result transaction.
+Existing rows in `assessment_profiles` are read only when embedded progress is absent.
+The next valid submission migrates their progress to the existing User profile without
+replacing its display name or unlock level. Keep the legacy data during rollout and let
+User repair missing profiles before retrying a write.
+The Learning Path contract exposes native results without writing plans. Official submission
+returns a retryable `ASSESSMENT_LEVEL_SYNC_UNAVAILABLE` if User cannot promote its profile.
+The result transaction rolls back. A normal registered user has a User profile; repair
+missing profiles in imported accounts through the owning User flow before retrying.
 
 ## Learning Path result contract
 
@@ -100,7 +117,7 @@ missing/unknown fields, fractional integers, invalid UUIDs and payloads above 4 
 | GET /attempts/{id} | Current state; requires binding |
 | PUT /attempts/{id}/answer | question 1..50, sequence 0..JS-safe integer, choice null/0..3, UUID commandId |
 | POST /attempts/{id}/next | Same body; version 2 only permits the open Listening single |
-| POST /attempts/{id}/finish-stage | unitIndex 10..13 and phase READING_PREVIEW or ANSWER, UUID commandId; actual snapshot/unit/phase must match |
+| POST /attempts/{id}/finish-stage | unitIndex 10..13 and phase READING_PREVIEW, LISTENING_WAIT or ANSWER, UUID commandId; actual snapshot/unit/phase must match |
 | POST /attempts/{id}/submit | confirmed=true, binding; grade at most once |
 | POST /attempts/{id}/abandon | confirmed=true, owner; also clears an old active conflict |
 | POST /attempts/{id}/audio | unitIndex 0..25, UUID issueId, binding; one issuance/unit, identical retry allowed |
@@ -109,7 +126,7 @@ missing/unknown fields, fractional integers, invalid UUIDs and payloads above 4 
 | GET /attempts/{id}/review | READY only; original selections/key/explanations/transcripts |
 | GET /attempts/{id}/review/audio/{index} | READY owner only; replay allowed |
 
-Version-2 finish-stage accepts only Listening passage indices 10/11 in ANSWER. Legacy
+Version-2 finish-stage accepts only Listening passage indices 10/11 in LISTENING_WAIT or ANSWER. Legacy
 preview indices 10..13 remain valid only for legacy snapshots. Replaying an earlier command
 cannot extend a deadline or end the next group. Version-2 taking state adds `rulesVersion`,
 `audioStartsAt`, and `questions` (one single, five group questions or all thirty Reading
@@ -128,31 +145,38 @@ running until expiry. There is no pause, resume or clock-bypass endpoint.
 
 ## Media, analysis access and release boundaries
 
-Local filesystem audio is a development fixture adapter. In `dev`,
-`engolearn.assessment.media-directory` defaults to the bundled Assessment sample directory.
-Production has no media-directory input and refuses local-file reads with 503
-`MEDIA_UNAVAILABLE` until Assessment integrates the shared Media storage contract and
-persists durable references in Mongo. This integration is required before production
-Listening can be marked ready; see the [module checklist](../architecture/runtime-configuration.md#required-production-data-and-media-integration).
-For the local development adapter, immutable PCM WAV
-files are SHA-256 checked and at most 4 MB. Version-2 single audio is at most 28s; legacy
-single audio at most 50s; passage audio at most 120s. Twelve distinct official paths plus
-`sound-check.wav` are required. Validate all resources before consumption. Normal official
-playback has no replay/seek/rate controls; review may replay. Audio-failure observations do
-not extend deadlines, issue attempts or refund quota. Browser playback cannot provide DRM.
+In `dev`, the development fixture reads PCM WAV from `ASSESSMENT_MEDIA_DIRECTORY`,
+defaulting to the bundled sample folder. Uploaded draft files use Media in both profiles.
+In `prod`, playback resolves protected URLs through `MediaManagement` after binding,
+phase or review authorization. For a taking request the server resolves delivery outside
+the transaction and rechecks the unit, deadline and issue ID before accepting issuance.
+The same issue ID may retry issuance while the unit is
+open. New papers and snapshots store `audio_media_id` where available. A migrated legacy
+snapshot resolves its original SHA-256 through `assessment_audio_assets`, preserving its
+content and timestamps. Setup of the separate sound-check reference is explicit.
+Missing media reports a service failure. Tests and scripts are described in the
+[production handoff](../../tools/assessment/README.md).
 
-Premium assessment count is provider-configured. The isolated demo uses Free 1, Trial 2,
-Premium 2 and consistent displayed benefits; this is not a global hardcoded entitlement.
+The Assessment limits are 4,000,000 bytes per WAV, 28 seconds for a new single, 50 seconds
+for a legacy single or sound check, and 120 seconds for a group. Check the original
+audio and transcript before release. Producer preflight validates content before quota
+consumption. Taking keeps its existing lack of replay, seek and rate controls. Review
+allows seeking and replay, with fresh authorization on a delivery retry. Audio failures
+do not extend deadlines, issue attempts or refund quota. Signed URLs remain usable on
+the provider until their short expiry, regardless of the browser controls.
+
+Premium assessment count is provider-configured. The current subscription-development-sample uses Free 1, Trial 2,
+Premium 5 and consistent displayed benefits; this is not a global hardcoded entitlement.
 Already issued Subscription snapshots are preserved. Full-analysis grants survive ordinary
 expiry. A verified refund must call `AssessmentGrantRevocation` with the exact correlated
-source (`scope:snapshotId:effectiveAt`), preserving other grants and scores. Current main
-includes Payment/Subscription durable messaging, but an Assessment refund consumer has not
-been added in this change. Entitlement expiry must not be treated as a refund.
+source (`scope:snapshotId:effectiveAt`), preserving other grants and scores. The
+Subscription outbox publishes only after accepting the correlated full refund. Assessment
+consumes the fact idempotently; ordinary entitlement expiry emits no revocation.
+Historical refunds already processed before this change need a separately reviewed backfill.
 
-Before public release: integrate real Placement/baseline and exact refund delivery,
-professionally review questions/audio, configure HTTPS/secure cookies and private secrets,
-validate Mongo transaction permissions and backup/restore, retain historical assets, and run
-full CI plus real-browser acceptance on staging. Per-second state polling currently writes
+Before public release, review questions and WAVs, configure HTTPS and private secrets,
+validate Mongo transaction permissions and backup/restore, register historical audio, and
+run full CI plus browser acceptance on staging. Per-second state polling currently writes
 serialized state; measure concurrency before making capacity/availability claims.
 
 ## Running and verification
@@ -197,7 +221,14 @@ and its [WAV files](../../tools/mongo-json-importer/samples/assessment-media). T
    and preparation reports `paperAvailable: true` and `baselineValid: true`.
    Then use the sound check, start and submit a test attempt, and verify the new entry in History.
 
-The paper import does not create a login or supply Placement results. For a newly registered
+For the signed-in Placement-to-Assessment journey on a clean development machine,
+use [the isolated local demo](../../tools/assessment/README.md#chạy-placement--đánh-giá-định-kỳ-trên-máy-thử).
+It seeds a published Placement form and a separate published version-2 periodic paper.
+`baselineValid` means the account already qualifies by result. `paperAvailable`
+means the current environment has a published periodic paper eligible for selection.
+A valid Placement result alone cannot make a periodic paper available.
+
+The paper-only import does not create a login or supply Placement results. For a newly registered
 test account in an isolated development database, register it normally after importing the
 development catalog; normal registration creates its Subscription account. Do not use the
 retired account-only manifest. For a test-only baseline, import a separate local JSON file with
@@ -222,3 +253,37 @@ account and four historical attempts. For the shared Learning Path dataset, Subs
 account initialization and current demo limits, follow the
 [importer guide](../../tools/mongo-json-importer/README.md#shared-assessment--learning-path-demo).
 Learning Path Listening audio placeholders do not affect the 13 supplied Assessment WAV files.
+
+## F03 — quản trị và xuất bản đề
+
+`CONTENT_MANAGER` và `ADMIN` có quyền dùng `/api/v1/assessment/admin/drafts`. GET trả danh sách tóm tắt theo trang (tham số `page` từ 0, 25 mục). POST nhận `series` và `name`. Nếu series đã có đề, sao chép phiên bản lớn nhất sang nháp kế tiếp. Nếu chưa có, tạo bản 1 rỗng. GET và PUT tại `/{series}` mở và lưu nội dung. PUT nhận tên, kỹ năng, phần/câu và revision lấy từ lần đọc gần nhất. Cho phép lưu thiếu nội dung và đáp án. Giao diện dùng null cho đáp án chưa chọn và 0–3 cho A–D.
+
+Nháp ở collection `assessment_paper_drafts`, khóa duy nhất theo series. Tạo trùng trả 409 DRAFT_EXISTS. Ghi theo khóa và revision trong một cập nhật MongoDB. Ghi cũ trả 409 STALE_DRAFT. Máy chủ giữ audio được sao từ đề nguồn theo vị trí hoặc gắn WAV mới bằng SHA-256
+đã đăng ký. Các thao tác quản trị đều qua kiểm quyền ở service.
+
+- POST `/{series}/preview` với revision để kiểm ma trận và xem nội dung. GET
+  `/{series}/preview/audio/{unit}?revision=...` cấp audio xem thử. Preview thành công ghi người xem đúng revision. Không tạo lượt hay trừ quota.
+- GET `/skill-catalog` cấp mã, tên và phần thi từ contract Assessment. Phiên bản 2 chỉ
+  nhận mapping đã thống nhất với Learning Path; phạm vi hiện có là R01, R02, R04, L01, L03.
+- POST `/{series}/review` xác nhận chính người đó đã mở preview cho revision hiện tại.
+  PUT lưu mới xóa dấu đã xem và xác nhận cũ.
+- POST `/{series}/publish` yêu cầu revision đã duyệt. Việc tạo bản xuất bản,
+  ngừng cấp phiên bản trước và bỏ nháp nằm trong một giao dịch MongoDB. Media được
+  chuẩn bị trước giao dịch và revision được kiểm lại trong giao dịch.
+  Gửi lại revision đã xuất bản trả về đúng phiên bản đó.
+- DELETE `/{series}?revision=...` chỉ xóa nháp khớp revision. GET
+  `/api/v1/assessment/admin/papers` liệt kê phiên bản. POST
+  `/api/v1/assessment/admin/papers/{series}/{version}/archive` ngừng cấp đúng phiên bản đó.
+  Đề đã phát hành, lịch sử và WAV còn dùng được giữ nguyên. Media phase 1 chưa có xóa file
+  công khai, nên việc dọn asset không còn tham chiếu phải qua quy trình vận hành riêng.
+
+## Version 2 listening navigation
+
+During the two-second preparation, Next on an unanswered single sends the current question
+with a null choice. The server locks that single and opens the next unit. Choices become
+editable when preparation ends. Inside a five-question group Next moves focus locally,
+retaining the same audio, editable scope and deadline. Confirming the end of the current
+group may close it during preparation. A confirmation crossing the audio-start boundary
+remains valid for the same unit. Old-unit and duplicate commands cannot close a later group.
+
+Admin draft creation may supply expectedSourceId. If supplied, the latest paper must match that ID under the series transaction or the server returns 409 DRAFT_SOURCE_CHANGED. The local import instructions are in tools/assessment/README.md.

@@ -4,6 +4,7 @@ import fit.iuh.engolearn.payment.contract.dto.FullRefundCommandDto;
 import fit.iuh.engolearn.payment.contract.event.*;
 import fit.iuh.engolearn.shared.messaging.MessageEnvelopeDto;
 import fit.iuh.engolearn.subscription.contract.exception.SubscriptionUnavailableException;
+import fit.iuh.engolearn.subscription.contract.event.PremiumPeriodRefundedEvent;
 import fit.iuh.engolearn.subscription.dto.response.RefundResponse;
 import fit.iuh.engolearn.subscription.exception.SubscriptionRequestException;
 import fit.iuh.engolearn.subscription.model.*;
@@ -122,6 +123,10 @@ public class SubscriptionRefundServiceImpl implements SubscriptionRefundService 
         purchase.setRefundId(refundId);purchase.setRefundStatus(target);
         if (success) {
             subscriptions.refundPeriod(period.getId());purchase.setStatus(PurchaseStatus.REFUNDED);
+            var event = new PremiumPeriodRefundedEvent(userId, period.getSnapshot().getPolicySnapshotId(),
+                    period.getPeriodStartAt());
+            messages.append(new MessageEnvelopeDto(UUID.randomUUID().toString(), "PREMIUM_PERIOD_REFUNDED",
+                    1, userId, "assessment.subscription", now(), mapper.writeValueAsString(event)));
         } else purchase.setStatus(PurchaseStatus.ACTIVE);
         purchases.save(purchase);
         if (success) entitlements.refreshOwned(userId,now());
