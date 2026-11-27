@@ -7,6 +7,7 @@ import fit.iuh.engolearn.assessment.exception.AssessmentException;
 import fit.iuh.engolearn.assessment.model.*;
 import fit.iuh.engolearn.assessment.repository.AssessmentRepository;
 import fit.iuh.engolearn.assessment.service.*;
+import fit.iuh.engolearn.placement.model.PlacementTestSet;
 import fit.iuh.engolearn.quota.contract.QuotaAvailability;
 import fit.iuh.engolearn.subscription.dto.request.PublicationManifestRequest;
 import fit.iuh.engolearn.subscription.service.SubscriptionPublicationService;
@@ -26,6 +27,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.*;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.*;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
@@ -186,6 +188,61 @@ class AssessmentMongoIntegrationTest {
         assertThat(service.preparation(USER).baselineValid()).isTrue();
         assertThat(service.start(USER, command()).status()).isEqualTo("ACTIVE");
         assertThat(service.preparation(USER).initialLevel()).isEqualTo("B2");
+    }
+
+    @Test
+    void submittedPlacementA1EnablesImmediateFirstPeriodicAttemptOnlyForItsOwner() throws Exception {
+        mongo.getCollection("assessment_dev_baselines").deleteOne(new Document("_id", USER));
+        PlacementTestSet placementSet;
+        try (var sample = new ClassPathResource("placement/sample-test-set.json").getInputStream()) {
+            placementSet = mapper.readValue(sample, PlacementTestSet.class);
+        }
+        mongo.save(placementSet);
+        var first = placementSet.getItems().getFirst();
+        String placementPath = "/api/v1/placement/attempts";
+        String assessmentPath = "/api/v1/assessment";
+        String startBody = mapper.writeValueAsString(command());
+
+        var started = mvc.perform(post(placementPath).cookie(userCookie))
+                .andExpect(status().isCreated()).andReturn().getResponse();
+        String placementId = mapper.readTree(started.getContentAsString()).path("data").path("attemptId").asString();
+        mvc.perform(get(assessmentPath + "/preparation").cookie(userCookie))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.data.baselineValid").value(false));
+        mvc.perform(post(assessmentPath + "/attempts").cookie(userCookie)
+                        .contentType("application/json").content(startBody))
+                .andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("BASELINE_REQUIRED"));
+
+        String answer = mapper.writeValueAsString(Map.of("questionId", first.getId(),
+                "selectedOptionId", first.getCorrectOptionId()));
+        mvc.perform(patch(placementPath + "/" + placementId + "/answers").cookie(userCookie)
+                        .contentType("application/json").content(answer))
+                .andExpect(status().isOk());
+        mvc.perform(post(placementPath + "/" + placementId + "/submit").cookie(userCookie))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.data.status").value("SUBMITTED"));
+        mvc.perform(get(placementPath + "/" + placementId + "/result").cookie(userCookie))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.score").value(1))
+                .andExpect(jsonPath("$.data.totalQuestions").value(20))
+                .andExpect(jsonPath("$.data.placementLevel").value("A1"));
+
+        mvc.perform(get(assessmentPath + "/preparation").cookie(otherCookie))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.data.baselineValid").value(false));
+        mvc.perform(post(assessmentPath + "/attempts").cookie(otherCookie)
+                        .contentType("application/json").content(startBody))
+                .andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("BASELINE_REQUIRED"));
+
+        mvc.perform(get(assessmentPath + "/preparation").cookie(userCookie))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.baselineValid").value(true))
+                .andExpect(jsonPath("$.data.cooldownSatisfied").value(true))
+                .andExpect(jsonPath("$.data.paperAvailable").value(true))
+                .andExpect(jsonPath("$.data.initialLevel").value("A1"));
+        assertThat(remaining()).isEqualTo(1);
+        mvc.perform(post(assessmentPath + "/attempts").cookie(userCookie)
+                        .contentType("application/json").content(startBody))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.data.status").value("ACTIVE"));
+        assertThat(remaining()).isZero();
+        assertThat(mongo.getCollection("quota_usage_ledger").countDocuments()).isEqualTo(1);
     }
 
     @Test
