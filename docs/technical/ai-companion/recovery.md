@@ -2,6 +2,16 @@
 
 MongoDB is the canonical memory store. Qdrant is a derived index. A vector incident can reduce retrieval quality, but it does not roll back a committed memory mutation or a Forget operation.
 
+## Local infrastructure
+
+Use the root docker-compose.yaml for MongoDB, mongo-express and Qdrant. The
+host backend uses http://localhost:6333; a container on engolearn-network
+uses http://qdrant:6333. Qdrant has a dedicated named volume; down -v also
+removes this index. Do not reset it independently of canonical data; use
+reconciliation when a live MongoDB database needs its index rebuilt.
+Verify readiness using GET http://localhost:6333/readyz. Qdrant does not
+gate MongoDB readiness or startup of unrelated business capabilities.
+
 ## Normal recovery behavior
 
 - A committed create/update marks the current Mongo record `PENDING` and signals the single sequential worker with its memory ID and version.
