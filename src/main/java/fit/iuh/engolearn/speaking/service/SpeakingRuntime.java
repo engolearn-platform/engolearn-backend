@@ -7,6 +7,7 @@ import fit.iuh.engolearn.speaking.model.enums.*;
 import fit.iuh.engolearn.speaking.model.vo.*;
 import fit.iuh.engolearn.speaking.utils.SpeakingConversation.Result;
 import java.time.Instant;
+import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 
@@ -41,4 +42,7 @@ public interface SpeakingRuntime {
     Turn commit(TurnWork work, Result result, long generationWaitMs);
     List<SpeakingTurnVo> conversationHistory(TurnWork work);
     void recover();
+    void enforceQuotaAfterSettlement(String sessionId);
+    boolean recoverDeletedObligations(String ownerId);
+    void recheckActiveQuotaAfterRecovery(Collection<String> owners);
 }

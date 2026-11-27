@@ -24,6 +24,7 @@ import fit.iuh.engolearn.speaking.utils.SpeakingConversation.Result;
 import fit.iuh.engolearn.topic.contract.TopicSpeakingAccess;
 import fit.iuh.engolearn.topic.contract.dto.SpeakingScopeDto;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.data.domain.PageRequest;
@@ -39,9 +40,11 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class SpeakingSessionServiceImpl implements SpeakingSessions, SpeakingRuntime {
     private static final String QUOTA_TYPE = "SPEAKING_DURATION";
     private static final int ATTEMPTS = 12;
@@ -59,6 +62,7 @@ public class SpeakingSessionServiceImpl implements SpeakingSessions, SpeakingRun
     private final SpeakingProviderProperties providerProperties;
     private final Clock clock;
     private final String instance = id();
+    private final AtomicBoolean initialQuotaRecoverySweep = new AtomicBoolean(true);
 
     @Override
     @PreAuthorize("hasRole('USER')")
@@ -153,6 +157,15 @@ public class SpeakingSessionServiceImpl implements SpeakingSessions, SpeakingRun
     public Session resume(String id, Resume request) {
         String owner = users.requireCurrentUserId();
         String requestId = request.clientRequestId().toString();
+        SpeakingSession current = owned(id, owner);
+        if (requestId.equals(current.getResumeRequestId())) {
+            requireControlled(current);
+            if (current.getControllerEpoch() != request.controllerEpoch() + 1) throw requestConflict();
+            return view(current);
+        }
+        requireControlled(current);
+        requireEpoch(current, request.controllerEpoch());
+        requireQuotaForInteraction(current);
         return view(change(id, session -> {
             requireOwner(session, owner);
             requireControlled(session);
@@ -174,6 +187,10 @@ public class SpeakingSessionServiceImpl implements SpeakingSessions, SpeakingRun
     public Ticket ticket(String id, long epoch) {
         String owner = users.requireCurrentUserId();
         String token = id() + id();
+        SpeakingSession current = owned(id, owner);
+        requireEpoch(current, epoch);
+        if (current.getStatus() == SpeakingSessionStatus.ENDED) throw ended();
+        if (current.getStatus() != SpeakingSessionStatus.CLOSING) requireQuotaForInteraction(current);
         change(id, session -> {
             requireOwner(session, owner);
             requireEpoch(session, epoch);
@@ -267,6 +284,41 @@ public class SpeakingSessionServiceImpl implements SpeakingSessions, SpeakingRun
         } while (!batch.isEmpty());
     }
 
+    private SpeakingSession preserveDeletedTurn(SpeakingSession deleted) {
+        var marker = deleted.getActiveTurn();
+        if (marker == null || marker.getSealedAt() == null) return deleted;
+        if (!marker.getStatus().terminal()) {
+            final String markerId = marker.getTurnId();
+            final long markerRevision = marker.getRevision();
+            deleted = changeDeleted(deleted.getId(), current -> {
+                var active = current.getActiveTurn();
+                if (active == null || !Objects.equals(active.getTurnId(), markerId)
+                        || active.getRevision() != markerRevision || active.getStatus().terminal()) return false;
+                finalizeTurn(current, active, SpeakingTurnStatus.FAILED, "SYSTEM_INTERRUPTED");
+                return true;
+            });
+            marker = deleted.getActiveTurn();
+        }
+        if (marker != null && marker.getStatus().terminal()) {
+            try {
+                archive.record(deleted.getId(), deleted.getOwnerId(), marker, now());
+            } catch (RuntimeException deferred) {
+                log.warn("Deleted Speaking turn remains pending for quota recovery: {}", marker.getTurnId());
+                return deleted;
+            }
+            final String storedId = marker.getTurnId();
+            final long storedRevision = marker.getRevision();
+            deleted = changeDeleted(deleted.getId(), current -> {
+                var active = current.getActiveTurn();
+                if (active == null || !Objects.equals(active.getTurnId(), storedId)
+                        || active.getRevision() != storedRevision || !active.getStatus().terminal()) return false;
+                current.setActiveTurn(null);
+                return true;
+            });
+        }
+        return deleted;
+    }
+
     private void deleteOwned(String id, String owner) {
         SpeakingSession deleted = change(id, current -> {
             requireOwner(current, owner);
@@ -277,10 +329,16 @@ public class SpeakingSessionServiceImpl implements SpeakingSessions, SpeakingRun
             current.setStatus(SpeakingSessionStatus.ENDED);
             current.setUnfinishedOwner(null);
             current.setReplacement(null);
-            current.setActiveTurn(null);
+            var active = current.getActiveTurn();
+            if (active == null || active.getSealedAt() == null) current.setActiveTurn(null);
             clearConnection(current);
             return true;
         });
+        try {
+            deleted = preserveDeletedTurn(deleted);
+        } catch (RuntimeException deferred) {
+            log.warn("Deleted Speaking turn remains pending for quota recovery: {}", id);
+        }
         finishSlot(deleted);
     }
 
@@ -328,6 +386,11 @@ public class SpeakingSessionServiceImpl implements SpeakingSessions, SpeakingRun
                 if (current.getStatus() == SpeakingSessionStatus.ENDED || current.getTicketHash() == null
                         || !current.getTicketExpiresAt().isAfter(now()) || !secureEquals(current.getTicketHash(), hash(ticket))
                         || current.getLeaseId() != null) throw invalidTicket();
+                if ((current.getStatus() == SpeakingSessionStatus.INITIALIZING
+                        || current.getStatus() == SpeakingSessionStatus.ACTIVE) && !hasQuota(current.getOwnerId())) {
+                    beginClosing(current, SpeakingEndReason.DAILY_QUOTA_REACHED);
+                    return true;
+                }
                 current.setTicketHash(null);
                 current.setTicketExpiresAt(null);
                 current.setLeaseId(id());
@@ -337,6 +400,12 @@ public class SpeakingSessionServiceImpl implements SpeakingSessions, SpeakingRun
         } catch (SpeakingException error) {
             if ("SESSION_NOT_FOUND".equals(error.code())) throw invalidTicket();
             throw error;
+        }
+        if (session.getLeaseId() == null && session.getStatus() == SpeakingSessionStatus.CLOSING
+                && session.getEndReason() == SpeakingEndReason.DAILY_QUOTA_REACHED) {
+            SpeakingSession latest = advance(sessionId);
+            if (latest.getStatus() == SpeakingSessionStatus.ENDED) finishSlot(latest);
+            throw quotaReached();
         }
         return new Lease(sessionId, session.getOwnerId(), session.getControllerEpoch(), session.getLeaseId());
     }
@@ -649,7 +718,62 @@ public class SpeakingSessionServiceImpl implements SpeakingSessions, SpeakingRun
     }
 
     @Override
+    public boolean recoverDeletedObligations(String ownerId) {
+        for (var deleted : sessions.findTop100ByOwnerIdAndDeletedAtIsNotNullAndActiveTurnSealedAtIsNotNull(ownerId)) {
+            try {
+                preserveDeletedTurn(deleted);
+            } catch (RuntimeException deferred) {
+                log.warn("Deleted Speaking turn remains pending for quota recovery: {}", deleted.getId());
+            }
+        }
+        return !sessions.existsByOwnerIdAndDeletedAtIsNotNullAndActiveTurnSealedAtIsNotNull(ownerId);
+    }
+
+    @Override
+    public void recheckActiveQuotaAfterRecovery(Collection<String> settledOwners) {
+        var owners = new LinkedHashSet<>(settledOwners);
+        if (initialQuotaRecoverySweep.compareAndSet(true, false)) {
+            sessions.findByStatusInAndDeletedAtIsNull(EnumSet.of(
+                    SpeakingSessionStatus.INITIALIZING, SpeakingSessionStatus.ACTIVE))
+                    .forEach(session -> owners.add(session.getOwnerId()));
+        }
+        for (String owner : owners) {
+            sessions.findByUnfinishedOwner(owner).ifPresent(session -> {
+                try {
+                    enforceQuotaAfterSettlement(session.getId());
+                } catch (RuntimeException unavailable) {
+                    log.warn("Speaking quota recovery check deferred for session {}", session.getId());
+                }
+            });
+        }
+    }
+
+    @Override
+    public void enforceQuotaAfterSettlement(String sessionId) {
+        SpeakingSession observed = runtimeSession(sessionId);
+        if (observed.getStatus() != SpeakingSessionStatus.INITIALIZING
+                && observed.getStatus() != SpeakingSessionStatus.ACTIVE) return;
+        if (hasQuota(observed.getOwnerId())) return;
+        SpeakingSession latest = change(sessionId, current -> {
+            if ((current.getStatus() != SpeakingSessionStatus.INITIALIZING
+                    && current.getStatus() != SpeakingSessionStatus.ACTIVE)
+                    || !Objects.equals(current.getOwnerId(), observed.getOwnerId())) return false;
+            beginClosing(current, SpeakingEndReason.DAILY_QUOTA_REACHED);
+            return true;
+        }, true);
+        if (latest.getStatus() == SpeakingSessionStatus.CLOSING) latest = advance(sessionId);
+        if (latest.getStatus() == SpeakingSessionStatus.ENDED) finishSlot(latest);
+    }
+
+    @Override
     public void recover() {
+        for (var deleted : sessions.findTop100ByDeletedAtIsNotNullAndActiveTurnSealedAtIsNotNull()) {
+            try {
+                preserveDeletedTurn(deleted);
+            } catch (RuntimeException deferred) {
+                log.warn("Deleted Speaking turn remains pending for quota recovery: {}", deleted.getId());
+            }
+        }
         for (SpeakingSession session : sessions.findByStatusInAndDeletedAtIsNull(EnumSet.of(
                 SpeakingSessionStatus.INITIALIZING, SpeakingSessionStatus.ACTIVE, SpeakingSessionStatus.CLOSING))) {
             if (session.getActiveTurn() != null && session.getActiveTurn().getStatus() == SpeakingTurnStatus.RECEIVING
@@ -704,7 +828,7 @@ public class SpeakingSessionServiceImpl implements SpeakingSessions, SpeakingRun
     private SpeakingSession flushTerminal(SpeakingSession session) {
         var marker = session.getActiveTurn();
         if (marker == null || !marker.getStatus().terminal() || session.getDeletedAt() != null) return session;
-        archive.record(session.getId(), marker, now());
+        archive.record(session.getId(), session.getOwnerId(), marker, now());
         return change(session.getId(), current -> {
             var latest = current.getActiveTurn();
             if (latest == null || !latest.getTurnId().equals(marker.getTurnId()) || latest.getRevision() != marker.getRevision()
@@ -759,8 +883,32 @@ public class SpeakingSessionServiceImpl implements SpeakingSessions, SpeakingRun
         try {
             return quota.checkAvailability(owner, QUOTA_TYPE).remaining() > 0;
         } catch (QuotaUnavailableException unavailable) {
-            throw failure(HttpStatus.SERVICE_UNAVAILABLE, "QUOTA_UNAVAILABLE", "Speaking quota is temporarily unavailable", true);
+            String code = unavailable.missingConfiguration() ? "QUOTA_NOT_CONFIGURED" : "QUOTA_UNAVAILABLE";
+            String detail = unavailable.missingConfiguration()
+                    ? "Speaking quota is not configured" : "Speaking quota is temporarily unavailable";
+            throw failure(HttpStatus.SERVICE_UNAVAILABLE, code, detail, true);
         }
+    }
+
+    private void requireQuotaForInteraction(SpeakingSession session) {
+        if (hasQuota(session.getOwnerId())) return;
+        SpeakingSession closing = change(session.getId(), current -> {
+            requireOwner(current, session.getOwnerId());
+            if (current.getStatus() == SpeakingSessionStatus.INITIALIZING
+                    || current.getStatus() == SpeakingSessionStatus.ACTIVE) {
+                requireEpoch(current, session.getControllerEpoch());
+                beginClosing(current, SpeakingEndReason.DAILY_QUOTA_REACHED);
+                return true;
+            }
+            return false;
+        });
+        if (closing.getStatus() == SpeakingSessionStatus.ENDED
+                && closing.getEndReason() != SpeakingEndReason.DAILY_QUOTA_REACHED) throw ended();
+        if (closing.getStatus() == SpeakingSessionStatus.CLOSING
+                && closing.getEndReason() != SpeakingEndReason.DAILY_QUOTA_REACHED) throw closing();
+        SpeakingSession latest = advance(session.getId());
+        if (latest.getStatus() == SpeakingSessionStatus.ENDED) finishSlot(latest);
+        throw quotaReached();
     }
 
     private SpeakingStartVo newStart(String owner, SpeakingScopeDto scope, String requestId, String source, Long epoch) {
@@ -851,6 +999,17 @@ public class SpeakingSessionServiceImpl implements SpeakingSessions, SpeakingRun
     }
 
     private interface Mutation { boolean apply(SpeakingSession session); }
+
+    private SpeakingSession changeDeleted(String id, Mutation mutation) {
+        for (int attempt = 0; attempt < ATTEMPTS; attempt++) {
+            SpeakingSession current = sessions.findById(id).orElseThrow(SpeakingSessionServiceImpl::missing);
+            if (current.getDeletedAt() == null) throw missing();
+            if (!mutation.apply(current)) return current;
+            SpeakingSession saved = trySave(current);
+            if (saved != null) return saved;
+        }
+        throw busy();
+    }
 
     private SpeakingSession change(String id, Mutation mutation) {
         return change(id, mutation, false);

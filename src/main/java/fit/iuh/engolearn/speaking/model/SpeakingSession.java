@@ -21,6 +21,7 @@ import java.time.Instant;
 @CompoundIndex(name = "speaking_v2_status", def = "{'status':1,'created_at':1}")
 @CompoundIndex(name = "speaking_v2_assessment_work", def = "{'assessment_status':1,'deleted_at':1,'_id':1}")
 @CompoundIndex(name = "speaking_v2_scope", def = "{'owner_id':1,'snapshot.scope_type':1,'snapshot.topic_id':1,'snapshot.topic_item_id':1,'created_at':-1,'_id':-1}")
+@CompoundIndex(name = "speaking_v2_deleted_sealed_turn", def = "{'owner_id':1,'deleted_at':1,'active_turn.sealed_at':1}")
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @SuperBuilder
 public class SpeakingSession extends BaseDocument {
     @Version @Field("revision") private Long revision;

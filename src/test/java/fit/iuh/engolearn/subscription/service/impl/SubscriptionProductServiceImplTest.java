@@ -11,6 +11,8 @@ import fit.iuh.engolearn.subscription.model.SubscriptionProductVersion;
 import fit.iuh.engolearn.subscription.model.enums.ProductSaleStatus;
 import fit.iuh.engolearn.subscription.model.enums.ProductVisibility;
 import fit.iuh.engolearn.subscription.model.vo.ProductContentVo;
+import fit.iuh.engolearn.subscription.model.vo.QuotaRuleVo;
+import fit.iuh.engolearn.subscription.model.enums.QuotaPeriod;
 import fit.iuh.engolearn.subscription.repository.SubscriptionProductRepository;
 import fit.iuh.engolearn.subscription.repository.SubscriptionRepository;
 import fit.iuh.engolearn.subscription.service.SubscriptionTransactions;
@@ -130,6 +132,33 @@ class SubscriptionProductServiceImplTest {
         assertThat(replay.publishedVersion().version()).isEqualTo(1L);
         assertThat(replay.publishedVersion().content().displayName()).isEqualTo("Plan one");
         assertThat(versions).hasSize(2);
+    }
+
+    @Test
+    void publicPlanProjectsOnlyThePublishedDailySecondSpeakingRule() {
+        SubscriptionProductRepository products = mock(SubscriptionProductRepository.class);
+        SubscriptionRepository subscriptions = mock(SubscriptionRepository.class);
+        SubscriptionTransactions transactions = mock(SubscriptionTransactions.class);
+        when(transactions.execute(any())).thenAnswer(invocation -> ((Supplier<?>) invocation.getArgument(0)).get());
+        var product = SubscriptionProduct.builder().planCode(CODE).visibility(ProductVisibility.VISIBLE)
+                .saleStatus(ProductSaleStatus.ON_SALE).currentVersion(3L).archived(false).build();
+        var content = ProductContentVo.builder().displayName("Speaking Plus").description("").displayOrder(1)
+                .benefits(List.of()).billingOptions(List.of()).quotaRules(List.of(
+                        QuotaRuleVo.builder().quotaType("SPEAKING_DURATION").unit("SECOND")
+                                .period(QuotaPeriod.DAILY).limit(7200).build(),
+                        QuotaRuleVo.builder().quotaType("OTHER").unit("SECOND")
+                                .period(QuotaPeriod.DAILY).limit(9).build())).build();
+        when(products.findProduct(CODE)).thenReturn(product);
+        when(products.findVersion(CODE, 3L)).thenReturn(SubscriptionProductVersion.builder()
+                .planCode(CODE).version(3L).content(content).build());
+        var service = new SubscriptionProductServiceImpl(products, subscriptions, transactions,
+                Clock.fixed(Instant.parse("2026-11-24T01:00:00Z"), ZoneOffset.UTC), new ObjectMapper());
+
+        var card = service.publicPlan(CODE);
+
+        assertThat(card.speakingDurationDailyLimitSeconds()).isEqualTo(7200L);
+        assertThat(new fit.iuh.engolearn.subscription.dto.response.PlanCardResponse(CODE, "Plan", "", List.of(),
+                List.of(), 1L, "ON_SALE").speakingDurationDailyLimitSeconds()).isNull();
     }
 
     private ProductContentVo content(String name) {
