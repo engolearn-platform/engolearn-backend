@@ -35,3 +35,16 @@ Creating a session returns the persisted INITIALIZING state and upgrade path wit
 The server sends `SESSION_STATE` on connection and returns it on `SYNC_SESSION`. To receive live opening audio, clients can connect while the session is INITIALIZING. Reconnect relies on saved opening and turn text with separately authorized playback of available WAV files. Browser playback is outside server delivery state.
 
 The assessment endpoint exposes PENDING and FINALIZING with nullable scores until assessment finalization. READY has all four criteria assessed, PARTIAL has one to three, and UNAVAILABLE has none. Criterion status and reason distinguish insufficient evidence from technical failure. Session history reports the stored assessment status and the owner can open the result without a socket.
+
+## Speaking quota contract
+
+Speaking uses the account-level `SPEAKING_DURATION` allowance for both Topic and Topic Item. The client reads `GET /api/v1/quota/me/usage` and selects the daily item in seconds. The Quota Engine supplies the effective limit, used seconds, remaining seconds, status and window end. The account Speaking History view is the sole Speaking surface for the quota card.
+
+| Code | Where it is returned | Client behavior |
+| --- | --- | --- |
+| `DAILY_QUOTA_REACHED` | Availability denial, HTTP 429 for a rejected interactive operation, or WebSocket error/terminal session reason | Prevent new audio, follow the existing close/result flow for an exhausted session, and keep history accessible. |
+| `QUOTA_NOT_CONFIGURED` | HTTP 503 or WebSocket error when the effective policy lacks the Speaking rule | Show a configuration-specific message and prevent new interaction. |
+| `QUOTA_UNAVAILABLE` | HTTP 503 or WebSocket error when Quota availability cannot be read | Show a retryable availability error and prevent new interaction. |
+| `QUOTA_SETTLEMENT_PENDING` | Retryable WebSocket error for `START_TURN` while an earlier account obligation is unresolved | Wait for settlement before trying a new turn. |
+
+A reconnect to a closing session may observe its result. Manual end and authorized history, result and deletion operations remain available. The learner Subscription plan response can include nullable `speakingDurationDailyLimitSeconds` from the published plan rule. History offers an upgrade when an on-sale billable option has a higher allowance and links to the existing `/subscription` route.

@@ -10,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.FindAndModifyOptions;
+import org.springframework.data.mongodb.core.aggregation.Aggregation;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
@@ -72,6 +73,48 @@ public class SpeakingTurnArchive {
         return mongo.updateFirst(Query.query(match), update, SpeakingTurn.class).getModifiedCount() == 1;
     }
 
+    public List<SpeakingTurn> pendingChargesForOwner(String ownerId, Instant now, int limit) {
+        var ready = new Criteria().orOperator(Criteria.where("value.audio_status").ne(SpeakingAudioStatus.AUDIO_PENDING),
+                Criteria.where("value.delivery_deadline").lte(now));
+        var current = Query.query(new Criteria().andOperator(ready, pendingChargeCriteria().and("owner_id").is(ownerId)))
+                .with(Sort.by("updated_at", "_id")).limit(limit);
+        List<SpeakingTurn> result = mongo.find(current, SpeakingTurn.class);
+        if (result.size() < limit) result.addAll(legacyPendingCharges(ownerId, now, limit - result.size()));
+        return result;
+    }
+
+    public boolean hasPendingChargesForOwner(String ownerId) {
+        Query current = Query.query(pendingChargeCriteria().and("owner_id").is(ownerId)).limit(1);
+        return mongo.exists(current, SpeakingTurn.class) || !legacyPendingCharges(ownerId, null, 1).isEmpty();
+    }
+
+    private Criteria pendingChargeCriteria() {
+        return Criteria.where("quota_recorded").ne(true).and("value.sealed_at").exists(true).ne(null)
+                .and("value.status").in(SpeakingTurnStatus.COMMITTED, SpeakingTurnStatus.FAILED, SpeakingTurnStatus.SKIPPED);
+    }
+
+    private List<SpeakingTurn> legacyPendingCharges(String ownerId, Instant now, int limit) {
+        if (limit <= 0) return List.of();
+        Criteria legacy = new Criteria().andOperator(pendingChargeCriteria(), new Criteria().orOperator(
+                Criteria.where("owner_id").exists(false), Criteria.where("owner_id").is(null)));
+        Aggregation pipeline;
+        if (now == null) {
+            pipeline = Aggregation.newAggregation(Aggregation.match(legacy),
+                    Aggregation.lookup(mongo.getCollectionName(fit.iuh.engolearn.speaking.model.SpeakingSession.class),
+                            "session_id", "_id", "session"), Aggregation.unwind("session"),
+                    Aggregation.match(Criteria.where("session.owner_id").is(ownerId)), Aggregation.limit(limit));
+        } else {
+            Criteria ready = new Criteria().orOperator(Criteria.where("value.audio_status").ne(SpeakingAudioStatus.AUDIO_PENDING),
+                    Criteria.where("value.delivery_deadline").lte(now));
+            pipeline = Aggregation.newAggregation(Aggregation.match(new Criteria().andOperator(legacy, ready)),
+                    Aggregation.lookup(mongo.getCollectionName(fit.iuh.engolearn.speaking.model.SpeakingSession.class),
+                            "session_id", "_id", "session"), Aggregation.unwind("session"),
+                    Aggregation.match(Criteria.where("session.owner_id").is(ownerId)),
+                    Aggregation.sort(Sort.by("updated_at", "_id")), Aggregation.limit(limit));
+        }
+        return mongo.aggregate(pipeline, mongo.getCollectionName(SpeakingTurn.class), SpeakingTurn.class).getMappedResults();
+    }
+
     public List<SpeakingTurn> pendingCharges(Instant now, int limit) {
         var ready = new Criteria().orOperator(Criteria.where("value.audio_status").ne(SpeakingAudioStatus.AUDIO_PENDING),
                 Criteria.where("value.delivery_deadline").lte(now));
@@ -91,20 +134,22 @@ public class SpeakingTurnArchive {
         return prepared == null ? null : prepared.getCharge();
     }
 
-    public void confirmCharge(String sessionId, String turnId, Instant now) {
-        mongo.updateFirst(Query.query(identity(sessionId, turnId).and("charge").ne(null)),
-                new Update().set("quota_recorded", true).set("updated_at", now), SpeakingTurn.class);
+    public void confirmCharge(String sessionId, String turnId, String ownerId, String ledgerId, Instant recordedAt, Instant now) {
+        Update update = new Update().set("owner_id", ownerId).set("quota_recorded", true).set("updated_at", now);
+        if (ledgerId != null) update.set("ledger_id", ledgerId);
+        if (recordedAt != null) update.set("recorded_at", recordedAt);
+        mongo.updateFirst(Query.query(identity(sessionId, turnId).and("charge").ne(null)), update, SpeakingTurn.class);
     }
 
     private Criteria identity(String sessionId, String turnId) {
         return Criteria.where("_id").is(turnId).and("session_id").is(sessionId);
     }
 
-    public void record(String sessionId, SpeakingTurnVo turn, Instant now) {
+    public void record(String sessionId, String ownerId, SpeakingTurnVo turn, Instant now) {
         Query previous = Query.query(Criteria.where("_id").is(turn.getTurnId()).and("session_id").is(sessionId)
                 .and("value.revision").lt(turn.getRevision()));
         Update update = new Update().setOnInsert("session_id", sessionId).setOnInsert("created_at", now)
-                .set("value", turn).set("updated_at", now);
+                .setOnInsert("owner_id", ownerId).set("value", turn).set("updated_at", now);
         try {
             mongo.upsert(previous, update, SpeakingTurn.class);
         } catch (DuplicateKeyException collision) {
@@ -112,5 +157,7 @@ public class SpeakingTurnArchive {
             if (existing == null || !sessionId.equals(existing.getSessionId())
                     || existing.getValue().getRevision() < turn.getRevision()) throw collision;
         }
+        mongo.updateFirst(Query.query(identity(sessionId, turn.getTurnId())),
+                new Update().set("owner_id", ownerId), SpeakingTurn.class);
     }
 }

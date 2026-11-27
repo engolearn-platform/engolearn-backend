@@ -314,7 +314,8 @@ public class SpeakingRealtimeImpl implements SpeakingRealtime {
 
     private void recordQuota(String sessionId) {
         try {
-            quota.pending(sessionId);
+            var session = runtime.runtimeSession(sessionId);
+            if (quota.pendingOwner(session.getOwnerId())) runtime.enforceQuotaAfterSettlement(sessionId);
         } catch (RuntimeException unavailable) {
             log.warn("Speaking charge will be retried for session {}", sessionId);
         }
@@ -420,7 +421,11 @@ public class SpeakingRealtimeImpl implements SpeakingRealtime {
             boolean retained = false;
             try {
                 runtime.closeRetryWindow(lease, command.clientTurnId());
-                quota.pending(lease.sessionId());
+                var currentSession = runtime.runtimeSession(lease.sessionId());
+                if (!runtime.recoverDeletedObligations(currentSession.getOwnerId())) throw new SpeakingException(HttpStatus.CONFLICT,
+                        "QUOTA_SETTLEMENT_PENDING", "The preceding turn usage is still processing", true);
+                if (!quota.pendingOwner(currentSession.getOwnerId())) throw new SpeakingException(HttpStatus.CONFLICT,
+                        "QUOTA_SETTLEMENT_PENDING", "The preceding turn usage is still processing", true);
                 if (archive.hasPendingAudio(lease.sessionId())) throw new SpeakingException(HttpStatus.CONFLICT,
                         "TURN_IN_PROGRESS", "The preceding turn audio is still processing", true);
                 Turn accepted = runtime.admit(lease, command.clientTurnId());
