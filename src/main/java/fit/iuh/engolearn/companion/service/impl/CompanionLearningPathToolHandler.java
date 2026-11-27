@@ -4,6 +4,8 @@ import fit.iuh.engolearn.companion.service.*;
 import fit.iuh.engolearn.learningpath.contract.LearningPathCompanionReads;
 import fit.iuh.engolearn.learningpath.contract.dto.*;
 import fit.iuh.engolearn.learningpath.contract.exception.LearningPathCompanionReadException;
+import fit.iuh.engolearn.learningpath.contract.enums.LearningPathAvailability;
+import fit.iuh.engolearn.learningpath.contract.enums.LearningPathAction;
 import java.util.List;
 import java.util.Map;
 import org.springframework.stereotype.Component;
@@ -28,6 +30,35 @@ public class CompanionLearningPathToolHandler implements CompanionToolHandler {
                 """));
     }
 
+    private static boolean validActiveRow(LearningPathActivePageDto.Row row) {
+        return ("NOT_STARTED".equals(row.status()) || "IN_PROGRESS".equals(row.status()))
+                && (row.availability() == LearningPathAvailability.UNKNOWN
+                    || row.availability() == LearningPathAvailability.NOT_AVAILABLE)
+                && row.nextActions().size() <= 5 && row.microSkills().size() <= 5
+                && nonnegative(row.assigned()) && nonnegative(row.answered()) && nonnegative(row.correct())
+                && ordered(row.correct(),row.answered()) && ordered(row.answered(),row.assigned())
+                && ordered(row.correct(),row.assigned())
+                && (row.currentWeekNo() == null || row.currentWeekNo() > 0)
+                && (row.availability() != LearningPathAvailability.NOT_AVAILABLE
+                    || row.nextActions().isEmpty())
+                && row.nextActions().stream().allMatch(action -> action.weekNo() > 0 && action.dayNo() > 0
+                    && (("NOT_STARTED".equals(action.dayStatus()) && action.action() == LearningPathAction.START)
+                        || ("IN_PROGRESS".equals(action.dayStatus()) && action.action() == LearningPathAction.RESUME))
+                    && action.availability() == LearningPathAvailability.UNKNOWN
+                    && action.requiresAppRecheck());
+    }
+
+    private static boolean nonnegative(Integer value) { return value == null || value >= 0; }
+    private static boolean validRate(Double value) {
+        return value == null || (Double.isFinite(value) && value >= 0 && value <= 100);
+    }
+    private static boolean ordered(Integer lower, Integer upper) {
+        return lower == null || upper == null || lower <= upper;
+    }
+    private static boolean validDayStatus(String value) {
+        return value != null && java.util.Set.of("NOT_STARTED","IN_PROGRESS","COMPLETED","SUBMITTED","CLOSED").contains(value);
+    }
+
     @Override public String execute(String name, Map<String, Object> input, CompanionToolExecutionContext context) {
         if (!"getLearningPathProgress".equals(name)) return response.error("UNSUPPORTED");
         String owner = context.learnerId();
@@ -39,7 +70,8 @@ public class CompanionLearningPathToolHandler implements CompanionToolHandler {
                 countsOnly(a);
                 var counts = paths.counts(owner);
                 if (counts.asOf() == null || counts.coverage() == null
-                        || !"COMPLETE".equals(counts.coverage().name()) || counts.completedPaths() < 0)
+                        || !"COMPLETE".equals(counts.coverage().name()) || counts.completedPaths() < 0
+                        || !"CURRENT_RECORDED_PATHS".equals(counts.scope()))
                     return response.error("INCONSISTENT_STATE");
                 return response.success(counts);
             }
@@ -51,8 +83,8 @@ public class CompanionLearningPathToolHandler implements CompanionToolHandler {
             var query = new LearningPathPageQueryDto(limit,cursor);
             if ("ACTIVE".equals(mode)) {
                 var page = paths.active(owner,scope.asOf(),query);
-                if (!scope.asOf().equals(page.asOf()) || page.items().stream().anyMatch(row ->
-                        row.nextActions().size() > 5 || row.microSkills().size() > 5))
+                if (page.coverage() == null || !scope.asOf().equals(page.asOf()) || page.items().stream().anyMatch(row ->
+                        !validActiveRow(row)))
                     return response.error("INCONSISTENT_STATE");
                 var rows = page.items().stream().map(row -> new LearningPathActivePageDto.Row(
                         row.pathId(), row.cefrLevel(), row.status(), row.currentWeekNo(),
@@ -60,7 +92,6 @@ public class CompanionLearningPathToolHandler implements CompanionToolHandler {
                         row.assigned(), row.answered(), row.correct(), row.availability(), row.nextActions())).toList();
                 String output = response.page(rows,page.hasMore(),page.nextCursor(),page.coverage().name(),
                         page.asOf(),limit,Map.of("continuationScope","TURN_ONLY"));
-                if (response.successful(output)) scope.rememberCursor(owner,mode,page.nextCursor());
                 return output;
             }
             var extra = Map.<String,Object>of("fromInclusive",scope.weekStart(),"toExclusive",scope.asOf(),
@@ -70,13 +101,15 @@ public class CompanionLearningPathToolHandler implements CompanionToolHandler {
                 return response.page(List.of(),false,null,"COMPLETE",scope.asOf(),limit,extra);
             }
             var page = paths.recent(owner,scope.weekStart(),scope.asOf(),query);
-            if (!scope.asOf().equals(page.asOf()) || page.items().stream().anyMatch(row ->
-                    row.occurredAt() == null || row.occurredAt().isBefore(scope.weekStart())
+            if (page.coverage() == null || !scope.asOf().equals(page.asOf()) || page.items().stream().anyMatch(row ->
+                    !validDayStatus(row.dayStatus()) || row.eventKind() == null
+                    || row.weekNo() < 1 || row.dayNo() < 1
+                    || !validRate(row.completionRate()) || !validRate(row.practiceScore())
+                    || row.occurredAt() == null || row.occurredAt().isBefore(scope.weekStart())
                     || !row.occurredAt().isBefore(scope.asOf())))
                 return response.error("INCONSISTENT_STATE");
             String output = response.page(page.items(),page.hasMore(),page.nextCursor(),page.coverage().name(),
                     page.asOf(),limit,extra);
-            if (response.successful(output)) scope.rememberCursor(owner,mode,page.nextCursor());
             return output;
         } catch (InvalidArguments invalid) {
             return response.invalid();

@@ -72,6 +72,15 @@ class CompanionContextBuilderTest {
     }
 
     @Test
+    void historyComparabilityIsScopedAndLatestVisibleSkillGuidanceRemains() {
+        String prompt = builder.build("learner-1",List.of(),"Guide me").getFirst().text();
+        assertThat(prompt).contains("For dated assessment history comparisons, use only returned visible comparable observations",
+                "For skill advice, request mode SKILLS without skillCodes",
+                "For PREVIEW results, discuss only returned rows and do not rank or compare unreturned skills",
+                "Never guess hidden results or treat one result as a trend");
+    }
+
+    @Test
     void directMemoryRequestsRemainAvailableAndSuccessMustBeConfirmedWhenAutomaticMemoryIsOff() {
         List<CompanionPromptMessage> prompt = builder.build("learner-1", List.of(),
                 "Please remember my coffee preference.", null, false);

@@ -13,6 +13,8 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class CompanionToolRegistry {
+    private static final tools.jackson.databind.json.JsonMapper RESULT_JSON =
+            tools.jackson.databind.json.JsonMapper.builder().build();
     private final List<CompanionToolDefinition> definitions;
     private final Map<String, CompanionToolHandler> handlers;
 
@@ -36,6 +38,26 @@ public class CompanionToolRegistry {
 
     public List<CompanionToolDefinition> definitions(boolean enabled) {
         return enabled ? definitions : List.of();
+    }
+
+    public void acceptResult(String name, Map<String,Object> arguments, String owner,
+            CompanionBusinessTurnContext scope, String output) {
+        if (!"getLearningPathProgress".equals(name) || !handlers.containsKey(name)
+                || scope == null || arguments == null || output == null) return;
+        Object mode = arguments.get("mode");
+        if (!"ACTIVE".equals(mode) && !"RECENT".equals(mode)) return;
+        try {
+            var result = RESULT_JSON.readTree(output);
+            var data = result.path("data");
+            var cursor = data.path("nextCursor");
+            if ("SUCCESS".equals(result.path("status").asText())
+                    && "TURN_ONLY".equals(data.path("continuationScope").asText())
+                    && data.path("hasMore").isBoolean() && data.path("hasMore").asBoolean()
+                    && cursor.isTextual() && !cursor.asText().isBlank() && cursor.asText().length() <= 512)
+                scope.rememberCursor(owner,(String) mode,cursor.asText());
+        } catch (RuntimeException malformed) {
+            // An unparseable result must never authorize continuation.
+        }
     }
 
     public String execute(String name, Map<String, Object> arguments, String learnerId) {

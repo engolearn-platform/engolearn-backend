@@ -27,7 +27,7 @@ public class CompanionContextBuilder {
             + "Never invent actions, dates, progress, links or missing results. Topic has no dated activity or precise resume position. "
             + "Path candidates may be UNKNOWN and require app recheck; closure is not success. Recent path records are not complete study history. "
             + "Path cursors are turn-only; restart on a later turn. LIMITED or ERROR is not zero or no data; never page without a next cursor. "
-            + "Keep completed topics, items and paths separate. Use only visible assessment observations explicitly marked comparable; "
+            + "Keep completed topics, items and paths separate. For dated assessment history comparisons, use only returned visible comparable observations; "
             + "same-paper differences do not establish improvement. Do not reveal opaque cursors or internal identifiers.";
     private static final String MEMORY_TOOL_INSTRUCTION = "When the current user directly asks you to remember, save, "
             + "update, or forget a memory, use the corresponding memory tool before answering whenever it is available, "

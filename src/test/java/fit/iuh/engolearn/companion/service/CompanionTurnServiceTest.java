@@ -367,6 +367,279 @@ class CompanionTurnServiceTest {
         verify(quotaUsage).recordUsage(argThat(command -> command.amount() == 12));
     }
 
+    @org.junit.jupiter.api.RepeatedTest(2)
+    void timedOutPathCannotIssueLateCursorAndMixedCallsRemainBounded() {
+        stubUsageRecording();
+        stubPrompt();
+        stubMemorySettings();
+        properties.setToolTimeout(java.time.Duration.ofMillis(500));
+        properties.setMaxToolCalls(3);
+        String id = "conversation-timeout";
+        String turnId = UUID.randomUUID().toString();
+        var prepared = prepareBusinessTurn(id,turnId,true);
+        var entered = new java.util.concurrent.CountDownLatch(1);
+        var allowCompletion = new java.util.concurrent.CountDownLatch(1);
+        var workerReturned = new java.util.concurrent.CountDownLatch(1);
+        var paths = mock(fit.iuh.engolearn.learningpath.contract.LearningPathCompanionReads.class);
+        var real = pathRegistry(paths);
+        var scope = new AtomicReference<CompanionBusinessTurnContext>();
+        when(paths.active(eq("learner-1"),any(Instant.class),any())).thenAnswer(invocation -> {
+            entered.countDown();
+            awaitIgnoringInterrupt(allowCompletion);
+            return latePathPage(invocation.getArgument(1));
+        });
+        when(toolRegistry.execute(anyString(),anyMap(),eq("learner-1"),any(Runnable.class),
+                any(CompanionMemoryToolContext.class),any(CompanionBusinessTurnContext.class))).thenAnswer(invocation -> {
+            String name = invocation.getArgument(0);
+            if (!"getLearningPathProgress".equals(name)) return "{\"status\":\"SUCCESS\"}";
+            scope.set(invocation.getArgument(5));
+            var args = invocation.<java.util.Map<String,Object>>getArgument(1);
+            try {
+                return real.execute(name,args,"learner-1",()->{},null,scope.get());
+            } finally {
+                if (!args.containsKey("cursor")) workerReturned.countDown();
+            }
+        });
+        doAnswer(invocation -> {
+            real.acceptResult(invocation.getArgument(0),invocation.getArgument(1),invocation.getArgument(2),
+                    invocation.getArgument(3),invocation.getArgument(4));
+            return null;
+        }).when(toolRegistry).acceptResult(anyString(),anyMap(),eq("learner-1"),any(),anyString());
+        var first = new CompanionToolCall("path-1","getLearningPathProgress",java.util.Map.of("mode","ACTIVE"));
+        var forged = new CompanionToolCall("path-2","getLearningPathProgress",java.util.Map.of("mode","ACTIVE","cursor","late-cursor"));
+        var topic = new CompanionToolCall("topic","findLearningTopics",java.util.Map.of());
+        var skipped = new CompanionToolCall("history","getAssessmentHistory",java.util.Map.of());
+        var requests = new ArrayList<CompanionModelRequest>();
+        when(model.stream(any())).thenAnswer(invocation -> {
+            requests.add(invocation.getArgument(0));
+            if (requests.size() == 1) return businessRound(List.of(first),4);
+            if (requests.size() == 2) {
+                assertEquals(0,entered.getCount());
+                assertTrue(requests.getLast().toolResults().getFirst().json().contains("took too long"));
+                allowCompletion.countDown();
+                awaitLatch(workerReturned);
+                assertFalse(scope.get().canContinue("learner-1","ACTIVE","late-cursor"));
+                return businessRound(List.of(forged,topic,skipped),5);
+            }
+            return completedText("Partial answer",3);
+        });
+        try {
+            assertEquals("Partial answer",service.streamPreparedTurn(prepared,observer()).assistantMessage().content());
+            assertEquals(3,requests.size());
+            var results = requests.getLast().toolResults();
+            assertEquals(List.of("path-2","topic","history"),results.stream().map(CompanionToolResult::callId).toList());
+            assertTrue(results.get(0).json().contains("INVALID_ARGUMENTS"));
+            assertTrue(results.get(1).json().contains("SUCCESS"));
+            assertTrue(results.get(2).json().contains("budget"));
+            verify(paths,times(1)).active(eq("learner-1"),any(Instant.class),any());
+            verify(toolRegistry,never()).execute(eq("getAssessmentHistory"),anyMap(),anyString(),any(),any(),any());
+            verify(quotaUsage).recordUsage(argThat(command -> command.amount() == 12));
+        } finally {
+            allowCompletion.countDown();
+        }
+    }
+
+    @org.junit.jupiter.api.RepeatedTest(2)
+    void cancellationDuringPathReadDoesNotPublishOrInvokeLaterCalls() throws Exception {
+        stubPrompt();
+        stubMemorySettings();
+        String id = "conversation-tool-cancel";
+        String turnId = UUID.randomUUID().toString();
+        var prepared = prepareBusinessTurn(id,turnId,false);
+        var entered = new java.util.concurrent.CountDownLatch(1);
+        var allowCompletion = new java.util.concurrent.CountDownLatch(1);
+        var workerReturned = new java.util.concurrent.CountDownLatch(1);
+        var paths = mock(fit.iuh.engolearn.learningpath.contract.LearningPathCompanionReads.class);
+        var real = pathRegistry(paths);
+        var scope = new AtomicReference<CompanionBusinessTurnContext>();
+        when(paths.active(eq("learner-1"),any(Instant.class),any())).thenAnswer(invocation -> {
+            entered.countDown();
+            awaitIgnoringInterrupt(allowCompletion);
+            return latePathPage(invocation.getArgument(1));
+        });
+        when(toolRegistry.execute(eq("getLearningPathProgress"),anyMap(),eq("learner-1"),any(Runnable.class),
+                any(CompanionMemoryToolContext.class),any(CompanionBusinessTurnContext.class))).thenAnswer(invocation -> {
+            scope.set(invocation.getArgument(5));
+            try {
+                return real.execute(invocation.getArgument(0),invocation.getArgument(1),"learner-1",()->{},null,scope.get());
+            } finally {
+                workerReturned.countDown();
+            }
+        });
+        when(model.stream(any())).thenReturn(businessRound(List.of(
+                new CompanionToolCall("path","getLearningPathProgress",java.util.Map.of("mode","ACTIVE")),
+                new CompanionToolCall("topic","findLearningTopics",java.util.Map.of())),4));
+        var cancelled = new AtomicBoolean();
+        var turnExecutor = Executors.newSingleThreadExecutor();
+        try {
+            var future = turnExecutor.submit(() -> service.streamPreparedTurn(prepared,new CompanionTurnService.TurnObserver() {
+                @Override public void onDelta(String text) {}
+                @Override public boolean isCancelled() { return cancelled.get(); }
+            }));
+            awaitLatch(entered);
+            cancelled.set(true);
+            var failure = assertThrows(java.util.concurrent.ExecutionException.class,
+                    () -> future.get(5,java.util.concurrent.TimeUnit.SECONDS));
+            assertInstanceOf(CompanionException.class,failure.getCause());
+            assertEquals("TURN_CANCELLED",((CompanionException)failure.getCause()).getCode());
+            allowCompletion.countDown();
+            awaitLatch(workerReturned);
+            assertFalse(scope.get().canContinue("learner-1","ACTIVE","late-cursor"));
+            verify(model,times(1)).stream(any());
+            verify(toolRegistry,never()).acceptResult(anyString(),anyMap(),anyString(),any(),anyString());
+            verify(toolRegistry,never()).execute(eq("findLearningTopics"),anyMap(),anyString(),any(),any(),any());
+            verify(conversations).release(eq(id),eq("learner-1"),eq(turnId),anyLong(),any());
+            verify(conversations,never()).finish(anyString(),anyString(),anyString(),anyLong(),anyLong(),any());
+            verify(quotaUsage,never()).recordUsage(any());
+        } finally {
+            allowCompletion.countDown();
+            turnExecutor.shutdownNow();
+        }
+    }
+
+    @Test void safeTraceClassifiesOnlyTopLevelStatusAndNeverLogsCanaries() {
+        stubUsageRecording();
+        stubPrompt();
+        stubMemorySettings();
+        var prepared = prepareBusinessTurn("conversation-trace",UUID.randomUUID().toString(),true);
+        var hostile = "name-CANARY\r\nFAKE";
+        properties.setMaxToolCalls(6);
+        var names = List.of("findLearningTopics","getLearningPathProgress","getAssessmentHistory",hostile,
+                "getTopicLearningProgress","getTopicLearningProgress");
+        var calls = new ArrayList<CompanionToolCall>();
+        for (int i=0;i<names.size();i++)
+            calls.add(new CompanionToolCall("id-CANARY-"+i,names.get(i),java.util.Map.of("cursor","arg-CANARY","owner","owner-CANARY")));
+        when(model.stream(any())).thenReturn(businessRound(calls,5),completedText("Done",3));
+        var mapper = tools.jackson.databind.json.JsonMapper.builder().build();
+        var realRegistry = new CompanionToolRegistry(List.of(
+                new fit.iuh.engolearn.companion.service.impl.CompanionTopicToolHandler(
+                        mock(fit.iuh.engolearn.topic.contract.TopicCompanionReads.class),mapper),
+                new fit.iuh.engolearn.companion.service.impl.CompanionLearningPathToolHandler(
+                        mock(fit.iuh.engolearn.learningpath.contract.LearningPathCompanionReads.class),mapper),
+                new fit.iuh.engolearn.companion.service.impl.CompanionAssessmentHistoryToolHandler(
+                        mock(fit.iuh.engolearn.assessment.contract.AssessmentCompanionResults.class),mapper)));
+        when(toolRegistry.safeName(anyString())).thenAnswer(invocation -> realRegistry.safeName(invocation.getArgument(0)));
+        when(toolRegistry.execute(anyString(),anyMap(),eq("learner-1"),any(Runnable.class),any(),any()))
+                .thenReturn("{\"data\":{\"status\":\"SUCCESS\",\"secret\":\"result-CANARY\"}}",
+                        "{\"status\":\"ERROR\",\"data\":{\"status\":\"SUCCESS\"},\"message\":\"error-CANARY\"}",
+                        "{\"status\":\"status-CANARY\"}","invalid-CANARY",
+                        "{\"status\":\"SUCCESS\",\"cursor\":\"cursor-CANARY\"}")
+                .thenThrow(new IllegalStateException("exception-CANARY"));
+        var logger = (ch.qos.logback.classic.Logger)org.slf4j.LoggerFactory.getLogger(CompanionTurnServiceImpl.class);
+        var appender = new ch.qos.logback.core.read.ListAppender<ch.qos.logback.classic.spi.ILoggingEvent>();
+        appender.start();
+        logger.addAppender(appender);
+        try {
+            service.streamPreparedTurn(prepared,observer());
+            var logs = appender.list.stream().map(ch.qos.logback.classic.spi.ILoggingEvent::getFormattedMessage).toList();
+            var results = logs.stream().filter(line -> line.contains("decision=result")).toList();
+            assertEquals(5,results.size());
+            assertTrue(results.get(0).contains("code=UNKNOWN_RESULT"));
+            assertTrue(results.get(1).contains("code=ERROR"));
+            assertTrue(results.get(2).contains("code=UNKNOWN_RESULT"));
+            assertTrue(results.get(3).contains("tool=UNKNOWN_TOOL") && results.get(3).contains("code=MALFORMED_RESULT"));
+            assertTrue(results.get(4).contains("code=SUCCESS"));
+            assertTrue(logs.stream().anyMatch(line -> line.contains("code=TOOL_EXECUTION_FAILED")));
+            assertTrue(logs.stream().noneMatch(line -> line.contains("CANARY")));
+        } finally {
+            logger.detachAppender(appender);
+            appender.stop();
+        }
+    }
+
+    @Test void saturatedExecutorReturnsSafeErrorWithoutInvokingHandlerOrRetrying() {
+        stubUsageRecording();
+        stubPrompt();
+        stubMemorySettings();
+        toolExecutor.shutdownNow();
+        toolExecutor = new java.util.concurrent.ThreadPoolExecutor(1,1,0,java.util.concurrent.TimeUnit.MILLISECONDS,
+                new java.util.concurrent.SynchronousQueue<>());
+        service = new CompanionTurnServiceImpl(users, conversations, messages, model, contextBuilder, properties,
+                transactions, quotaAvailability, quotaUsage, toolRegistry, memories, memoryRetrieval, screenContexts, toolExecutor);
+        var busy = new java.util.concurrent.CountDownLatch(1);
+        var release = new java.util.concurrent.CountDownLatch(1);
+        toolExecutor.submit(() -> {
+            busy.countDown();
+            awaitIgnoringInterrupt(release);
+        });
+        try {
+            awaitLatch(busy);
+            var prepared = prepareBusinessTurn("conversation-saturation",UUID.randomUUID().toString(),true);
+            when(model.stream(any())).thenReturn(businessRound(List.of(new CompanionToolCall(
+                    "path","getLearningPathProgress",java.util.Map.of("mode","ACTIVE"))),4),completedText("Unavailable",3));
+            assertEquals("Unavailable",service.streamPreparedTurn(prepared,observer()).assistantMessage().content());
+            var requests = org.mockito.ArgumentCaptor.forClass(CompanionModelRequest.class);
+            verify(model,times(2)).stream(requests.capture());
+            var result = requests.getAllValues().getLast().toolResults().getFirst();
+            assertEquals("path",result.callId());
+            assertTrue(result.json().contains("temporarily unavailable"));
+            verify(toolRegistry,never()).execute(anyString(),anyMap(),anyString(),any(),any(),any());
+            verify(quotaUsage).recordUsage(argThat(command -> command.amount() == 7));
+        } finally {
+            release.countDown();
+        }
+    }
+
+    private CompanionTurnService.PreparedTurn prepareBusinessTurn(String id,String turnId,boolean finish) {
+        if (finish) {
+            when(conversations.findOwned(id,"learner-1")).thenReturn(Optional.of(conversation(id,0,1,null,null)),
+                    Optional.of(conversation(id,2,3,null,null)));
+            when(conversations.finish(eq(id),eq("learner-1"),eq(turnId),eq(1L),eq(2L),any())).thenReturn(true);
+        } else {
+            when(conversations.findOwned(id,"learner-1")).thenReturn(Optional.of(conversation(id,0,1,null,null)));
+            when(conversations.release(eq(id),eq("learner-1"),eq(turnId),anyLong(),any())).thenReturn(true);
+        }
+        when(messages.findByTurnAndRole(eq(id),eq(turnId),any())).thenReturn(Optional.empty());
+        when(conversations.admitNew(eq(id),eq("learner-1"),eq(turnId),eq(1L),any(),any(),eq(100)))
+                .thenReturn(Optional.of(conversation(id,1,2,turnId,1L)));
+        when(messages.insert(any())).thenAnswer(invocation -> {
+            CompanionMessage value = invocation.getArgument(0);
+            value.setId("message-"+value.getSequence());
+            return value;
+        });
+        return service.prepareTurn(id,new CompanionTurnRequest(UUID.fromString(turnId),"Guide me",false));
+    }
+
+    private Flux<CompanionModelEvent> businessRound(List<CompanionToolCall> calls,long tokens) {
+        return Flux.just(new CompanionModelEvent.ToolCalls(new CompanionModelContinuation() {},calls),
+                new CompanionModelEvent.RoundCompleted(new CompanionUsage(tokens)));
+    }
+
+    private CompanionToolRegistry pathRegistry(fit.iuh.engolearn.learningpath.contract.LearningPathCompanionReads paths) {
+        return new CompanionToolRegistry(List.of(new fit.iuh.engolearn.companion.service.impl.CompanionLearningPathToolHandler(
+                paths,tools.jackson.databind.json.JsonMapper.builder().build())));
+    }
+
+    private fit.iuh.engolearn.learningpath.contract.dto.LearningPathActivePageDto latePathPage(Instant now) {
+        var row = new fit.iuh.engolearn.learningpath.contract.dto.LearningPathActivePageDto.Row(
+                "path","B1","IN_PROGRESS",1,List.of(),null,null,null,
+                fit.iuh.engolearn.learningpath.contract.enums.LearningPathAvailability.UNKNOWN,List.of());
+        return new fit.iuh.engolearn.learningpath.contract.dto.LearningPathActivePageDto(List.of(row),true,"late-cursor",
+                fit.iuh.engolearn.learningpath.contract.enums.LearningPathCoverage.COMPLETE,now);
+    }
+
+    private static void awaitLatch(java.util.concurrent.CountDownLatch latch) {
+        try {
+            assertTrue(latch.await(5,java.util.concurrent.TimeUnit.SECONDS),"latch deadline");
+        } catch (InterruptedException interrupted) {
+            Thread.currentThread().interrupt();
+            throw new AssertionError(interrupted);
+        }
+    }
+
+    private static void awaitIgnoringInterrupt(java.util.concurrent.CountDownLatch latch) {
+        long deadline = System.nanoTime()+java.util.concurrent.TimeUnit.SECONDS.toNanos(10);
+        while (latch.getCount() != 0 && System.nanoTime() < deadline) {
+            try {
+                latch.await(100,java.util.concurrent.TimeUnit.MILLISECONDS);
+            } catch (InterruptedException ignored) {
+                // Simulate a provider that cannot be interrupted immediately.
+            }
+        }
+        assertEquals(0,latch.getCount(),"late provider release deadline");
+    }
+
+
     @Test void missingAuthoritativeUsageFailsWithoutAssistantPersistenceOrCharge() {
         stubPrompt();
         stubMemorySettings();

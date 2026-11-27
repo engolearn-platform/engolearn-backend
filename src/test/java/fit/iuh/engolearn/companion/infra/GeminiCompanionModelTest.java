@@ -142,6 +142,104 @@ class GeminiCompanionModelTest {
                 .isInstanceOf(fit.iuh.engolearn.companion.exception.CompanionException.class);
     }
 
+    @Test
+    void actualRegistryDeclarationsAndNativeMultiDomainContinuationAreOffline() {
+        var mapper = tools.jackson.databind.json.JsonMapper.builder().build();
+        var assessments = org.mockito.Mockito.mock(fit.iuh.engolearn.assessment.contract.AssessmentCompanionResults.class);
+        var registry = new fit.iuh.engolearn.companion.service.impl.CompanionToolRegistry(List.of(
+                new fit.iuh.engolearn.companion.service.impl.CompanionAssessmentToolHandler(assessments,mapper),
+                new fit.iuh.engolearn.companion.service.impl.CompanionMemoryToolHandler(
+                        org.mockito.Mockito.mock(fit.iuh.engolearn.companion.service.CompanionMemoryService.class),
+                        org.mockito.Mockito.mock(fit.iuh.engolearn.companion.service.MemoryRetrievalService.class),
+                        mapper,"synthetic-offline-test-only"),
+                new fit.iuh.engolearn.companion.service.impl.CompanionTopicToolHandler(
+                        org.mockito.Mockito.mock(fit.iuh.engolearn.topic.contract.TopicCompanionReads.class),mapper),
+                new fit.iuh.engolearn.companion.service.impl.CompanionLearningPathToolHandler(
+                        org.mockito.Mockito.mock(fit.iuh.engolearn.learningpath.contract.LearningPathCompanionReads.class),mapper),
+                new fit.iuh.engolearn.companion.service.impl.CompanionAssessmentHistoryToolHandler(assessments,mapper)));
+        var firstParts = List.of(nativeCall("topic-1","findLearningTopics",Map.of("level","B1"),new byte[]{1,2}),
+                nativeCall("path-1","getLearningPathProgress",Map.of("mode","ACTIVE"),new byte[]{3,4}));
+        var secondParts = List.of(nativeCall("history-1","getAssessmentHistory",Map.of("detail","SKILLS"),new byte[]{5,6}),
+                nativeCall("latest-1","getLatestAssessmentResult",Map.of("detail","SKILLS"),new byte[]{7,8}));
+        var transport = FixtureTransport.forRounds(List.of(
+                List.of(responseWithParts(firstParts,4)),List.of(responseWithParts(secondParts,5)),
+                List.of(responseWithoutCandidate(3))));
+        var model = new GeminiCompanionModel(new CompanionProperties(),transport);
+        var prompt = List.of(new CompanionPromptMessage(CompanionPromptMessage.Role.USER,"Guide me"));
+        var declarations = registry.definitions(true);
+        var first = (CompanionModelEvent.ToolCalls)model.stream(new CompanionModelRequest(prompt,declarations,null,List.of()))
+                .collectList().block().getFirst();
+        var nativeDeclarations = transport.lastConfig.tools().orElseThrow().getFirst().functionDeclarations().orElseThrow();
+        assertThat(nativeDeclarations).hasSize(9);
+        var schemas = new java.util.HashMap<String,com.google.genai.types.Schema>();
+        for (var declaration : nativeDeclarations)
+            schemas.put(declaration.name().orElseThrow(),declaration.parameters().orElseThrow());
+        assertThat(schemas.keySet()).containsExactlyInAnyOrder("getLatestAssessmentResult","searchMemory","createMemory",
+                "updateMemory","deleteMemory","findLearningTopics","getTopicLearningProgress","getLearningPathProgress","getAssessmentHistory");
+        for (var declaration : declarations) {
+            var expected = mapper.readTree(declaration.inputSchemaJson());
+            var schema = schemas.get(declaration.name());
+            assertThat(schema.type()).isPresent();
+            var props = schema.properties().orElseThrow();
+            assertThat(props.keySet()).containsExactlyInAnyOrderElementsOf(expected.get("properties").propertyNames());
+            var expectedRequired = new ArrayList<String>();
+            if (expected.has("required")) expected.get("required").forEach(node -> expectedRequired.add(node.asText()));
+            assertThat(schema.required().orElse(List.of())).containsExactlyElementsOf(expectedRequired);
+            for (var entry : props.entrySet()) {
+                var wanted = expected.get("properties").get(entry.getKey());
+                var actual = entry.getValue();
+                assertThat(actual.type()).isPresent();
+                if (wanted.has("enum")) {
+                    var values = new ArrayList<String>();
+                    wanted.get("enum").forEach(node -> values.add(node.asText()));
+                    assertThat(actual.enum_().orElseThrow()).containsExactlyElementsOf(values);
+                }
+                if (wanted.has("minimum")) assertThat(actual.minimum()).contains(wanted.get("minimum").asDouble());
+                if (wanted.has("maximum")) assertThat(actual.maximum()).contains(wanted.get("maximum").asDouble());
+                if (wanted.has("maxLength")) assertThat(actual.maxLength()).contains(wanted.get("maxLength").asLong());
+                if (wanted.has("minLength")) assertThat(actual.minLength()).contains(wanted.get("minLength").asLong());
+                if (wanted.has("maxItems")) assertThat(actual.maxItems()).contains(wanted.get("maxItems").asLong());
+            }
+        }
+        assertThat(first.calls().stream().map(fit.iuh.engolearn.companion.service.CompanionToolCall::callId).toList())
+                .containsExactly("topic-1","path-1");
+        var second = (CompanionModelEvent.ToolCalls)model.stream(new CompanionModelRequest(prompt,declarations,first.continuation(),
+                List.of(new CompanionToolResult("topic-1","findLearningTopics","{\"status\":\"SUCCESS\"}"),
+                        new CompanionToolResult("path-1","getLearningPathProgress","{\"status\":\"ERROR\"}"))))
+                .collectList().block().getFirst();
+        assertThat(second.calls().stream().map(fit.iuh.engolearn.companion.service.CompanionToolCall::callId).toList())
+                .containsExactly("history-1","latest-1");
+        model.stream(new CompanionModelRequest(prompt,List.of(),second.continuation(),
+                List.of(new CompanionToolResult("history-1","getAssessmentHistory","{\"status\":\"NO_DATA\"}"),
+                        new CompanionToolResult("latest-1","getLatestAssessmentResult","{\"status\":\"SUCCESS\"}"))))
+                .collectList().block();
+        var sent = transport.lastContents.stream().flatMap(content -> content.parts().orElse(List.of()).stream()).toList();
+        var nativeCalls = sent.stream().filter(part -> part.functionCall().isPresent()).toList();
+        assertThat(nativeCalls.stream().map(part -> part.functionCall().orElseThrow().id().orElseThrow()).toList())
+                .containsExactly("topic-1","path-1","history-1","latest-1");
+        for (int i=0;i<nativeCalls.size();i++)
+            assertThat(nativeCalls.get(i).thoughtSignature().orElseThrow()).containsExactly((byte)(i*2+1),(byte)(i*2+2));
+        var responses = sent.stream().flatMap(part -> part.functionResponse().stream()).toList();
+        assertThat(responses.stream().map(response -> response.id().orElseThrow()).toList())
+                .containsExactly("topic-1","path-1","history-1","latest-1");
+        assertThat(responses.stream().map(response -> response.name().orElseThrow()).toList())
+                .containsExactly("findLearningTopics","getLearningPathProgress","getAssessmentHistory","getLatestAssessmentResult");
+        assertThat(responses.stream().map(response -> response.response().orElseThrow().get("status")).toList())
+                .containsExactly("SUCCESS","ERROR","NO_DATA","SUCCESS");
+    }
+
+    private static Part nativeCall(String id,String name,Map<String,Object> args,byte[] signature) {
+        return Part.builder().functionCall(FunctionCall.builder().id(id).name(name).args(args).build())
+                .thoughtSignature(signature).build();
+    }
+
+    private static GenerateContentResponse responseWithParts(List<Part> parts,int tokens) {
+        return GenerateContentResponse.builder().candidates(Candidate.builder()
+                .content(Content.builder().role("model").parts(parts).build()).build())
+                .usageMetadata(GenerateContentResponseUsageMetadata.builder().totalTokenCount(tokens).build()).build();
+    }
+
+
     private static CompanionModelContinuation continuationFromToolRound() {
         var transport = new FixtureTransport(List.of(toolCallResponse("call-9", new byte[]{3, 1, 4}, 89)));
         var model = new GeminiCompanionModel(new CompanionProperties(), transport);

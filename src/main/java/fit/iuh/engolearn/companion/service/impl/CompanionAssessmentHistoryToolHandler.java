@@ -40,12 +40,13 @@ public class CompanionAssessmentHistoryToolHandler implements CompanionToolHandl
             boolean skills = "SKILLS".equals(choice(a,"detail","SUMMARY","SUMMARY","SKILLS"));
             var page = assessments.historyForCompanion(owner,
                     new AssessmentCompanionHistoryQueryDto(limit,text(a,"cursor",512,null)));
-            if (page.items().size() > limit) return response.error("INCONSISTENT_STATE");
+            if (page.coverage() == null || page.items().size() > limit) return response.error("INCONSISTENT_STATE");
             var rows = new ArrayList<Map<String,Object>>();
             for (var row : page.items()) {
                 var r = row.result();
-                if (r.attemptId() == null || r.attemptId().isBlank() || r.submittedAt() == null
-                        || r.scope() == null || r.skills().size() > ("PREVIEW".equals(r.scope().name()) ? 2 : 5))
+                if (r == null || r.attemptId() == null || r.attemptId().isBlank() || r.submittedAt() == null
+                        || r.scope() == null || r.skills().size() > ("PREVIEW".equals(r.scope().name()) ? 2 : 5)
+                        || r.skills().stream().anyMatch(s -> !validSkill(s)))
                     return response.error("INCONSISTENT_STATE");
                 var output = fields("attemptId",r.attemptId(),"submittedAt",r.submittedAt(),
                         "officialScore",r.officialScore(),"level",r.level(),"scope",r.scope(),
@@ -89,6 +90,13 @@ public class CompanionAssessmentHistoryToolHandler implements CompanionToolHandl
                 && a.rulesVersion() == b.rulesVersion() && a.paperVersion() > 0 && a.rulesVersion() > 0
                 && !a.result().attemptId().equals(b.result().attemptId())
                 && a.result().submittedAt().isAfter(b.result().submittedAt());
+    }
+
+    private static boolean validSkill(AssessmentCompanionSkillDto skill) {
+        return skill.total() >= 0 && skill.correct() >= 0 && skill.correct() <= skill.total()
+                && skill.percentage() >= 0 && skill.percentage() <= 100
+                && (skill.total() == 0 ? skill.percentage() == 0
+                    : Math.abs(skill.percentage() - 100.0 * skill.correct() / skill.total()) < 1);
     }
 
     private boolean matching(AssessmentCompanionSkillDto a, AssessmentCompanionSkillDto b) {

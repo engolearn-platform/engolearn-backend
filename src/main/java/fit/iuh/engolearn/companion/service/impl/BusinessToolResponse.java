@@ -56,7 +56,7 @@ final class BusinessToolResponse {
     String page(List<?> items, boolean more, String cursor, String coverage, Instant asOf,
             int limit, Map<String, Object> extra) {
         if (items == null || items.size() > limit || asOf == null
-                || !Set.of("COMPLETE", "LIMITED").contains(coverage)
+                || coverage == null || !Set.of("COMPLETE", "LIMITED").contains(coverage)
                 || (cursor != null && (!more || cursor.isBlank() || cursor.length() > 512))
                 || (more && cursor == null && "COMPLETE".equals(coverage))
                 || (items.isEmpty() && cursor != null)) return error("INCONSISTENT_STATE");
@@ -70,11 +70,6 @@ final class BusinessToolResponse {
         if (items.isEmpty() && !more && "COMPLETE".equals(coverage))
             return json(Map.of("status", "NO_DATA", "data", data));
         return success(data);
-    }
-
-    boolean successful(String output) {
-        var status = mapper.readTree(output).get("status");
-        return status != null && "SUCCESS".equals(status.asText());
     }
 
     String success(Object data) { return json(Map.of("status", "SUCCESS", "data", data)); }

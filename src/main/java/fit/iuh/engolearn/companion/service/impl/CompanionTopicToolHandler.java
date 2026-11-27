@@ -51,6 +51,9 @@ public class CompanionTopicToolHandler implements CompanionToolHandler {
                 int limit = limit(a, 1, 3);
                 var page = topics.discover(owner, new TopicDiscoveryQueryDto(
                         keyword == null ? null : keyword.trim(), level, limit, text(a,"cursor",512,null)));
+                if (page.items().stream().anyMatch(row -> row.visibleItemCount() < 0
+                        || (row.firstEligibleItem() != null && (!row.firstEligibleItem().startAllowed() || row.visibleItemCount() == 0))))
+                    return response.error("INCONSISTENT_STATE");
                 var rows = page.items().stream().map(row -> new TopicDiscoveryPageDto.RowDto(
                         row.topicId(), bounded(row.titleEn(),160), bounded(row.titleVi(),160), row.cefrLevel(),
                         bounded(row.descriptionSnippet(),240), row.visibleItemCount(), item(row.firstEligibleItem()))).toList();
@@ -64,12 +67,17 @@ public class CompanionTopicToolHandler implements CompanionToolHandler {
                 countsOnly(a);
                 var counts = topics.counts(owner);
                 if (!"COMPLETE".equals(counts.coverage()) || counts.asOf() == null
+                        || !"CURRENT_VISIBLE_CURRENT_GENERATION".equals(counts.scope())
                         || counts.completedTopics() < 0 || counts.completedTopicItems() < 0)
                     return response.error("INCONSISTENT_STATE");
                 return response.success(counts);
             }
             int limit = limit(a, 1, 3);
             var page = topics.resume(owner, new TopicPageQueryDto(limit, text(a,"cursor",512,null)));
+            if (page.items().stream().anyMatch(row -> !"IN_PROGRESS".equals(row.learningStatus())
+                    || row.completedVisibleItems() < 0 || row.totalVisibleItems() < row.completedVisibleItems()
+                    || (row.nextEligibleItem() != null && !row.nextEligibleItem().startAllowed())))
+                return response.error("INCONSISTENT_STATE");
             var rows = page.items().stream().map(row -> new TopicResumePageDto.RowDto(
                     row.topicId(),bounded(row.titleEn(),160),bounded(row.titleVi(),160),row.cefrLevel(),
                     row.learningStatus(),row.completedVisibleItems(),row.totalVisibleItems(),row.lastAccessedAt(),

@@ -34,7 +34,9 @@ class CompanionBusinessToolTest {
     private final CompanionBusinessTurnContext scope = new CompanionBusinessTurnContext(NOW);
 
     private String call(String name, Map<String,Object> args) {
-        return registry.execute(name,args,"owner",()->{},null,scope);
+        String result = registry.execute(name,args,"owner",()->{},null,scope);
+        registry.acceptResult(name,args,"owner",scope,result);
+        return result;
     }
     private String status(String value) { return json.readTree(value).get("status").asText(); }
 
@@ -126,6 +128,80 @@ class CompanionBusinessToolTest {
         assertEquals(1,observed.size());
         assertEquals("READ",observed.get(0).get("code").asText());
         assertEquals(80,observed.get(0).get("newerPercentage").asInt());
+    }
+
+    @Test void malformedProviderFactsFailClosedWithoutPayloadAndKnownUnknownsRemain() {
+        when(topics.counts("owner")).thenReturn(new TopicCompletionCountsDto(NOW,"COMPLETE",0,0,"private-scope"),
+                new TopicCompletionCountsDto(NOW,"COMPLETE",0,0,null));
+        assertInconsistent(call("getTopicLearningProgress",Map.of("mode","COUNTS")));
+        assertInconsistent(call("getTopicLearningProgress",Map.of("mode","COUNTS")));
+        when(paths.counts("owner")).thenReturn(new LearningPathCompletionCountsDto(NOW,LearningPathCoverage.COMPLETE,0,"private-scope"),
+                new LearningPathCompletionCountsDto(NOW,LearningPathCoverage.COMPLETE,0,"CURRENT_RECORDED_PATHS"));
+        assertInconsistent(call("getLearningPathProgress",Map.of("mode","COUNTS")));
+        assertEquals("SUCCESS",status(call("getLearningPathProgress",Map.of("mode","COUNTS"))));
+        for (var row : List.of(
+                new TopicResumePageDto.RowDto("private-id",null,null,null,"IN_PROGRESS",3,2,null,null,null),
+                new TopicResumePageDto.RowDto("private-id",null,null,null,"IN_PROGRESS",-1,2,null,null,null),
+                new TopicResumePageDto.RowDto("private-id",null,null,null,"private-status",0,2,null,null,null))) {
+            when(topics.resume(eq("owner"),any())).thenReturn(new TopicResumePageDto(List.of(row),false,null,"COMPLETE",NOW));
+            assertInconsistent(call("getTopicLearningProgress",Map.of("mode","RESUME")));
+        }
+        when(topics.discover(eq("owner"),any())).thenReturn(new TopicDiscoveryPageDto(List.of(
+                new TopicDiscoveryPageDto.RowDto("private-id",null,null,null,null,-1,null)),false,null,"COMPLETE",NOW));
+        assertInconsistent(call("findLearningTopics",Map.of()));
+        var badAction = new LearningPathActivePageDto.NextAction(1,1,"IN_PROGRESS",LearningPathAction.RESUME,
+                NOW,null,LearningPathAvailability.UNKNOWN,false);
+        for (var row : List.of(
+                new LearningPathActivePageDto.Row("private-id",null,"IN_PROGRESS",1,List.of(),5,6,1,LearningPathAvailability.UNKNOWN,List.of()),
+                new LearningPathActivePageDto.Row("private-id",null,"IN_PROGRESS",1,List.of(),null,null,null,LearningPathAvailability.UNKNOWN,List.of(badAction)),
+                new LearningPathActivePageDto.Row("private-id",null,"IN_PROGRESS",1,List.of(),null,null,null,null,List.of()),
+                new LearningPathActivePageDto.Row("private-id",null,"IN_PROGRESS",1,List.of(),null,null,null,LearningPathAvailability.AVAILABLE,List.of()))) {
+            when(paths.active(eq("owner"),eq(NOW),any())).thenReturn(new LearningPathActivePageDto(List.of(row),false,null,LearningPathCoverage.COMPLETE,NOW));
+            assertInconsistent(call("getLearningPathProgress",Map.of("mode","ACTIVE")));
+        }
+        var mismatchedAction = new LearningPathActivePageDto.NextAction(1,1,"IN_PROGRESS",LearningPathAction.START,
+                NOW,null,LearningPathAvailability.UNKNOWN,true);
+        when(paths.active(eq("owner"),eq(NOW),any())).thenReturn(new LearningPathActivePageDto(List.of(
+                new LearningPathActivePageDto.Row("private-id",null,"IN_PROGRESS",1,List.of(),null,null,null,
+                        LearningPathAvailability.UNKNOWN,List.of(mismatchedAction))),false,null,LearningPathCoverage.COMPLETE,NOW));
+        assertInconsistent(call("getLearningPathProgress",Map.of("mode","ACTIVE")));
+        for (var rate : List.of(-1.0,101.0,Double.NaN)) {
+            var row = new LearningPathActivityPageDto.Row("private-id",1,1,"CLOSED",
+                    LearningPathEventKind.DAY_CLOSED,WEEK,null,rate,null);
+            when(paths.recent(eq("owner"),eq(WEEK),eq(NOW),any())).thenReturn(new LearningPathActivityPageDto(
+                    List.of(row),false,null,LearningPathCoverage.COMPLETE,NOW));
+            assertInconsistent(call("getLearningPathProgress",Map.of("mode","RECENT")));
+        }
+        var recorded = new LearningPathActivityPageDto.Row("path",1,1,"CLOSED",
+                LearningPathEventKind.DAY_CLOSED,WEEK,null,0.0,null);
+        when(paths.recent(eq("owner"),eq(WEEK),eq(NOW),any())).thenReturn(new LearningPathActivityPageDto(
+                List.of(recorded),false,null,LearningPathCoverage.COMPLETE,NOW));
+        assertEquals("SUCCESS",status(call("getLearningPathProgress",Map.of("mode","RECENT"))));
+        var unknown = new LearningPathActivePageDto.Row("path",null,"IN_PROGRESS",null,List.of(),null,null,null,LearningPathAvailability.UNKNOWN,List.of());
+        when(paths.active(eq("owner"),eq(NOW),any())).thenReturn(new LearningPathActivePageDto(List.of(unknown),false,null,LearningPathCoverage.COMPLETE,NOW));
+        assertEquals("SUCCESS",status(call("getLearningPathProgress",Map.of("mode","ACTIVE"))));
+        for (var skill : List.of(
+                new AssessmentCompanionSkillDto("private-code",null,null,null,11,10,100,null),
+                new AssessmentCompanionSkillDto("private-code",null,null,null,-1,10,0,null),
+                new AssessmentCompanionSkillDto("private-code",null,null,null,1,10,101,null),
+                new AssessmentCompanionSkillDto("private-code",null,null,null,1,10,80,null))) {
+            var summary = new AssessmentCompanionSummaryDto("private-id",NOW,null,null,AssessmentCompanionScope.FULL,List.of(skill));
+            when(assessments.historyForCompanion(eq("owner"),any())).thenReturn(new AssessmentCompanionHistoryPageDto(
+                    List.of(new AssessmentCompanionHistoryRowDto(summary,null,0,0,false)),false,null,AssessmentCompanionHistoryCoverage.COMPLETE,NOW));
+            assertInconsistent(call("getAssessmentHistory",Map.of("detail","SKILLS")));
+        }
+        var zero = new AssessmentCompanionSkillDto("READ",null,null,null,0,10,0,null);
+        var summary = new AssessmentCompanionSummaryDto("attempt",NOW,null,null,AssessmentCompanionScope.FULL,List.of(zero));
+        when(assessments.historyForCompanion(eq("owner"),any())).thenReturn(new AssessmentCompanionHistoryPageDto(
+                List.of(new AssessmentCompanionHistoryRowDto(summary,null,0,0,false)),false,null,AssessmentCompanionHistoryCoverage.COMPLETE,NOW));
+        assertEquals("SUCCESS",status(call("getAssessmentHistory",Map.of("detail","SKILLS"))));
+    }
+
+    private void assertInconsistent(String result) {
+        assertEquals("ERROR",status(result));
+        assertTrue(result.contains("INCONSISTENT_STATE"));
+        assertFalse(result.contains("private-"));
+        assertFalse(json.readTree(result).has("data"));
     }
 
     @Test void oversizedUtf8ResultFailsClosedWithoutSkippingRowsOrLeakingCursor() {

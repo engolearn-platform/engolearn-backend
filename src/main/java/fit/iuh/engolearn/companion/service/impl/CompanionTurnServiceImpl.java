@@ -236,6 +236,7 @@ public class CompanionTurnServiceImpl implements CompanionTurnService {
                 continuation = round.toolCalls.continuation();
                 List<CompanionToolResult> results = new ArrayList<>();
                 for (CompanionToolCall call : round.toolCalls.calls()) {
+                    if (observer.isCancelled()) throw new TurnCancelledException();
                     if (!seenCallIds.add(call.callId())) throw invalidProviderResponse();
                     String json;
                     if (toolCallsExecuted >= properties.getMaxToolCalls()) {
@@ -454,6 +455,9 @@ public class CompanionTurnServiceImpl implements CompanionTurnService {
                 }
                 try {
                     String response = future.get(Math.min(100, Math.max(1, remaining.toMillis())), TimeUnit.MILLISECONDS);
+                    if (observer.isCancelled()) throw new TurnCancelledException();
+                    if (!Instant.now().isBefore(toolDeadline)) continue;
+                    toolRegistry.acceptResult(call.name(), call.arguments(), prepared.learnerId(), businessContext, response);
                     log.info("Companion tool call: tool={}, decision=result, stage=tool_handler, code={}, round={}, ordinal={}, elapsedMs={}",
                             toolRegistry.safeName(call.name()), toolResultStatus(response), round, ordinal, TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startedNanos));
                     return response;
