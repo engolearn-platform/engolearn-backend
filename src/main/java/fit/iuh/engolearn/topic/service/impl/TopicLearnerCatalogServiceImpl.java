@@ -7,6 +7,8 @@ import lombok.RequiredArgsConstructor;
 
 import fit.iuh.engolearn.shared.enums.CefrLevel;
 import fit.iuh.engolearn.topic.contract.TopicSpeakingHistory;
+import fit.iuh.engolearn.topic.contract.TopicCompanionReads;
+import fit.iuh.engolearn.topic.contract.dto.*;
 import fit.iuh.engolearn.topic.contract.dto.TopicSpeakingHistoryDto;
 import fit.iuh.engolearn.topic.contract.dto.TopicSpeakingHistoryDto.LearningStatus;
 import fit.iuh.engolearn.topic.dto.request.GetAvailableTopicRequest;
@@ -25,7 +27,7 @@ import java.util.*;
 
 @Service
 @RequiredArgsConstructor
-public class TopicLearnerCatalogServiceImpl implements TopicLearnerCatalogService, TopicSpeakingHistory {
+public class TopicLearnerCatalogServiceImpl implements TopicLearnerCatalogService, TopicSpeakingHistory, TopicCompanionReads {
     private final TopicBrowseService browse;
     private final UserLevelLookup userLevels;
     private final UserTopicProgressRepository topics;
@@ -130,9 +132,7 @@ public class TopicLearnerCatalogServiceImpl implements TopicLearnerCatalogServic
                 item.setLearningAttempt(new TopicCatalogPolicy.AttemptReference(running.getId(), new TopicCatalogPolicy.Position(
                         running.getFurthestReached().getStage().name(), running.getFurthestReached().getItemIndex())));
             }
-            String reason = completed ? "ALREADY_COMPLETED" : running != null ? "OTHER_ITEM_IN_PROGRESS" :
-                    !levelAllowed(detail.getCefrLevel(), learnerLevel) ? "LEVEL_TOO_LOW" : !previousDone ? "PREDECESSOR_INCOMPLETE" :
-                    anotherRunning ? "OTHER_ITEM_IN_PROGRESS" : null;
+            String reason = startReason(completed, running != null, levelAllowed(detail.getCefrLevel(), learnerLevel), previousDone, anotherRunning);
             TopicCatalogPolicy.Availability start = new TopicCatalogPolicy.Availability(reason == null, reason);
             TopicCatalogPolicy.Availability resume = new TopicCatalogPolicy.Availability(running != null,
                     running == null ? "NO_RUNNING_ATTEMPT" : null);
@@ -171,6 +171,237 @@ public class TopicLearnerCatalogServiceImpl implements TopicLearnerCatalogServic
         } while (cursor != null);
         return rows;
     }
+
+    @Override
+    public TopicDiscoveryPageDto discover(String learnerId, TopicDiscoveryQueryDto query) {
+        Instant asOf = Instant.now();
+        requireCompanionPage(learnerId, query.limit(), query.cursor());
+        String keyword = query.keyword() == null ? null : query.keyword().trim();
+        if (keyword != null && (keyword.isEmpty() || keyword.length() > 80))
+            throw new IllegalArgumentException("Invalid keyword");
+        CefrLevel learnerLevel = TopicUserLevelResolver.require(userLevels, learnerId);
+        CefrLevel filter = query.level() == null ? learnerLevel : query.level();
+        String fingerprint = companionFingerprint(learnerId, "discover", filter, keyword, learnerLevel);
+        var cursor = companionCursor(query.cursor(), fingerprint);
+        var rows = companionCatalog(filter, keyword);
+        State state = companionState(learnerId, rows);
+        var eligible = rows.stream().filter(row -> levelAllowed(row.topic().getCefrLevel(), learnerLevel)
+                && !state.owned().containsKey(row.topic().getId())
+                && progress(row.topic().getId(), row.visible(), state).status().equals("NOT_STARTED")).toList();
+        var page = companionPage(eligible, cursor, query.limit(), fingerprint, row -> row.topic().getOrderIndex());
+        var result = page.rows().stream().map(row -> {
+            Topic topic = row.topic();
+            return new TopicDiscoveryPageDto.RowDto(topic.getId(), clip(topic.getTitleEn(), 160),
+                    clip(topic.getTitleVi(), 160), topic.getCefrLevel(), clip(topic.getDescription(), 240),
+                    row.visible().size(), nextCompanionItem(row, state, learnerLevel));
+        }).toList();
+        return new TopicDiscoveryPageDto(result, page.nextCursor() != null, page.nextCursor(), "COMPLETE", asOf);
+    }
+
+    @Override
+    public TopicResumePageDto resume(String learnerId, TopicPageQueryDto query) {
+        Instant asOf = Instant.now();
+        requireCompanionPage(learnerId, query.limit(), query.cursor());
+        CefrLevel learnerLevel = TopicUserLevelResolver.require(userLevels, learnerId);
+        String fingerprint = companionFingerprint(learnerId, "resume", null, null, learnerLevel);
+        var cursor = companionCursor(query.cursor(), fingerprint);
+        var rows = companionCatalog(null, null);
+        State state = companionState(learnerId, rows);
+        var eligible = rows.stream().filter(row -> progress(row.topic().getId(), row.visible(), state).status().equals("IN_PROGRESS"))
+                .sorted(Comparator.comparing((CompanionRelease row) -> companionAccess(row, state),
+                        Comparator.nullsLast(Comparator.reverseOrder())).thenComparing(row -> row.topic().getId())).toList();
+        var page = companionPage(eligible, cursor, query.limit(), fingerprint, row -> null);
+        var result = page.rows().stream().map(row -> {
+            Topic topic = row.topic();
+            var progress = progress(topic.getId(), row.visible(), state);
+            var active = row.items().stream().filter(item -> {
+                var running = state.running().get(item.getTopicItemId());
+                return running != null && topic.getId().equals(running.getTopicId())
+                        && !completedCompanionItem(item, state);
+            }).findFirst().map(item -> new TopicResumePageDto.ActiveItemDto(item.getTopicItemId(),
+                    clip(item.getTitle(), 160), state.running().get(item.getTopicItemId()).getId())).orElse(null);
+            return new TopicResumePageDto.RowDto(topic.getId(), clip(topic.getTitleEn(), 160),
+                    clip(topic.getTitleVi(), 160), topic.getCefrLevel(), progress.status(), progress.completedItemCount(),
+                    progress.totalItemCount(), companionAccess(row, state), active, nextCompanionItem(row, state, learnerLevel));
+        }).toList();
+        return new TopicResumePageDto(result, page.nextCursor() != null, page.nextCursor(), "COMPLETE", asOf);
+    }
+
+    @Override
+    public TopicCompletionCountsDto counts(String learnerId) {
+        Instant asOf = Instant.now();
+        requireCompanionPage(learnerId, 1, null);
+        var rows = companionCatalog(null, null);
+        State state = companionState(learnerId, rows);
+        long completedTopics = 0, completedItems = 0;
+        for (var row : rows) {
+            var progress = progress(row.topic().getId(), row.visible(), state);
+            if (progress.status().equals("COMPLETED")) completedTopics++;
+            completedItems += progress.completedItemCount();
+        }
+        return new TopicCompletionCountsDto(asOf, "COMPLETE", completedTopics, completedItems,
+                "CURRENT_VISIBLE_CURRENT_GENERATION");
+    }
+
+    private List<CompanionRelease> companionCatalog(CefrLevel level, String keyword) {
+        List<Topic> candidates = new ArrayList<>();
+        Integer key = null;
+        String id = null;
+        while (true) {
+            var batch = topicRepository.findPublishedPage(level, keyword, TopicRepository.SortKey.ORDER_INDEX, key, id, 100);
+            candidates.addAll(batch);
+            if (batch.size() < 100) break;
+            var last = batch.getLast();
+            if (Objects.equals(id, last.getId())) throw new IllegalStateException("Catalog cursor stalled");
+            id = last.getId();
+            key = last.getOrderIndex();
+        }
+        var releases = historyReleases(candidates.stream().map(Topic::getId).toList());
+        Set<String> versionIds = new HashSet<>();
+        releases.values().forEach(row -> {
+            if (row.published() && row.version().getItemVersionIds() != null)
+                versionIds.addAll(row.version().getItemVersionIds());
+        });
+        Map<String, TopicItemVersion> metadata = new HashMap<>();
+        if (!versionIds.isEmpty()) itemVersions.findScreenMetadata(versionIds).forEach(item -> metadata.put(item.getId(), item));
+        List<CompanionRelease> result = new ArrayList<>();
+        Set<String> seenItems = new HashSet<>();
+        for (Topic topic : candidates) {
+            var release = releases.get(topic.getId());
+            if (release == null || !release.published() || Boolean.TRUE.equals(release.topic().getPublicationSuspended())
+                    || !Objects.equals(topic.getLatestPublishedVersion(), release.version().getId())) continue;
+            var visible = new LinkedHashMap<String, String>();
+            List<TopicItemVersion> ordered = new ArrayList<>();
+            if (release.version().getItemVersionIds() != null) {
+                for (String versionId : release.version().getItemVersionIds()) {
+                    var item = metadata.get(versionId);
+                    if (item == null || !topic.getId().equals(item.getTopicId()) || item.getTopicItemId() == null)
+                        throw new IllegalStateException("Inconsistent topic manifest");
+                    if (item.getStatus() == ContentStatus.HIDDEN) continue;
+                    if (item.getStatus() != ContentStatus.PUBLISHED)
+                        throw new IllegalStateException("Inconsistent topic item publication");
+                    if (!seenItems.add(item.getTopicItemId())) throw new IllegalStateException("Duplicate topic item");
+                    visible.put(item.getTopicItemId(), versionId);
+                    ordered.add(item);
+                }
+            }
+            ordered.sort(Comparator.comparing(TopicItemVersion::getOrder, Comparator.nullsLast(Comparator.naturalOrder()))
+                    .thenComparing(TopicItemVersion::getTopicItemId).thenComparing(TopicItemVersion::getId));
+            result.add(new CompanionRelease(topic, visible, ordered));
+        }
+        return result;
+    }
+
+    private State companionState(String learnerId, List<CompanionRelease> rows) {
+        if (rows.isEmpty()) return new State(Map.of(), Map.of(), Map.of(), Set.of(), Map.of(), Map.of(), Map.of());
+        State state = state(learnerId, rows.stream().map(row -> row.topic().getId()).toList(), true);
+        Map<String, TopicItemVersion> pinned = new HashMap<>();
+        var pinnedIds = state.running().values().stream().map(UserTopicItemAttempt::getTopicItemVersionId)
+                .filter(Objects::nonNull).distinct().toList();
+        if (!pinnedIds.isEmpty()) itemVersions.findScreenMetadata(pinnedIds).forEach(item -> pinned.put(item.getId(), item));
+        for (var running : state.running().values()) {
+            var version = pinned.get(running.getTopicItemVersionId());
+            if (version == null || !Objects.equals(version.getTopicId(), running.getTopicId())
+                    || !Objects.equals(version.getTopicItemId(), running.getTopicItemId())
+                    || (version.getStatus() != ContentStatus.PUBLISHED && version.getStatus() != ContentStatus.ARCHIVED))
+                throw new IllegalStateException("Unverified pinned learning version");
+        }
+        for (var row : rows) {
+            for (String itemId : row.visible().keySet()) {
+                var item = state.items().get(itemId);
+                var running = state.running().get(itemId);
+                if (item != null && !row.topic().getId().equals(item.getTopicId())
+                        || running != null && !row.topic().getId().equals(running.getTopicId()))
+                    throw new IllegalStateException("Inconsistent topic item ownership");
+            }
+        }
+        return state;
+    }
+
+    private Instant companionAccess(CompanionRelease row, State state) {
+        String topicId = row.topic().getId();
+        var owned = state.owned().get(topicId);
+        Instant access = owned == null ? null : owned.getLastAccessedAt();
+        Instant attempt = state.recency().get(topicId);
+        return attempt != null && (access == null || attempt.isAfter(access)) ? attempt : access;
+    }
+
+    private boolean completedCompanionItem(TopicItemVersion item, State state) {
+        var stored = state.items().get(item.getTopicItemId());
+        return stored != null && stored.getStatus() == ItemProgressStatus.COMPLETED;
+    }
+
+    private TopicDiscoveryPageDto.ItemDto nextCompanionItem(CompanionRelease row, State state, CefrLevel learnerLevel) {
+        boolean anotherRunning = row.visible().keySet().stream().anyMatch(state.running()::containsKey);
+        boolean previousDone = true;
+        for (var item : row.items()) {
+            var stored = state.items().get(item.getTopicItemId());
+            boolean completed = completedCompanionItem(item, state);
+            boolean running = state.running().containsKey(item.getTopicItemId());
+            if ((stored == null || stored.getStatus() == ItemProgressStatus.NOT_STARTED)
+                    && startReason(completed, running, levelAllowed(row.topic().getCefrLevel(), learnerLevel),
+                    previousDone, anotherRunning) == null)
+                return new TopicDiscoveryPageDto.ItemDto(item.getTopicItemId(), clip(item.getTitle(), 160), true);
+            previousDone &= completed;
+        }
+        return null;
+    }
+
+    private static String startReason(boolean completed, boolean running, boolean allowed,
+                                      boolean previousDone, boolean anotherRunning) {
+        return completed ? "ALREADY_COMPLETED" : running ? "OTHER_ITEM_IN_PROGRESS" :
+                !allowed ? "LEVEL_TOO_LOW" : !previousDone ? "PREDECESSOR_INCOMPLETE" :
+                anotherRunning ? "OTHER_ITEM_IN_PROGRESS" : null;
+    }
+
+    private static void requireCompanionPage(String learnerId, int limit, String cursor) {
+        if (learnerId == null || learnerId.isBlank() || limit < 1 || limit > 5
+                || cursor != null && (cursor.isBlank() || cursor.length() > 512))
+            throw new IllegalArgumentException("Invalid learner page query");
+    }
+
+    private static String companionFingerprint(String learnerId, String mode, CefrLevel filter,
+                                                String keyword, CefrLevel learnerLevel) {
+        String owner = HexFormat.of().formatHex(learnerId.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        return TopicCursorCodec.fingerprint(filter, "companion|" + mode + "|" + owner + "|" + learnerLevel
+                + "|" + (keyword == null ? "" : keyword));
+    }
+
+    private static TopicCursorCodec.DecodedCursor companionCursor(String cursor, String fingerprint) {
+        if (cursor == null) return null;
+        var decoded = TopicCursorCodec.decode(cursor);
+        if (decoded.sort() != TopicSortOrder.RECOMMENDED || !fingerprint.equals(decoded.filterFingerprint()))
+            throw new InvalidBrowseRequestException("Invalid companion cursor");
+        return decoded;
+    }
+
+    private CompanionPage companionPage(List<CompanionRelease> rows, TopicCursorCodec.DecodedCursor cursor,
+                                         int limit, String fingerprint, java.util.function.Function<CompanionRelease, Integer> key) {
+        int start = 0;
+        if (cursor != null) {
+            while (start < rows.size() && !(rows.get(start).topic().getId().equals(cursor.topicId())
+                    && Objects.equals(key.apply(rows.get(start)), cursor.sortKey()))) start++;
+            if (start == rows.size()) throw new InvalidBrowseRequestException("Invalid companion cursor");
+            start++;
+        }
+        var page = rows.subList(start, Math.min(start + limit, rows.size()));
+        String next = null;
+        if (start + page.size() < rows.size()) {
+            var last = page.getLast();
+            next = TopicCursorCodec.encode(TopicSortOrder.RECOMMENDED, fingerprint, key.apply(last), last.topic().getId());
+            if (next.length() > 512) throw new IllegalStateException("Companion cursor exceeds limit");
+        }
+        return new CompanionPage(page, next);
+    }
+
+    private static String clip(String value, int max) {
+        if (value == null || value.length() <= max) return value;
+        int end = Character.isHighSurrogate(value.charAt(max - 1)) ? max - 1 : max;
+        return value.substring(0, end);
+    }
+
+    private record CompanionRelease(Topic topic, Map<String, String> visible, List<TopicItemVersion> items) {}
+    private record CompanionPage(List<CompanionRelease> rows, String nextCursor) {}
 
     @Override
     public Map<String, TopicSpeakingHistoryDto> summaries(String learnerId, Collection<String> topicIds) {
@@ -256,26 +487,41 @@ public class TopicLearnerCatalogServiceImpl implements TopicLearnerCatalogServic
     }
 
     private State state(String userId, Collection<String> topicIds) {
+        return state(userId, topicIds, false);
+    }
+
+    private State state(String userId, Collection<String> topicIds, boolean companion) {
         boolean scoped = topicIds != null;
         Map<String, Long> observed = scoped ? generations.snapshot(userId, topicIds) : generations.snapshot(userId);
         Map<String, UserTopicProgress> owned = new HashMap<>();
         var topicProgress = scoped ? topics.findByUserIdAndTopicIdIn(userId, topicIds) : topics.findByUserId(userId);
-        topicProgress.stream().filter(row -> row.getGeneration() == observed.getOrDefault(row.getTopicId(), 0L))
+        topicProgress.stream().filter(row -> !companion || companionOwned(userId, topicIds, row.getUserId(), row.getTopicId())).filter(row -> row.getGeneration() == observed.getOrDefault(row.getTopicId(), 0L))
                 .forEach(row -> owned.put(row.getTopicId(), row));
         Map<String, UserTopicItemProgress> storedProgress = new HashMap<>();
         var itemProgress = scoped ? items.findByUserIdAndTopicIdIn(userId, topicIds) : items.findByUserId(userId);
-        itemProgress.stream().filter(row -> row.getGeneration() == observed.getOrDefault(row.getTopicId(), 0L))
+        itemProgress.stream().filter(row -> !companion || companionOwned(userId, topicIds, row.getUserId(), row.getTopicId())).filter(row -> row.getGeneration() == observed.getOrDefault(row.getTopicId(), 0L))
                 .forEach(row -> storedProgress.put(row.getTopicItemId(), row));
         var itemAttempts = scoped ? attempts.findByUserIdAndTopicIdIn(userId, topicIds) : attempts.findByUserId(userId);
         List<UserTopicItemAttempt> saved = new ArrayList<>(itemAttempts.stream()
+                .filter(row -> !companion || companionOwned(userId, topicIds, row.getUserId(), row.getTopicId()))
                 .filter(row -> row.getGeneration() == observed.getOrDefault(row.getTopicId(), 0L)).toList());
         Map<String, TopicRetryRuntime> retryStates = new HashMap<>();
         var runtimes = scoped ? retryRuntimes.findByUserIdAndTopicIdIn(userId, topicIds) : retryRuntimes.findByUserId(userId);
         for (TopicRetryRuntime runtime : runtimes) {
+            if (companion && !companionOwned(userId, topicIds, runtime.getUserId(), runtime.getTopicId())) continue;
             if (runtime.getGeneration() != observed.getOrDefault(runtime.getTopicId(), 0L)) continue;
             retryStates.put(runtime.getTopicId(), runtime);
-            saved.addAll(runtime.getOfficialResults().values());
-            if (runtime.getCurrentAttempt() != null) saved.add(runtime.getCurrentAttempt());
+            if (!companion) {
+                saved.addAll(runtime.getOfficialResults().values());
+                if (runtime.getCurrentAttempt() != null) saved.add(runtime.getCurrentAttempt());
+            } else {
+                if (runtime.getOfficialResults() != null) runtime.getOfficialResults().forEach((itemId, attempt) -> {
+                    if (validCompanionRetry(runtime, attempt) && Objects.equals(itemId, attempt.getTopicItemId())
+                            && attempt.getStatus() == AttemptStatus.COMPLETED) saved.add(attempt);
+                });
+                var current = runtime.getCurrentAttempt();
+                if (current != null && validCompanionRetry(runtime, current)) saved.add(current);
+            }
         }
         Map<String, UserTopicItemProgress> progress = resolveCompletedProgress(storedProgress, saved);
         List<UserTopicItemAttempt> active = saved.stream().filter(row -> row.getStatus() == AttemptStatus.IN_PROGRESS).toList();
@@ -289,7 +535,27 @@ public class TopicLearnerCatalogServiceImpl implements TopicLearnerCatalogServic
                     && row.getAttemptType() == AttemptType.LEARNING) learning.add(row.getId());
         });
         Map<String, UserTopicItemAttempt> running = new HashMap<>();
-        active.stream().filter(row -> row.getAttemptType() == AttemptType.LEARNING || learning.contains(row.getUserTopicAttemptId())).forEach(row -> running.put(row.getTopicItemId(), row));
+        if (!companion) {
+            active.stream().filter(row -> row.getAttemptType() == AttemptType.LEARNING || learning.contains(row.getUserTopicAttemptId())).forEach(row -> running.put(row.getTopicItemId(), row));
+        } else {
+            Map<String, UserTopicAttempt> parents = new HashMap<>();
+            parentAttempts.forEach(parent -> parents.put(parent.getId(), parent));
+            for (var row : active) {
+                var parent = parents.get(row.getUserTopicAttemptId());
+                if (row.getAttemptType() == AttemptType.RETRY) continue;
+                if (parent == null || !userId.equals(parent.getUserId()) || !row.getTopicId().equals(parent.getTopicId())
+                        || parent.getGeneration() != row.getGeneration() || parent.getAttemptType() != AttemptType.LEARNING
+                        || parent.getStatus() != AttemptStatus.IN_PROGRESS
+                        || !Objects.equals(parent.getCurrentTopicItemId(), row.getTopicItemId())
+                        || !(parent.getScope() == AttemptScope.ITEM && Objects.equals(parent.getTargetTopicItemId(), row.getTopicItemId())
+                        || parent.getItemsSnapshot() != null && parent.getItemsSnapshot().stream().anyMatch(item ->
+                        Objects.equals(item.getTopicItemId(), row.getTopicItemId())
+                                && Objects.equals(item.getTopicItemVersionId(), row.getTopicItemVersionId()))))
+                    throw new IllegalStateException("Unverified learning attempt parent");
+                if (running.put(row.getTopicItemId(), row) != null)
+                    throw new IllegalStateException("Multiple learning attempts");
+            }
+        }
         Set<String> started = new HashSet<>();
         Map<String, Instant> recency = new HashMap<>();
         for (UserTopicItemAttempt attempt : saved) {
@@ -298,6 +564,19 @@ public class TopicLearnerCatalogServiceImpl implements TopicLearnerCatalogServic
                     (left, right) -> left.isAfter(right) ? left : right);
         }
         return new State(owned, progress, running, started, recency, retryStates, observed);
+    }
+
+    private static boolean companionOwned(String owner, Collection<String> topicIds, String rowOwner, String topicId) {
+        if (!owner.equals(rowOwner) || !topicIds.contains(topicId))
+            throw new IllegalStateException("Inconsistent learner state");
+        return true;
+    }
+
+    private static boolean validCompanionRetry(TopicRetryRuntime runtime, UserTopicItemAttempt attempt) {
+        return attempt != null && Objects.equals(runtime.getUserId(), attempt.getUserId())
+                && Objects.equals(runtime.getTopicId(), attempt.getTopicId())
+                && runtime.getGeneration() == attempt.getGeneration()
+                && attempt.getAttemptType() == AttemptType.RETRY;
     }
 
     private Map<String, UserTopicItemProgress> resolveCompletedProgress(
