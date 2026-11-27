@@ -211,6 +211,31 @@ class SpeakingRealtimeMongoIntegrationTest extends AbstractMongoIntegrationTest 
     }
 
     @Test
+    void outstandingTicketCannotUpgradeAfterDisableAndEnable() throws Exception {
+        String id = create();
+        var token = ticket(id, 1);
+        mongoTemplate.getCollection("users").updateOne(new org.bson.Document("_id",OWNER),
+                new org.bson.Document("$inc",new org.bson.Document("session_epoch",1)));
+        assertHandshakeStatus(id, "?ticket=" + token, ORIGIN, 401);
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(booleans={true,false})
+    void activeLeaseRejectsNewCommandsOrAudioAfterAccountChange(boolean audioFrame) throws Exception {
+        String id = create();
+        var connection = socket(id,ticket(id,1));
+        connection.next("SESSION_STATE");
+        var change = audioFrame ? new org.bson.Document("deleted_at",new java.util.Date())
+                : new org.bson.Document("locked",true);
+        mongoTemplate.getCollection("users").updateOne(new org.bson.Document("_id",OWNER),
+                new org.bson.Document("$set",change).append("$inc",new org.bson.Document("session_epoch",1)));
+        if (audioFrame) connection.binary(frame(UUID.randomUUID(),0,VOICE));
+        else connection.command("START_TURN",null,Map.of("clientTurnId",UUID.randomUUID().toString()));
+        connection.closed.get(5,TimeUnit.SECONDS);
+        assertThat(runtime.runtimeSession(id).getLastTurnSequence()).isZero();
+    }
+
+    @Test
     void realUpgradeEnforcesTicketAndOriginAndDeliversDurableTurnAndWav() throws Exception {
         String id = create();
         assertThat(request("GET", BASE + "/sessions/" + id, null, null).statusCode()).isEqualTo(401);

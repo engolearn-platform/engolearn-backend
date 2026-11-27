@@ -41,6 +41,8 @@ public class SpeakingSession extends BaseDocument {
     @Field("deleted_at") private Instant deletedAt;
     @Field("controller_epoch") private long controllerEpoch;
     @Field("resume_request_id") private String resumeRequestId;
+    @Field("auth_session_id") private String authSessionId;
+    @Field("account_session_epoch") private Long accountSessionEpoch;
     @Field("ticket_hash") private String ticketHash;
     @Field("ticket_expires_at") private Instant ticketExpiresAt;
     @Field("lease_id") private String leaseId;

@@ -17,5 +17,6 @@ public class RefreshSession extends BaseDocument {
     @Field("token_hash") private String tokenHash;
     @Field("expires_at") private Instant expiresAt;
     @Field("revoked") private boolean revoked;
+    @Field("account_session_epoch") private long accountSessionEpoch;
     @Field("generation") private long generation;
 }
