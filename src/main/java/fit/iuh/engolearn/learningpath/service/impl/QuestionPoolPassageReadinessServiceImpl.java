@@ -33,6 +33,16 @@ public class QuestionPoolPassageReadinessServiceImpl implements QuestionPoolPass
     @Override
     @PreAuthorize("hasRole('CONTENT_MANAGER')")
     public QuestionPoolPassageReadinessResponse check(String passageId) {
+        return evaluate(passageId, "DRAFT", true);
+    }
+
+    @Override
+    @PreAuthorize("hasRole('CONTENT_MANAGER')")
+    public QuestionPoolPassageReadinessResponse checkForQuestionPublication(String passageId) {
+        return evaluate(passageId, "ACTIVE", false);
+    }
+
+    private QuestionPoolPassageReadinessResponse evaluate(String passageId, String requiredStatus, boolean validateReferences) {
         var source = passages.findReadinessSource(passageId).orElseThrow(QuestionPoolPassageNotFoundException::new);
         List<QuestionPoolPassageReadinessIssueResponse> blockers = new ArrayList<>();
         List<QuestionPoolPassageReadinessIssueResponse> warnings = new ArrayList<>();
@@ -41,8 +51,10 @@ public class QuestionPoolPassageReadinessServiceImpl implements QuestionPoolPass
         for (String field : source.malformedFields()) {
             blockers.add(issue("INVALID_STORED_FIELD", field, "Trường dữ liệu đã lưu không đúng kiểu."));
         }
-        if (!"DRAFT".equals(source.status())) {
-            blockers.add(issue("PASSAGE_NOT_DRAFT", "status", "Chỉ passage bản nháp được xuất bản."));
+        if (!requiredStatus.equals(source.status())) {
+            blockers.add("DRAFT".equals(requiredStatus)
+                    ? issue("PASSAGE_NOT_DRAFT", "status", "Chỉ passage bản nháp được xuất bản.")
+                    : issue("PASSAGE_NOT_ACTIVE", "status", "Passage phải đang sử dụng trước khi xuất bản câu hỏi."));
         }
         if (source.revision() == null || source.revision() < 1) {
             blockers.add(issue("INVALID_REVISION", "revision", "Passage cần revision hợp lệ trước khi xuất bản."));
@@ -66,7 +78,7 @@ public class QuestionPoolPassageReadinessServiceImpl implements QuestionPoolPass
         }
         long total = questions.countPassageReferences(passageId);
         long incompatible = questions.countIncompatiblePassageReferences(passageId, source.skill(), source.level());
-        if (incompatible > 0) {
+        if (validateReferences && incompatible > 0) {
             blockers.add(issue("INCOMPATIBLE_QUESTION_REFERENCES", "questions", "Có câu hỏi tham chiếu sai kỹ năng hoặc trình độ của passage."));
         }
         return new QuestionPoolPassageReadinessResponse(source.passageId(), source.revision(), source.status(),
