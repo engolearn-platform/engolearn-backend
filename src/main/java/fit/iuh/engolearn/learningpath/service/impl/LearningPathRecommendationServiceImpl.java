@@ -85,16 +85,26 @@ public class LearningPathRecommendationServiceImpl implements LearningPathRecomm
                         .forEach(occupied::add);
             }
         }
-        List<MicroSkill> eligible = weak.stream()
+        var skillsOutsideActivePaths = weak.stream()
                 .filter(result -> !occupied.contains(result.microSkill()))
+                .toList();
+        if (skillsOutsideActivePaths.isEmpty()) {
+            return response(State.NO_ELIGIBLE_SKILLS,
+                    "Các kỹ năng cần luyện đã có trong lộ trình đang học.",
+                    null, level, List.of());
+        }
+
+        List<MicroSkill> eligible = skillsOutsideActivePaths.stream()
                 .filter(result -> questionPool.countActive(result.microSkill(), level) >= 30)
                 .map(result -> new MicroSkill(result.microSkill(), result.skill(), result.correct(),
                         result.total(), result.percent(), result.band()))
                 .toList();
         if (eligible.isEmpty()) {
-            return response(State.NO_ELIGIBLE_SKILLS,
-                    "Các kỹ năng yếu chưa đủ điều kiện tạo lộ trình ở level hiện tại hoặc đang được luyện tập",
-                    null, level, eligible);
+            String message = skillsOutsideActivePaths.size() == weak.size()
+                    ? "Chưa đủ câu hỏi luyện tập ở trình độ " + level + " cho các kỹ năng cần luyện."
+                    : "Một số kỹ năng cần luyện đã có trong lộ trình đang học. "
+                            + "Các kỹ năng còn lại chưa đủ câu hỏi luyện tập ở trình độ " + level + ".";
+            return response(State.NO_ELIGIBLE_SKILLS, message, null, level, eligible);
         }
         return response(State.AVAILABLE, null, null, level, eligible);
     }

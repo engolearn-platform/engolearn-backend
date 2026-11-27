@@ -76,11 +76,11 @@ Recommendation is read-only. It returns `state`, `level`, `durationWeeks=3`, `da
 `questionsPerDay=10`, and `microSkills`. States remain `AVAILABLE`, `NO_WEAK_SKILLS`,
 `NO_ELIGIBLE_SKILLS`, and `ALREADY_CREATED` (including `existingPathId`).
 
-`NO_ELIGIBLE_SKILLS` means weak skills exist but none can currently be selected,
-not that the learner has no weaknesses. Its `message` is:
-“Các kỹ năng yếu chưa đủ điều kiện tạo lộ trình ở level hiện tại hoặc đang được luyện tập”.
-The frontend displays this message without offering creation. `NO_WEAK_SKILLS`
-continues to mean there are no skills below 50%, and has no message.
+`NO_ELIGIBLE_SKILLS` means weak skills exist but none can currently be selected. Its
+`message` distinguishes skills already in an active path, insufficient practice questions
+at the current profile level, and a combination of those conditions. The frontend displays
+the reason without offering creation. `NO_WEAK_SKILLS` means all measured skills are at
+or above 50% and the response has no message.
 
 Only skills below 50% qualify. An occupied skill in an active path or one with fewer than
 30 ACTIVE pool questions at the current user level is excluded. Recommendation does not

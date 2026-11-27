@@ -57,17 +57,50 @@ class LearningPathRecommendationServiceImplTest {
     }
 
     @Test
-    void excludesOccupiedSkillsAndSkillsWithOnlyTwentyNineQuestions() {
+    void explainsThatAWeakSkillWithTwentyNineQuestionsHasInsufficientPracticeContent() {
         when(results.findCompleted("learner", "native-old")).thenReturn(Optional.of(result(20)));
         when(pool.countActive("Reading for Gist", "B1")).thenReturn(29L);
-        assertThat(service.recommend("learner", "native-old").state()).isEqualTo(State.NO_ELIGIBLE_SKILLS);
+
+        var recommendation = service.recommend("learner", "native-old");
+        assertThat(recommendation.state()).isEqualTo(State.NO_ELIGIBLE_SKILLS);
+        assertThat(recommendation.message()).contains("Chưa đủ câu hỏi luyện tập", "B1");
+    }
+
+    @Test
+    void explainsWhenAllWeakSkillsAreAlreadyInAnActivePath() {
+        when(results.findCompleted("learner", "native-old")).thenReturn(Optional.of(result(20)));
+        when(paths.findByUserIdAndActiveTrue("learner")).thenReturn(List.of(activeGistPath()));
+
+        var recommendation = service.recommend("learner", "native-old");
+        assertThat(recommendation.state()).isEqualTo(State.NO_ELIGIBLE_SKILLS);
+        assertThat(recommendation.message()).contains("đã có trong lộ trình đang học");
+        verifyNoInteractions(pool);
+    }
+
+    @Test
+    void explainsBothReasonsWhenSomeWeakSkillsAreOccupiedAndOthersLackQuestions() {
+        var original = result(20);
+        List<AssessmentSkillDto> skills = new ArrayList<>(original.skills());
+        skills.set(1, new AssessmentSkillDto("R01", 2, 10, 20, AssessmentSkillBand.NEEDS_PRACTICE));
+        when(results.findCompleted("learner", "native-old")).thenReturn(Optional.of(
+                new AssessmentResultDto(original.attemptId(), original.submittedAt(),
+                        original.level(), original.paperId(), skills)));
+        when(paths.findByUserIdAndActiveTrue("learner")).thenReturn(List.of(activeGistPath()));
+        when(pool.countActive("Reading for Specific Information", "B1")).thenReturn(29L);
+
+        var recommendation = service.recommend("learner", "native-old");
+        assertThat(recommendation.state()).isEqualTo(State.NO_ELIGIBLE_SKILLS);
+        assertThat(recommendation.message()).contains("đã có trong lộ trình đang học",
+                "chưa đủ câu hỏi luyện tập ở trình độ B1");
+        verify(pool, never()).countActive("Reading for Gist", "B1");
+    }
+
+    private LearningPath activeGistPath() {
         var active = new LearningPath();
         var skill = new LearningPathMicroSkillSnapshot();
         skill.setMicroSkill("Reading for Gist");
         active.setMicroSkills(List.of(skill));
-        when(paths.findByUserIdAndActiveTrue("learner")).thenReturn(List.of(active));
-        when(pool.countActive("Reading for Gist", "B1")).thenReturn(30L);
-        assertThat(service.recommend("learner", "native-old").state()).isEqualTo(State.NO_ELIGIBLE_SKILLS);
+        return active;
     }
 
     @Test
