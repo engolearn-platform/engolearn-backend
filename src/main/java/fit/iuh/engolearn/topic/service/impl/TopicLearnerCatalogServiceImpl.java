@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import fit.iuh.engolearn.shared.enums.CefrLevel;
 import fit.iuh.engolearn.topic.contract.TopicSpeakingHistory;
 import fit.iuh.engolearn.topic.contract.TopicCompanionReads;
+import fit.iuh.engolearn.topic.contract.exception.TopicCompanionInvalidQueryException;
 import fit.iuh.engolearn.topic.contract.dto.*;
 import fit.iuh.engolearn.topic.contract.dto.TopicSpeakingHistoryDto;
 import fit.iuh.engolearn.topic.contract.dto.TopicSpeakingHistoryDto.LearningStatus;
@@ -175,10 +176,11 @@ public class TopicLearnerCatalogServiceImpl implements TopicLearnerCatalogServic
     @Override
     public TopicDiscoveryPageDto discover(String learnerId, TopicDiscoveryQueryDto query) {
         Instant asOf = Instant.now();
+        if (query == null) throw new TopicCompanionInvalidQueryException("Query is required");
         requireCompanionPage(learnerId, query.limit(), query.cursor());
         String keyword = query.keyword() == null ? null : query.keyword().trim();
         if (keyword != null && (keyword.isEmpty() || keyword.length() > 80))
-            throw new IllegalArgumentException("Invalid keyword");
+            throw new TopicCompanionInvalidQueryException("Invalid keyword");
         CefrLevel learnerLevel = TopicUserLevelResolver.require(userLevels, learnerId);
         CefrLevel filter = query.level() == null ? learnerLevel : query.level();
         String fingerprint = companionFingerprint(learnerId, "discover", filter, keyword, learnerLevel);
@@ -201,6 +203,7 @@ public class TopicLearnerCatalogServiceImpl implements TopicLearnerCatalogServic
     @Override
     public TopicResumePageDto resume(String learnerId, TopicPageQueryDto query) {
         Instant asOf = Instant.now();
+        if (query == null) throw new TopicCompanionInvalidQueryException("Query is required");
         requireCompanionPage(learnerId, query.limit(), query.cursor());
         CefrLevel learnerLevel = TopicUserLevelResolver.require(userLevels, learnerId);
         String fingerprint = companionFingerprint(learnerId, "resume", null, null, learnerLevel);
@@ -357,7 +360,7 @@ public class TopicLearnerCatalogServiceImpl implements TopicLearnerCatalogServic
     private static void requireCompanionPage(String learnerId, int limit, String cursor) {
         if (learnerId == null || learnerId.isBlank() || limit < 1 || limit > 5
                 || cursor != null && (cursor.isBlank() || cursor.length() > 512))
-            throw new IllegalArgumentException("Invalid learner page query");
+            throw new TopicCompanionInvalidQueryException("Invalid learner page query");
     }
 
     private static String companionFingerprint(String learnerId, String mode, CefrLevel filter,
@@ -369,9 +372,14 @@ public class TopicLearnerCatalogServiceImpl implements TopicLearnerCatalogServic
 
     private static TopicCursorCodec.DecodedCursor companionCursor(String cursor, String fingerprint) {
         if (cursor == null) return null;
-        var decoded = TopicCursorCodec.decode(cursor);
+        TopicCursorCodec.DecodedCursor decoded;
+        try {
+            decoded = TopicCursorCodec.decode(cursor);
+        } catch (InvalidBrowseRequestException ex) {
+            throw new TopicCompanionInvalidQueryException("Invalid companion cursor");
+        }
         if (decoded.sort() != TopicSortOrder.RECOMMENDED || !fingerprint.equals(decoded.filterFingerprint()))
-            throw new InvalidBrowseRequestException("Invalid companion cursor");
+            throw new TopicCompanionInvalidQueryException("Invalid companion cursor");
         return decoded;
     }
 
@@ -381,7 +389,7 @@ public class TopicLearnerCatalogServiceImpl implements TopicLearnerCatalogServic
         if (cursor != null) {
             while (start < rows.size() && !(rows.get(start).topic().getId().equals(cursor.topicId())
                     && Objects.equals(key.apply(rows.get(start)), cursor.sortKey()))) start++;
-            if (start == rows.size()) throw new InvalidBrowseRequestException("Invalid companion cursor");
+            if (start == rows.size()) throw new TopicCompanionInvalidQueryException("Invalid companion cursor");
             start++;
         }
         var page = rows.subList(start, Math.min(start + limit, rows.size()));

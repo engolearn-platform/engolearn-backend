@@ -4,7 +4,8 @@ import fit.iuh.engolearn.config.AbstractMongoIntegrationTest;
 import fit.iuh.engolearn.shared.enums.CefrLevel;
 import fit.iuh.engolearn.topic.contract.TopicCompanionReads;
 import fit.iuh.engolearn.topic.contract.dto.*;
-import fit.iuh.engolearn.topic.exception.InvalidBrowseRequestException;
+import fit.iuh.engolearn.topic.contract.exception.TopicCompanionInvalidQueryException;
+import fit.iuh.engolearn.topic.exception.TopicRequestException;
 import fit.iuh.engolearn.topic.model.*;
 import fit.iuh.engolearn.topic.model.enums.*;
 import fit.iuh.engolearn.topic.model.vo.CompletionResultVo;
@@ -46,20 +47,68 @@ class TopicCompanionReadsIntegrationTest extends AbstractMongoIntegrationTest {
         assertThat(reads.discover(OWNER, new TopicDiscoveryQueryDto("[", null, 1, page.nextCursor())).items())
                 .extracting(TopicDiscoveryPageDto.RowDto::topicId).containsExactly(second.topic());
         assertThatThrownBy(() -> reads.discover(FOREIGN, new TopicDiscoveryQueryDto("[", null, 1, page.nextCursor())))
-                .isInstanceOf(InvalidBrowseRequestException.class);
+                .isExactlyInstanceOf(TopicCompanionInvalidQueryException.class);
         assertThatThrownBy(() -> reads.resume(OWNER, new TopicPageQueryDto(1, page.nextCursor())))
-                .isInstanceOf(InvalidBrowseRequestException.class);
+                .isExactlyInstanceOf(TopicCompanionInvalidQueryException.class);
         assertThatThrownBy(() -> reads.discover(OWNER, new TopicDiscoveryQueryDto("Travel", null, 1, page.nextCursor())))
-                .isInstanceOf(InvalidBrowseRequestException.class);
+                .isExactlyInstanceOf(TopicCompanionInvalidQueryException.class);
         assertThatThrownBy(() -> reads.discover(OWNER, new TopicDiscoveryQueryDto(null, null, 6, null)))
-                .isInstanceOf(IllegalArgumentException.class);
+                .isExactlyInstanceOf(TopicCompanionInvalidQueryException.class);
         assertThatThrownBy(() -> reads.resume(OWNER, new TopicPageQueryDto(1, "x".repeat(513))))
-                .isInstanceOf(IllegalArgumentException.class);
+                .isExactlyInstanceOf(TopicCompanionInvalidQueryException.class);
         assertThat(reads.discover(OWNER, new TopicDiscoveryQueryDto(null, CefrLevel.C1, 3, null)).items()).isEmpty();
         assertThat(reads.discover(FOREIGN, new TopicDiscoveryQueryDto("[", null, 5, null)).items())
                 .extracting(TopicDiscoveryPageDto.RowDto::topicId).containsExactly(second.topic());
         assertThat(mapper.writeValueAsString(page)).doesNotContain("private-cover", "hidden-item", "foreign", "quizzes");
         assertThat(snapshot()).isEqualTo(before);
+    }
+
+    @Test void invalidQueriesAndStaleAnchorHavePublicTypedFailure() {
+        profiles();
+        Fixture first = topic("First", CefrLevel.B1, 1, ContentStatus.PUBLISHED);
+        topic("Second", CefrLevel.B1, 2, ContentStatus.PUBLISHED);
+        var page = reads.discover(OWNER, new TopicDiscoveryQueryDto(null, null, 1, null));
+        assertThat(page.nextCursor()).isNotNull();
+        assertThatThrownBy(() -> reads.discover(OWNER, null))
+                .isExactlyInstanceOf(TopicCompanionInvalidQueryException.class);
+        assertThatThrownBy(() -> reads.resume(OWNER, null))
+                .isExactlyInstanceOf(TopicCompanionInvalidQueryException.class);
+        assertThatThrownBy(() -> reads.discover(null, new TopicDiscoveryQueryDto(null, null, 1, null)))
+                .isExactlyInstanceOf(TopicCompanionInvalidQueryException.class);
+        assertThatThrownBy(() -> reads.resume(" ", new TopicPageQueryDto(1, null)))
+                .isExactlyInstanceOf(TopicCompanionInvalidQueryException.class);
+        assertThatThrownBy(() -> reads.counts(null))
+                .isExactlyInstanceOf(TopicCompanionInvalidQueryException.class);
+        assertThatThrownBy(() -> reads.discover(OWNER, new TopicDiscoveryQueryDto(" ", null, 1, null)))
+                .isExactlyInstanceOf(TopicCompanionInvalidQueryException.class);
+        assertThatThrownBy(() -> reads.discover(OWNER, new TopicDiscoveryQueryDto(null, null, 1, "!invalid")))
+                .isExactlyInstanceOf(TopicCompanionInvalidQueryException.class);
+        assertThatThrownBy(() -> reads.resume(OWNER, new TopicPageQueryDto(1, "!invalid")))
+                .isExactlyInstanceOf(TopicCompanionInvalidQueryException.class);
+        assertThatThrownBy(() -> reads.discover(OWNER, new TopicDiscoveryQueryDto(null, CefrLevel.A1, 1, page.nextCursor())))
+                .isExactlyInstanceOf(TopicCompanionInvalidQueryException.class);
+
+        var release = mongoTemplate.findById(first.release(), TopicVersion.class);
+        release.setStatus(ContentStatus.HIDDEN);
+        mongoTemplate.save(release);
+        assertThatThrownBy(() -> reads.discover(OWNER, new TopicDiscoveryQueryDto(null, null, 1, page.nextCursor())))
+                .isExactlyInstanceOf(TopicCompanionInvalidQueryException.class);
+    }
+
+    @Test void providerStateFailuresAreNotInvalidQueries() {
+        profiles();
+        Fixture f = topic("Broken manifest", CefrLevel.B1, 1, ContentStatus.PUBLISHED);
+        var release = mongoTemplate.findById(f.release(), TopicVersion.class);
+        release.setItemVersionIds(List.of(id()));
+        mongoTemplate.save(release);
+        assertThatThrownBy(() -> reads.discover(OWNER, new TopicDiscoveryQueryDto(null, null, 1, null)))
+                .isExactlyInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(() -> reads.resume(OWNER, new TopicPageQueryDto(1, null)))
+                .isExactlyInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(() -> reads.counts(OWNER))
+                .isExactlyInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(() -> reads.discover("missing-profile", new TopicDiscoveryQueryDto(null, null, 1, null)))
+                .isExactlyInstanceOf(TopicRequestException.class);
     }
 
     @Test void resumeRequiresCurrentOwnedLearningParentAndPinnedVersionAndResetSuppressesIt() {
