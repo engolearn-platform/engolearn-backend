@@ -21,3 +21,5 @@ AI Companion: [backend entry](ai-companion/README.md), [HTTP/SSE contract](ai-co
 Placement Test: [module entry](placement/README.md), [runtime](placement/placement-local-runtime.md), [question bank](placement/placement-admin-question-bank.md), [test sets](placement/placement-admin-test-sets.md) and [read-only attempt lookup](placement/placement-admin-attempt-api.md).
 
 Grammar Learning: [module entry](grammar/README.md), [V2 storage and rules](grammar/grammar-v2-runtime.md), [import/migration](grammar/grammar-v2-importer.md) and [curriculum](grammar/grammar-cefr-roadmap.md). Historical implementation reports are retained in Git history instead of current module contracts.
+
+Phase 1 internal read contracts: [Topic](topic/companion-reads.md), [Learning Path](learningpath/learning-path-list-api.md#ai-companion-read-only-provider-s2-mvp), [Assessment history](assessment.md#ai-companion-assessment-history) and [Companion runtime](ai-companion/runtime-flows.md#phase-1-business-reads).

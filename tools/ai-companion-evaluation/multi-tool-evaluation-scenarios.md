@@ -25,3 +25,5 @@ Extends the [Phase 1 evaluation plan](phase-1-evaluation-plan.md) for learner-fa
 Evaluate tool selection and composition, groundedness, personalization and actionability where applicable. A tool is not required when trusted context already supplies the needed facts. Do not prescribe tool names or a fixed call order before discovery. Do not invent data, conflate unavailable data with no data, disclose unauthorized content or perform business writes.
 
 After discovery, expand each scenario into synthetic fixtures, expected and forbidden behavior, trace/record checks and semantic review criteria following the existing evaluation plan. Include missing data, restricted data and dependency failures. Run against real provider output in an isolated environment only; no real learner data. No cases have been run for this extension yet.
+
+S5 fixture specification and bounded runner: [multi-tool fixture rubric](multi-tool-fixture-rubric.md). The original scenario prompts remain unchanged. Dry-run validates the specification only; live and semantic evidence are separate.

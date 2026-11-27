@@ -244,8 +244,8 @@ a database snapshot across requests.
 
 History rows carry the visible summary and a pinned paper fingerprint (ID,
 version, rules version, demonstration flag) for internal comparison. The
-Companion adapter must omit fingerprint IDs from model-facing evidence unless
-needed and omit skills in SUMMARY mode. Only compare distinct dated non-demo
+Companion adapter omits fingerprint IDs from model-facing evidence and omits
+skills in SUMMARY mode; see [runtime](ai-companion/runtime-flows.md#phase-1-business-reads). Only compare distinct dated non-demo
 attempts with the same pinned paper/version/rules and matching visible skill
 code/section and positive equal denominator; exclude unavailable or mismatched
 metrics. Such differences are descriptive observations, not validated progress

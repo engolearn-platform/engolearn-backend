@@ -1,6 +1,6 @@
 # AI Companion
 
-AI Companion provides protected, text-only learner conversations backed by MongoDB and Gemini. During a turn, the assistant can request the learner's latest Assessment result on demand and use the learner's long-term memory; completed turns are accounted through Quota. MongoDB is canonical for memory. Qdrant is a derived retrieval index and is never the source of truth.
+AI Companion provides protected, text-only learner conversations backed by MongoDB and Gemini. During a turn, the assistant can request the learner's authorized Assessment results, Topic catalog/progress and Learning Path progress on demand and use the learner's long-term memory; completed turns are accounted through Quota. MongoDB is canonical for memory. Qdrant is a derived retrieval index and is never the source of truth.
 
 - [HTTP and SSE contract](api-contract.md)
 - [Screen Awareness (M4)](screen-awareness.md)
@@ -20,3 +20,5 @@ Assessment data is not preloaded into the initial prompt. When useful, the assis
 Automatic Memory is effective **ON** when the account has no stored preference. There is no first-use consent step. Learners can turn automatic create/update OFF regardless of a memory's provenance; retrieval and user-requested remember/update/forget remain available while OFF. For chat create/update, the model classifies the trigger; the [validation decision](memory-proposal-validation.md) documents the resulting consent-classification limitation. Memory CRUD/settings and post-commit turn feedback are described in the [HTTP and SSE contract](api-contract.md). Forget is canonical as soon as its Mongo transaction commits, including when Qdrant is unavailable; its recovery receipt contains no forgotten content.
 
 Before inference, Quota checks the learner's effective policy for `AI_COMPANION_TOKEN_USAGE`. The daily token rule and allowance come from the published entitlement policy; this feature defines no allowance amount. A completed turn records provider-reported total-token usage only after the assistant message and quota record commit together. Only fully generated assistant replies are persisted. A failed or cancelled turn keeps its user message for explicit retry; emitted partial assistant text is not saved.
+
+Phase 1 additionally registers four read-only business tools. See [runtime tool catalog and limitations](runtime-flows.md#phase-1-business-reads) and owning contracts for [Topic](../topic/companion-reads.md), [Learning Path](../learningpath/learning-path-list-api.md#ai-companion-read-only-provider-s2-mvp), and [Assessment history](../assessment.md#ai-companion-assessment-history). Backend capability is not evidence of live model selection or release acceptance.

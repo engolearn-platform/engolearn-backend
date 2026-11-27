@@ -19,3 +19,11 @@ Reports include synthetic inputs, canonical memory contents, response text, even
 The suite covers Vietnamese/English direct requests, automatic ON/OFF, no-save instructions, hypotheticals, third-party and temporary information, negated preferences, quoted examples, and cross-chat recall/update/forget. Keyword checks are a lightweight smoke rubric; review semantic correctness manually. Because the provider is probabilistic, passing one run does not establish reliable intent classification or user consent.
 
 See [the memory validation decision](../../docs/technical/ai-companion/memory-proposal-validation.md) for limitations and verification history.
+
+## Phase 1 multi-tool evaluation
+
+See [fixture and execution rubric](multi-tool-fixture-rubric.md) and [fixture manifest](multi-tool-fixtures.json). Validate the exact approved prompts and manifest without network calls:
+
+    python tools/ai-companion-evaluation/multi_tool_eval.py --dry-run
+
+Dry-run validates the fixture specification only, not database provisioning, Gemini, or semantic acceptance. Real runs require an independently established disposable local backend, synthetic accounts, normal quota and entitlement, and safe existing credentials. Raw evidence belongs in ignored target/, never tracked files.

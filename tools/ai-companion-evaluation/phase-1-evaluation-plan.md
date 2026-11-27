@@ -31,3 +31,5 @@ Quota admission must work first. Runtime policy publication/activation and snaps
 ## Multi-tool expansion (2026-11-27)
 
 See [Multi-tool evaluation scenarios](multi-tool-evaluation-scenarios.md) for nine agreed learner prompts across Guidance, Discovery and Reflection. These extend the scenario inventory; detailed fixtures, tool expectations and execution remain pending capability discovery.
+
+S5 fixture specification and bounded runner: [multi-tool fixture rubric](multi-tool-fixture-rubric.md). The original scenario prompts remain unchanged. Dry-run validates the specification only; live and semantic evidence are separate.
