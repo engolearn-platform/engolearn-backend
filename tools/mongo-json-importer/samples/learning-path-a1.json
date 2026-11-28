@@ -34,13 +34,13 @@
         "transcript": "Hello Anna. Our school lunch is at twelve today. There is rice and chicken. I cannot eat chicken, so I have a cheese sandwich from home. Please sit with me near the window. I do not want to eat alone. Thank you for being my friend.",
         "audio_media_id": "82822aee-a064-4627-9740-111246777cc9",
         "status": "DRAFT",
-        "revision": 2,
+        "revision": 3,
         "created_by": "68f8f3a9b9e4a12345678002",
         "created_at": {
           "$date": "2026-11-28T05:46:20.299Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T06:03:15.477Z"
+          "$date": "2026-11-28T06:24:50.197Z"
         },
         "_class": "fit.iuh.engolearn.learningpath.model.QuestionPoolPassage",
         "updated_by": "68f8f3a9b9e4a12345678002"
@@ -56,13 +56,13 @@
         "transcript": "Good morning. You can take three books home with this card. Please bring the books back on Friday. The library closes at five. Keep your card in your bag because you need it each time you take a book. Ask me if you need help.",
         "audio_media_id": "c3c441f5-c933-4fd4-8d57-e69cc90356b6",
         "status": "DRAFT",
-        "revision": 2,
+        "revision": 3,
         "created_by": "68f8f3a9b9e4a12345678002",
         "created_at": {
           "$date": "2026-11-28T05:46:27.119Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T06:03:15.531Z"
+          "$date": "2026-11-28T06:24:50.327Z"
         },
         "_class": "fit.iuh.engolearn.learningpath.model.QuestionPoolPassage",
         "updated_by": "68f8f3a9b9e4a12345678002"
@@ -78,13 +78,13 @@
         "transcript": "Excuse me. I like this blue shirt, but it is too big for me. Do you have a small one? I need it for my sister's party on Saturday. The green shirt is nice too, but blue is my favourite colour. Can you help me find the right size?",
         "audio_media_id": "d3d83a17-0195-4dff-9e10-d0bf7ae80f07",
         "status": "DRAFT",
-        "revision": 2,
+        "revision": 4,
         "created_by": "68f8f3a9b9e4a12345678002",
         "created_at": {
           "$date": "2026-11-28T05:46:33.683Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T06:03:15.582Z"
+          "$date": "2026-11-28T06:24:50.572Z"
         },
         "_class": "fit.iuh.engolearn.learningpath.model.QuestionPoolPassage",
         "updated_by": "68f8f3a9b9e4a12345678002"
@@ -100,13 +100,13 @@
         "transcript": "Hello children. It is raining, and the playground is wet. We will have our game in the hall today. Leave your coats by the door and bring your water bottles inside. Please walk. The floor near the door is wet too, and I want everyone to be safe.",
         "audio_media_id": "a8019804-6907-464b-92c1-3d897c4882d1",
         "status": "DRAFT",
-        "revision": 2,
+        "revision": 4,
         "created_by": "68f8f3a9b9e4a12345678002",
         "created_at": {
           "$date": "2026-11-28T05:46:40.578Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T06:03:15.648Z"
+          "$date": "2026-11-28T06:24:50.826Z"
         },
         "_class": "fit.iuh.engolearn.learningpath.model.QuestionPoolPassage",
         "updated_by": "68f8f3a9b9e4a12345678002"
@@ -122,13 +122,13 @@
         "transcript": "Hi Leo. Can you get some milk for Grandma? Her shop is closed today. The small shop next to the station is open until six. Please buy one bottle and take it to her flat. She has bread already. Thanks, that is a big help.",
         "audio_media_id": "22b199b8-2506-40d5-a3b1-a7b52732b05b",
         "status": "DRAFT",
-        "revision": 2,
+        "revision": 4,
         "created_by": "68f8f3a9b9e4a12345678002",
         "created_at": {
           "$date": "2026-11-28T05:46:47.073Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T06:03:15.703Z"
+          "$date": "2026-11-28T06:24:51.071Z"
         },
         "_class": "fit.iuh.engolearn.learningpath.model.QuestionPoolPassage",
         "updated_by": "68f8f3a9b9e4a12345678002"
@@ -144,13 +144,13 @@
         "transcript": "Hello neighbours. Our white cat, Snow, is not at home. She has a red collar. She likes warm places and often sleeps in a box. Please look in your garden or garage. If you see her, call me. We miss her very much.",
         "audio_media_id": "eea4c3d1-7a66-4a5f-813f-c6a38c5c268c",
         "status": "DRAFT",
-        "revision": 2,
+        "revision": 4,
         "created_by": "68f8f3a9b9e4a12345678002",
         "created_at": {
           "$date": "2026-11-28T05:47:36.314Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T06:03:15.751Z"
+          "$date": "2026-11-28T06:24:51.296Z"
         },
         "_class": "fit.iuh.engolearn.learningpath.model.QuestionPoolPassage",
         "updated_by": "68f8f3a9b9e4a12345678002"
@@ -188,13 +188,13 @@
         "transcript": "Good evening. Your room is number twelve, on the first floor. Breakfast is from seven to nine. Please use the back door after ten at night because we close the front door then. Here is your key. I hope you have a good stay.",
         "audio_media_id": "dd0b3a52-52a1-4e13-ae99-1ece78a73c92",
         "status": "DRAFT",
-        "revision": 2,
+        "revision": 3,
         "created_by": "68f8f3a9b9e4a12345678002",
         "created_at": {
           "$date": "2026-11-28T05:47:49.956Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T06:03:15.869Z"
+          "$date": "2026-11-28T06:24:51.454Z"
         },
         "_class": "fit.iuh.engolearn.learningpath.model.QuestionPoolPassage",
         "updated_by": "68f8f3a9b9e4a12345678002"
@@ -276,13 +276,13 @@
         "transcript": "Good morning. Please sit in the waiting room. The doctor is with another person now. You can put your coat on the chair. I will call your name when the doctor is ready. If you need water, there are cups next to the door. Thank you for waiting.",
         "audio_media_id": "7bebc468-ab20-4567-b8fe-ebdd59df996e",
         "status": "DRAFT",
-        "revision": 2,
+        "revision": 3,
         "created_by": "68f8f3a9b9e4a12345678002",
         "created_at": {
           "$date": "2026-11-28T05:48:17.616Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T06:03:16.087Z"
+          "$date": "2026-11-28T06:24:51.605Z"
         },
         "_class": "fit.iuh.engolearn.learningpath.model.QuestionPoolPassage",
         "updated_by": "68f8f3a9b9e4a12345678002"
@@ -320,13 +320,13 @@
         "transcript": "Hello everyone. These oranges are two pounds a bag today. There are six oranges in each bag. They are sweet and easy to eat. You can try a small piece before you buy. Please come to my table and have a taste. The market closes at one.",
         "audio_media_id": "739741f9-fa3d-4d63-9030-09316f2c7b21",
         "status": "DRAFT",
-        "revision": 2,
+        "revision": 3,
         "created_by": "68f8f3a9b9e4a12345678002",
         "created_at": {
           "$date": "2026-11-28T05:48:30.823Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T06:03:16.198Z"
+          "$date": "2026-11-28T06:24:51.746Z"
         },
         "_class": "fit.iuh.engolearn.learningpath.model.QuestionPoolPassage",
         "updated_by": "68f8f3a9b9e4a12345678002"
@@ -342,13 +342,13 @@
         "transcript": "Hi Kim. I am going to work now. Please give our dog some water at lunch. His bowl is beside the kitchen door. It is very hot today, so he needs a drink. You can take him for a short walk when the sun goes down. Thank you.",
         "audio_media_id": "71e377db-ec9f-42da-8edb-11c7e6cf8844",
         "status": "DRAFT",
-        "revision": 2,
+        "revision": 3,
         "created_by": "68f8f3a9b9e4a12345678002",
         "created_at": {
           "$date": "2026-11-28T05:48:37.944Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T06:03:16.249Z"
+          "$date": "2026-11-28T06:24:51.868Z"
         },
         "_class": "fit.iuh.engolearn.learningpath.model.QuestionPoolPassage",
         "updated_by": "68f8f3a9b9e4a12345678002"
@@ -408,13 +408,13 @@
         "transcript": "Good afternoon. Welcome to our swimming pool. Please leave your shoes in the changing room. Walk slowly beside the water. If you cannot swim, stay in the small pool with an adult. The big pool is deep. Ask a member of staff if you need help.",
         "audio_media_id": "203f80d1-a76f-4d3f-9431-263c8058a953",
         "status": "DRAFT",
-        "revision": 2,
+        "revision": 4,
         "created_by": "68f8f3a9b9e4a12345678002",
         "created_at": {
           "$date": "2026-11-28T05:48:59.032Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T06:03:16.390Z"
+          "$date": "2026-11-28T06:24:52.103Z"
         },
         "_class": "fit.iuh.engolearn.learningpath.model.QuestionPoolPassage",
         "updated_by": "68f8f3a9b9e4a12345678002"
@@ -430,13 +430,13 @@
         "transcript": "Mum, I am sorry. I broke your yellow cup while I was washing it. The pieces are on the kitchen floor. Please keep the baby out of the kitchen. I will get a brush and clean it up now. I know it is your favourite cup.",
         "audio_media_id": "94178b66-20ee-423b-8ab7-73369b4a87d1",
         "status": "DRAFT",
-        "revision": 2,
+        "revision": 3,
         "created_by": "68f8f3a9b9e4a12345678002",
         "created_at": {
           "$date": "2026-11-28T05:49:05.790Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T06:03:16.429Z"
+          "$date": "2026-11-28T06:24:52.267Z"
         },
         "_class": "fit.iuh.engolearn.learningpath.model.QuestionPoolPassage",
         "updated_by": "68f8f3a9b9e4a12345678002"
@@ -452,13 +452,13 @@
         "transcript": "Hi Max. I am outside the cinema. I am wearing a red jacket and standing beside the ticket window. The film begins at six thirty. I have your ticket, so please come to me first. I am glad we can watch this funny film together.",
         "audio_media_id": "df0771c7-822f-4ecc-bcde-5648dadb1c36",
         "status": "DRAFT",
-        "revision": 2,
+        "revision": 3,
         "created_by": "68f8f3a9b9e4a12345678002",
         "created_at": {
           "$date": "2026-11-28T05:49:12.698Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T06:03:16.480Z"
+          "$date": "2026-11-28T06:24:52.391Z"
         },
         "_class": "fit.iuh.engolearn.learningpath.model.QuestionPoolPassage",
         "updated_by": "68f8f3a9b9e4a12345678002"
@@ -474,13 +474,13 @@
         "transcript": "Hello Pat. I finish work late today. There is pasta in the blue box and tomato sauce in the fridge. Can you cook dinner for us? Start at seven, please. I will be home at seven thirty. It will be lovely to eat together after a long day.",
         "audio_media_id": "aa443d2c-74ee-4bf0-bad1-9b95e601ba06",
         "status": "DRAFT",
-        "revision": 2,
+        "revision": 3,
         "created_by": "68f8f3a9b9e4a12345678002",
         "created_at": {
           "$date": "2026-11-28T05:49:20.313Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T06:03:16.525Z"
+          "$date": "2026-11-28T06:24:52.513Z"
         },
         "_class": "fit.iuh.engolearn.learningpath.model.QuestionPoolPassage",
         "updated_by": "68f8f3a9b9e4a12345678002"
@@ -518,13 +518,13 @@
         "transcript": "Hi Alex. Could you turn the television down, please? I am reading in the next room, and the television is too loud. You can still watch your programme. I only need it to be quieter. Thank you. I want to finish this book before dinner.",
         "audio_media_id": "21cc0e04-62bf-40b5-b974-0b2aa18461fc",
         "status": "DRAFT",
-        "revision": 2,
+        "revision": 4,
         "created_by": "68f8f3a9b9e4a12345678002",
         "created_at": {
           "$date": "2026-11-28T05:49:36.873Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T06:03:16.610Z"
+          "$date": "2026-11-28T06:24:52.728Z"
         },
         "_class": "fit.iuh.engolearn.learningpath.model.QuestionPoolPassage",
         "updated_by": "68f8f3a9b9e4a12345678002"
@@ -584,13 +584,13 @@
         "transcript": "Hi Lily. Thank you for the book. I finished it last night. The story about the little boat was funny, and I laughed a lot. I will bring it to your house on Sunday. Can you show me another book by the same writer? I would love to read more.",
         "audio_media_id": "46b6cb7c-ac65-4677-bc2b-2e0f7dbbac38",
         "status": "DRAFT",
-        "revision": 2,
+        "revision": 5,
         "created_by": "68f8f3a9b9e4a12345678002",
         "created_at": {
           "$date": "2026-11-28T05:49:59.131Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T06:03:16.736Z"
+          "$date": "2026-11-28T06:24:53.060Z"
         },
         "_class": "fit.iuh.engolearn.learningpath.model.QuestionPoolPassage",
         "updated_by": "68f8f3a9b9e4a12345678002"
@@ -628,13 +628,13 @@
         "transcript": "Hi Ruby. I tried the new dance class today. The teacher showed us each step slowly, so I could follow. We danced to three songs. My feet are tired now, but I had a great time. Would you like to come with me next Friday? Your first lesson is free.",
         "audio_media_id": "f1c9638e-a717-4eb1-b376-dcf83cd125ec",
         "status": "DRAFT",
-        "revision": 2,
+        "revision": 4,
         "created_by": "68f8f3a9b9e4a12345678002",
         "created_at": {
           "$date": "2026-11-28T05:50:13.881Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T06:03:16.823Z"
+          "$date": "2026-11-28T06:24:53.288Z"
         },
         "_class": "fit.iuh.engolearn.learningpath.model.QuestionPoolPassage",
         "updated_by": "68f8f3a9b9e4a12345678002"
@@ -650,13 +650,13 @@
         "transcript": "Hello Sam. My phone battery is almost empty. I am sending this message from the station. I will be home at about five. If you call and I do not answer, please do not worry. I will charge my phone when I get home. See you soon.",
         "audio_media_id": "931a35d0-6a87-4fe1-a183-d6e43825a8b4",
         "status": "DRAFT",
-        "revision": 2,
+        "revision": 4,
         "created_by": "68f8f3a9b9e4a12345678002",
         "created_at": {
           "$date": "2026-11-28T05:50:21.190Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T06:03:16.867Z"
+          "$date": "2026-11-28T06:24:53.508Z"
         },
         "_class": "fit.iuh.engolearn.learningpath.model.QuestionPoolPassage",
         "updated_by": "68f8f3a9b9e4a12345678002"
@@ -688,14 +688,14 @@
         "skill": "READING",
         "level": "A1",
         "title": "Library notice",
-        "text": "Reading Club meets in the library on Wednesday at four. Bring a book you like. We read for twenty minutes and then talk about our books. New members are welcome. You do not need to buy a new book. You can borrow one from the library.",
+        "text": "Reading Club meets in the library on Wednesday at four. Bring a book you like. We read for twenty minutes and then talk about our books. New members are welcome. You do not need to buy a new book. You can borrow one from the library and bring it back next week.",
         "status": "DRAFT",
-        "revision": 2,
+        "revision": 5,
         "created_at": {
           "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T06:03:16.961Z"
+          "$date": "2026-11-28T06:24:53.710Z"
         },
         "updated_by": "68f8f3a9b9e4a12345678002"
       },
@@ -709,12 +709,12 @@
         "title": "An email from a cousin",
         "text": "Hi Amy, I am staying with Uncle Joe this week. His house is near a lake. We walk there after breakfast because the air is cool in the morning. In the afternoon I help him in the garden. I love being here. Can you visit us on Sunday? Love, Kate.",
         "status": "DRAFT",
-        "revision": 2,
+        "revision": 3,
         "created_at": {
           "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T06:03:17.010Z"
+          "$date": "2026-11-28T06:24:53.797Z"
         },
         "updated_by": "68f8f3a9b9e4a12345678002"
       },
@@ -726,14 +726,14 @@
         "skill": "READING",
         "level": "A1",
         "title": "A lost water bottle",
-        "text": "Lost: a green water bottle with my name, David, on it. I left it in the sports hall after basketball on Monday. It was a present from my grandfather. If you find it, please give it to the school office. I would really like it back.",
+        "text": "Lost: a green water bottle with my name, David, on it. I left it in the sports hall after basketball on Monday. My grandfather gave it to me as a present. If you find it, please give it to the school office. I would really like it back.",
         "status": "DRAFT",
-        "revision": 2,
+        "revision": 6,
         "created_at": {
           "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T06:03:17.054Z"
+          "$date": "2026-11-28T06:24:54.114Z"
         },
         "updated_by": "68f8f3a9b9e4a12345678002"
       },
@@ -764,14 +764,14 @@
         "skill": "READING",
         "level": "A1",
         "title": "A small flat for rent",
-        "text": "Small flat for rent near Green Park. One bedroom, a kitchen and a bathroom. There is no garden, but the park is across the road. The bus stop is two minutes away on foot. No pets, please. Call Mrs Brown after six in the evening to see the flat.",
+        "text": "Small flat for rent near Green Park. One bedroom, a kitchen and a bathroom. There is no garden, but the park is across the road. You can walk to the bus stop in two minutes. It is a short trip on foot. No pets, please. Call Mrs Brown after six in the evening to see the flat.",
         "status": "DRAFT",
-        "revision": 2,
+        "revision": 7,
         "created_at": {
           "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T06:03:17.148Z"
+          "$date": "2026-11-28T06:24:54.569Z"
         },
         "updated_by": "68f8f3a9b9e4a12345678002"
       },
@@ -785,12 +785,12 @@
         "title": "A message about homework",
         "text": "Hi Dan, our English homework is on page ten, not page twelve. Write five sentences about your family. We must give it to Miss Lee on Friday. I am doing mine tonight because I have football tomorrow. Call me if you do not understand the task. Ben.",
         "status": "DRAFT",
-        "revision": 2,
+        "revision": 4,
         "created_at": {
           "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T06:03:17.205Z"
+          "$date": "2026-11-28T06:24:54.761Z"
         },
         "updated_by": "68f8f3a9b9e4a12345678002"
       },
@@ -804,12 +804,12 @@
         "title": "A picnic invitation",
         "text": "Come to our family picnic on Saturday at one. We will meet by the big tree in Hill Park. Bring your own lunch and a blanket to sit on. We have games for the children. If it rains, we will eat at our house instead. Please tell us if you can come.",
         "status": "DRAFT",
-        "revision": 2,
+        "revision": 3,
         "created_at": {
           "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T06:03:17.249Z"
+          "$date": "2026-11-28T06:24:54.847Z"
         },
         "updated_by": "68f8f3a9b9e4a12345678002"
       },
@@ -823,12 +823,12 @@
         "title": "The school shop",
         "text": "The school shop sells pens, pencils and notebooks. It is open at lunchtime, from twelve to one. Please bring coins for small things. We do not sell food here; snacks are in the cafe next door. All money from the shop helps us buy new books for the library.",
         "status": "DRAFT",
-        "revision": 2,
+        "revision": 4,
         "created_at": {
           "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T06:03:17.293Z"
+          "$date": "2026-11-28T06:24:55.058Z"
         },
         "updated_by": "68f8f3a9b9e4a12345678002"
       },
@@ -842,12 +842,12 @@
         "title": "After-school football",
         "text": "Football practice is on the field behind the school on Mondays. We start at four and finish at five. Wear sports shoes and bring water. You do not have to be a good player to join. We learn together and help new players. Ask Mr Hall for a form.",
         "status": "DRAFT",
-        "revision": 2,
+        "revision": 3,
         "created_at": {
           "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T06:03:17.341Z"
+          "$date": "2026-11-28T06:24:55.154Z"
         },
         "updated_by": "68f8f3a9b9e4a12345678002"
       },
@@ -861,12 +861,12 @@
         "title": "A weekend diary",
         "text": "Saturday: I made pancakes with Dad. My first pancake was too dark, but the next ones were good. We ate them with bananas. Dad said I could try again next weekend. I want to make breakfast for Mum too. Cooking is more fun when we do it together.",
         "status": "DRAFT",
-        "revision": 2,
+        "revision": 3,
         "created_at": {
           "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T06:03:17.386Z"
+          "$date": "2026-11-28T06:24:55.254Z"
         },
         "updated_by": "68f8f3a9b9e4a12345678002"
       },
@@ -899,12 +899,12 @@
         "title": "A bus ticket",
         "text": "Day ticket: use this ticket on all town buses until midnight today. Show it to the driver each time you get on. Keep it dry so the driver can read the date. This ticket is not for trains. Children under five travel free with an adult.",
         "status": "DRAFT",
-        "revision": 2,
+        "revision": 4,
         "created_at": {
           "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T06:03:17.472Z"
+          "$date": "2026-11-28T06:24:55.487Z"
         },
         "updated_by": "68f8f3a9b9e4a12345678002"
       },
@@ -918,12 +918,12 @@
         "title": "A card from the beach",
         "text": "Dear Grandpa, we are at the beach today. The sea is too cold for me, so I am making a sandcastle with Lucy. Mum is reading under a big umbrella. Dad is buying ice cream for us. I wish you were here to see our castle! Love, Noah.",
         "status": "DRAFT",
-        "revision": 2,
+        "revision": 3,
         "created_at": {
           "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T06:03:17.516Z"
+          "$date": "2026-11-28T06:24:55.611Z"
         },
         "updated_by": "68f8f3a9b9e4a12345678002"
       },
@@ -935,14 +935,14 @@
         "skill": "READING",
         "level": "A1",
         "title": "A notice at the animal shelter",
-        "text": "Help us look after our cats! We need clean towels and small blankets. Please bring them to the front desk between ten and four. Do not bring food this week; we have enough. Our cats sleep better when they have soft, warm beds. Thank you for your kindness.",
+        "text": "Help us look after our cats! We need clean towels and small blankets. Please bring them to the front desk between ten and four. Do not bring food this week; we have enough. Our cats sleep better in soft beds, not hard beds. They like warm blankets too. Thank you for your kindness.",
         "status": "DRAFT",
-        "revision": 2,
+        "revision": 6,
         "created_at": {
           "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T06:03:17.567Z"
+          "$date": "2026-11-28T06:24:55.960Z"
         },
         "updated_by": "68f8f3a9b9e4a12345678002"
       },
@@ -956,12 +956,12 @@
         "title": "A bike for sale",
         "text": "For sale: my small blue bike. It has a basket and a new bell. The seat is low, so it is good for a young rider. I am selling it because I am taller now and need a bigger bike. Twenty pounds. Ask for Eva at number eight, Rose Street.",
         "status": "DRAFT",
-        "revision": 2,
+        "revision": 3,
         "created_at": {
           "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T06:03:17.625Z"
+          "$date": "2026-11-28T06:24:56.108Z"
         },
         "updated_by": "68f8f3a9b9e4a12345678002"
       },
@@ -973,14 +973,14 @@
         "skill": "READING",
         "level": "A1",
         "title": "The museum map",
-        "text": "Welcome to Town Museum. Start in Room One to see old clothes. The toys are in Room Two. Please do not touch them because some are very old. You can take photos without a flash. There is a free map at the entrance. The cafe is upstairs.",
+        "text": "Welcome to Town Museum. Start in Room One to see old clothes. The toys are in Room Two. Please do not touch them because some are very old. You can take photos without a flash. There is a free map at the entrance, where you come in. The cafe is upstairs.",
         "status": "DRAFT",
-        "revision": 2,
+        "revision": 4,
         "created_at": {
           "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T06:03:17.693Z"
+          "$date": "2026-11-28T06:24:56.257Z"
         },
         "updated_by": "68f8f3a9b9e4a12345678002"
       },
@@ -992,14 +992,14 @@
         "skill": "READING",
         "level": "A1",
         "title": "A quiet cafe review",
-        "text": "I went to Little Cup Cafe with my aunt. My hot chocolate was very good. The cafe was quiet, and we could talk easily. There were only three kinds of cake, but my apple cake was fresh. I would like to go there again with a friend.",
+        "text": "I went to Little Cup Cafe with my aunt. My hot chocolate was very good. The cafe was quiet, and we could talk easily. There were only three kinds of cake. The cook made my apple cake that morning. It was fresh. I would like to go there again with a friend.",
         "status": "DRAFT",
-        "revision": 2,
+        "revision": 8,
         "created_at": {
           "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T06:03:17.751Z"
+          "$date": "2026-11-28T06:24:56.785Z"
         },
         "updated_by": "68f8f3a9b9e4a12345678002"
       },
@@ -1013,12 +1013,12 @@
         "title": "The plant by the window",
         "text": "Please look after my small plant while I am away. Put it near the window, but not in strong sun. Give it a little water on Tuesday and Friday. The leaves are thin, so be careful when you move it. I will be home next Monday. Thanks, May.",
         "status": "DRAFT",
-        "revision": 2,
+        "revision": 3,
         "created_at": {
           "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T06:03:17.803Z"
+          "$date": "2026-11-28T06:24:56.880Z"
         },
         "updated_by": "68f8f3a9b9e4a12345678002"
       },
@@ -1032,12 +1032,12 @@
         "title": "The cinema offer",
         "text": "Saturday morning films: tickets are three pounds for children. Adults pay five pounds. Doors open at nine thirty, and the film starts at ten. Buy tickets at the desk, not online. Please arrive early if you want to sit together. Seats cannot be saved for late friends.",
         "status": "DRAFT",
-        "revision": 2,
+        "revision": 3,
         "created_at": {
           "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T06:03:17.847Z"
+          "$date": "2026-11-28T06:24:56.996Z"
         },
         "updated_by": "68f8f3a9b9e4a12345678002"
       },
@@ -1070,12 +1070,12 @@
         "title": "A walking route",
         "text": "Walk from the station to the river. Turn left at the bridge and follow the path to the park. The walk takes about fifteen minutes. There are benches beside the river if you need a rest. Do not cross the small wooden bridge; it is closed for repairs.",
         "status": "DRAFT",
-        "revision": 2,
+        "revision": 4,
         "created_at": {
           "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T06:03:17.927Z"
+          "$date": "2026-11-28T06:24:57.182Z"
         },
         "updated_by": "68f8f3a9b9e4a12345678002"
       },
@@ -1089,12 +1089,12 @@
         "title": "The class fish",
         "text": "Our class fish is called Goldie. We give her a small amount of food every morning. Do not feed her again at lunchtime. Too much food is bad for her. On Fridays, Mr White changes some of the water. You can watch, but please do not tap the glass.",
         "status": "DRAFT",
-        "revision": 2,
+        "revision": 4,
         "created_at": {
           "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T06:03:17.972Z"
+          "$date": "2026-11-28T06:24:57.366Z"
         },
         "updated_by": "68f8f3a9b9e4a12345678002"
       },
@@ -1108,12 +1108,12 @@
         "title": "A restaurant sign",
         "text": "Please wait here for a table. Our waiter will show you where to sit. We have a children's menu and high chairs for babies. Hot dishes may take twenty minutes because we cook them when you order. Tell your waiter if you need to leave soon.",
         "status": "DRAFT",
-        "revision": 2,
+        "revision": 3,
         "created_at": {
           "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T06:03:18.013Z"
+          "$date": "2026-11-28T06:24:57.455Z"
         },
         "updated_by": "68f8f3a9b9e4a12345678002"
       },
@@ -1125,14 +1125,14 @@
         "skill": "READING",
         "level": "A1",
         "title": "The mountain photo",
-        "text": "This is a photo of my family on holiday. I am standing beside my brother. We are both wearing hats because it is cold on the mountain. My parents are smiling behind us. The walk was long, but the view was beautiful. I want to go back in summer.",
+        "text": "This is a photo of my family on holiday. I am standing beside my brother. We are both wearing hats because it is cold on the mountain. My parents are smiling behind us. The walk was long, but the view of the mountains was beautiful. I want to go back in summer.",
         "status": "DRAFT",
-        "revision": 2,
+        "revision": 6,
         "created_at": {
           "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T06:03:18.049Z"
+          "$date": "2026-11-28T06:24:57.739Z"
         },
         "updated_by": "68f8f3a9b9e4a12345678002"
       },
@@ -1146,12 +1146,12 @@
         "title": "A message from a neighbour",
         "text": "Dear neighbours, we are having a small party on Friday evening. It will finish by nine. Please tell us if the music is too loud. Our baby usually sleeps at nine too, so we want the house quiet then. Thank you for understanding. The family at number fourteen.",
         "status": "DRAFT",
-        "revision": 2,
+        "revision": 3,
         "created_at": {
           "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T06:03:18.087Z"
+          "$date": "2026-11-28T06:24:57.837Z"
         },
         "updated_by": "68f8f3a9b9e4a12345678002"
       },
@@ -1165,12 +1165,12 @@
         "title": "A trip to the dentist",
         "text": "Dentist appointment: Tuesday, 14 May, at two in the afternoon. Please arrive ten minutes early to fill in a form. Bring a list of any medicines you take. If you cannot come, phone us before Monday evening so we can offer the time to another person.",
         "status": "DRAFT",
-        "revision": 2,
+        "revision": 4,
         "created_at": {
           "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T06:03:18.129Z"
+          "$date": "2026-11-28T06:24:58.001Z"
         },
         "updated_by": "68f8f3a9b9e4a12345678002"
       },
@@ -1184,12 +1184,12 @@
         "title": "A thank-you card",
         "text": "Dear Mrs Green, thank you for helping me with my reading this year. I can read a short story by myself now. I still read slowly, but I do not feel afraid of long pages. I will practise in the holidays. I hope you have a happy summer. From Ali.",
         "status": "DRAFT",
-        "revision": 2,
+        "revision": 3,
         "created_at": {
           "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T06:03:18.175Z"
+          "$date": "2026-11-28T06:24:58.091Z"
         },
         "updated_by": "68f8f3a9b9e4a12345678002"
       },
@@ -1201,14 +1201,14 @@
         "skill": "READING",
         "level": "A1",
         "title": "A small shop's hours",
-        "text": "The Corner Shop is open from eight to six on weekdays. On Saturdays we close at four. We sell basic food, soap and stamps. Please bring your own bag to use less plastic. If you forget one, a paper bag costs ten pence. Thank you for helping keep our town clean.",
+        "text": "The Corner Shop is open from eight to six, Monday to Friday. These days are weekdays. On Saturdays we close at four. We sell basic food, soap and stamps. Please bring your own bag to use less plastic. If you forget one, a paper bag costs ten pence. Thank you for helping keep our town clean.",
         "status": "DRAFT",
-        "revision": 2,
+        "revision": 6,
         "created_at": {
           "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T06:03:18.216Z"
+          "$date": "2026-11-28T06:24:58.412Z"
         },
         "updated_by": "68f8f3a9b9e4a12345678002"
       },
@@ -1222,12 +1222,12 @@
         "title": "The classroom helper",
         "text": "This week Rosa is our classroom helper. She gives out pencils before art and puts the books away after reading time. Please help her keep the room tidy. Put rubbish in the bin and push your chair under the table. A tidy room is nicer for everyone.",
         "status": "DRAFT",
-        "revision": 2,
+        "revision": 4,
         "created_at": {
           "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T06:03:18.254Z"
+          "$date": "2026-11-28T06:24:58.602Z"
         },
         "updated_by": "68f8f3a9b9e4a12345678002"
       }
@@ -1266,10 +1266,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -1305,10 +1305,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -1344,10 +1344,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -1383,10 +1383,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -1422,10 +1422,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -1461,10 +1461,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -1500,10 +1500,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -1539,10 +1539,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -1558,7 +1558,7 @@
         "options": [
           {
             "option_id": "A",
-            "text": "Keep the speaker company"
+            "text": "Sit and eat with the speaker"
           },
           {
             "option_id": "B",
@@ -1576,13 +1576,14 @@
         "correct_option_id": "A",
         "explanation": "Lời mời ngồi cùng và không muốn ăn một mình cho thấy mong muốn có bạn. Bằng chứng: Please sit with me; I do not want to eat alone.",
         "status": "DRAFT",
-        "revision": 1,
+        "revision": 2,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
-        }
+          "$date": "2026-11-28T06:24:50.208Z"
+        },
+        "updated_by": "68f8f3a9b9e4a12345678002"
       },
       {
         "_id": {
@@ -1617,10 +1618,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -1656,10 +1657,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -1695,10 +1696,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -1734,10 +1735,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -1773,10 +1774,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -1788,7 +1789,7 @@
         "micro_skill": "Listening for Attitude / Purpose",
         "level": "A1",
         "passage_id": "LP-PASS-9df621f3-c8bc-4d7e-aca9-23b40aa626a8",
-        "prompt": "What is the speaker's purpose?",
+        "prompt": "Why is the speaker talking?",
         "options": [
           {
             "option_id": "A",
@@ -1800,7 +1801,7 @@
           },
           {
             "option_id": "C",
-            "text": "To explain the borrowing rules"
+            "text": "To explain how to take books home"
           },
           {
             "option_id": "D",
@@ -1810,13 +1811,14 @@
         "correct_option_id": "C",
         "explanation": "Thông điệp hướng dẫn cách mượn và trả sách. Bằng chứng: Please bring the books back on Friday.",
         "status": "DRAFT",
-        "revision": 1,
+        "revision": 2,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
-        }
+          "$date": "2026-11-28T06:24:50.330Z"
+        },
+        "updated_by": "68f8f3a9b9e4a12345678002"
       },
       {
         "_id": {
@@ -1851,10 +1853,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -1866,7 +1868,7 @@
         "micro_skill": "Listening for Specific Information",
         "level": "A1",
         "passage_id": "LP-PASS-d8ac28f8-275b-48f8-8a03-f8b5d48b353c",
-        "prompt": "What colour does the speaker prefer?",
+        "prompt": "What colour does the speaker like best?",
         "options": [
           {
             "option_id": "A",
@@ -1888,13 +1890,14 @@
         "correct_option_id": "C",
         "explanation": "Người nói thích màu xanh dương nhất. Bằng chứng: blue is my favourite colour",
         "status": "DRAFT",
-        "revision": 1,
+        "revision": 2,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
-        }
+          "$date": "2026-11-28T06:24:50.452Z"
+        },
+        "updated_by": "68f8f3a9b9e4a12345678002"
       },
       {
         "_id": {
@@ -1921,19 +1924,20 @@
           },
           {
             "option_id": "D",
-            "text": "Blue is not available"
+            "text": "There are no blue shirts"
           }
         ],
         "correct_option_id": "B",
         "explanation": "Vấn đề là kích cỡ, không phải màu hay độ sạch. Bằng chứng: it is too big for me",
         "status": "DRAFT",
-        "revision": 1,
+        "revision": 2,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
-        }
+          "$date": "2026-11-28T06:24:50.577Z"
+        },
+        "updated_by": "68f8f3a9b9e4a12345678002"
       },
       {
         "_id": {
@@ -1968,10 +1972,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -2007,10 +2011,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -2026,7 +2030,7 @@
         "options": [
           {
             "option_id": "A",
-            "text": "Moving a game indoors"
+            "text": "Playing a game inside"
           },
           {
             "option_id": "B",
@@ -2044,13 +2048,14 @@
         "correct_option_id": "A",
         "explanation": "Đáp án khái quát nội dung toàn bài; các lựa chọn khác không phải chủ đề chính. Bằng chứng: Hello children. It is raining, and the playground is wet. We will have our game in the hall today. Leave your coats by the door and bring your water bottles inside. Please walk. The floor near the door is wet too, and I want everyone to be safe.",
         "status": "DRAFT",
-        "revision": 1,
+        "revision": 2,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
-        }
+          "$date": "2026-11-28T06:24:50.700Z"
+        },
+        "updated_by": "68f8f3a9b9e4a12345678002"
       },
       {
         "_id": {
@@ -2085,10 +2090,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -2124,10 +2129,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -2163,10 +2168,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -2186,7 +2191,7 @@
           },
           {
             "option_id": "B",
-            "text": "The children's safety"
+            "text": "Keeping the children safe"
           },
           {
             "option_id": "C",
@@ -2200,13 +2205,14 @@
         "correct_option_id": "B",
         "explanation": "Người nói nhấn mạnh sự an toàn. Bằng chứng: I want everyone to be safe",
         "status": "DRAFT",
-        "revision": 1,
+        "revision": 2,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
-        }
+          "$date": "2026-11-28T06:24:50.829Z"
+        },
+        "updated_by": "68f8f3a9b9e4a12345678002"
       },
       {
         "_id": {
@@ -2241,10 +2247,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -2280,10 +2286,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -2319,10 +2325,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -2334,7 +2340,7 @@
         "micro_skill": "Listening for Inference",
         "level": "A1",
         "passage_id": "LP-PASS-9a276b6e-1b1e-49df-ad6e-1bdbc2f17cf8",
-        "prompt": "What will Grandma probably receive?",
+        "prompt": "What will Grandma probably have at home?",
         "options": [
           {
             "option_id": "A",
@@ -2350,19 +2356,20 @@
           },
           {
             "option_id": "D",
-            "text": "Milk brought to her home"
+            "text": "The milk Leo brings"
           }
         ],
         "correct_option_id": "D",
         "explanation": "Mang chai sữa tới căn hộ nghĩa là giao sữa tận nhà cho bà. Bằng chứng: take it to her flat",
         "status": "DRAFT",
-        "revision": 1,
+        "revision": 2,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
-        }
+          "$date": "2026-11-28T06:24:50.944Z"
+        },
+        "updated_by": "68f8f3a9b9e4a12345678002"
       },
       {
         "_id": {
@@ -2389,19 +2396,20 @@
           },
           {
             "option_id": "D",
-            "text": "Uninterested"
+            "text": "Not interested"
           }
         ],
         "correct_option_id": "B",
         "explanation": "Lời cảm ơn cho thấy sự biết ơn. Bằng chứng: Thanks, that is a big help.",
         "status": "DRAFT",
-        "revision": 1,
+        "revision": 2,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
-        }
+          "$date": "2026-11-28T06:24:51.075Z"
+        },
+        "updated_by": "68f8f3a9b9e4a12345678002"
       },
       {
         "_id": {
@@ -2436,10 +2444,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -2475,10 +2483,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -2490,11 +2498,11 @@
         "micro_skill": "Listening for Detail & Relationship",
         "level": "A1",
         "passage_id": "LP-PASS-bdc38703-39c7-4eef-abd1-13de3afb913b",
-        "prompt": "Why are neighbours asked to check boxes?",
+        "prompt": "Why might Snow be in a box?",
         "options": [
           {
             "option_id": "A",
-            "text": "The boxes belong to a shop"
+            "text": "Snow sleeps only in the garden"
           },
           {
             "option_id": "B",
@@ -2502,23 +2510,24 @@
           },
           {
             "option_id": "C",
-            "text": "Snow eats boxes"
+            "text": "Snow plays with a ball there"
           },
           {
             "option_id": "D",
-            "text": "The boxes have phones"
+            "text": "Snow eats her food there"
           }
         ],
         "correct_option_id": "B",
         "explanation": "Thói quen ngủ trong hộp giải thích nơi nên tìm mèo. Bằng chứng: often sleeps in a box",
         "status": "DRAFT",
-        "revision": 1,
+        "revision": 2,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
-        }
+          "$date": "2026-11-28T06:24:51.179Z"
+        },
+        "updated_by": "68f8f3a9b9e4a12345678002"
       },
       {
         "_id": {
@@ -2553,10 +2562,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -2568,7 +2577,7 @@
         "micro_skill": "Listening for Attitude / Purpose",
         "level": "A1",
         "passage_id": "LP-PASS-bdc38703-39c7-4eef-abd1-13de3afb913b",
-        "prompt": "Why is the speaker making this announcement?",
+        "prompt": "Why is the speaker leaving this message?",
         "options": [
           {
             "option_id": "A",
@@ -2590,13 +2599,14 @@
         "correct_option_id": "A",
         "explanation": "Mục đích là nhờ hàng xóm tìm và báo tin về mèo. Bằng chứng: If you see her, call me.",
         "status": "DRAFT",
-        "revision": 1,
+        "revision": 2,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
-        }
+          "$date": "2026-11-28T06:24:51.299Z"
+        },
+        "updated_by": "68f8f3a9b9e4a12345678002"
       },
       {
         "_id": {
@@ -2631,10 +2641,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -2670,10 +2680,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -2709,10 +2719,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -2748,10 +2758,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -2787,10 +2797,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -2826,10 +2836,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -2865,10 +2875,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -2892,7 +2902,7 @@
           },
           {
             "option_id": "C",
-            "text": "Their keys stop working"
+            "text": "Guests must leave before breakfast"
           },
           {
             "option_id": "D",
@@ -2902,13 +2912,14 @@
         "correct_option_id": "A",
         "explanation": "Cửa trước đóng lúc mười giờ nên dùng cửa sau. Bằng chứng: because we close the front door then",
         "status": "DRAFT",
-        "revision": 1,
+        "revision": 2,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
-        }
+          "$date": "2026-11-28T06:24:51.460Z"
+        },
+        "updated_by": "68f8f3a9b9e4a12345678002"
       },
       {
         "_id": {
@@ -2943,10 +2954,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -2982,10 +2993,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -3021,10 +3032,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -3060,10 +3071,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -3099,10 +3110,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -3138,10 +3149,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -3177,10 +3188,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -3216,10 +3227,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -3255,10 +3266,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -3294,10 +3305,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -3333,10 +3344,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -3372,10 +3383,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -3411,10 +3422,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -3450,10 +3461,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -3489,10 +3500,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -3528,10 +3539,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -3567,10 +3578,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -3606,10 +3617,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -3645,10 +3656,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -3684,10 +3695,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -3723,10 +3734,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -3738,7 +3749,7 @@
         "micro_skill": "Listening for Attitude / Purpose",
         "level": "A1",
         "passage_id": "LP-PASS-daf582e2-b713-4b21-b9cf-f60336f8d1d6",
-        "prompt": "What is the speaker's purpose?",
+        "prompt": "Why is the speaker talking?",
         "options": [
           {
             "option_id": "A",
@@ -3760,13 +3771,14 @@
         "correct_option_id": "C",
         "explanation": "Các hướng dẫn giúp người nghe chờ khám thuận tiện. Bằng chứng: Please sit; If you need water",
         "status": "DRAFT",
-        "revision": 1,
+        "revision": 2,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
-        }
+          "$date": "2026-11-28T06:24:51.610Z"
+        },
+        "updated_by": "68f8f3a9b9e4a12345678002"
       },
       {
         "_id": {
@@ -3801,10 +3813,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -3840,10 +3852,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -3879,10 +3891,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -3918,10 +3930,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -3957,10 +3969,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -3996,10 +4008,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -4035,10 +4047,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -4074,10 +4086,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -4113,10 +4125,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -4136,7 +4148,7 @@
           },
           {
             "option_id": "B",
-            "text": "To encourage them to buy oranges"
+            "text": "To ask them to buy oranges"
           },
           {
             "option_id": "C",
@@ -4150,13 +4162,14 @@
         "correct_option_id": "B",
         "explanation": "Đây là lời giới thiệu và mời khách mua cam. Bằng chứng: Please come to my table and have a taste.",
         "status": "DRAFT",
-        "revision": 1,
+        "revision": 2,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
-        }
+          "$date": "2026-11-28T06:24:51.751Z"
+        },
+        "updated_by": "68f8f3a9b9e4a12345678002"
       },
       {
         "_id": {
@@ -4191,10 +4204,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -4230,10 +4243,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -4269,10 +4282,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -4308,10 +4321,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -4327,7 +4340,7 @@
         "options": [
           {
             "option_id": "A",
-            "text": "Make the weather cooler"
+            "text": "Take the dog out now"
           },
           {
             "option_id": "B",
@@ -4345,13 +4358,14 @@
         "correct_option_id": "B",
         "explanation": "Mục đích là nhờ chăm thú cưng. Bằng chứng: Please give our dog some water",
         "status": "DRAFT",
-        "revision": 1,
+        "revision": 2,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
-        }
+          "$date": "2026-11-28T06:24:51.871Z"
+        },
+        "updated_by": "68f8f3a9b9e4a12345678002"
       },
       {
         "_id": {
@@ -4386,10 +4400,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -4425,10 +4439,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -4464,10 +4478,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -4503,10 +4517,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -4542,10 +4556,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -4581,10 +4595,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -4620,10 +4634,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -4659,10 +4673,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -4698,10 +4712,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -4737,10 +4751,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -4776,10 +4790,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -4815,10 +4829,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -4834,7 +4848,7 @@
         "options": [
           {
             "option_id": "A",
-            "text": "It is a shop"
+            "text": "The small pool is closed"
           },
           {
             "option_id": "B",
@@ -4852,13 +4866,14 @@
         "correct_option_id": "C",
         "explanation": "Bể lớn sâu nên không phù hợp với người chưa biết bơi. Bằng chứng: The big pool is deep.",
         "status": "DRAFT",
-        "revision": 1,
+        "revision": 2,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
-        }
+          "$date": "2026-11-28T06:24:51.986Z"
+        },
+        "updated_by": "68f8f3a9b9e4a12345678002"
       },
       {
         "_id": {
@@ -4873,7 +4888,7 @@
         "options": [
           {
             "option_id": "A",
-            "text": "Yes, shoes make it safe"
+            "text": "Yes, children can swim there alone"
           },
           {
             "option_id": "B",
@@ -4891,13 +4906,14 @@
         "correct_option_id": "D",
         "explanation": "With an adult nghĩa là cần người lớn đi cùng. Bằng chứng: stay in the small pool with an adult",
         "status": "DRAFT",
-        "revision": 1,
+        "revision": 2,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
-        }
+          "$date": "2026-11-28T06:24:52.107Z"
+        },
+        "updated_by": "68f8f3a9b9e4a12345678002"
       },
       {
         "_id": {
@@ -4932,10 +4948,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -4951,7 +4967,7 @@
         "options": [
           {
             "option_id": "A",
-            "text": "An apology about a broken cup"
+            "text": "Saying sorry about a broken cup"
           },
           {
             "option_id": "B",
@@ -4969,13 +4985,14 @@
         "correct_option_id": "A",
         "explanation": "Đáp án khái quát nội dung toàn bài; các lựa chọn khác không phải chủ đề chính. Bằng chứng: Mum, I am sorry. I broke your yellow cup while I was washing it. The pieces are on the kitchen floor. Please keep the baby out of the kitchen. I will get a brush and clean it up now. I know it is your favourite cup.",
         "status": "DRAFT",
-        "revision": 1,
+        "revision": 2,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
-        }
+          "$date": "2026-11-28T06:24:52.271Z"
+        },
+        "updated_by": "68f8f3a9b9e4a12345678002"
       },
       {
         "_id": {
@@ -5010,10 +5027,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -5049,10 +5066,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -5088,10 +5105,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -5127,10 +5144,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -5166,10 +5183,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -5205,10 +5222,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -5244,10 +5261,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -5259,35 +5276,36 @@
         "micro_skill": "Listening for Inference",
         "level": "A1",
         "passage_id": "LP-PASS-c02dcbb4-a91d-4e6a-a03f-aaaecf92ff1a",
-        "prompt": "Has the speaker probably bought a ticket for Max already?",
+        "prompt": "Does Max need to buy a ticket now?",
         "options": [
           {
             "option_id": "A",
-            "text": "No, the film is free for everyone"
+            "text": "Yes, he must buy one at the window"
           },
           {
             "option_id": "B",
-            "text": "Yes, but Max cannot use it"
+            "text": "No, the cinema has no tickets today"
           },
           {
             "option_id": "C",
-            "text": "Yes, the speaker is holding it"
+            "text": "No, the speaker has his ticket"
           },
           {
             "option_id": "D",
-            "text": "No, the speaker has no money"
+            "text": "Yes, the speaker has no ticket for him"
           }
         ],
         "correct_option_id": "C",
         "explanation": "Có vé của Max cho thấy vé đã được chuẩn bị. Bằng chứng: I have your ticket",
         "status": "DRAFT",
-        "revision": 1,
+        "revision": 2,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
-        }
+          "$date": "2026-11-28T06:24:52.397Z"
+        },
+        "updated_by": "68f8f3a9b9e4a12345678002"
       },
       {
         "_id": {
@@ -5322,10 +5340,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -5349,7 +5367,7 @@
           },
           {
             "option_id": "C",
-            "text": "Asking Pat to prepare dinner"
+            "text": "Asking Pat to cook dinner"
           },
           {
             "option_id": "D",
@@ -5359,13 +5377,14 @@
         "correct_option_id": "C",
         "explanation": "Đáp án khái quát nội dung toàn bài; các lựa chọn khác không phải chủ đề chính. Bằng chứng: Hello Pat. I finish work late today. There is pasta in the blue box and tomato sauce in the fridge. Can you cook dinner for us? Start at seven, please. I will be home at seven thirty. It will be lovely to eat together after a long day.",
         "status": "DRAFT",
-        "revision": 1,
+        "revision": 2,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
-        }
+          "$date": "2026-11-28T06:24:52.516Z"
+        },
+        "updated_by": "68f8f3a9b9e4a12345678002"
       },
       {
         "_id": {
@@ -5400,10 +5419,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -5439,10 +5458,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -5478,10 +5497,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -5517,10 +5536,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -5556,10 +5575,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -5595,10 +5614,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -5634,10 +5653,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -5673,10 +5692,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -5712,10 +5731,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -5751,10 +5770,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -5790,10 +5809,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -5829,10 +5848,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -5848,7 +5867,7 @@
         "options": [
           {
             "option_id": "A",
-            "text": "No, a lower volume is enough"
+            "text": "No, Alex can watch with less sound"
           },
           {
             "option_id": "B",
@@ -5866,13 +5885,14 @@
         "correct_option_id": "A",
         "explanation": "Vẫn được xem, chỉ cần giảm âm lượng. Bằng chứng: You can still watch your programme.",
         "status": "DRAFT",
-        "revision": 1,
+        "revision": 2,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
-        }
+          "$date": "2026-11-28T06:24:52.633Z"
+        },
+        "updated_by": "68f8f3a9b9e4a12345678002"
       },
       {
         "_id": {
@@ -5887,7 +5907,7 @@
         "options": [
           {
             "option_id": "A",
-            "text": "By offering to sell a book"
+            "text": "By asking for a new book"
           },
           {
             "option_id": "B",
@@ -5895,7 +5915,7 @@
           },
           {
             "option_id": "C",
-            "text": "By shouting insults"
+            "text": "By saying the book is bad"
           },
           {
             "option_id": "D",
@@ -5905,13 +5925,14 @@
         "correct_option_id": "B",
         "explanation": "Cách hỏi với please và cảm ơn thể hiện lịch sự. Bằng chứng: Could you; please; Thank you",
         "status": "DRAFT",
-        "revision": 1,
+        "revision": 2,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
-        }
+          "$date": "2026-11-28T06:24:52.732Z"
+        },
+        "updated_by": "68f8f3a9b9e4a12345678002"
       },
       {
         "_id": {
@@ -5946,10 +5967,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -5985,10 +6006,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -6024,10 +6045,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -6063,10 +6084,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -6102,10 +6123,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -6141,10 +6162,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -6180,10 +6201,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -6219,10 +6240,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -6258,10 +6279,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -6297,10 +6318,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -6316,7 +6337,7 @@
         "options": [
           {
             "option_id": "A",
-            "text": "Thanking a friend for an enjoyable book"
+            "text": "Thanking a friend for a good book"
           },
           {
             "option_id": "B",
@@ -6334,13 +6355,14 @@
         "correct_option_id": "A",
         "explanation": "Đáp án khái quát nội dung toàn bài; các lựa chọn khác không phải chủ đề chính. Bằng chứng: Hi Lily. Thank you for the book. I finished it last night. The story about the little boat was funny, and I laughed a lot. I will bring it to your house on Sunday. Can you show me another book by the same writer? I would love to read more.",
         "status": "DRAFT",
-        "revision": 1,
+        "revision": 2,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
-        }
+          "$date": "2026-11-28T06:24:52.826Z"
+        },
+        "updated_by": "68f8f3a9b9e4a12345678002"
       },
       {
         "_id": {
@@ -6375,10 +6397,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -6406,19 +6428,20 @@
           },
           {
             "option_id": "D",
-            "text": "The first story was enjoyable"
+            "text": "The first story was fun to read"
           }
         ],
         "correct_option_id": "D",
         "explanation": "Thích câu chuyện đầu là lý do muốn đọc thêm cùng tác giả. Bằng chứng: was funny; I laughed a lot; read more",
         "status": "DRAFT",
-        "revision": 1,
+        "revision": 2,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
-        }
+          "$date": "2026-11-28T06:24:52.953Z"
+        },
+        "updated_by": "68f8f3a9b9e4a12345678002"
       },
       {
         "_id": {
@@ -6453,10 +6476,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -6476,7 +6499,7 @@
           },
           {
             "option_id": "B",
-            "text": "Uninterested in it"
+            "text": "Not interested in it"
           },
           {
             "option_id": "C",
@@ -6490,13 +6513,14 @@
         "correct_option_id": "C",
         "explanation": "Lời nhận xét vui và cười nhiều thể hiện yêu thích. Bằng chứng: was funny, and I laughed a lot",
         "status": "DRAFT",
-        "revision": 1,
+        "revision": 2,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
-        }
+          "$date": "2026-11-28T06:24:53.065Z"
+        },
+        "updated_by": "68f8f3a9b9e4a12345678002"
       },
       {
         "_id": {
@@ -6531,10 +6555,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -6570,10 +6594,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -6609,10 +6633,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -6648,10 +6672,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -6687,10 +6711,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -6726,10 +6750,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -6765,10 +6789,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -6804,10 +6828,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -6819,7 +6843,7 @@
         "micro_skill": "Listening for Inference",
         "level": "A1",
         "passage_id": "LP-PASS-73481fdf-368a-445b-916a-040e39fcfcf8",
-        "prompt": "Would the speaker probably like to attend again?",
+        "prompt": "Will the speaker probably go to the class again?",
         "options": [
           {
             "option_id": "A",
@@ -6841,13 +6865,14 @@
         "correct_option_id": "B",
         "explanation": "Trải nghiệm vui và lời rủ bạn cho thấy muốn quay lại. Bằng chứng: had a great time; come with me next Friday",
         "status": "DRAFT",
-        "revision": 1,
+        "revision": 2,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
-        }
+          "$date": "2026-11-28T06:24:53.197Z"
+        },
+        "updated_by": "68f8f3a9b9e4a12345678002"
       },
       {
         "_id": {
@@ -6862,15 +6887,15 @@
         "options": [
           {
             "option_id": "A",
-            "text": "It was a waste of every minute"
+            "text": "It was too easy"
           },
           {
             "option_id": "B",
-            "text": "It was enjoyable"
+            "text": "It was fun"
           },
           {
             "option_id": "C",
-            "text": "It was frightening"
+            "text": "It was scary"
           },
           {
             "option_id": "D",
@@ -6880,13 +6905,14 @@
         "correct_option_id": "B",
         "explanation": "Cụm great time thể hiện trải nghiệm thú vị. Bằng chứng: I had a great time.",
         "status": "DRAFT",
-        "revision": 1,
+        "revision": 2,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
-        }
+          "$date": "2026-11-28T06:24:53.291Z"
+        },
+        "updated_by": "68f8f3a9b9e4a12345678002"
       },
       {
         "_id": {
@@ -6921,10 +6947,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -6960,10 +6986,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -6999,10 +7025,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -7014,35 +7040,36 @@
         "micro_skill": "Listening for Inference",
         "level": "A1",
         "passage_id": "LP-PASS-0b463671-bb70-494d-b4ad-3c1321628807",
-        "prompt": "What will the speaker probably need at home?",
+        "prompt": "Will the phone probably work for much longer?",
         "options": [
           {
             "option_id": "A",
-            "text": "A new front door"
+            "text": "Yes, it has a full battery"
           },
           {
             "option_id": "B",
-            "text": "A swimming bag"
+            "text": "No, Sam has the phone"
           },
           {
             "option_id": "C",
-            "text": "A phone charger"
+            "text": "No, it has almost no power"
           },
           {
             "option_id": "D",
-            "text": "A train driver's hat"
+            "text": "Yes, it is already charging"
           }
         ],
         "correct_option_id": "C",
-        "explanation": "Muốn sạc điện thoại cần bộ sạc; suy luận trực tiếp từ hành động sắp làm. Bằng chứng: I will charge my phone when I get home.",
+        "explanation": "Pin gần hết là dấu hiệu trực tiếp cho thấy điện thoại có thể sớm không hoạt động. Không cần suy đoán người nói có mang bộ sạc hay không. Bằng chứng: My phone battery is almost empty.",
         "status": "DRAFT",
-        "revision": 1,
+        "revision": 2,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
-        }
+          "$date": "2026-11-28T06:24:53.382Z"
+        },
+        "updated_by": "68f8f3a9b9e4a12345678002"
       },
       {
         "_id": {
@@ -7069,19 +7096,20 @@
           },
           {
             "option_id": "D",
-            "text": "To stop Sam worrying about unanswered calls"
+            "text": "To tell Sam not to worry if there is no answer"
           }
         ],
         "correct_option_id": "D",
         "explanation": "Thông báo trước giúp Sam không lo khi gọi không được. Bằng chứng: please do not worry",
         "status": "DRAFT",
-        "revision": 1,
+        "revision": 2,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
-        }
+          "$date": "2026-11-28T06:24:53.512Z"
+        },
+        "updated_by": "68f8f3a9b9e4a12345678002"
       },
       {
         "_id": {
@@ -7116,10 +7144,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -7155,10 +7183,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -7194,10 +7222,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -7233,10 +7261,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -7272,10 +7300,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -7307,15 +7335,16 @@
           }
         ],
         "correct_option_id": "C",
-        "explanation": "Đáp án khái quát nội dung toàn bài; các lựa chọn khác không phải chủ đề chính. Bằng chứng: Reading Club meets in the library on Wednesday at four. Bring a book you like. We read for twenty minutes and then talk about our books. New members are welcome. You do not need to buy a new book. You can borrow one from the library.",
+        "explanation": "Đáp án khái quát nội dung toàn bài; các lựa chọn khác không phải chủ đề chính. Bằng chứng: Reading Club meets in the library on Wednesday at four. Bring a book you like. We read for twenty minutes and then talk about our books. New members are welcome. You do not need to buy a new book. You can borrow one from the library and bring it back next week.",
         "status": "DRAFT",
-        "revision": 1,
+        "revision": 2,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
-        }
+          "$date": "2026-11-28T06:24:53.623Z"
+        },
+        "updated_by": "68f8f3a9b9e4a12345678002"
       },
       {
         "_id": {
@@ -7350,10 +7379,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -7389,10 +7418,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -7404,7 +7433,7 @@
         "micro_skill": "Inference & Author's View",
         "level": "A1",
         "passage_id": "LP-PASS-R-A1-V1-002",
-        "prompt": "Can someone come without owning a book?",
+        "prompt": "Can someone join if they have no book?",
         "options": [
           {
             "option_id": "A",
@@ -7424,15 +7453,16 @@
           }
         ],
         "correct_option_id": "C",
-        "explanation": "Có thể mượn sách nên không bắt buộc phải sở hữu sách. Bằng chứng: You can borrow one from the library.",
+        "explanation": "Có thể mượn sách nên không bắt buộc phải sở hữu sách. Bằng chứng: You can borrow one from the library and bring it back next week.",
         "status": "DRAFT",
-        "revision": 1,
+        "revision": 2,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
-        }
+          "$date": "2026-11-28T06:24:53.714Z"
+        },
+        "updated_by": "68f8f3a9b9e4a12345678002"
       },
       {
         "_id": {
@@ -7467,10 +7497,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -7506,10 +7536,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -7545,10 +7575,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -7584,10 +7614,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -7599,7 +7629,7 @@
         "micro_skill": "Inference & Author's View",
         "level": "A1",
         "passage_id": "LP-PASS-R-A1-V1-003",
-        "prompt": "Would Kate probably like to stay longer?",
+        "prompt": "Does Kate probably like her visit?",
         "options": [
           {
             "option_id": "A",
@@ -7611,7 +7641,7 @@
           },
           {
             "option_id": "C",
-            "text": "No, she wants to leave immediately"
+            "text": "No, she wants to leave now"
           },
           {
             "option_id": "D",
@@ -7621,13 +7651,14 @@
         "correct_option_id": "B",
         "explanation": "Lời bày tỏ yêu thích cho thấy Kate hài lòng với chuyến ở thăm. Bằng chứng: I love being here.",
         "status": "DRAFT",
-        "revision": 1,
+        "revision": 2,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
-        }
+          "$date": "2026-11-28T06:24:53.801Z"
+        },
+        "updated_by": "68f8f3a9b9e4a12345678002"
       },
       {
         "_id": {
@@ -7662,10 +7693,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -7697,15 +7728,16 @@
           }
         ],
         "correct_option_id": "A",
-        "explanation": "Đáp án khái quát nội dung toàn bài; các lựa chọn khác không phải chủ đề chính. Bằng chứng: Lost: a green water bottle with my name, David, on it. I left it in the sports hall after basketball on Monday. It was a present from my grandfather. If you find it, please give it to the school office. I would really like it back.",
+        "explanation": "Đáp án khái quát nội dung toàn bài; các lựa chọn khác không phải chủ đề chính. Bằng chứng: Lost: a green water bottle with my name, David, on it. I left it in the sports hall after basketball on Monday. My grandfather gave it to me as a present. If you find it, please give it to the school office. I would really like it back.",
         "status": "DRAFT",
-        "revision": 1,
+        "revision": 2,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
-        }
+          "$date": "2026-11-28T06:24:53.900Z"
+        },
+        "updated_by": "68f8f3a9b9e4a12345678002"
       },
       {
         "_id": {
@@ -7740,10 +7772,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -7775,15 +7807,16 @@
           }
         ],
         "correct_option_id": "D",
-        "explanation": "Chiếc bình là quà của ông nên có ý nghĩa với David. Bằng chứng: It was a present from my grandfather.",
+        "explanation": "Chiếc bình là quà của ông nên có ý nghĩa với David. Bằng chứng: My grandfather gave it to me as a present.",
         "status": "DRAFT",
-        "revision": 1,
+        "revision": 2,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
-        }
+          "$date": "2026-11-28T06:24:54.036Z"
+        },
+        "updated_by": "68f8f3a9b9e4a12345678002"
       },
       {
         "_id": {
@@ -7818,10 +7851,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -7853,15 +7886,16 @@
           }
         ],
         "correct_option_id": "A",
-        "explanation": "Present trong ngữ cảnh này nghĩa là món quà. Bằng chứng: a present from my grandfather",
+        "explanation": "Present trong ngữ cảnh này nghĩa là món quà. Bằng chứng: gave it to me as a present",
         "status": "DRAFT",
-        "revision": 1,
+        "revision": 2,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
-        }
+          "$date": "2026-11-28T06:24:54.118Z"
+        },
+        "updated_by": "68f8f3a9b9e4a12345678002"
       },
       {
         "_id": {
@@ -7896,10 +7930,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -7935,10 +7969,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -7974,10 +8008,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -8013,10 +8047,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -8052,10 +8086,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -8071,7 +8105,7 @@
         "options": [
           {
             "option_id": "A",
-            "text": "A flat available to rent"
+            "text": "A flat for rent"
           },
           {
             "option_id": "B",
@@ -8087,15 +8121,16 @@
           }
         ],
         "correct_option_id": "A",
-        "explanation": "Đáp án khái quát nội dung toàn bài; các lựa chọn khác không phải chủ đề chính. Bằng chứng: Small flat for rent near Green Park. One bedroom, a kitchen and a bathroom. There is no garden, but the park is across the road. The bus stop is two minutes away on foot. No pets, please. Call Mrs Brown after six in the evening to see the flat.",
+        "explanation": "Đáp án khái quát nội dung toàn bài; các lựa chọn khác không phải chủ đề chính. Bằng chứng: Small flat for rent near Green Park. One bedroom, a kitchen and a bathroom. There is no garden, but the park is across the road. You can walk to the bus stop in two minutes. It is a short trip on foot. No pets, please. Call Mrs Brown after six in the evening to see the flat.",
         "status": "DRAFT",
-        "revision": 1,
+        "revision": 2,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
-        }
+          "$date": "2026-11-28T06:24:54.211Z"
+        },
+        "updated_by": "68f8f3a9b9e4a12345678002"
       },
       {
         "_id": {
@@ -8130,10 +8165,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -8145,7 +8180,7 @@
         "micro_skill": "Reading for Detail & Relationship",
         "level": "A1",
         "passage_id": "LP-PASS-R-A1-V1-006",
-        "prompt": "What can someone use instead of a private garden?",
+        "prompt": "Where can someone go outside near the flat?",
         "options": [
           {
             "option_id": "A",
@@ -8167,13 +8202,14 @@
         "correct_option_id": "A",
         "explanation": "Từ but đưa ra công viên gần nhà như lựa chọn không gian ngoài trời. Bằng chứng: no garden, but the park is across the road",
         "status": "DRAFT",
-        "revision": 1,
+        "revision": 2,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
-        }
+          "$date": "2026-11-28T06:24:54.322Z"
+        },
+        "updated_by": "68f8f3a9b9e4a12345678002"
       },
       {
         "_id": {
@@ -8184,7 +8220,7 @@
         "micro_skill": "Inference & Author's View",
         "level": "A1",
         "passage_id": "LP-PASS-R-A1-V1-006",
-        "prompt": "Would this flat suit someone who wants to keep a dog there?",
+        "prompt": "Can someone keep a dog in this flat?",
         "options": [
           {
             "option_id": "A",
@@ -8206,13 +8242,14 @@
         "correct_option_id": "B",
         "explanation": "Quy định không thú nuôi không phù hợp với người muốn giữ chó trong căn hộ. Bằng chứng: No pets, please.",
         "status": "DRAFT",
-        "revision": 1,
+        "revision": 2,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
-        }
+          "$date": "2026-11-28T06:24:54.440Z"
+        },
+        "updated_by": "68f8f3a9b9e4a12345678002"
       },
       {
         "_id": {
@@ -8243,15 +8280,16 @@
           }
         ],
         "correct_option_id": "D",
-        "explanation": "On foot nghĩa là đi bộ. Bằng chứng: two minutes away on foot",
+        "explanation": "On foot nghĩa là đi bộ; câu trước nói rõ walk to the bus stop. Bằng chứng: walk to the bus stop in two minutes; a short trip on foot",
         "status": "DRAFT",
-        "revision": 1,
+        "revision": 2,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
-        }
+          "$date": "2026-11-28T06:24:54.572Z"
+        },
+        "updated_by": "68f8f3a9b9e4a12345678002"
       },
       {
         "_id": {
@@ -8286,10 +8324,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -8325,10 +8363,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -8364,10 +8402,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -8379,7 +8417,7 @@
         "micro_skill": "Inference & Author's View",
         "level": "A1",
         "passage_id": "LP-PASS-R-A1-V1-007",
-        "prompt": "Is Ben willing to help Dan?",
+        "prompt": "Does Ben want to help Dan?",
         "options": [
           {
             "option_id": "A",
@@ -8401,13 +8439,14 @@
         "correct_option_id": "B",
         "explanation": "Lời mời gọi khi chưa hiểu thể hiện sẵn lòng giải thích, không hứa làm hộ. Bằng chứng: Call me if you do not understand",
         "status": "DRAFT",
-        "revision": 1,
+        "revision": 2,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
-        }
+          "$date": "2026-11-28T06:24:54.677Z"
+        },
+        "updated_by": "68f8f3a9b9e4a12345678002"
       },
       {
         "_id": {
@@ -8418,7 +8457,7 @@
         "micro_skill": "Vocabulary in Context",
         "level": "A1",
         "passage_id": "LP-PASS-R-A1-V1-007",
-        "prompt": "What does 'task' refer to here?",
+        "prompt": "What does 'task' mean here?",
         "options": [
           {
             "option_id": "A",
@@ -8440,13 +8479,14 @@
         "correct_option_id": "C",
         "explanation": "Task chỉ bài tập viết năm câu vừa được mô tả. Bằng chứng: Write five sentences about your family; the task",
         "status": "DRAFT",
-        "revision": 1,
+        "revision": 2,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
-        }
+          "$date": "2026-11-28T06:24:54.766Z"
+        },
+        "updated_by": "68f8f3a9b9e4a12345678002"
       },
       {
         "_id": {
@@ -8481,10 +8521,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -8520,10 +8560,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -8559,10 +8599,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -8574,7 +8614,7 @@
         "micro_skill": "Inference & Author's View",
         "level": "A1",
         "passage_id": "LP-PASS-R-A1-V1-008",
-        "prompt": "Will lunch be provided for every guest?",
+        "prompt": "Do guests get their lunch from the family?",
         "options": [
           {
             "option_id": "A",
@@ -8596,13 +8636,14 @@
         "correct_option_id": "D",
         "explanation": "Your own cho biết mỗi khách tự mang phần ăn. Bằng chứng: Bring your own lunch",
         "status": "DRAFT",
-        "revision": 1,
+        "revision": 2,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
-        }
+          "$date": "2026-11-28T06:24:54.850Z"
+        },
+        "updated_by": "68f8f3a9b9e4a12345678002"
       },
       {
         "_id": {
@@ -8637,10 +8678,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -8656,7 +8697,7 @@
         "options": [
           {
             "option_id": "A",
-            "text": "What the school shop sells and supports"
+            "text": "The school shop and its help for the library"
           },
           {
             "option_id": "B",
@@ -8674,13 +8715,14 @@
         "correct_option_id": "A",
         "explanation": "Đáp án khái quát nội dung toàn bài; các lựa chọn khác không phải chủ đề chính. Bằng chứng: The school shop sells pens, pencils and notebooks. It is open at lunchtime, from twelve to one. Please bring coins for small things. We do not sell food here; snacks are in the cafe next door. All money from the shop helps us buy new books for the library.",
         "status": "DRAFT",
-        "revision": 1,
+        "revision": 2,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
-        }
+          "$date": "2026-11-28T06:24:54.953Z"
+        },
+        "updated_by": "68f8f3a9b9e4a12345678002"
       },
       {
         "_id": {
@@ -8715,10 +8757,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -8754,10 +8796,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -8773,7 +8815,7 @@
         "options": [
           {
             "option_id": "A",
-            "text": "Yes, each notebook contains a library key"
+            "text": "Yes, the notebook is a library book"
           },
           {
             "option_id": "B",
@@ -8791,13 +8833,14 @@
         "correct_option_id": "B",
         "explanation": "Tiền mua hàng góp vào việc mua sách thư viện. Bằng chứng: All money from the shop helps us buy new books",
         "status": "DRAFT",
-        "revision": 1,
+        "revision": 2,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
-        }
+          "$date": "2026-11-28T06:24:55.063Z"
+        },
+        "updated_by": "68f8f3a9b9e4a12345678002"
       },
       {
         "_id": {
@@ -8832,10 +8875,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -8871,10 +8914,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -8910,10 +8953,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -8949,10 +8992,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -8964,7 +9007,7 @@
         "micro_skill": "Inference & Author's View",
         "level": "A1",
         "passage_id": "LP-PASS-R-A1-V1-010",
-        "prompt": "Would a beginner probably feel welcome?",
+        "prompt": "Can someone new to football join this group?",
         "options": [
           {
             "option_id": "A",
@@ -8976,7 +9019,7 @@
           },
           {
             "option_id": "C",
-            "text": "Yes, the group offers help to new players"
+            "text": "Yes, the group helps new players"
           },
           {
             "option_id": "D",
@@ -8986,13 +9029,14 @@
         "correct_option_id": "C",
         "explanation": "Các lời chào đón và hỗ trợ tạo điều kiện cho người mới. Bằng chứng: do not have to be a good player; help new players",
         "status": "DRAFT",
-        "revision": 1,
+        "revision": 2,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
-        }
+          "$date": "2026-11-28T06:24:55.160Z"
+        },
+        "updated_by": "68f8f3a9b9e4a12345678002"
       },
       {
         "_id": {
@@ -9027,10 +9071,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -9066,10 +9110,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -9105,10 +9149,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -9120,7 +9164,7 @@
         "micro_skill": "Reading for Detail & Relationship",
         "level": "A1",
         "passage_id": "LP-PASS-R-A1-V1-011",
-        "prompt": "How did the later pancakes compare with the first?",
+        "prompt": "Were the next pancakes better than the first one?",
         "options": [
           {
             "option_id": "A",
@@ -9142,13 +9186,14 @@
         "correct_option_id": "A",
         "explanation": "But cho thấy các bánh sau tốt hơn bánh đầu. Bằng chứng: first pancake was too dark, but the next ones were good",
         "status": "DRAFT",
-        "revision": 1,
+        "revision": 2,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
-        }
+          "$date": "2026-11-28T06:24:55.257Z"
+        },
+        "updated_by": "68f8f3a9b9e4a12345678002"
       },
       {
         "_id": {
@@ -9183,10 +9228,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -9222,10 +9267,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -9261,10 +9306,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -9300,10 +9345,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -9339,10 +9384,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -9378,10 +9423,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -9417,10 +9462,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -9456,10 +9501,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -9471,7 +9516,7 @@
         "micro_skill": "Reading for Specific Information",
         "level": "A1",
         "passage_id": "LP-PASS-R-A1-V1-013",
-        "prompt": "When does the ticket stop being valid?",
+        "prompt": "Until when can you use this ticket?",
         "options": [
           {
             "option_id": "A",
@@ -9493,13 +9538,14 @@
         "correct_option_id": "C",
         "explanation": "Vé có hiệu lực đến nửa đêm hôm nay. Bằng chứng: until midnight today",
         "status": "DRAFT",
-        "revision": 1,
+        "revision": 2,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
-        }
+          "$date": "2026-11-28T06:24:55.392Z"
+        },
+        "updated_by": "68f8f3a9b9e4a12345678002"
       },
       {
         "_id": {
@@ -9518,7 +9564,7 @@
           },
           {
             "option_id": "B",
-            "text": "It becomes a train ticket when wet"
+            "text": "The date changes when the ticket is wet"
           },
           {
             "option_id": "C",
@@ -9526,19 +9572,20 @@
           },
           {
             "option_id": "D",
-            "text": "The bus has no roof"
+            "text": "The ticket must be given back after each ride"
           }
         ],
         "correct_option_id": "A",
         "explanation": "Giữ khô để tài xế đọc được ngày trên vé. Bằng chứng: so the driver can read the date",
         "status": "DRAFT",
-        "revision": 1,
+        "revision": 2,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
-        }
+          "$date": "2026-11-28T06:24:55.495Z"
+        },
+        "updated_by": "68f8f3a9b9e4a12345678002"
       },
       {
         "_id": {
@@ -9573,10 +9620,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -9612,10 +9659,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -9651,10 +9698,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -9690,10 +9737,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -9729,10 +9776,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -9768,10 +9815,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -9783,15 +9830,15 @@
         "micro_skill": "Vocabulary in Context",
         "level": "A1",
         "passage_id": "LP-PASS-R-A1-V1-014",
-        "prompt": "What does 'under' describe here?",
+        "prompt": "What does 'under' mean here?",
         "options": [
           {
             "option_id": "A",
-            "text": "A position below the umbrella"
+            "text": "Below the umbrella"
           },
           {
             "option_id": "B",
-            "text": "A position inside the sea"
+            "text": "Inside the sea"
           },
           {
             "option_id": "C",
@@ -9805,13 +9852,14 @@
         "correct_option_id": "A",
         "explanation": "Under mô tả vị trí phía dưới ô. Bằng chứng: reading under a big umbrella",
         "status": "DRAFT",
-        "revision": 1,
+        "revision": 2,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
-        }
+          "$date": "2026-11-28T06:24:55.614Z"
+        },
+        "updated_by": "68f8f3a9b9e4a12345678002"
       },
       {
         "_id": {
@@ -9826,11 +9874,11 @@
         "options": [
           {
             "option_id": "A",
-            "text": "Teaching cats to swim"
+            "text": "Asking for cat food"
           },
           {
             "option_id": "B",
-            "text": "Looking for a lost desk"
+            "text": "Inviting people to play with cats"
           },
           {
             "option_id": "C",
@@ -9842,15 +9890,16 @@
           }
         ],
         "correct_option_id": "C",
-        "explanation": "Đáp án khái quát nội dung toàn bài; các lựa chọn khác không phải chủ đề chính. Bằng chứng: Help us look after our cats! We need clean towels and small blankets. Please bring them to the front desk between ten and four. Do not bring food this week; we have enough. Our cats sleep better when they have soft, warm beds. Thank you for your kindness.",
+        "explanation": "Đáp án khái quát nội dung toàn bài; các lựa chọn khác không phải chủ đề chính. Bằng chứng: Help us look after our cats! We need clean towels and small blankets. Please bring them to the front desk between ten and four. Do not bring food this week; we have enough. Our cats sleep better in soft beds, not hard beds. They like warm blankets too. Thank you for your kindness.",
         "status": "DRAFT",
-        "revision": 1,
+        "revision": 2,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
-        }
+          "$date": "2026-11-28T06:24:55.731Z"
+        },
+        "updated_by": "68f8f3a9b9e4a12345678002"
       },
       {
         "_id": {
@@ -9885,10 +9934,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -9924,10 +9973,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -9947,7 +9996,7 @@
           },
           {
             "option_id": "B",
-            "text": "No, only new desks are wanted"
+            "text": "No, only food is needed"
           },
           {
             "option_id": "C",
@@ -9955,19 +10004,20 @@
           },
           {
             "option_id": "D",
-            "text": "Yes, but only as food"
+            "text": "Yes, but it must be a new blanket"
           }
         ],
         "correct_option_id": "A",
-        "explanation": "Chăn sạch phù hợp lời kêu gọi và giúp làm chỗ ngủ ấm. Bằng chứng: small blankets; soft, warm beds",
+        "explanation": "Chăn sạch phù hợp lời kêu gọi và giúp làm chỗ ngủ ấm. Bằng chứng: small blankets; soft beds, not hard beds",
         "status": "DRAFT",
-        "revision": 1,
+        "revision": 2,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
-        }
+          "$date": "2026-11-28T06:24:55.836Z"
+        },
+        "updated_by": "68f8f3a9b9e4a12345678002"
       },
       {
         "_id": {
@@ -9998,15 +10048,16 @@
           }
         ],
         "correct_option_id": "D",
-        "explanation": "Soft mô tả chỗ nằm mềm, không cứng. Bằng chứng: soft, warm beds",
+        "explanation": "Soft mô tả chỗ nằm mềm, không cứng. Bằng chứng: soft beds, not hard beds",
         "status": "DRAFT",
-        "revision": 1,
+        "revision": 2,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
-        }
+          "$date": "2026-11-28T06:24:55.966Z"
+        },
+        "updated_by": "68f8f3a9b9e4a12345678002"
       },
       {
         "_id": {
@@ -10041,10 +10092,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -10080,10 +10131,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -10119,10 +10170,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -10134,7 +10185,7 @@
         "micro_skill": "Inference & Author's View",
         "level": "A1",
         "passage_id": "LP-PASS-R-A1-V1-016",
-        "prompt": "Would the bike probably suit a tall adult?",
+        "prompt": "Is this bike good for a tall adult?",
         "options": [
           {
             "option_id": "A",
@@ -10142,7 +10193,7 @@
           },
           {
             "option_id": "B",
-            "text": "Yes, the new bell makes it taller"
+            "text": "Yes, it has a high seat"
           },
           {
             "option_id": "C",
@@ -10156,13 +10207,14 @@
         "correct_option_id": "C",
         "explanation": "Kích cỡ nhỏ và yên thấp phù hợp trẻ hơn người lớn cao. Bằng chứng: small blue bike; seat is low; young rider",
         "status": "DRAFT",
-        "revision": 1,
+        "revision": 2,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
-        }
+          "$date": "2026-11-28T06:24:56.114Z"
+        },
+        "updated_by": "68f8f3a9b9e4a12345678002"
       },
       {
         "_id": {
@@ -10197,10 +10249,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -10232,15 +10284,16 @@
           }
         ],
         "correct_option_id": "C",
-        "explanation": "Đáp án khái quát nội dung toàn bài; các lựa chọn khác không phải chủ đề chính. Bằng chứng: Welcome to Town Museum. Start in Room One to see old clothes. The toys are in Room Two. Please do not touch them because some are very old. You can take photos without a flash. There is a free map at the entrance. The cafe is upstairs.",
+        "explanation": "Đáp án khái quát nội dung toàn bài; các lựa chọn khác không phải chủ đề chính. Bằng chứng: Welcome to Town Museum. Start in Room One to see old clothes. The toys are in Room Two. Please do not touch them because some are very old. You can take photos without a flash. There is a free map at the entrance, where you come in. The cafe is upstairs.",
         "status": "DRAFT",
-        "revision": 1,
+        "revision": 2,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
-        }
+          "$date": "2026-11-28T06:24:56.266Z"
+        },
+        "updated_by": "68f8f3a9b9e4a12345678002"
       },
       {
         "_id": {
@@ -10275,10 +10328,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -10314,10 +10367,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -10353,10 +10406,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -10392,10 +10445,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -10427,15 +10480,16 @@
           }
         ],
         "correct_option_id": "D",
-        "explanation": "Đáp án khái quát nội dung toàn bài; các lựa chọn khác không phải chủ đề chính. Bằng chứng: I went to Little Cup Cafe with my aunt. My hot chocolate was very good. The cafe was quiet, and we could talk easily. There were only three kinds of cake, but my apple cake was fresh. I would like to go there again with a friend.",
+        "explanation": "Đáp án khái quát nội dung toàn bài; các lựa chọn khác không phải chủ đề chính. Bằng chứng: I went to Little Cup Cafe with my aunt. My hot chocolate was very good. The cafe was quiet, and we could talk easily. There were only three kinds of cake. The cook made my apple cake that morning. It was fresh. I would like to go there again with a friend.",
         "status": "DRAFT",
-        "revision": 1,
+        "revision": 2,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
-        }
+          "$date": "2026-11-28T06:24:56.387Z"
+        },
+        "updated_by": "68f8f3a9b9e4a12345678002"
       },
       {
         "_id": {
@@ -10466,15 +10520,16 @@
           }
         ],
         "correct_option_id": "A",
-        "explanation": "Người viết ăn bánh táo. Bằng chứng: my apple cake was fresh",
+        "explanation": "Người viết ăn bánh táo. Bằng chứng: The cook made my apple cake that morning; It was fresh",
         "status": "DRAFT",
-        "revision": 1,
+        "revision": 2,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
-        }
+          "$date": "2026-11-28T06:24:56.488Z"
+        },
+        "updated_by": "68f8f3a9b9e4a12345678002"
       },
       {
         "_id": {
@@ -10489,7 +10544,7 @@
         "options": [
           {
             "option_id": "A",
-            "text": "The aunt owned a microphone"
+            "text": "There were no other people talking"
           },
           {
             "option_id": "B",
@@ -10507,13 +10562,14 @@
         "correct_option_id": "C",
         "explanation": "Không gian yên tĩnh giúp trò chuyện dễ dàng. Bằng chứng: The cafe was quiet, and we could talk easily.",
         "status": "DRAFT",
-        "revision": 1,
+        "revision": 2,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
-        }
+          "$date": "2026-11-28T06:24:56.584Z"
+        },
+        "updated_by": "68f8f3a9b9e4a12345678002"
       },
       {
         "_id": {
@@ -10524,7 +10580,7 @@
         "micro_skill": "Inference & Author's View",
         "level": "A1",
         "passage_id": "LP-PASS-R-A1-V1-018",
-        "prompt": "Would the writer recommend meeting a friend there?",
+        "prompt": "Does the writer want to visit the cafe again?",
         "options": [
           {
             "option_id": "A",
@@ -10532,27 +10588,28 @@
           },
           {
             "option_id": "B",
-            "text": "Yes, but only to buy a microphone"
+            "text": "Yes, but only to meet the cook"
           },
           {
             "option_id": "C",
-            "text": "Probably yes, the writer wants to return with a friend"
+            "text": "Yes, with a friend"
           },
           {
             "option_id": "D",
-            "text": "Probably not, the writer disliked everything"
+            "text": "No, the writer did not like the cafe"
           }
         ],
         "correct_option_id": "C",
         "explanation": "Ý định quay lại với bạn cho thấy đánh giá tích cực. Bằng chứng: go there again with a friend",
         "status": "DRAFT",
-        "revision": 1,
+        "revision": 2,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
-        }
+          "$date": "2026-11-28T06:24:56.695Z"
+        },
+        "updated_by": "68f8f3a9b9e4a12345678002"
       },
       {
         "_id": {
@@ -10567,7 +10624,7 @@
         "options": [
           {
             "option_id": "A",
-            "text": "Recently made and good to eat"
+            "text": "Made that day, not old"
           },
           {
             "option_id": "B",
@@ -10583,15 +10640,16 @@
           }
         ],
         "correct_option_id": "A",
-        "explanation": "Fresh mô tả bánh còn mới, ngon để ăn. Bằng chứng: my apple cake was fresh",
+        "explanation": "Fresh mô tả bánh còn mới, ngon để ăn. Bằng chứng: The cook made my apple cake that morning; It was fresh",
         "status": "DRAFT",
-        "revision": 1,
+        "revision": 2,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
-        }
+          "$date": "2026-11-28T06:24:56.788Z"
+        },
+        "updated_by": "68f8f3a9b9e4a12345678002"
       },
       {
         "_id": {
@@ -10626,10 +10684,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -10665,10 +10723,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -10684,7 +10742,7 @@
         "options": [
           {
             "option_id": "A",
-            "text": "Its pot is a window"
+            "text": "It has a large pot"
           },
           {
             "option_id": "B",
@@ -10702,13 +10760,14 @@
         "correct_option_id": "D",
         "explanation": "Lá mỏng là lý do cần nhẹ tay khi di chuyển. Bằng chứng: The leaves are thin, so be careful",
         "status": "DRAFT",
-        "revision": 1,
+        "revision": 2,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
-        }
+          "$date": "2026-11-28T06:24:56.889Z"
+        },
+        "updated_by": "68f8f3a9b9e4a12345678002"
       },
       {
         "_id": {
@@ -10743,10 +10802,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -10782,10 +10841,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -10821,10 +10880,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -10860,10 +10919,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -10899,10 +10958,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -10914,7 +10973,7 @@
         "micro_skill": "Inference & Author's View",
         "level": "A1",
         "passage_id": "LP-PASS-R-A1-V1-020",
-        "prompt": "Can a late friend be sure that a seat is waiting beside the group?",
+        "prompt": "Will a late friend always have a seat beside the group?",
         "options": [
           {
             "option_id": "A",
@@ -10936,13 +10995,14 @@
         "correct_option_id": "C",
         "explanation": "Không giữ chỗ nên người tới muộn không được bảo đảm ghế cạnh nhóm. Bằng chứng: Seats cannot be saved for late friends.",
         "status": "DRAFT",
-        "revision": 1,
+        "revision": 2,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
-        }
+          "$date": "2026-11-28T06:24:57.002Z"
+        },
+        "updated_by": "68f8f3a9b9e4a12345678002"
       },
       {
         "_id": {
@@ -10977,10 +11037,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -11016,10 +11076,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -11055,10 +11115,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -11094,10 +11154,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -11133,10 +11193,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -11172,10 +11232,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -11211,10 +11271,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -11250,10 +11310,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -11269,7 +11329,7 @@
         "options": [
           {
             "option_id": "A",
-            "text": "The river is a train line"
+            "text": "The park is closed for the day"
           },
           {
             "option_id": "B",
@@ -11287,13 +11347,14 @@
         "correct_option_id": "B",
         "explanation": "Cầu gỗ đóng để sửa nên không đi qua. Bằng chứng: it is closed for repairs",
         "status": "DRAFT",
-        "revision": 1,
+        "revision": 2,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
-        }
+          "$date": "2026-11-28T06:24:57.105Z"
+        },
+        "updated_by": "68f8f3a9b9e4a12345678002"
       },
       {
         "_id": {
@@ -11308,7 +11369,7 @@
         "options": [
           {
             "option_id": "A",
-            "text": "Yes, there are riverside benches"
+            "text": "Yes, there are benches by the river"
           },
           {
             "option_id": "B",
@@ -11326,13 +11387,14 @@
         "correct_option_id": "A",
         "explanation": "Ghế bên sông cho phép người đi bộ nghỉ ngồi. Bằng chứng: benches beside the river if you need a rest",
         "status": "DRAFT",
-        "revision": 1,
+        "revision": 2,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
-        }
+          "$date": "2026-11-28T06:24:57.185Z"
+        },
+        "updated_by": "68f8f3a9b9e4a12345678002"
       },
       {
         "_id": {
@@ -11367,10 +11429,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -11406,10 +11468,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -11445,10 +11507,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -11464,7 +11526,7 @@
         "options": [
           {
             "option_id": "A",
-            "text": "She lives in the river at lunch"
+            "text": "She only eats on Fridays"
           },
           {
             "option_id": "B",
@@ -11476,19 +11538,20 @@
           },
           {
             "option_id": "D",
-            "text": "Mr White eats all the food"
+            "text": "Mr White gives her food at lunchtime"
           }
         ],
         "correct_option_id": "C",
         "explanation": "Cho ăn quá nhiều gây hại, nên không thêm bữa trưa. Bằng chứng: Too much food is bad for her.",
         "status": "DRAFT",
-        "revision": 1,
+        "revision": 2,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
-        }
+          "$date": "2026-11-28T06:24:57.273Z"
+        },
+        "updated_by": "68f8f3a9b9e4a12345678002"
       },
       {
         "_id": {
@@ -11511,23 +11574,24 @@
           },
           {
             "option_id": "C",
-            "text": "Yes, but only by tapping the glass"
+            "text": "Yes, she needs food at every lesson"
           },
           {
             "option_id": "D",
-            "text": "No, Goldie must never eat"
+            "text": "No, she only needs food on Fridays"
           }
         ],
         "correct_option_id": "A",
         "explanation": "Chăm tốt là theo lượng thức ăn nhỏ, không tự cho thêm. Bằng chứng: a small amount; Too much food is bad",
         "status": "DRAFT",
-        "revision": 1,
+        "revision": 2,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
-        }
+          "$date": "2026-11-28T06:24:57.370Z"
+        },
+        "updated_by": "68f8f3a9b9e4a12345678002"
       },
       {
         "_id": {
@@ -11562,10 +11626,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -11601,10 +11665,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -11640,10 +11704,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -11679,10 +11743,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -11694,7 +11758,7 @@
         "micro_skill": "Inference & Author's View",
         "level": "A1",
         "passage_id": "LP-PASS-R-A1-V1-024",
-        "prompt": "Would a family with a baby probably find suitable seating?",
+        "prompt": "Is there a chair for a baby?",
         "options": [
           {
             "option_id": "A",
@@ -11710,19 +11774,20 @@
           },
           {
             "option_id": "D",
-            "text": "Yes, high chairs are available"
+            "text": "Yes, there are high chairs for babies"
           }
         ],
         "correct_option_id": "D",
         "explanation": "Có ghế cao dành cho em bé nên gia đình có lựa chọn phù hợp. Bằng chứng: high chairs for babies",
         "status": "DRAFT",
-        "revision": 1,
+        "revision": 2,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
-        }
+          "$date": "2026-11-28T06:24:57.459Z"
+        },
+        "updated_by": "68f8f3a9b9e4a12345678002"
       },
       {
         "_id": {
@@ -11757,10 +11822,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -11792,15 +11857,16 @@
           }
         ],
         "correct_option_id": "D",
-        "explanation": "Đáp án khái quát nội dung toàn bài; các lựa chọn khác không phải chủ đề chính. Bằng chứng: This is a photo of my family on holiday. I am standing beside my brother. We are both wearing hats because it is cold on the mountain. My parents are smiling behind us. The walk was long, but the view was beautiful. I want to go back in summer.",
+        "explanation": "Đáp án khái quát nội dung toàn bài; các lựa chọn khác không phải chủ đề chính. Bằng chứng: This is a photo of my family on holiday. I am standing beside my brother. We are both wearing hats because it is cold on the mountain. My parents are smiling behind us. The walk was long, but the view of the mountains was beautiful. I want to go back in summer.",
         "status": "DRAFT",
-        "revision": 1,
+        "revision": 2,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
-        }
+          "$date": "2026-11-28T06:24:57.564Z"
+        },
+        "updated_by": "68f8f3a9b9e4a12345678002"
       },
       {
         "_id": {
@@ -11835,10 +11901,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -11874,10 +11940,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -11889,7 +11955,7 @@
         "micro_skill": "Inference & Author's View",
         "level": "A1",
         "passage_id": "LP-PASS-R-A1-V1-025",
-        "prompt": "Did the writer probably enjoy the place despite the long walk?",
+        "prompt": "Did the writer probably like the place?",
         "options": [
           {
             "option_id": "A",
@@ -11909,15 +11975,16 @@
           }
         ],
         "correct_option_id": "A",
-        "explanation": "Cảnh đẹp và mong muốn quay lại cho thấy trải nghiệm tích cực. Bằng chứng: view was beautiful; want to go back",
+        "explanation": "Cảnh đẹp và mong muốn quay lại cho thấy trải nghiệm tích cực. Bằng chứng: view of the mountains was beautiful; want to go back",
         "status": "DRAFT",
-        "revision": 1,
+        "revision": 2,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
-        }
+          "$date": "2026-11-28T06:24:57.664Z"
+        },
+        "updated_by": "68f8f3a9b9e4a12345678002"
       },
       {
         "_id": {
@@ -11932,7 +11999,7 @@
         "options": [
           {
             "option_id": "A",
-            "text": "The scenery people can see"
+            "text": "The mountains they could see"
           },
           {
             "option_id": "B",
@@ -11948,15 +12015,16 @@
           }
         ],
         "correct_option_id": "A",
-        "explanation": "View chỉ phong cảnh nhìn thấy từ núi. Bằng chứng: the view was beautiful",
+        "explanation": "View chỉ phong cảnh nhìn thấy từ núi. Bằng chứng: the view of the mountains was beautiful",
         "status": "DRAFT",
-        "revision": 1,
+        "revision": 2,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
-        }
+          "$date": "2026-11-28T06:24:57.744Z"
+        },
+        "updated_by": "68f8f3a9b9e4a12345678002"
       },
       {
         "_id": {
@@ -11991,10 +12059,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -12030,10 +12098,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -12069,10 +12137,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -12084,7 +12152,7 @@
         "micro_skill": "Inference & Author's View",
         "level": "A1",
         "passage_id": "LP-PASS-R-A1-V1-026",
-        "prompt": "Is the family trying to be considerate of neighbours?",
+        "prompt": "Does the family want to be kind to the neighbours?",
         "options": [
           {
             "option_id": "A",
@@ -12106,13 +12174,14 @@
         "correct_option_id": "C",
         "explanation": "Sẵn sàng nhận phản hồi về tiếng ồn thể hiện quan tâm hàng xóm. Bằng chứng: Please tell us if the music is too loud.",
         "status": "DRAFT",
-        "revision": 1,
+        "revision": 2,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
-        }
+          "$date": "2026-11-28T06:24:57.840Z"
+        },
+        "updated_by": "68f8f3a9b9e4a12345678002"
       },
       {
         "_id": {
@@ -12147,10 +12216,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -12186,10 +12255,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -12225,10 +12294,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -12264,10 +12333,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -12279,35 +12348,36 @@
         "micro_skill": "Inference & Author's View",
         "level": "A1",
         "passage_id": "LP-PASS-R-A1-V1-027",
-        "prompt": "Should the patient reach the clinic exactly at two?",
+        "prompt": "Should the person arrive at two or a little earlier?",
         "options": [
           {
             "option_id": "A",
-            "text": "Yes, there is no form to complete"
+            "text": "Only on Monday evening"
           },
           {
             "option_id": "B",
-            "text": "No, they should come a little before two"
+            "text": "A little before two"
           },
           {
             "option_id": "C",
-            "text": "Yes, coming early is forbidden"
+            "text": "Exactly at two"
           },
           {
             "option_id": "D",
-            "text": "No, they should arrive after three"
+            "text": "After three"
           }
         ],
         "correct_option_id": "B",
         "explanation": "Cần tới trước giờ hẹn để có thời gian điền mẫu. Bằng chứng: arrive ten minutes early to fill in a form",
         "status": "DRAFT",
-        "revision": 1,
+        "revision": 2,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
-        }
+          "$date": "2026-11-28T06:24:57.924Z"
+        },
+        "updated_by": "68f8f3a9b9e4a12345678002"
       },
       {
         "_id": {
@@ -12326,7 +12396,7 @@
           },
           {
             "option_id": "B",
-            "text": "Write the required information"
+            "text": "Write your details on the form"
           },
           {
             "option_id": "C",
@@ -12340,13 +12410,14 @@
         "correct_option_id": "B",
         "explanation": "Fill in a form nghĩa là điền thông tin vào biểu mẫu. Bằng chứng: fill in a form",
         "status": "DRAFT",
-        "revision": 1,
+        "revision": 2,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
-        }
+          "$date": "2026-11-28T06:24:58.004Z"
+        },
+        "updated_by": "68f8f3a9b9e4a12345678002"
       },
       {
         "_id": {
@@ -12381,10 +12452,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -12420,10 +12491,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -12459,10 +12530,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -12482,7 +12553,7 @@
           },
           {
             "option_id": "B",
-            "text": "Yes, Ali describes progress and thanks her"
+            "text": "Yes, Ali can read more now and thanks her"
           },
           {
             "option_id": "C",
@@ -12496,13 +12567,14 @@
         "correct_option_id": "B",
         "explanation": "Lời cảm ơn đi cùng tiến bộ là căn cứ đánh giá sự giúp đỡ hữu ích. Bằng chứng: thank you; I can read a short story by myself now",
         "status": "DRAFT",
-        "revision": 1,
+        "revision": 2,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
-        }
+          "$date": "2026-11-28T06:24:58.097Z"
+        },
+        "updated_by": "68f8f3a9b9e4a12345678002"
       },
       {
         "_id": {
@@ -12537,10 +12609,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -12572,15 +12644,16 @@
           }
         ],
         "correct_option_id": "D",
-        "explanation": "Đáp án khái quát nội dung toàn bài; các lựa chọn khác không phải chủ đề chính. Bằng chứng: The Corner Shop is open from eight to six on weekdays. On Saturdays we close at four. We sell basic food, soap and stamps. Please bring your own bag to use less plastic. If you forget one, a paper bag costs ten pence. Thank you for helping keep our town clean.",
+        "explanation": "Đáp án khái quát nội dung toàn bài; các lựa chọn khác không phải chủ đề chính. Bằng chứng: The Corner Shop is open from eight to six, Monday to Friday. These days are weekdays. On Saturdays we close at four. We sell basic food, soap and stamps. Please bring your own bag to use less plastic. If you forget one, a paper bag costs ten pence. Thank you for helping keep our town clean.",
         "status": "DRAFT",
-        "revision": 1,
+        "revision": 2,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
-        }
+          "$date": "2026-11-28T06:24:58.202Z"
+        },
+        "updated_by": "68f8f3a9b9e4a12345678002"
       },
       {
         "_id": {
@@ -12615,10 +12688,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -12642,23 +12715,24 @@
           },
           {
             "option_id": "C",
-            "text": "To carry the shop's door"
+            "text": "To help carry food for the shop"
           },
           {
             "option_id": "D",
-            "text": "To pay for soap twice"
+            "text": "To get a free paper bag"
           }
         ],
         "correct_option_id": "A",
         "explanation": "Mang túi riêng giúp giảm sử dụng nhựa. Bằng chứng: to use less plastic",
         "status": "DRAFT",
-        "revision": 1,
+        "revision": 2,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
-        }
+          "$date": "2026-11-28T06:24:58.301Z"
+        },
+        "updated_by": "68f8f3a9b9e4a12345678002"
       },
       {
         "_id": {
@@ -12693,10 +12767,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -12728,15 +12802,16 @@
           }
         ],
         "correct_option_id": "D",
-        "explanation": "Weekdays chỉ các ngày thứ Hai đến thứ Sáu, được phân biệt với thứ Bảy. Bằng chứng: on weekdays. On Saturdays",
+        "explanation": "Weekdays chỉ các ngày thứ Hai đến thứ Sáu, được phân biệt với thứ Bảy. Bằng chứng: Monday to Friday. These days are weekdays",
         "status": "DRAFT",
-        "revision": 1,
+        "revision": 2,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
-        }
+          "$date": "2026-11-28T06:24:58.417Z"
+        },
+        "updated_by": "68f8f3a9b9e4a12345678002"
       },
       {
         "_id": {
@@ -12771,10 +12846,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -12810,10 +12885,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -12849,10 +12924,10 @@
         "status": "DRAFT",
         "revision": 1,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         }
       },
       {
@@ -12864,15 +12939,15 @@
         "micro_skill": "Inference & Author's View",
         "level": "A1",
         "passage_id": "LP-PASS-R-A1-V1-030",
-        "prompt": "Is Rosa expected to keep the room tidy alone?",
+        "prompt": "Must Rosa tidy the room without help?",
         "options": [
           {
             "option_id": "A",
-            "text": "Yes, nobody else has a chair"
+            "text": "Yes, the other pupils go home early"
           },
           {
             "option_id": "B",
-            "text": "No, the school has no classroom"
+            "text": "No, the teacher puts all the books away"
           },
           {
             "option_id": "C",
@@ -12886,13 +12961,14 @@
         "correct_option_id": "C",
         "explanation": "Lời yêu cầu cả lớp giúp cho thấy Rosa không phải làm một mình. Bằng chứng: Please help her keep the room tidy.",
         "status": "DRAFT",
-        "revision": 1,
+        "revision": 2,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
-        }
+          "$date": "2026-11-28T06:24:58.523Z"
+        },
+        "updated_by": "68f8f3a9b9e4a12345678002"
       },
       {
         "_id": {
@@ -12919,19 +12995,20 @@
           },
           {
             "option_id": "D",
-            "text": "Neat, with things in their places"
+            "text": "With things in the right places"
           }
         ],
         "correct_option_id": "D",
         "explanation": "Các hành động dọn rác, xếp ghế giải thích tidy là gọn gàng. Bằng chứng: Put rubbish in the bin and push your chair under the table.",
         "status": "DRAFT",
-        "revision": 1,
+        "revision": 2,
         "created_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
+          "$date": "2026-11-28T00:00:00Z"
         },
         "updated_at": {
-          "$date": "2026-11-28T00:00:00.000Z"
-        }
+          "$date": "2026-11-28T06:24:58.605Z"
+        },
+        "updated_by": "68f8f3a9b9e4a12345678002"
       }
     ],
     "media_assets": [
@@ -13596,5 +13673,17 @@
         "_class": "fit.iuh.engolearn.media.model.MediaAsset"
       }
     ]
+  },
+  "metadata": {
+    "content_review": {
+      "reviewer": "Codex",
+      "scope": "Logic, basic A1 wording, source-supported answers",
+      "reviewed_questions": 300,
+      "changed_questions": 77,
+      "changed_reading_passages": 8,
+      "publication_status": "DRAFT",
+      "audio_listening_review": "NOT_PERFORMED",
+      "learner_calibration": "NOT_PERFORMED"
+    }
   }
 }
