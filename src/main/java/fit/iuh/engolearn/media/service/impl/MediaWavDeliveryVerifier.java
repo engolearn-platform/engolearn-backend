@@ -28,25 +28,30 @@ final class MediaWavDeliveryVerifier {
     private MediaWavDeliveryVerifier() {}
 
     static void verify(URI uri, long expectedBytes, String expectedSha256, Duration timeout) {
+        download(uri, expectedBytes, expectedSha256, timeout, false);
+    }
+
+    static byte[] download(URI uri, long expectedBytes, String expectedSha256, Duration timeout, boolean retainBytes) {
         byte[] expectedDigest = parseDigest(expectedSha256);
         HttpRequest request;
         try {
             request = HttpRequest.newBuilder(uri)
                     .timeout(timeout)
                     .header("Accept-Encoding", "identity")
-                    .header("Range", "bytes=0-")
                     .GET().build();
         } catch (IllegalArgumentException ex) {
             throw unavailable("Provider did not return an HTTP WAV delivery URL");
         }
         var download = CLIENT.sendAsync(request, response -> {
             validateHeaders(response, expectedBytes);
-            return new DigestSubscriber(expectedBytes);
+            return new DigestSubscriber(expectedBytes, retainBytes);
         });
         try {
-            if (!MessageDigest.isEqual(expectedDigest, download.get(timeout.toMillis(), TimeUnit.MILLISECONDS).body())) {
+            var verified = download.get(timeout.toMillis(), TimeUnit.MILLISECONDS).body();
+            if (!MessageDigest.isEqual(expectedDigest, verified.digest())) {
                 throw unavailable("Delivered WAV does not match its registered SHA-256");
             }
+            return verified.bytes();
         } catch (InterruptedException ex) {
             download.cancel(true);
             Thread.currentThread().interrupt();
@@ -97,14 +102,18 @@ final class MediaWavDeliveryVerifier {
         return new MediaStorageUnavailableException(message);
     }
 
-    private static final class DigestSubscriber implements HttpResponse.BodySubscriber<byte[]> {
-        private final CompletableFuture<byte[]> result = new CompletableFuture<>();
+    private record DownloadedWav(byte[] digest, byte[] bytes) {}
+
+    private static final class DigestSubscriber implements HttpResponse.BodySubscriber<DownloadedWav> {
+        private final CompletableFuture<DownloadedWav> result = new CompletableFuture<>();
+        private final ByteBuffer content;
         private final MessageDigest digest;
         private long remaining;
         private Flow.Subscription subscription;
 
-        private DigestSubscriber(long expectedBytes) {
+        private DigestSubscriber(long expectedBytes, boolean retainBytes) {
             remaining = expectedBytes;
+            content = retainBytes ? ByteBuffer.allocate(Math.toIntExact(expectedBytes)) : null;
             try {
                 digest = MessageDigest.getInstance("SHA-256");
             } catch (NoSuchAlgorithmException ex) {
@@ -112,7 +121,7 @@ final class MediaWavDeliveryVerifier {
             }
         }
 
-        @Override public CompletionStage<byte[]> getBody() { return result; }
+        @Override public CompletionStage<DownloadedWav> getBody() { return result; }
 
         @Override
         public void onSubscribe(Flow.Subscription subscription) {
@@ -129,6 +138,7 @@ final class MediaWavDeliveryVerifier {
                     subscription.cancel();
                     return;
                 }
+                if (content != null) content.put(buffer.duplicate());
                 digest.update(buffer);
                 remaining -= bytes;
             }
@@ -140,7 +150,7 @@ final class MediaWavDeliveryVerifier {
         @Override
         public void onComplete() {
             if (remaining == 0) {
-                result.complete(digest.digest());
+                result.complete(new DownloadedWav(digest.digest(), content == null ? null : content.array()));
             } else {
                 result.completeExceptionally(unavailable("WAV delivery ended before the registered size"));
             }

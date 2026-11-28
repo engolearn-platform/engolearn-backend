@@ -157,9 +157,11 @@ draft and live paper intact, or leaves Start without an attempt and quota usage.
 The checks run before the write transaction, which rechecks the paper or draft revision
 and, for Start, the learner eligibility. Later playback uses its existing failure flow.
 
-In `prod`, playback resolves protected URLs through `MediaManagement` after binding,
-phase or review authorization. For a taking request the server resolves delivery outside
-the transaction and rechecks the unit, deadline and issue ID before accepting issuance.
+Cloud playback reads verified WAV bytes via `MediaManagement` after binding,
+phase or review authorization. Media keeps the authenticated CDN URL server-side.
+The existing Assessment response carries the verified WAV as base64 with `no-store`.
+For a taking request, the server reads the WAV outside the transaction and rechecks
+the unit, deadline and issue ID before accepting issuance.
 The same issue ID may retry issuance while the unit is
 open. New papers and snapshots store `audio_media_id` where available. A migrated legacy
 snapshot resolves its original SHA-256 through `assessment_audio_assets`, preserving its
@@ -172,8 +174,7 @@ for a legacy single or sound check, and 120 seconds for a group. Check the origi
 audio and transcript before release. Producer preflight validates content before quota
 consumption. Taking keeps its existing lack of replay, seek and rate controls. Review
 allows seeking and replay, with fresh authorization on a delivery retry. Audio failures
-do not extend deadlines, issue attempts or refund quota. Signed URLs remain usable on
-the provider until their short expiry, regardless of the browser controls.
+do not extend deadlines, issue attempts or refund quota.
 
 Premium assessment count is provider-configured. The current subscription-development-sample uses Free 1, Trial 2,
 Premium 5 and consistent displayed benefits; this is not a global hardcoded entitlement.

@@ -20,6 +20,11 @@ public class AssessmentAudioRepository {
         return mongo.findById(id, AssessmentAudioAsset.class);
     }
 
+    public AssessmentAudioAsset findSourceByMediaId(String mediaId) {
+        return mongo.findOne(Query.query(where("media_id").is(mediaId).and("_id").regex("^[a-f0-9]{64}$")),
+                AssessmentAudioAsset.class);
+    }
+
     public boolean reserve(String id, String token, Instant now, Instant until) {
         var expired = Query.query(where("_id").is(id).and("media_id").is(null).and("lease_until").lte(now));
         var lease = new Update().set("lease_token", token).set("lease_until", until);

@@ -20,6 +20,11 @@ public interface MediaStorageProvider {
 
     URI privateDownloadUrl(MediaStorageMetadataVo storage, Instant expiresAt);
 
+    /** Server-side read of the original WAV. The URL must stay inside Media. */
+    default URI wavDownloadUrl(MediaStorageMetadataVo storage, Instant expiresAt) {
+        return privateDownloadUrl(storage, expiresAt);
+    }
+
     /** Internal compensation only; not exposed through MediaManagement. */
     void destroy(MediaStorageMetadataVo storage);
 }

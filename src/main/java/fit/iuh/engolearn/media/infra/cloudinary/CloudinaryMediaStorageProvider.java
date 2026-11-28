@@ -110,6 +110,23 @@ public class CloudinaryMediaStorageProvider implements MediaStorageProvider {
     }
 
     @Override
+    public URI wavDownloadUrl(MediaStorageMetadataVo storage, Instant expiresAt) {
+        if (!isProtectedWav(storage.getDeliveryType(), storage.getFormat())
+                || storage.getResourceType() != MediaResourceType.VIDEO) {
+            return privateDownloadUrl(storage, expiresAt);
+        }
+        requireConfigured();
+        try {
+            var url = client.cloudinary().url().secure(true).resourceType("video")
+                    .type("authenticated").format("wav").signed(true);
+            if (storage.getVersion() != null) url.version(storage.getVersion());
+            return URI.create(url.generate(storage.getPublicId()));
+        } catch (Exception ex) {
+            throw new MediaStorageUnavailableException("Cloudinary original WAV URL generation failed", ex);
+        }
+    }
+
+    @Override
     public void destroy(MediaStorageMetadataVo storage) {
         requireConfigured();
         try {

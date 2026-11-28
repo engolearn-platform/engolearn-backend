@@ -34,4 +34,10 @@ public interface MediaManagement {
      * Throws MediaNotFoundException or MediaStorageUnavailableException if unavailable.
      */
     void verifyWavDelivery(String mediaId, String sha256, long maximumBytes);
+
+    /**
+     * Reads the original WAV for immediate delivery after the caller has authorized access.
+     * Applies the same size, deadline and digest checks as verifyWavDelivery.
+     */
+    byte[] readVerifiedWav(String mediaId, String sha256, long maximumBytes);
 }

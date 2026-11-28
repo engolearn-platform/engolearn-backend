@@ -156,21 +156,35 @@ public class MediaManagementImpl implements MediaManagement {
         verifyWavDelivery(requireAsset(mediaId), sha256, maximumBytes);
     }
 
+    @Override
+    public byte[] readVerifiedWav(String mediaId, String sha256, long maximumBytes) {
+        return readWav(requireAsset(mediaId), sha256, maximumBytes, true);
+    }
+
     private void verifyWavDelivery(MediaAsset asset, String sha256, long maximumBytes) {
+        readWav(asset, sha256, maximumBytes, false);
+    }
+
+    private byte[] readWav(MediaAsset asset, String sha256, long maximumBytes, boolean retainBytes) {
         if (!"audio/wav".equals(asset.getContentType()) || asset.getSizeBytes() <= 0
                 || asset.getSizeBytes() > Math.min(maxUploadSizeBytes, maximumBytes)) {
             throw new MediaStorageUnavailableException("Registered WAV has an invalid type or size");
         }
-        var delivered = delivery(asset);
-        Duration timeout = wavVerificationTimeout;
-        if (delivered.expiresAt() != null) {
-            var remaining = Duration.between(Instant.now(), delivered.expiresAt());
-            if (remaining.isNegative() || remaining.toMillis() < 1) {
-                throw new MediaStorageUnavailableException("Protected WAV delivery URL has expired");
-            }
-            if (remaining.compareTo(timeout) < 0) timeout = remaining;
+        if (asset.getAccessPolicy() == MediaAccessPolicy.PUBLIC) {
+            return MediaWavDeliveryVerifier.download(storage.publicUrl(asset.getStorage()),
+                    asset.getSizeBytes(), sha256, wavVerificationTimeout, retainBytes);
         }
-        MediaWavDeliveryVerifier.verify(delivered.url(), asset.getSizeBytes(), sha256, timeout);
+        if (asset.getAccessPolicy() != MediaAccessPolicy.PROTECTED) {
+            throw new MediaStorageUnavailableException("Media has an unsupported access policy");
+        }
+        var expiresAt = Instant.ofEpochSecond(Instant.now().plus(protectedUrlLifetime).getEpochSecond());
+        var uri = storage.wavDownloadUrl(asset.getStorage(), expiresAt);
+        var remaining = Duration.between(Instant.now(), expiresAt);
+        if (remaining.toMillis() < 1) {
+            throw new MediaStorageUnavailableException("Protected WAV read deadline has passed");
+        }
+        var timeout = remaining.compareTo(wavVerificationTimeout) < 0 ? remaining : wavVerificationTimeout;
+        return MediaWavDeliveryVerifier.download(uri, asset.getSizeBytes(), sha256, timeout, retainBytes);
     }
 
     private void validateCommand(UploadMediaCommandDto command) {

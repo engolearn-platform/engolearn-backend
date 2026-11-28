@@ -354,22 +354,20 @@ class AssessmentMongoIntegrationTest {
             assertThat(service.submit(USER,attemptId,binding).status()).isEqualTo("READY");
             String reviewPath=assessmentPath+"/attempts/"+attemptId+"/review/audio/0";
             mvc.perform(get(reviewPath).cookie(otherCookie)).andExpect(status().isNotFound());
-            var firstReview=mvc.perform(get(reviewPath).cookie(userCookie)).andExpect(status().isOk()).andReturn().getResponse();
-            var firstUri=URI.create(mapper.readTree(firstReview.getContentAsString()).at("/data/url").asString());
-            assertThat(http.send(HttpRequest.newBuilder(firstUri).build(),HttpResponse.BodyHandlers.discarding()).statusCode()).isEqualTo(404);
-            var restoredUri = storage.recoverUnderSameMediaId(mongo, url, wav);
-            var retry=mvc.perform(get(reviewPath).cookie(userCookie)).andExpect(status().isOk()).andReturn().getResponse();
-            var retryUri=URI.create(mapper.readTree(retry.getContentAsString()).at("/data/url").asString());
-            assertThat(retryUri).isEqualTo(restoredUri);
-            var recovered=http.send(HttpRequest.newBuilder(retryUri).build(),HttpResponse.BodyHandlers.ofByteArray());
-            assertThat(recovered.statusCode()).isEqualTo(200);
-            assertThat(recovered.body()).containsExactly(wav);
-            assertThat(recovered.body()).isNotEqualTo(replacement);
+            mvc.perform(get(reviewPath).cookie(userCookie)).andExpect(status().isServiceUnavailable());
+            storage.recoverUnderSameMediaId(mongo, url, wav);
+            var retry=mvc.perform(get(reviewPath).cookie(userCookie)).andExpect(status().isOk())
+                    .andExpect(jsonPath("$.data.url").doesNotExist())
+                    .andExpect(header().string("Cache-Control", "no-store")).andReturn().getResponse();
+            var recovered = java.util.Base64.getDecoder().decode(mapper.readTree(retry.getContentAsString())
+                    .at("/data/base64").asString());
+            assertThat(recovered).containsExactly(wav);
+            assertThat(recovered).isNotEqualTo(replacement);
             assertThat(store.attempt(attemptId,USER).getPaper().getVersion()).isEqualTo(oldVersion);
             assertThat(store.published().getFirst().getVersion()).isEqualTo(oldVersion+1);
-            System.out.printf("AUDIT history activeReplay=200 sameIdStartDeadline=true attempts=%d ledger=%d remaining=%d oldVersion=%d newVersion=%d foreign=404 oldWav=404 recovered=200 sha=%s newSha=%s%n",
+            System.out.printf("AUDIT history activeReplay=200 sameIdStartDeadline=true attempts=%d ledger=%d remaining=%d oldVersion=%d newVersion=%d foreign=404 oldWav=503 recovered=200 sha=%s newSha=%s%n",
                     attempts.countDocuments(),usage.countDocuments(),remaining(),oldVersion,oldVersion+1,
-                    HexFormat.of().formatHex(sha.digest(recovered.body())),newDigest);
+                    HexFormat.of().formatHex(sha.digest(recovered)),newDigest);
         }
     }
 

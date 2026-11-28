@@ -17,6 +17,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.Base64;
 import java.util.HexFormat;
 import java.util.Locale;
 import java.util.UUID;
@@ -42,8 +43,10 @@ public class AssessmentCloudAudioService implements AssessmentCloudAudio {
     public AssessmentMediaResponse resolve(AssessmentAudioAsset asset, int maxSeconds) {
         validateAsset(asset, maxSeconds);
         try {
-            var delivery = media.resolve(asset.getMediaId());
-            return new AssessmentMediaResponse(delivery.contentType(), null, delivery.url(), delivery.expiresAt());
+            var source = SOUND_CHECK.equals(asset.getId()) ? repository.findSourceByMediaId(asset.getMediaId()) : asset;
+            validateAsset(source, maxSeconds);
+            var bytes = media.readVerifiedWav(source.getMediaId(), source.getId(), AssessmentWav.MAX_BYTES);
+            return new AssessmentMediaResponse("audio/wav", Base64.getEncoder().encodeToString(bytes));
         } catch (MediaNotFoundException | MediaStorageUnavailableException ex) {
             throw unavailable();
         }

@@ -20,11 +20,13 @@ digest's delivery before reporting a successful retry.
 For actions that require an available WAV before committing state, authorize the owning
 content first and call `verifyWavDelivery(mediaId, sha256, maximumBytes)` outside the
 database transaction. Supply the digest of the source WAV validated before upload.
-Media requests original bytes through a fresh signed URL and hashes the stream within
-the asset's recorded size and the caller's cap. The connection timeout is 3 seconds.
+Media requests original bytes and hashes the stream within the asset's recorded size
+and the caller's cap. For Cloudinary authenticated WAVs it uses a signed versioned
+CDN URL when the stored version is available. This URL stays inside Media.
+Assessment playback calls `readVerifiedWav` after authorization and sends the
+verified bytes through its own response. The connection timeout is 3 seconds.
 The full request deadline is configured by `MEDIA_WAV_VERIFICATION_TIMEOUT` (8 seconds
-by default, accepted range 1–45 seconds) and cannot exceed the signed URL's remaining
-lifetime. Measure Preview and Publish against the environment's HTTP timeout before
+by default, accepted range 1–45 seconds) and cannot exceed the protected read window. Measure Preview and Publish against the environment's HTTP timeout before
 using a longer deadline. Redirects and content encodings
 other than identity are rejected. HTTP 200 may omit Content-Length. HTTP 206 must
 describe the entire object with Content-Range. If provided, Content-Length must match

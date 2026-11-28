@@ -122,4 +122,20 @@ class CloudinaryMediaStorageProviderTest {
         when(cloudinary.privateDownload(id, "mp3", delivery)).thenReturn("https://example.test/mp3");
         assertThat(provider.privateDownloadUrl(asset, expires)).isEqualTo(URI.create("https://example.test/mp3"));
     }
+
+    @Test
+    void readsAuthenticatedOriginalWavThroughTheVersionedCdn() {
+        var sdk = new Cloudinary(Map.of("cloud_name", "demo", "api_key", "example", "api_secret", "example"));
+        var adapter = new CloudinaryMediaStorageProvider(new CloudinaryMediaClient(sdk, true));
+        var stored = fit.iuh.engolearn.media.model.vo.MediaStorageMetadataVo.builder()
+                .resourceType(MediaResourceType.VIDEO).deliveryType(MediaDeliveryType.AUTHENTICATED)
+                .format("wav").version(123L).publicId("assessment/clip").build();
+
+        var url = adapter.wavDownloadUrl(stored, Instant.now().plusSeconds(60));
+
+        assertThat(url.getHost()).isEqualTo("res.cloudinary.com");
+        assertThat(url.getPath()).startsWith("/demo/video/authenticated/s--").endsWith("/v123/assessment/clip.wav");
+        assertThat(url.getQuery()).matches("_a=[A-Za-z0-9_-]+");
+    }
+
 }

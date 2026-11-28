@@ -39,8 +39,8 @@ public class AssessmentStorageTestSupport {
         private volatile int failOnceAt = -1;
         private volatile int extraUploadBytes;
 
-        private final AtomicReference<Runnable> beforeNextRange = new AtomicReference<>();
-        void onNextRange(Runnable hook) { beforeNextRange.set(hook); }
+        private final AtomicReference<Runnable> beforeNextDownload = new AtomicReference<>();
+        void onNextDownload(Runnable hook) { beforeNextDownload.set(hook); }
         byte[] replaceObject(URI url, byte[] bytes) {
             return files.put(url.getPath().substring(1), bytes);
         }
@@ -71,14 +71,14 @@ public class AssessmentStorageTestSupport {
                         exchange.sendResponseHeaders(404, -1);
                     } else if ("bytes=0-11".equals(range) || "bytes=0-".equals(range)) {
                         exchange.getResponseHeaders().set("Content-Type", "audio/wav");
-                        var hook = beforeNextRange.getAndSet(null);
-                        if (hook != null) hook.run();
                         int length = "bytes=0-11".equals(range) ? Math.min(12, bytes.length) : bytes.length;
                         exchange.getResponseHeaders().set("Content-Range", "bytes 0-" + (length - 1) + "/" + bytes.length);
                         exchange.sendResponseHeaders(206, length);
                         exchange.getResponseBody().write(bytes, 0, length);
                     } else {
                         exchange.getResponseHeaders().set("Content-Type", "audio/wav");
+                        var hook = beforeNextDownload.getAndSet(null);
+                        if (hook != null) hook.run();
                         exchange.sendResponseHeaders(200, bytes.length);
                         exchange.getResponseBody().write(bytes);
                     }
@@ -93,7 +93,7 @@ public class AssessmentStorageTestSupport {
             attempts.set(0);
             failOnceAt = -1;
             extraUploadBytes = 0;
-            beforeNextRange.set(null);
+            beforeNextDownload.set(null);
         }
 
         void setAvailable(URI deliveryUrl, boolean available) {

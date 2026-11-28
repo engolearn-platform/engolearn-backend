@@ -41,6 +41,7 @@ class AssessmentDraftIntegrationTest {
     private static final String DATABASE = "engolearn_assessment_draft_it";
     private static MongoDBContainer container;
     @Autowired private MongoTemplate mongoTemplate;
+    @Autowired private fit.iuh.engolearn.media.contract.MediaManagement mediaManagement;
     @LocalServerPort private int port;
     @Autowired private AssessmentStorageTestSupport.LocalStorage storage;
     private static final String DISPOSABLE_MONGO = System.getenv("ASSESSMENT_DRAFT_TEST_MONGO_URI");
@@ -322,6 +323,13 @@ class AssessmentDraftIntegrationTest {
                 "descriptionVi", current.path("descriptionVi").asString(), "displayNameVi", label, "status", status)), cookie);
     }
 
+    private URI providerUrl(Document draft, int index) {
+        var unit = draft.getList("units", Document.class).get(index);
+        var asset = mongoTemplate.getCollection("assessment_audio_assets")
+                .find(new Document("_id", unit.getString("audio_sha256"))).first();
+        return mediaManagement.resolve(asset.getString("media_id")).url();
+    }
+
     @Test
     void alteredWavIsNotRegisteredAndAnExistingDigestIsCheckedOnRetry() throws Exception {
         String admin = login("ADMIN");
@@ -480,7 +488,7 @@ class AssessmentDraftIntegrationTest {
         for (int index : List.of(0, 10)) {
             var advertised = call("GET", path + "/preview/audio/" + index + "?revision=" + revision, null, admin);
             assertThat(advertised.statusCode()).isEqualTo(200);
-            var url = URI.create(json.readTree(advertised.body()).at("/data/url").asString());
+            var url = providerUrl(unchangedDraft, index);
             var request = HttpRequest.newBuilder(url).build();
             assertThat(http.send(request, HttpResponse.BodyHandlers.discarding()).statusCode()).isEqualTo(200);
             storage.setAvailable(url, false);
@@ -498,7 +506,7 @@ class AssessmentDraftIntegrationTest {
         }
         if (publicationCase == PublicationCase.TRUNCATE) {
             var advertised = call("GET", path + "/preview/audio/0?revision=" + revision, null, admin);
-            var uri = URI.create(json.readTree(advertised.body()).at("/data/url").asString());
+            var uri = providerUrl(unchangedDraft, 0);
             byte[] original = http.send(HttpRequest.newBuilder(uri).build(), HttpResponse.BodyHandlers.ofByteArray()).body();
             storage.replaceObject(uri, Arrays.copyOf(original, 12));
             var full = http.send(HttpRequest.newBuilder(uri).build(), HttpResponse.BodyHandlers.ofByteArray());
@@ -530,7 +538,7 @@ class AssessmentDraftIntegrationTest {
             assertThat(unchangedDraft.getList("skills",Document.class)).anyMatch(s -> "R02".equals(s.getString("code")));
             var retired = new java.util.concurrent.atomic.AtomicInteger();
             var stillOld = new java.util.concurrent.atomic.AtomicInteger();
-            storage.onNextRange(() -> {
+            storage.onNextDownload(() -> {
                 try {
                     retired.set(updateGist(admin, "Đọc ý chính mới", "INACTIVE").statusCode());
                     stillOld.set(papers.find(new Document("published",true)).first().getInteger("version"));
@@ -557,7 +565,7 @@ class AssessmentDraftIntegrationTest {
             var nextDraft = json.writeValueAsString(Map.of("revision", revision, "name", "Sửa trong lúc kiểm WAV",
                     "units", draftView.path("units"), "skills", draftView.path("skills")));
             var edit = new CompletableFuture<HttpResponse<String>>();
-            storage.onNextRange(() -> {
+            storage.onNextDownload(() -> {
                 try {
                     edit.complete(call("PUT", path, nextDraft, admin));
                 } catch (Exception failure) {
