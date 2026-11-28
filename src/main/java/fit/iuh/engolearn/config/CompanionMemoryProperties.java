@@ -26,6 +26,7 @@ public class CompanionMemoryProperties {
     private int dimensions = 768;
     @NotBlank
     private String qdrantUrl = "http://localhost:6333";
+    private String qdrantApiKey = "";
     @NotBlank
     private String collection = "companion_memories";
     @Min(1)

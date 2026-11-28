@@ -36,7 +36,8 @@ class RuntimeProfilesTest {
                         "AUTH_JWT_SECRET=test-only-signing-secret-at-least-32-bytes",
                         "CORS_ALLOWED_ORIGINS=https://frontend.example.test",
                         "AUTH_COOKIE_SECURE=false", "PLACEMENT_ALLOW_DRAFT=false",
-                        "PAYMENT_DEV_RESET_ENABLED=false")
+                        "PAYMENT_DEV_RESET_ENABLED=false",
+                        "QDRANT_CLUSTER_ENDPOINT=https://qdrant.example.test:6333", "QDRANT_KEY=test-only")
                 .withInitializer(new ConfigDataApplicationContextInitializer());
     }
 
@@ -62,6 +63,10 @@ class RuntimeProfilesTest {
                         .isEqualTo(15000);
             }
             assertThat(environment.getProperty("engolearn.payment.dev-reset.enabled", Boolean.class)).isFalse();
+            assertThat(environment.getProperty("engolearn.ai-companion.memory.qdrant-url"))
+                    .isEqualTo("dev".equals(profile) ? "http://localhost:6333" : "https://qdrant.example.test:6333");
+            assertThat(environment.getProperty("engolearn.ai-companion.memory.qdrant-api-key"))
+                    .isEqualTo("dev".equals(profile) ? "" : "test-only");
         });
     }
 
@@ -188,6 +193,27 @@ class RuntimeProfilesTest {
                     assertThat(context.getEnvironment().getProperty("engolearn.placement.media-directory")).isNull();
                     assertThat(context.getEnvironment().getProperty("engolearn.assessment.media-directory")).isNull();
                 });
+    }
+
+    @Test
+    void prodRejectsMissingQdrantKey() {
+        configuration("prod").withPropertyValues("QDRANT_KEY=")
+                .withInitializer(new RuntimeProfileInitializer()).run(context ->
+                        assertThat(context).hasFailed().getFailure().hasMessageContaining("qdrant-api-key"));
+    }
+
+    @Test
+    void prodRejectsMissingQdrantEndpoint() {
+        configuration("prod").withPropertyValues("QDRANT_CLUSTER_ENDPOINT=")
+                .withInitializer(new RuntimeProfileInitializer()).run(context ->
+                        assertThat(context).hasFailed().getFailure().hasMessageContaining("qdrant-url"));
+    }
+
+    @Test
+    void prodRejectsInsecureQdrantEndpoint() {
+        configuration("prod").withPropertyValues("QDRANT_CLUSTER_ENDPOINT=http://localhost:6333")
+                .withInitializer(new RuntimeProfileInitializer()).run(context ->
+                        assertThat(context).hasFailed().getFailure().hasMessageContaining("HTTPS REST base URL"));
     }
 
     @Test

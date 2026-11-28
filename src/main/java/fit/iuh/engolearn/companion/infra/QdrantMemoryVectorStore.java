@@ -98,7 +98,11 @@ public class QdrantMemoryVectorStore implements MemoryVectorStore {
         SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
         requestFactory.setConnectTimeout(millis);
         requestFactory.setReadTimeout(millis);
-        return RestClient.builder().baseUrl(properties.getQdrantUrl()).requestFactory(requestFactory).build();
+        RestClient.Builder builder = RestClient.builder().baseUrl(properties.getQdrantUrl()).requestFactory(requestFactory);
+        if (properties.getQdrantApiKey() != null && !properties.getQdrantApiKey().isBlank()) {
+            builder.defaultHeader("api-key", properties.getQdrantApiKey());
+        }
+        return builder.build();
     }
 
     private String collectionPath() {
@@ -109,16 +113,32 @@ public class QdrantMemoryVectorStore implements MemoryVectorStore {
         if (collectionReady.get()) return;
         synchronized (collectionReady) {
             if (collectionReady.get()) return;
+            Map<?, ?> payloadSchema = Map.of();
             try {
-                invoke(timeout, () -> client(timeout).get().uri(collectionPath()).retrieve().body(MAP_TYPE));
+                Map<String, Object> info = invoke(timeout,
+                        () -> client(timeout).get().uri(collectionPath()).retrieve().body(MAP_TYPE));
+                if (info != null && info.get("result") instanceof Map<?, ?> result
+                        && result.get("payload_schema") instanceof Map<?, ?> schema) {
+                    payloadSchema = schema;
+                }
             } catch (RestClientResponseException missing) {
                 if (missing.getStatusCode().value() != 404) throw missing;
                 invoke(timeout, () -> client(timeout).put().uri(collectionPath())
                         .body(Map.of("vectors", Map.of("size", properties.getDimensions(), "distance", "Cosine")))
                         .retrieve().body(MAP_TYPE));
             }
+            ensureKeywordIndex("learner_id", payloadSchema, timeout);
+            ensureKeywordIndex("retrieval_mode", payloadSchema, timeout);
             collectionReady.set(true);
         }
+    }
+
+    private void ensureKeywordIndex(String field, Map<?, ?> payloadSchema, Duration timeout) {
+        if (payloadSchema.get(field) instanceof Map<?, ?> existing
+                && "keyword".equals(existing.get("data_type"))) return;
+        invoke(timeout, () -> client(timeout).put().uri(collectionPath() + "/index?wait=true")
+                .body(Map.of("field_name", field, "field_schema", "keyword"))
+                .retrieve().body(MAP_TYPE));
     }
 
     private <T> T invoke(Duration timeout, java.util.function.Supplier<T> operation) {

@@ -27,10 +27,25 @@ public class RuntimeProfileInitializer implements ApplicationContextInitializer<
                     "engolearn.cors.allowed-origins"}) {
                 require(environment, key);
             }
+            require(environment, "engolearn.ai-companion.memory.qdrant-url");
+            require(environment, "engolearn.ai-companion.memory.qdrant-api-key");
+            validateQdrantEndpoint(environment);
             if (!environment.getProperty("engolearn.security.cookies.secure", Boolean.class, false)) {
                 throw new IllegalStateException("Production requires secure authentication cookies.");
             }
         }
+    }
+
+    private void validateQdrantEndpoint(ConfigurableEnvironment environment) {
+        try {
+            var uri = java.net.URI.create(environment.getProperty("engolearn.ai-companion.memory.qdrant-url"));
+            if ("https".equalsIgnoreCase(uri.getScheme()) && uri.getHost() != null
+                    && uri.getUserInfo() == null && uri.getQuery() == null && uri.getFragment() == null
+                    && (uri.getPath().isEmpty() || "/".equals(uri.getPath()))) return;
+        } catch (IllegalArgumentException ignored) {
+            // Never include the supplied endpoint or credentials in the error.
+        }
+        throw new IllegalStateException("Production Qdrant endpoint must be an HTTPS REST base URL.");
     }
 
     private void require(ConfigurableEnvironment environment, String key) {

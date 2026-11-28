@@ -1,4 +1,8 @@
 engolearn:
+  ai-companion:
+    memory:
+      qdrant-url: http://localhost:6333
+      qdrant-api-key: ""
   security:
     cookies:
       secure: ${AUTH_COOKIE_SECURE:false}
