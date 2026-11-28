@@ -27,3 +27,7 @@ See [fixture and execution rubric](multi-tool-fixture-rubric.md) and [fixture ma
     python tools/ai-companion-evaluation/multi_tool_eval.py --dry-run
 
 Dry-run validates the fixture specification only, not database provisioning, Gemini, or semantic acceptance. Real runs require an independently established disposable local backend, synthetic accounts, normal quota and entitlement, and safe existing credentials. Raw evidence belongs in ignored target/, never tracked files.
+
+## Rich-learner capability generalization
+
+See [exploratory UI evaluation protocol](capability-generalization.md) and [13-case manifest](capability-generalization-cases.json). This is separate from the isolated Phase 1 release evidence.
