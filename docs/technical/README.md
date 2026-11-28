@@ -31,3 +31,5 @@ Micro-skill catalog: [schema, API, Learning Path compatibility and import](micro
 Learning Path A1: [300 câu DRAFT, audio Cloudinary và hướng dẫn import/duyệt](learningpath/learning-path-a1-question-bank.md).
 
 Learning Path A2: [300 câu ACTIVE, audio Cloudinary và hướng dẫn import](learningpath/learning-path-a2-question-bank.md).
+
+Learning Path B2: [300 câu ACTIVE, tiêu chí và hướng dẫn import](learningpath/learning-path-b2-question-bank.md).
