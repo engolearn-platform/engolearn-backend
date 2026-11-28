@@ -27,3 +27,5 @@ Placement Test: [module entry](placement/README.md), [runtime](placement/placeme
 Grammar Learning: [module entry](grammar/README.md), [V2 storage and rules](grammar/grammar-v2-runtime.md), [import/migration](grammar/grammar-v2-importer.md) and [curriculum](grammar/grammar-cefr-roadmap.md). Historical implementation reports are retained in Git history instead of current module contracts.
 
 Micro-skill catalog: [schema, API, Learning Path compatibility and import](microskill/README.md).
+
+Learning Path A1: [300 câu DRAFT, audio Cloudinary và hướng dẫn import/duyệt](learningpath/learning-path-a1-question-bank.md).
