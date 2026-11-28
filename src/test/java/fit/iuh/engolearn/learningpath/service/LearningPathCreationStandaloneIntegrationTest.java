@@ -76,7 +76,8 @@ class LearningPathCreationStandaloneIntegrationTest {
                 when(paths.save(any(LearningPath.class))).thenAnswer(invocation ->
                         template.save(invocation.getArgument(0, LearningPath.class)));
                 var periodicTests = new AssessmentContractsServiceImpl(new MongoAssessmentRepository(template),
-                        mock(AssessmentTransactions.class), new org.springframework.mock.env.MockEnvironment());
+                        mock(AssessmentTransactions.class), new org.springframework.mock.env.MockEnvironment(),
+                        mock(fit.iuh.engolearn.assessment.service.AssessmentAccess.class));
                 QuestionPoolRepository questionPool = new QuestionPoolRepository(template);
                 LearningPathRecommendationService recommendations = new LearningPathRecommendationServiceImpl(fit.iuh.engolearn.microskill.MicroSkillFixtures.lookup(),
                         periodicTests, paths, questionPool, user -> Optional.of(CefrLevel.B1));

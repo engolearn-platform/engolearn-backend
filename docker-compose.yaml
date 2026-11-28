@@ -50,7 +50,27 @@ services:
     networks:
       - engolearn-network
 
+  qdrant:
+    image: qdrant/qdrant:v1.20
+    container_name: engolearn-companion-qdrant
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:6333:6333"
+      - "127.0.0.1:6334:6334"
+    volumes:
+      - qdrant_data:/qdrant/storage
+    healthcheck:
+      test: ["CMD", "bash", "-c", "echo > /dev/tcp/127.0.0.1/6333"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 10s
+    networks:
+      - engolearn-network
+
 volumes:
+  qdrant_data:
+    name: engolearn-companion-qdrant
   mongodb_data:
     name: mongodb_data
   mongodb_config:

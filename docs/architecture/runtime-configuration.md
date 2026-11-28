@@ -56,6 +56,7 @@ Production may supply process environment or a deployment secret store. Existing
 | CLOUDINARY_URL or CLOUDINARY_* | Shared Media provider credentials as required by the module |
 | VNPAY_ENABLED, VNPAY_* | Optional provider activation/settings; enabled provider needs valid merchant settings; prod has no implicit sandbox URLs |
 | ASSEMBLYAI_API_KEY, GEMINI_API_KEY, CARTESIA_API_KEY, CARTESIA_VOICE_ID | Speaking provider credentials and voice; optional SPEAKING_ASSEMBLYAI_*, SPEAKING_GEMINI_* and SPEAKING_CARTESIA_* inputs override shared endpoints, models, API version and adapter timeouts |
+| AI_COMPANION_GEMINI_API_KEY | Gemini credential for AI Companion; companion model, timeouts, stream concurrency, message/history limits and persona version use the `engolearn.ai-companion` configuration prefix and corresponding `AI_COMPANION_*` environment overrides |
 
 Root [Compose](../../docker-compose.yaml) provisions one member in engolearn-rs. Its
 healthcheck rejects existing multi-member topology without modifying it. Host clients
@@ -129,6 +130,7 @@ Do not restore module-named runtime profiles.
 | Placement | Mongo/transaction/level-sync defaults configured. MEDIA NOT PROD-INTEGRATED: migrate local audio to Media storage and persist references in Mongo; verify current and historical playback without repository files |
 | Subscription / Payment / Quota | Shared Mongo and transactions; import development catalog only to a disposable local database; verify Admin updates, provider and durable delivery independently |
 | Speaking | Speaking V2 profile, session and control persistence are shared by `dev` and `prod`. Provider orchestration and real-provider verification follow the Speaking V2 phase gates |
+| AI Companion | Mongo-backed conversations and protected Gemini SSE turns are implemented. Configure the `AI_COMPANION_*` inputs and verify provider connectivity and production deployment settings before enabling learner traffic |
 | Assessment | NOT FULLY PROD-INTEGRATED: real baseline integration and storage-backed audio are required. Filesystem playback is refused in prod; verify preparation/attempt/review after integrating Media |
 | Auth / Media / others | Verify real identity/authorization and storage integration in both profiles; no production dependency on repository samples or local media directories |
 

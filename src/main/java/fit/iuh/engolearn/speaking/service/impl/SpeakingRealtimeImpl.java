@@ -85,6 +85,8 @@ public class SpeakingRealtimeImpl implements SpeakingRealtime {
         var previous = new AtomicReference<Peer>();
         try {
             synchronized (peer.output) {
+                if (!runtime.authorized(lease)) throw new SpeakingException(HttpStatus.UNAUTHORIZED,
+                        "INVALID_TICKET", "The Speaking socket session is no longer authorized", false);
                 peers.compute(lease.sessionId(), (id, old) -> {
                     runtime.state(lease);
                     previous.set(old);
@@ -389,7 +391,7 @@ public class SpeakingRealtimeImpl implements SpeakingRealtime {
 
         @Override
         public synchronized void command(Command command) {
-            if (!allow(true)) return;
+            if (!authorized() || !allow(true)) return;
             try {
                 switch (command.type()) {
                     case START_TURN -> start(command);
@@ -407,6 +409,12 @@ public class SpeakingRealtimeImpl implements SpeakingRealtime {
                 send("ERROR", command.requestId(), null, null, new ErrorPayload("REQUEST_CONFLICT", true,
                         "Speaking is temporarily unavailable. Try again shortly.", null));
             }
+        }
+
+        private boolean authorized() {
+            if (runtime.authorized(lease)) return true;
+            close();
+            return false;
         }
 
         private void start(Command command) {
@@ -463,6 +471,7 @@ public class SpeakingRealtimeImpl implements SpeakingRealtime {
 
         @Override
         public synchronized void audio(SpeakingFrames.Learner frame) {
+            if (!authorized()) return;
             if (!allow(false)) {
                 if (recording != null) recording.observeRateLimitedFrame(frame);
                 return;
@@ -484,6 +493,7 @@ public class SpeakingRealtimeImpl implements SpeakingRealtime {
 
         @Override
         public synchronized void rejectAudio(String code, String message) {
+            if (!authorized()) return;
             if (recording != null) recording.rejectMalformedFrame();
             error(null, code, message);
         }
@@ -552,7 +562,7 @@ public class SpeakingRealtimeImpl implements SpeakingRealtime {
 
         @Override
         public synchronized void error(UUID requestId, String code, String message) {
-            if (!allow(true)) return;
+            if (!authorized() || !allow(true)) return;
             send("ERROR", requestId, null, null, new ErrorPayload(code, false, message, null));
         }
 

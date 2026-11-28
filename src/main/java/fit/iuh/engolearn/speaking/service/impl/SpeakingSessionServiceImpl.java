@@ -23,6 +23,8 @@ import fit.iuh.engolearn.speaking.utils.SpeakingConversation;
 import fit.iuh.engolearn.speaking.utils.SpeakingConversation.Result;
 import fit.iuh.engolearn.topic.contract.TopicSpeakingAccess;
 import fit.iuh.engolearn.topic.contract.dto.SpeakingScopeDto;
+import fit.iuh.engolearn.user.contract.AccountSessionAccess;
+import fit.iuh.engolearn.user.contract.dto.AccountSessionProofDto;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DuplicateKeyException;
@@ -58,6 +60,7 @@ public class SpeakingSessionServiceImpl implements SpeakingSessions, SpeakingRun
     private final QuotaAvailability quota;
     private final MediaManagement media;
     private final CurrentUserProvider users;
+    private final AccountSessionAccess accountSessions;
     private final SpeakingSessionSettings settings;
     private final SpeakingProviderProperties providerProperties;
     private final Clock clock;
@@ -186,6 +189,7 @@ public class SpeakingSessionServiceImpl implements SpeakingSessions, SpeakingRun
     @PreAuthorize("hasRole('USER')")
     public Ticket ticket(String id, long epoch) {
         String owner = users.requireCurrentUserId();
+        var proof = accountSessions.current(owner).orElseThrow(SpeakingSessionServiceImpl::invalidTicket);
         String token = id() + id();
         SpeakingSession current = owned(id, owner);
         requireEpoch(current, epoch);
@@ -202,6 +206,8 @@ public class SpeakingSessionServiceImpl implements SpeakingSessions, SpeakingRun
                 discardReceiving(session, "SYSTEM_INTERRUPTED");
                 clearConnection(session);
             }
+            session.setAuthSessionId(proof.sessionId());
+            session.setAccountSessionEpoch(proof.accountSessionEpoch());
             session.setTicketHash(hash(token));
             session.setTicketExpiresAt(now().plus(SpeakingSessionSettings.TICKET_LIFETIME));
             return true;
@@ -385,7 +391,7 @@ public class SpeakingSessionServiceImpl implements SpeakingSessions, SpeakingRun
             session = change(sessionId, current -> {
                 if (current.getStatus() == SpeakingSessionStatus.ENDED || current.getTicketHash() == null
                         || !current.getTicketExpiresAt().isAfter(now()) || !secureEquals(current.getTicketHash(), hash(ticket))
-                        || current.getLeaseId() != null) throw invalidTicket();
+                        || current.getLeaseId() != null || !accountSessions.active(proof(current))) throw invalidTicket();
                 if ((current.getStatus() == SpeakingSessionStatus.INITIALIZING
                         || current.getStatus() == SpeakingSessionStatus.ACTIVE) && !hasQuota(current.getOwnerId())) {
                     beginClosing(current, SpeakingEndReason.DAILY_QUOTA_REACHED);
@@ -407,7 +413,18 @@ public class SpeakingSessionServiceImpl implements SpeakingSessions, SpeakingRun
             if (latest.getStatus() == SpeakingSessionStatus.ENDED) finishSlot(latest);
             throw quotaReached();
         }
-        return new Lease(sessionId, session.getOwnerId(), session.getControllerEpoch(), session.getLeaseId());
+        return new Lease(sessionId, session.getOwnerId(), session.getControllerEpoch(), session.getLeaseId(), proof(session));
+    }
+
+    private static AccountSessionProofDto proof(SpeakingSession session) {
+        if (session.getAccountSessionEpoch() == null || session.getAuthSessionId() == null) return null;
+        return new AccountSessionProofDto(session.getOwnerId(), session.getAuthSessionId(), session.getAccountSessionEpoch());
+    }
+
+    @Override
+    public boolean authorized(Lease lease) {
+        return lease != null && lease.proof() != null && lease.ownerId().equals(lease.proof().accountId())
+                && accountSessions.active(lease.proof());
     }
 
     @Override

@@ -20,6 +20,10 @@ public class QuestionPoolRepository {
 
     private final MongoTemplate mongoTemplate;
 
+    public long countAll() {
+        return mongoTemplate.count(new Query(), "question_pool");
+    }
+
     public QuestionPoolRepository(MongoTemplate mongoTemplate) {
         this.mongoTemplate = mongoTemplate;
     }

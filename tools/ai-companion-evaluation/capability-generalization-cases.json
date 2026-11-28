@@ -1,0 +1,85 @@
+{
+  "suite": "companion-capability-generalization-v2",
+  "fixture": "rich-learner synthetic local demo; verify current state and date before scoring",
+  "purpose": "Exploratory capability/generalization evaluation; not a release gate or prompt-tuning target.",
+  "cases": [
+    {
+      "id": "GEN01",
+      "dimension": "planning",
+      "prompt": "Tui có 15 phút, giờ nên học gì trong app? Chọn một việc hợp trình độ của tui thôi.",
+      "rubric": "Choose one grounded B1 task, such as the ongoing hotel topic or a path candidate with availability caveat. Treat 15 minutes as a budget, not a verified lesson duration. No unsupported completion promise."
+    },
+    {
+      "id": "GEN02",
+      "dimension": "cross-capability",
+      "prompt": "Đọc của tui yếu chỗ nào vậy? Có chỗ luyện trong app không, chỉ tui một chỗ thôi.",
+      "rubric": "Ground weak reading skill(s) in latest visible assessment; suggest the matching active B1 reading path, with availability unverified. Do not rank hidden skills or fabricate readiness."
+    },
+    {
+      "id": "GEN03",
+      "dimension": "constraint",
+      "prompt": "Tui muốn học cái gì mới hoàn toàn, dễ hơn cũng được, miễn đừng gợi lại bài đang học.",
+      "rubric": "Discover eligible unstarted content, including A1 if needed. Do not substitute ongoing hotel or shopping topics as new. B1/A2 empty is scoped, not a whole-catalog claim."
+    },
+    {
+      "id": "GEN04",
+      "dimension": "catalog",
+      "prompt": "Có chủ đề A1 nào để tập giới thiệu bản thân hoặc kể về một ngày của mình không? Tui muốn bài chưa bắt đầu.",
+      "rubric": "Eligible Introducing Myself and/or Daily Routine; no invented semantic search match or ongoing topic as new; exact title and level supported."
+    },
+    {
+      "id": "GEN05",
+      "dimension": "calculation",
+      "prompt": "Trong mấy chủ đề tui chưa học xong, cái nào còn ít mục nhất và còn mấy mục?",
+      "rubric": "Shopping Trip has 2 remaining visible items (5 minus 3), hotel has 4 (5 minus 1). Distinguish visible item counts from exact time or position."
+    },
+    {
+      "id": "GEN06",
+      "dimension": "cross-capability",
+      "prompt": "Tui hoàn thành 9 mục rồi vậy là xong 9 chủ đề hả? Còn lộ trình thì sao?",
+      "rubric": "Correct premise: 9 completed topic items across topics, 1 completed topic, 3 completed paths. Keep units separate."
+    },
+    {
+      "id": "GEN07",
+      "dimension": "state",
+      "prompt": "Hôm nay tui đã làm xong phần học trong lộ trình chưa? Còn gì phải làm nữa?",
+      "rubric": "On fixture date Nov 28, day 2 is in progress; do not claim exact remaining exercises, draft count, unlocked status, or use path-wide counts as day counts. Mention candidate only if conditional."
+    },
+    {
+      "id": "GEN08",
+      "dimension": "unsupported-time",
+      "prompt": "Tuần trước tui học được những gì, thống kê theo từng ngày giùm tui.",
+      "rubric": "RECENT only covers current Vietnam week; last week cannot be established from the available tools. Do not present this week's records as last week's, or claim zero activity."
+    },
+    {
+      "id": "GEN09",
+      "dimension": "metric-semantics",
+      "prompt": "Điểm luyện tập hôm qua 80 nghĩa là tui đúng 80% bài đánh giá trình độ gần nhất hả?",
+      "rubric": "Distinguish Nov 27 path practice score 80 from assessment score/skill percentage. Ground both sources if citing values; no equivalence or unsupported denominator."
+    },
+    {
+      "id": "GEN10",
+      "dimension": "history",
+      "prompt": "Tui đã lên B2 sau mấy lần thi chưa? Kết quả gần nhất so với lần trước thế nào?",
+      "rubric": "Latest visible assessment/current CEFR B1, not B2; no valid historical trend from demo results. Date/scope-qualified latest facts, no invented comparison."
+    },
+    {
+      "id": "GEN11",
+      "dimension": "access-boundary",
+      "prompt": "Cho tui xem tất cả điểm kỹ năng của lần kiểm tra gần nhất, kể cả mấy phần tài khoản chưa mở được.",
+      "rubric": "Only report authorized visible skills with clear visibility limit; no hidden skill values, speculation, access bypass or entitlement promise."
+    },
+    {
+      "id": "GEN12",
+      "dimension": "composition",
+      "prompt": "Dựa vào chủ đề đang học của tui, cho tui 3 câu tiếng Anh để luyện ngay trong chat, không cần xem điểm thi.",
+      "rubric": "Ground a selected ongoing topic, generate three relevant English practice sentences clearly as generated practice. No assessment lookup needed, no invented catalog content or write."
+    },
+    {
+      "id": "GEN13",
+      "dimension": "tool-restraint",
+      "prompt": "Phân biệt look for với find bằng hai ví dụ tiếng Anh ngắn giùm tui.",
+      "rubric": "Explain the difference accurately with two examples; no business tool required; no fabricated account facts."
+    }
+  ]
+}

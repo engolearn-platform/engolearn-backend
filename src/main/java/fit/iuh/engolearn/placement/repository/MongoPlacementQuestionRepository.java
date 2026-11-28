@@ -28,6 +28,11 @@ public class MongoPlacementQuestionRepository implements PlacementQuestionReposi
     private final MongoTemplate mongo;
 
     @Override
+    public long countAll() {
+        return mongo.count(new Query(), PlacementQuestion.class);
+    }
+
+    @Override
     public Optional<PlacementQuestion> findById(String id) {
         return Optional.ofNullable(mongo.findById(id, PlacementQuestion.class));
     }

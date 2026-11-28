@@ -11,12 +11,20 @@ import java.util.Set;
 
 public class AuthenticatedUserPrincipal implements UserDetails {
 
+    private final String sessionId;
+    private final long accountSessionEpoch;
     private final String id;
     private final String email;
     private final UserRole role;
     private final Set<GrantedAuthority> authorities;
 
     public AuthenticatedUserPrincipal(String id, String email, UserRole role) {
+        this(id, email, role, null, 0);
+    }
+
+    public AuthenticatedUserPrincipal(String id, String email, UserRole role, String sessionId, long accountSessionEpoch) {
+        this.sessionId = sessionId;
+        this.accountSessionEpoch = accountSessionEpoch;
         this.id = id;
         this.email = email;
         this.role = role;
@@ -36,6 +44,9 @@ public class AuthenticatedUserPrincipal implements UserDetails {
         }
         return auths;
     }
+
+    public String getSessionId() { return sessionId; }
+    public long getAccountSessionEpoch() { return accountSessionEpoch; }
 
     public String getId() {
         return id;

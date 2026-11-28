@@ -7,6 +7,7 @@ import java.util.List;
 public interface SubscriptionRepository {
     SubscriptionAccount findAccount(String userId);
     List<SubscriptionPeriod> findPeriodsNewestFirst(String userId);
+    long countActivePaidPremiumUsersAt(Instant at);
     PolicyState findPolicyState(String scope);
     PolicyVersion findPolicyVersion(String id);
     List<PolicyVersion> findPolicyVersions();
