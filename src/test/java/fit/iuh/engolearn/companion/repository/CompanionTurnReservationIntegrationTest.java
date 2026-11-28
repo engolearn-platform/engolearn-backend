@@ -167,6 +167,200 @@ class CompanionTurnReservationIntegrationTest extends AbstractMongoIntegrationTe
         assertThat(messages.newest(conversation.getId(), null, 10)).hasSize(2);
     }
 
+    @Test void firstAdmissionIsAtomicAndTitleAndOwnerLookupSurviveCompletionAndDeletion() {
+        var model = Mockito.mock(CompanionModel.class);
+        Mockito.when(model.stream(Mockito.any())).thenReturn(Flux.just(new CompanionModelEvent.TextDelta("Answer"),
+                new CompanionModelEvent.RoundCompleted(new CompanionUsage(19))));
+        var usage = new java.util.concurrent.atomic.AtomicInteger();
+        var service = firstService("first-owner", available(true), model, usage, messages);
+        UUID id = UUID.randomUUID();
+        String text = "  " + "a".repeat(64) + "😀extra  ";
+        var request = new fit.iuh.engolearn.companion.dto.request.CompanionTurnRequest(id, text, false);
+        var first = service.prepareFirstTurn(request);
+        assertThat(first.admission().conversation().title()).isEqualTo("a".repeat(64) + "😀");
+        assertThat(first.admission().userMessage().content()).isEqualTo(text);
+        assertThat(first.admission().userMessage().sequence()).isEqualTo(1);
+        assertThat(service.getFirstTurn(id).state()).isEqualTo(fit.iuh.engolearn.companion.dto.response.FirstTurnStatusResponse.State.ACTIVE);
+        assertThat(conversations.listOwned("first-owner", null, null, 10)).hasSize(1);
+        assertThat(messages.newest(first.prepared().conversationId(), null, 10)).hasSize(1);
+        assertFirstCode(() -> service.prepareFirstTurn(request), "FIRST_TURN_ALREADY_ADMITTED");
+        assertFirstCode(() -> service.prepareFirstTurn(new fit.iuh.engolearn.companion.dto.request.CompanionTurnRequest(id, "different", false)),
+                "FIRST_TURN_PAYLOAD_CONFLICT");
+        assertFirstCode(() -> firstService("other-owner", available(true), model, usage, messages).getFirstTurn(id), "FIRST_TURN_NOT_FOUND");
+        service.streamPreparedTurn(first.prepared(), firstObserver());
+        var completed = service.getFirstTurn(id);
+        assertThat(completed.state()).isEqualTo(fit.iuh.engolearn.companion.dto.response.FirstTurnStatusResponse.State.COMPLETED);
+        assertThat(completed.assistantMessage().content()).isEqualTo("Answer");
+        assertThat(completed.conversation().title()).isEqualTo(first.admission().conversation().title());
+        assertThat(usage.get()).isEqualTo(1);
+        assertThat(mongoTemplate.getCollection("companion_first_test_usage").countDocuments()).isEqualTo(1);
+        Mockito.verify(model, Mockito.times(1)).stream(Mockito.any());
+        assertFirstCode(() -> service.prepareFirstTurn(request), "FIRST_TURN_ALREADY_ADMITTED");
+        transactions.required(() -> {
+            conversations.deleteOwned(first.prepared().conversationId(), "first-owner");
+            messages.deleteConversationMessages(first.prepared().conversationId());
+            return null;
+        });
+        assertThat(service.getFirstTurn(id).state()).isEqualTo(fit.iuh.engolearn.companion.dto.response.FirstTurnStatusResponse.State.DELETED);
+        assertFirstCode(() -> service.prepareFirstTurn(request), "FIRST_TURN_REMOVED");
+        assertThat(conversations.listOwned("first-owner", null, null, 10)).isEmpty();
+    }
+
+    @Test void rejectedCancelledAndRolledBackFirstRequestsHaveNoConversationOrUser() {
+        var model = Mockito.mock(CompanionModel.class);
+        var usage = new java.util.concurrent.atomic.AtomicInteger();
+        var rejected = firstService("reject-owner", available(false), model, usage, messages);
+        var id = UUID.randomUUID();
+        assertFirstCode(() -> rejected.prepareFirstTurn(new fit.iuh.engolearn.companion.dto.request.CompanionTurnRequest(id, " ", false)), "INVALID_TURN");
+        assertFirstCode(() -> rejected.prepareFirstTurn(new fit.iuh.engolearn.companion.dto.request.CompanionTurnRequest(id, "hello", false)), "COMPANION_QUOTA_EXHAUSTED");
+        assertFirstCode(() -> rejected.getFirstTurn(id), "FIRST_TURN_NOT_FOUND");
+        var cancelled = firstService("reject-owner", available(true), model, usage, messages);
+        assertThat(cancelled.cancelFirstTurn(id).state()).isEqualTo(fit.iuh.engolearn.companion.dto.response.FirstTurnStatusResponse.State.CANCELLED);
+        assertThat(cancelled.cancelFirstTurn(id).state()).isEqualTo(fit.iuh.engolearn.companion.dto.response.FirstTurnStatusResponse.State.CANCELLED);
+        assertFirstCode(() -> cancelled.prepareFirstTurn(new fit.iuh.engolearn.companion.dto.request.CompanionTurnRequest(id, "hello", false)), "FIRST_TURN_CANCELLED");
+        var failingMessages = Mockito.mock(CompanionMessageRepository.class);
+        Mockito.when(failingMessages.insert(Mockito.any())).thenAnswer(invocation -> {
+            messages.insert(invocation.getArgument(0));
+            throw new IllegalStateException("injected rollback after USER insert");
+        });
+        var broken = firstService("rollback-owner", available(true), model, usage, failingMessages);
+        var failedId = UUID.randomUUID();
+        assertFirstCode(() -> broken.prepareFirstTurn(new fit.iuh.engolearn.companion.dto.request.CompanionTurnRequest(failedId, "hello", false)), "FIRST_TURN_ADMISSION_UNKNOWN");
+        assertFirstCode(() -> broken.getFirstTurn(failedId), "FIRST_TURN_NOT_FOUND");
+        assertThat(mongoTemplate.findAll(CompanionConversation.class)).isEmpty();
+        assertThat(mongoTemplate.findAll(CompanionMessage.class)).isEmpty();
+        assertThat(mongoTemplate.findAll(fit.iuh.engolearn.companion.model.CompanionFirstTurnReceipt.class)).hasSize(1);
+        assertThat(usage.get()).isZero();
+        Mockito.verifyNoInteractions(model);
+    }
+
+    @Test void concurrentFirstAdmissionAcrossInstancesHasOneWinnerAndCancellationFencesDelayedAdmission() throws Exception {
+        var model = Mockito.mock(CompanionModel.class);
+        Mockito.when(model.stream(Mockito.any())).thenReturn(Flux.just(new CompanionModelEvent.TextDelta("Answer"),
+                new CompanionModelEvent.RoundCompleted(new CompanionUsage(19))));
+        var usage = new java.util.concurrent.atomic.AtomicInteger();
+        // Precreate only disposable test collections so this tests the unique receipt race, not collection DDL.
+        mongoTemplate.createCollection(CompanionConversation.class);
+        mongoTemplate.createCollection(CompanionMessage.class);
+        mongoTemplate.createCollection(fit.iuh.engolearn.companion.model.CompanionFirstTurnReceipt.class);
+        for (int i = 0; i < 2; i++) {
+            String owner = "race-owner-" + i;
+            var barrier = new CountDownLatch(2);
+            QuotaAvailability gated = (user, type) -> {
+                barrier.countDown();
+                awaitBarrier(barrier);
+                return available(true).checkAvailability(user, type);
+            };
+            var one = firstService(owner, gated, model, usage, messages);
+            var two = firstService(owner, gated, model, usage, messages);
+            var id = UUID.randomUUID();
+            var request = new fit.iuh.engolearn.companion.dto.request.CompanionTurnRequest(id, "same payload", false);
+            var outcomes = race(() -> one.prepareFirstTurn(request), () -> two.prepareFirstTurn(request));
+            assertThat(outcomes.stream().filter(CompanionTurnService.FirstPreparedTurn.class::isInstance)).hasSize(1);
+            var winner = outcomes.get(0) instanceof CompanionTurnService.FirstPreparedTurn ? one : two;
+            var prepared = (CompanionTurnService.FirstPreparedTurn) outcomes.stream()
+                    .filter(CompanionTurnService.FirstPreparedTurn.class::isInstance).findFirst().orElseThrow();
+            assertThat(conversations.listOwned(owner, null, null, 10)).hasSize(1);
+            assertThat(messages.newest(prepared.prepared().conversationId(), null, 10)).hasSize(1);
+            assertThat(two.getFirstTurn(id).conversation().id()).isEqualTo(prepared.prepared().conversationId());
+            winner.streamPreparedTurn(prepared.prepared(), firstObserver());
+            assertThat(one.getFirstTurn(id).state()).isEqualTo(fit.iuh.engolearn.companion.dto.response.FirstTurnStatusResponse.State.COMPLETED);
+            assertFirstCode(() -> two.prepareFirstTurn(request), "FIRST_TURN_ALREADY_ADMITTED");
+        }
+        var entered = new CountDownLatch(1);
+        var release = new CountDownLatch(1);
+        QuotaAvailability delayed = (user, type) -> {
+            entered.countDown();
+            awaitBarrier(release);
+            return available(true).checkAvailability(user, type);
+        };
+        var admission = firstService("cancel-race-owner", delayed, model, usage, messages);
+        var cancel = firstService("cancel-race-owner", available(true), model, usage, messages);
+        var id = UUID.randomUUID();
+        var request = new fit.iuh.engolearn.companion.dto.request.CompanionTurnRequest(id, "late", false);
+        ExecutorService pool = Executors.newSingleThreadExecutor();
+        try {
+            var future = pool.submit(() -> admission.prepareFirstTurn(request));
+            assertThat(entered.await(10, TimeUnit.SECONDS)).isTrue();
+            assertThat(cancel.cancelFirstTurn(id).state()).isEqualTo(fit.iuh.engolearn.companion.dto.response.FirstTurnStatusResponse.State.CANCELLED);
+            release.countDown();
+            org.assertj.core.api.Assertions.assertThatThrownBy(() -> future.get(30, TimeUnit.SECONDS))
+                    .isInstanceOf(java.util.concurrent.ExecutionException.class);
+            assertThat(cancel.getFirstTurn(id).state()).isEqualTo(fit.iuh.engolearn.companion.dto.response.FirstTurnStatusResponse.State.CANCELLED);
+            assertThat(conversations.listOwned("cancel-race-owner", null, null, 10)).isEmpty();
+        } finally {
+            release.countDown();
+            pool.shutdownNow();
+        }
+        assertThat(usage.get()).isEqualTo(2);
+        Mockito.verify(model, Mockito.times(2)).stream(Mockito.any());
+        assertThat(mongoTemplate.findAll(CompanionMessage.class)).hasSize(4);
+    }
+
+    @Test void admittedStopKeepsCanonicalUserAndDoesNotClaimCancellationBeforeAdmission() {
+        var model = Mockito.mock(CompanionModel.class);
+        var usage = new java.util.concurrent.atomic.AtomicInteger();
+        var service = firstService("stop-owner", available(true), model, usage, messages);
+        var id = UUID.randomUUID();
+        var prepared = service.prepareFirstTurn(new fit.iuh.engolearn.companion.dto.request.CompanionTurnRequest(id, "recorded", false));
+        assertThat(service.cancelFirstTurn(id).state()).isEqualTo(fit.iuh.engolearn.companion.dto.response.FirstTurnStatusResponse.State.ACTIVE);
+        service.cancelPreparedTurn(prepared.prepared());
+        var status = service.getFirstTurn(id);
+        assertThat(status.state()).isEqualTo(fit.iuh.engolearn.companion.dto.response.FirstTurnStatusResponse.State.INCOMPLETE);
+        assertThat(status.userMessage().content()).isEqualTo("recorded");
+        assertThat(status.retryEligible()).isTrue();
+        assertThat(usage.get()).isZero();
+        Mockito.verifyNoInteractions(model);
+    }
+
+    private static QuotaAvailability available(boolean allowed) {
+        Instant now = Instant.now();
+        return (user, type) -> new AvailabilityResultDto(type, allowed ? 0 : 100, 100, allowed ? 100 : 0,
+                "TOKEN", "DAILY", now, now.plusSeconds(86400), now, allowed ? "AVAILABLE" : "EXHAUSTED");
+    }
+
+    private CompanionTurnService firstService(String learner, QuotaAvailability availability, CompanionModel model,
+            java.util.concurrent.atomic.AtomicInteger usageCount, CompanionMessageRepository messageStore) {
+        CurrentUserProvider users = Mockito.mock(CurrentUserProvider.class);
+        Mockito.when(users.requireCurrentUserId()).thenReturn(learner);
+        QuotaUsageRecording usage = command -> {
+            usageCount.incrementAndGet();
+            mongoTemplate.insert(new Document("_id", command.idempotencyKey()).append("amount", command.amount()),
+                    "companion_first_test_usage");
+            return new UsageResultDto(true, "ledger", command.amount(), Instant.now(), "allowance", null);
+        };
+        CompanionToolRegistry tools = Mockito.mock(CompanionToolRegistry.class);
+        Mockito.when(tools.definitions(Mockito.anyBoolean())).thenReturn(List.of());
+        CompanionMemoryService memories = Mockito.mock(CompanionMemoryService.class);
+        Mockito.when(memories.settingsSnapshot(learner)).thenReturn(new MemorySettingsSnapshot(false, 0));
+        MemoryRetrievalService retrieval = Mockito.mock(MemoryRetrievalService.class);
+        Mockito.when(retrieval.retrieve(Mockito.anyString(), Mockito.anyString(), Mockito.any())).thenReturn(new MemoryRetrievalResult("", List.of()));
+        return new CompanionTurnServiceImpl(users, conversations, messageStore, model, contextBuilder, properties,
+                transactions, availability, usage, tools, memories, retrieval,
+                Mockito.mock(fit.iuh.engolearn.companion.service.impl.ScreenContextResolverRegistry.class), toolExecutor);
+    }
+
+    private static CompanionTurnService.TurnObserver firstObserver() {
+        return new CompanionTurnService.TurnObserver() {
+            @Override public void onDelta(String text) {}
+            @Override public boolean isCancelled() { return false; }
+        };
+    }
+
+    private static void assertFirstCode(org.assertj.core.api.ThrowableAssert.ThrowingCallable call, String code) {
+        org.assertj.core.api.Assertions.assertThatThrownBy(call).isInstanceOf(CompanionException.class)
+                .extracting(failure -> ((CompanionException) failure).getCode()).isEqualTo(code);
+    }
+
+    private static void awaitBarrier(CountDownLatch latch) {
+        try {
+            if (!latch.await(10, TimeUnit.SECONDS)) throw new IllegalStateException("test barrier timeout");
+        } catch (InterruptedException interrupted) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException(interrupted);
+        }
+    }
+
     private void assertAtomicCompletion(boolean failQuota, boolean succeeds) {
         mongoTemplate.dropCollection("companion_test_usage");
         Instant now = Instant.now();

@@ -46,7 +46,7 @@ SSE events are:
 | Event | Data |
 | --- | --- |
 | `delta` | `{"text":"..."}` |
-| `status` | `{"code":"ASSESSMENT_LOOKUP"}` |
+| `status` | `{"code":"PROCESSING"}` immediately after existing-turn admission and before model work; `{"code":"ASSESSMENT_LOOKUP"}` when applicable |
 | `memory_operation` | `{"operationId":"<UUID>","action":"CREATED","memoryId":"<UUID>","version":1}` |
 | `completed` | `{"turnId":"...","assistantMessage":{...},"messageCount":N,"maxMessages":N,"warning":false}` |
 | `error` | `{"turnId":"...","code":"...","detail":"...","retryable":false}` |
@@ -78,3 +78,11 @@ Base path: `/api/v1/companion/memory`. All endpoints require `ROLE_USER`, are ow
 Each memory item contains `id`, `category`, `content`, `source` (`EXPLICIT` or `INFERRED`), `version`, `createdAt`, and `updatedAt`. `MemorySettingsResponse` contains the effective `automaticMemoryEnabled` boolean and `updatedAt`. An absent or null stored setting reads as `true`; reading settings does not prompt for consent. Turning the setting off blocks create/update classified as automatic regardless of memory provenance; retrieval and user-directed remember/update/forget remain available. Chat create/update trigger classification is model-driven and not independent proof of consent; see [Memory proposal validation](memory-proposal-validation.md). A directly shared fact may be saved automatically with `source=EXPLICIT` when automatic memory is on.
 
 An update or delete with a stale `expectedVersion` returns `409 MEMORY_VERSION_CONFLICT`; invalid input returns `400`, and unavailable persistence returns `503`. Forget deletes the Mongo record and creates its content-free vector cleanup receipt in one transaction. The response does not wait for Qdrant; after commit the deleted record is immediately excluded from retrieval. See the [vector recovery runbook](recovery.md) for Qdrant recovery and manual reconciliation.
+
+## A2.4: atomic first turn (isolated candidate)
+New Chat is a local unsaved draft. Existing create and conversation-turn endpoints remain compatible.
+- POST /api/v1/companion/first-turns accepts CompanionTurnRequest (stable UUID turnId, content, retry=false, optional typed screenContext). Admission atomically inserts the owner-scoped receipt, conversation, canonical USER message and reservation. Title is String.strip() of the first message, limited to 65 Unicode code points (no model call). The first SSE event is admitted with FirstTurnStatusResponse; existing delta/status/memory_operation/completed/error events follow.
+- GET /api/v1/companion/first-turns/{turnId} returns the exact owner-scoped status: ACTIVE, COMPLETED, INCOMPLETE, CANCELLED or DELETED, with turnId, conversation, userMessage, assistantMessage and retryEligible. CANCELLED/DELETED have no conversation or message data. 404 FIRST_TURN_NOT_FOUND means no receipt observed, not proof of rejection.
+- POST /api/v1/companion/first-turns/{turnId}/cancel installs a cancellation receipt if absent; otherwise returns canonical status. It never undoes committed admission or completion. The existing active-turn Stop/retry behavior remains unchanged.
+- Repeated same-payload admission is rejected with FIRST_TURN_ALREADY_ADMITTED; resolve by exact lookup. Conflicting payload is rejected; a cancellation or deletion fence cannot be reused. A 503 after preparation or transport interruption is ambiguous; use exact status/cancel rather than blindly resending. Eligibility, validation and quota rejection precede creation. Accepted incomplete turns remain recorded; retry uses the canonical conversation ID and original turn UUID on the existing turn endpoint.
+- The new endpoints require ROLE_USER and derive ownership from authentication; no caller-supplied owner. The old runtime cannot serve this candidate contract. Receipt retention/cleanup policy and independent release review remain open.

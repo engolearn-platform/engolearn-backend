@@ -2,9 +2,16 @@ package fit.iuh.engolearn.companion.service;
 
 import fit.iuh.engolearn.companion.dto.request.CompanionTurnRequest;
 import fit.iuh.engolearn.companion.dto.request.ScreenContextReferenceRequest;
+import fit.iuh.engolearn.companion.dto.response.FirstTurnStatusResponse;
+import java.util.UUID;
 
 public interface CompanionTurnService {
     PreparedTurn prepareTurn(String conversationId, CompanionTurnRequest request);
+    FirstPreparedTurn prepareFirstTurn(CompanionTurnRequest request);
+    FirstTurnStatusResponse getFirstTurn(UUID turnId);
+    FirstTurnStatusResponse cancelFirstTurn(UUID turnId);
+
+    record FirstPreparedTurn(PreparedTurn prepared, FirstTurnStatusResponse admission) {}
     CompanionTurnResult streamPreparedTurn(PreparedTurn preparedTurn, TurnObserver observer);
     void abandonPreparedTurn(PreparedTurn preparedTurn);
     default void cancelPreparedTurn(PreparedTurn preparedTurn) { abandonPreparedTurn(preparedTurn); }

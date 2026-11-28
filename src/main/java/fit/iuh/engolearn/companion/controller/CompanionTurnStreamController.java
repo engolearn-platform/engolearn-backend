@@ -3,6 +3,7 @@ package fit.iuh.engolearn.companion.controller;
 import fit.iuh.engolearn.companion.dto.request.CompanionTurnRequest;
 import fit.iuh.engolearn.companion.dto.response.CompanionStreamErrorResponse;
 import fit.iuh.engolearn.companion.dto.response.CompanionTurnCompletedResponse;
+import fit.iuh.engolearn.companion.dto.response.FirstTurnStatusResponse;
 import fit.iuh.engolearn.companion.exception.CompanionException;
 import fit.iuh.engolearn.companion.service.CompanionTurnResult;
 import fit.iuh.engolearn.companion.service.CompanionTurnService;
@@ -27,7 +28,7 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import jakarta.validation.Valid;
 
 @Controller
-@RequestMapping("/api/v1/companion/conversations/{conversationId}/turns")
+@RequestMapping("/api/v1/companion")
 public class CompanionTurnStreamController {
     private final CompanionTurnService turns;
     private final CompanionProperties properties;
@@ -40,11 +41,23 @@ public class CompanionTurnStreamController {
         this.streamExecutor = streamExecutor;
     }
 
-    @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    @PostMapping(value = "/conversations/{conversationId}/turns", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     @ResponseBody
     public SseEmitter turn(@PathVariable String conversationId, @Valid @RequestBody CompanionTurnRequest request,
             jakarta.servlet.http.HttpServletResponse response) {
-        var prepared = turns.prepareTurn(conversationId, request);
+        return stream(turns.prepareTurn(conversationId, request), null, response);
+    }
+
+    @PostMapping(value = "/first-turns", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    @ResponseBody
+    public SseEmitter firstTurn(@Valid @RequestBody CompanionTurnRequest request,
+            jakarta.servlet.http.HttpServletResponse response) {
+        var first = turns.prepareFirstTurn(request);
+        return stream(first.prepared(), first.admission(), response);
+    }
+
+    private SseEmitter stream(CompanionTurnService.PreparedTurn prepared, FirstTurnStatusResponse admission,
+            jakarta.servlet.http.HttpServletResponse response) {
         response.setHeader(HttpHeaders.CACHE_CONTROL, "no-store");
         response.setHeader("X-Content-Type-Options", "nosniff");
         response.setHeader("X-Accel-Buffering", "no");
@@ -87,6 +100,17 @@ public class CompanionTurnStreamController {
                 if (cancelled.get()) {
                     turns.cancelPreparedTurn(prepared);
                     return;
+                }
+                try {
+                    if (admission != null) {
+                        send(emitter, "admitted", admission, cancelled);
+                    } else {
+                        // Preparation has committed; flush SSE before slow model/tool work.
+                        send(emitter, "status", Map.of("code", "PROCESSING"), cancelled);
+                    }
+                } catch (RuntimeException failure) {
+                    turns.cancelPreparedTurn(prepared);
+                    throw failure;
                 }
                 CompanionTurnResult result = turns.streamPreparedTurn(prepared, new CompanionTurnService.TurnObserver() {
                     @Override
