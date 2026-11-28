@@ -75,6 +75,18 @@ class CompanionBusinessToolTest {
         assertEquals("SUCCESS",status(call("getTopicLearningProgress",Map.of("mode","COUNTS"))));
     }
 
+    @Test void discoveryNoDataDescribesOnlyTheActualFilter() {
+        when(topics.discover(eq("owner"),any())).thenReturn(new TopicDiscoveryPageDto(List.of(),false,null,"COMPLETE",NOW));
+        var current = json.readTree(call("findLearningTopics",Map.of()));
+        assertEquals("NO_DATA",current.get("status").asText());
+        assertEquals("ELIGIBLE_UNSTARTED_TOPICS",current.get("data").get("searchScope").asText());
+        assertEquals("CURRENT_LEARNER_LEVEL",current.get("data").get("levelFilter").asText());
+        assertFalse(current.get("data").get("keywordFiltered").asBoolean());
+        var lower = json.readTree(call("findLearningTopics",Map.of("level","A1","keyword","introduction")));
+        assertEquals("A1",lower.get("data").get("levelFilter").asText());
+        assertTrue(lower.get("data").get("keywordFiltered").asBoolean());
+    }
+
     @Test void pathFrozenTimeAndHalfOpenWeekLimitedAndForeignCursor() {
         var first = new LearningPathPageQueryDto(3,null);
         var second = new LearningPathPageQueryDto(3,"next");
@@ -111,6 +123,15 @@ class CompanionBusinessToolTest {
         assertEquals("LIMITED",limited.get("data").get("coverage").asText());
         assertTrue(limited.get("data").get("nextCursor").isNull());
         assertEquals(WEEK,scope.weekStart());
+        assertEquals("2026-11-23",limited.get("data").get("weekStartLocalDate").asText());
+        var event = new LearningPathActivityPageDto.Row("path",1,1,"CLOSED",
+                LearningPathEventKind.DAY_CLOSED,WEEK,"AUTO_CLOSE",0.0,null);
+        when(paths.recent("owner",WEEK,NOW,first)).thenReturn(new LearningPathActivityPageDto(
+                List.of(event),false,null,LearningPathCoverage.COMPLETE,NOW));
+        var recent = json.readTree(call("getLearningPathProgress",Map.of("mode","RECENT"))).get("data");
+        assertEquals("Asia/Ho_Chi_Minh",recent.get("timeZone").asText());
+        assertEquals("2026-11-23",recent.get("items").get(0).get("localDate").asText());
+        assertEquals("CLOSED",recent.get("items").get(0).get("dayStatus").asText());
     }
 
     @Test void historyRedactsPaperAndOnlyComparesMatchingVisibleSkills() {
@@ -130,10 +151,33 @@ class CompanionBusinessToolTest {
         String detail = call("getAssessmentHistory",Map.of("detail","SKILLS"));
         assertFalse(detail.contains("private-paper"));
         assertFalse(detail.contains("hidden-example"));
-        var observed = json.readTree(detail).get("data").get("observations");
+        var detailData = json.readTree(detail).get("data");
+        assertEquals("NEWEST_FIRST",detailData.get("itemOrder").asText());
+        assertTrue(detailData.get("items").get(0).get("isLatest").asBoolean());
+        assertFalse(detailData.get("items").get(1).get("isLatest").asBoolean());
+        assertEquals("COMPARABLE_VISIBLE_SKILLS",detailData.get("comparisonReason").asText());
+        var observed = detailData.get("observations");
         assertEquals(1,observed.size());
         assertEquals("READ",observed.get(0).get("code").asText());
         assertEquals(80,observed.get(0).get("newerPercentage").asInt());
+    }
+
+    @Test void demoHistoryExplainsUnknownComparisonWithoutInventingPaperDifferences() {
+        var latest = new AssessmentCompanionSummaryDto("latest",NOW,64,"B1",AssessmentCompanionScope.PREVIEW,List.of());
+        var older = new AssessmentCompanionSummaryDto("older",NOW.minusSeconds(100),62,"B1",AssessmentCompanionScope.PREVIEW,List.of());
+        var rows = List.of(new AssessmentCompanionHistoryRowDto(latest,"same-paper",1,1,true),
+                new AssessmentCompanionHistoryRowDto(older,"same-paper",1,1,true));
+        when(assessments.historyForCompanion("owner",new AssessmentCompanionHistoryQueryDto(2,null)))
+                .thenReturn(new AssessmentCompanionHistoryPageDto(rows,true,"next",AssessmentCompanionHistoryCoverage.COMPLETE,NOW));
+        var data = json.readTree(call("getAssessmentHistory",Map.of("detail","SKILLS"))).get("data");
+        assertEquals("UNKNOWN",data.get("comparison").asText());
+        assertEquals("DEMONSTRATION_RESULTS_ONLY",data.get("comparisonReason").asText());
+        assertTrue(data.get("items").get(0).get("isLatest").asBoolean());
+        assertEquals(0,data.get("observations").size());
+        when(assessments.historyForCompanion("owner",new AssessmentCompanionHistoryQueryDto(2,"next")))
+                .thenReturn(new AssessmentCompanionHistoryPageDto(List.of(rows.get(1)),false,null,AssessmentCompanionHistoryCoverage.COMPLETE,NOW));
+        var continued = json.readTree(call("getAssessmentHistory",Map.of("detail","SKILLS","cursor","next"))).get("data");
+        assertFalse(continued.get("items").get(0).get("isLatest").asBoolean());
     }
 
     @Test void malformedProviderFactsFailClosedWithoutPayloadAndKnownUnknownsRemain() {

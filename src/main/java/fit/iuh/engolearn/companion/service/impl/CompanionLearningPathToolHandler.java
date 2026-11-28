@@ -94,7 +94,9 @@ public class CompanionLearningPathToolHandler implements CompanionToolHandler {
                         page.asOf(),limit,Map.of("continuationScope","TURN_ONLY"));
                 return output;
             }
+            var zone = java.time.ZoneId.of("Asia/Ho_Chi_Minh");
             var extra = Map.<String,Object>of("fromInclusive",scope.weekStart(),"toExclusive",scope.asOf(),
+                    "timeZone",zone.getId(),"weekStartLocalDate",scope.weekStart().atZone(zone).toLocalDate().toString(),
                     "continuationScope","TURN_ONLY");
             if (scope.weekStart().equals(scope.asOf())) {
                 if (cursor != null) return response.invalid();
@@ -108,7 +110,11 @@ public class CompanionLearningPathToolHandler implements CompanionToolHandler {
                     || row.occurredAt() == null || row.occurredAt().isBefore(scope.weekStart())
                     || !row.occurredAt().isBefore(scope.asOf())))
                 return response.error("INCONSISTENT_STATE");
-            String output = response.page(page.items(),page.hasMore(),page.nextCursor(),page.coverage().name(),
+            var rows = page.items().stream().map(row -> fields("pathId",row.pathId(),"weekNo",row.weekNo(),
+                    "dayNo",row.dayNo(),"dayStatus",row.dayStatus(),"eventKind",row.eventKind(),
+                    "occurredAt",row.occurredAt(),"localDate",row.occurredAt().atZone(zone).toLocalDate().toString(),
+                    "closeReason",row.closeReason(),"completionRate",row.completionRate(),"practiceScore",row.practiceScore())).toList();
+            String output = response.page(rows,page.hasMore(),page.nextCursor(),page.coverage().name(),
                     page.asOf(),limit,extra);
             return output;
         } catch (InvalidArguments invalid) {

@@ -74,7 +74,7 @@ class CompanionContextBuilderTest {
     @Test
     void historyComparabilityIsScopedAndLatestVisibleSkillGuidanceRemains() {
         String prompt = builder.build("learner-1",List.of(),"Guide me").getFirst().text();
-        assertThat(prompt).contains("For dated assessment history comparisons, use only returned visible comparable observations",
+        assertThat(prompt).contains("use only returned visible comparable observations",
                 "For skill advice, request mode SKILLS without skillCodes",
                 "For PREVIEW results, discuss only returned rows and do not rank or compare unreturned skills",
                 "Never guess hidden results or treat one result as a trend",
@@ -82,7 +82,14 @@ class CompanionContextBuilderTest {
                 "completed topics, topic items and completed paths separately",
                 "request both Topic RESUME and Path ACTIVE",
                 "use Path RECENT and explicitly disclose that dated Topic activity and other modules are not covered",
-                "request Assessment history SKILLS",
+                "request getAssessmentHistory with detail SKILLS",
+                "never combine older skill rows with the latest result",
+                "NO_DATA means no matching eligible unstarted topic for that filter",
+                "prioritize verified same-level new or unfinished topics over lower-level review",
+                "use discovery only, not Topic RESUME as a substitute",
+                "the nearest lower CEFR and, if empty, the next lower CEFR",
+                "Use weekStartLocalDate and each event localDate",
+                "explicitly require checking availability in the app",
                 "Do not repeat the same tool and arguments after NO_DATA or ERROR");
     }
 

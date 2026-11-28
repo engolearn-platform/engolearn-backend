@@ -24,7 +24,7 @@ public class CompanionTopicToolHandler implements CompanionToolHandler {
     @Override public List<CompanionToolDefinition> definitions() {
         return List.of(
                 new CompanionToolDefinition("findLearningTopics",
-                        "Find actual eligible published unstarted topics by optional literal keyword and CEFR. Omit level for learner's current level. No semantic matching or start action.",
+                        "Find eligible published unstarted topics by optional literal keyword and exact CEFR. Omit level for learner's current level, omit keyword for general browsing. NO_DATA is limited to the requested filter and excludes started topics. Explicit lower levels can provide review or related options. No semantic matching or start action.",
                         """
                         {"type":"object","properties":{"keyword":{"type":"string","minLength":1,"maxLength":80},"level":{"type":"string","enum":["A1","A2","B1","B2","C1","C2"]},"limit":{"type":"integer","minimum":1,"maximum":5},"cursor":{"type":"string","maxLength":512}},"additionalProperties":false}
                         """),
@@ -58,7 +58,9 @@ public class CompanionTopicToolHandler implements CompanionToolHandler {
                         row.topicId(), bounded(row.titleEn(),160), bounded(row.titleVi(),160), row.cefrLevel(),
                         bounded(row.descriptionSnippet(),240), row.visibleItemCount(), item(row.firstEligibleItem()))).toList();
                 return response.page(rows, page.hasMore(), page.nextCursor(), page.coverage(),
-                        page.asOf(), limit, Map.of());
+                        page.asOf(), limit, Map.of("searchScope","ELIGIBLE_UNSTARTED_TOPICS",
+                                "levelFilter",level == null ? "CURRENT_LEARNER_LEVEL" : level.name(),
+                                "keywordFiltered",keyword != null));
             }
             if (!"getTopicLearningProgress".equals(name)) return response.error("UNSUPPORTED");
             var a = args(input, "mode", "limit", "cursor");

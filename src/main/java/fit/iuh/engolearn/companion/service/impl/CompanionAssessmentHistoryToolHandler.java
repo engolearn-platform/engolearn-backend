@@ -24,7 +24,7 @@ public class CompanionAssessmentHistoryToolHandler implements CompanionToolHandl
 
     @Override public List<CompanionToolDefinition> definitions() {
         return List.of(new CompanionToolDefinition("getAssessmentHistory",
-                "Get dated account-visible assessment history. SKILLS includes visible skill rows and like-for-like observations only when same pinned non-demo paper and visible equal denominator. Never infer validated improvement or rank hidden skills.",
+                "Get dated account-visible assessment history, newest first. Only isLatest=true identifies the latest result. Keep skill values within their own dated row. SKILLS includes visible skill rows and like-for-like observations only when same pinned non-demo paper and visible equal denominator. UNKNOWN comparison is not evidence of different papers or improvement. Never rank hidden skills.",
                 """
                 {"type":"object","properties":{"limit":{"type":"integer","minimum":2,"maximum":5},"cursor":{"type":"string","maxLength":512},"detail":{"type":"string","enum":["SUMMARY","SKILLS"]}},"additionalProperties":false}
                 """));
@@ -50,7 +50,7 @@ public class CompanionAssessmentHistoryToolHandler implements CompanionToolHandl
                     return response.error("INCONSISTENT_STATE");
                 var output = fields("attemptId",r.attemptId(),"submittedAt",r.submittedAt(),
                         "officialScore",r.officialScore(),"level",r.level(),"scope",r.scope(),
-                        "demonstration",row.demonstration());
+                        "demonstration",row.demonstration(),"isLatest",!a.containsKey("cursor") && rows.isEmpty());
                 if (skills) output.put("skills",r.skills().stream().map(s -> fields("code",s.code(),
                         "name",bounded(s.name(),160),"section",s.section(),"correct",s.correct(),
                         "total",s.total(),"percentage",s.percentage(),"band",s.band())).toList());
@@ -76,7 +76,11 @@ public class CompanionAssessmentHistoryToolHandler implements CompanionToolHandl
             }
             return response.page(rows,page.hasMore(),page.nextCursor(),page.coverage().name(),page.asOf(),limit,
                     Map.of("comparison",observations.isEmpty() ? "UNKNOWN" : "DESCRIPTIVE_ONLY",
-                            "observations",observations));
+                            "comparisonReason",!skills ? "SKILLS_NOT_REQUESTED"
+                                    : !observations.isEmpty() ? "COMPARABLE_VISIBLE_SKILLS"
+                                    : !page.items().isEmpty() && page.items().stream().allMatch(AssessmentCompanionHistoryRowDto::demonstration)
+                                        ? "DEMONSTRATION_RESULTS_ONLY" : "NO_COMPARABLE_VISIBLE_SKILLS",
+                            "itemOrder","NEWEST_FIRST","observations",observations));
         } catch (InvalidArguments | AssessmentHistoryInvalidQueryException invalid) {
             return response.invalid();
         } catch (RuntimeException unavailable) {
