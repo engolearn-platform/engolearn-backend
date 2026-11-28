@@ -54,6 +54,7 @@ Production may supply process environment or a deployment secret store. Existing
 | CORS_ALLOWED_ORIGINS | Frontend origins; explicit value required in prod |
 | PLACEMENT_MEDIA_DIRECTORY, ASSESSMENT_MEDIA_DIRECTORY | Dev-only bundled-media overrides; not production inputs |
 | CLOUDINARY_URL or CLOUDINARY_* | Shared Media provider credentials as required by the module |
+| MEDIA_WAV_VERIFICATION_TIMEOUT | Full WAV verification deadline (default 8s; accepted 1–45s, capped by the protected URL lifetime). Does not change exam time or playback URL expiry. |
 | VNPAY_ENABLED, VNPAY_* | Optional provider activation/settings; enabled provider needs valid merchant settings; prod has no implicit sandbox URLs |
 | ASSEMBLYAI_API_KEY, GEMINI_API_KEY, CARTESIA_API_KEY, CARTESIA_VOICE_ID | Speaking provider credentials and voice; optional SPEAKING_ASSEMBLYAI_*, SPEAKING_GEMINI_* and SPEAKING_CARTESIA_* inputs override shared endpoints, models, API version and adapter timeouts |
 

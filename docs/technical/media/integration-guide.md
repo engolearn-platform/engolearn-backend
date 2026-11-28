@@ -21,8 +21,11 @@ For actions that require an available WAV before committing state, authorize the
 content first and call `verifyWavDelivery(mediaId, sha256, maximumBytes)` outside the
 database transaction. Supply the digest of the source WAV validated before upload.
 Media requests original bytes through a fresh signed URL and hashes the stream within
-the asset's recorded size and the caller's cap. The connection timeout is 3 seconds
-and the complete request has an 8-second deadline. Redirects and content encodings
+the asset's recorded size and the caller's cap. The connection timeout is 3 seconds.
+The full request deadline is configured by `MEDIA_WAV_VERIFICATION_TIMEOUT` (8 seconds
+by default, accepted range 1–45 seconds) and cannot exceed the signed URL's remaining
+lifetime. Measure Preview and Publish against the environment's HTTP timeout before
+using a longer deadline. Redirects and content encodings
 other than identity are rejected. HTTP 200 may omit Content-Length. HTTP 206 must
 describe the entire object with Content-Range. If provided, Content-Length must match
 the stored size. Both responses must deliver the expected number of bytes and digest.

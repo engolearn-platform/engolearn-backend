@@ -20,7 +20,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 final class MediaWavDeliveryVerifier {
-    private static final Duration TIMEOUT = Duration.ofSeconds(8);
     private static final HttpClient CLIENT = HttpClient.newBuilder()
             .connectTimeout(Duration.ofSeconds(3))
             .followRedirects(HttpClient.Redirect.NEVER)
@@ -28,12 +27,12 @@ final class MediaWavDeliveryVerifier {
 
     private MediaWavDeliveryVerifier() {}
 
-    static void verify(URI uri, long expectedBytes, String expectedSha256) {
+    static void verify(URI uri, long expectedBytes, String expectedSha256, Duration timeout) {
         byte[] expectedDigest = parseDigest(expectedSha256);
         HttpRequest request;
         try {
             request = HttpRequest.newBuilder(uri)
-                    .timeout(TIMEOUT)
+                    .timeout(timeout)
                     .header("Accept-Encoding", "identity")
                     .header("Range", "bytes=0-")
                     .GET().build();
@@ -45,7 +44,7 @@ final class MediaWavDeliveryVerifier {
             return new DigestSubscriber(expectedBytes);
         });
         try {
-            if (!MessageDigest.isEqual(expectedDigest, download.get(TIMEOUT.toMillis(), TimeUnit.MILLISECONDS).body())) {
+            if (!MessageDigest.isEqual(expectedDigest, download.get(timeout.toMillis(), TimeUnit.MILLISECONDS).body())) {
                 throw unavailable("Delivered WAV does not match its registered SHA-256");
             }
         } catch (InterruptedException ex) {

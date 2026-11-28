@@ -7,7 +7,10 @@ import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.MessageDigest;
+import java.time.Duration;
 import java.util.Arrays;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.HexFormat;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -98,8 +101,30 @@ class MediaWavDeliveryVerifierTest {
                 .hasMessageNotContaining("secret");
     }
 
+    @Test
+    void suppliedDeadlineAlsoBoundsAStalledBody() {
+        var release = new CountDownLatch(1);
+        server.createContext("/audio", exchange -> {
+            try (exchange) {
+                exchange.sendResponseHeaders(200, wav.length);
+                exchange.getResponseBody().write(wav, 0, 12);
+                exchange.getResponseBody().flush();
+                release.await(3, TimeUnit.SECONDS);
+            } catch (InterruptedException interrupted) {
+                Thread.currentThread().interrupt();
+            }
+        });
+        server.start();
+        try {
+            assertThatThrownBy(() -> MediaWavDeliveryVerifier.verify(url, wav.length, sha256, Duration.ofMillis(500)))
+                    .isInstanceOf(MediaStorageUnavailableException.class).hasMessageContaining("timed out");
+        } finally {
+            release.countDown();
+        }
+    }
+
     private void verify() {
-        MediaWavDeliveryVerifier.verify(url, wav.length, sha256);
+        MediaWavDeliveryVerifier.verify(url, wav.length, sha256, Duration.ofSeconds(8));
     }
 
     private String completeRange() {

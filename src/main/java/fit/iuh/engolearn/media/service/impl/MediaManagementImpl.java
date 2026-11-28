@@ -31,6 +31,7 @@ public class MediaManagementImpl implements MediaManagement {
     private final long maxUploadSizeBytes;
     private final long maxImageUploadSizeBytes;
     private final Duration protectedUrlLifetime;
+    private final Duration wavVerificationTimeout;
 
     public MediaManagementImpl(
             MediaAssetRepository repository,
@@ -38,7 +39,8 @@ public class MediaManagementImpl implements MediaManagement {
             CurrentUserProvider currentUserProvider,
             @Value("${engolearn.media.max-upload-size-bytes:26214400}") long maxUploadSizeBytes,
             @Value("${engolearn.media.max-image-upload-size-bytes:10000000}") long maxImageUploadSizeBytes,
-            @Value("${engolearn.media.protected-url-lifetime:60s}") Duration protectedUrlLifetime) {
+            @Value("${engolearn.media.protected-url-lifetime:60s}") Duration protectedUrlLifetime,
+            @Value("${engolearn.media.wav-verification-timeout:8s}") Duration wavVerificationTimeout) {
         if (maxUploadSizeBytes <= 0 || maxImageUploadSizeBytes <= 0
                 || maxImageUploadSizeBytes > maxUploadSizeBytes) {
             throw new IllegalArgumentException("Media upload limits must be positive and image limit cannot exceed global limit");
@@ -47,12 +49,17 @@ public class MediaManagementImpl implements MediaManagement {
                 || protectedUrlLifetime.compareTo(Duration.ofMinutes(1)) > 0) {
             throw new IllegalArgumentException("Protected media URL lifetime must be between 1 and 60 seconds");
         }
+        if (wavVerificationTimeout == null || wavVerificationTimeout.compareTo(Duration.ofSeconds(1)) < 0
+                || wavVerificationTimeout.compareTo(Duration.ofSeconds(45)) > 0) {
+            throw new IllegalArgumentException("WAV verification timeout must be between 1 and 45 seconds");
+        }
         this.repository = repository;
         this.storage = storage;
         this.currentUserProvider = currentUserProvider;
         this.maxUploadSizeBytes = maxUploadSizeBytes;
         this.maxImageUploadSizeBytes = maxImageUploadSizeBytes;
         this.protectedUrlLifetime = protectedUrlLifetime;
+        this.wavVerificationTimeout = wavVerificationTimeout;
     }
 
     @Override
@@ -154,7 +161,16 @@ public class MediaManagementImpl implements MediaManagement {
                 || asset.getSizeBytes() > Math.min(maxUploadSizeBytes, maximumBytes)) {
             throw new MediaStorageUnavailableException("Registered WAV has an invalid type or size");
         }
-        MediaWavDeliveryVerifier.verify(delivery(asset).url(), asset.getSizeBytes(), sha256);
+        var delivered = delivery(asset);
+        Duration timeout = wavVerificationTimeout;
+        if (delivered.expiresAt() != null) {
+            var remaining = Duration.between(Instant.now(), delivered.expiresAt());
+            if (remaining.isNegative() || remaining.toMillis() < 1) {
+                throw new MediaStorageUnavailableException("Protected WAV delivery URL has expired");
+            }
+            if (remaining.compareTo(timeout) < 0) timeout = remaining;
+        }
+        MediaWavDeliveryVerifier.verify(delivered.url(), asset.getSizeBytes(), sha256, timeout);
     }
 
     private void validateCommand(UploadMediaCommandDto command) {
