@@ -60,6 +60,7 @@ public class SecurityConfig {
                         .authenticationEntryPoint(authenticationEntryPoint)
                         .accessDeniedHandler(accessDeniedHandler))
                 .authorizeHttpRequests(auth -> auth
+                        .requestMatchers(HttpMethod.GET, "/api/management/dashboard/summary").hasRole("CONTENT_MANAGER")
                         .requestMatchers("/api/v1/admin/users", "/api/v1/admin/users/**").hasRole("ADMIN")
                         .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
                         .requestMatchers("/actuator/**").denyAll()
@@ -157,7 +158,8 @@ public class SecurityConfig {
                 || path.startsWith("/api/v1/grammar/") || path.startsWith("/api/v1/placement/")
                 || path.equals("/api/learning-paths") || path.startsWith("/api/learning-paths/")
                 || path.equals("/api/management/learning-paths") || path.startsWith("/api/management/learning-paths/")
-                || path.equals("/api/management/topics") || path.startsWith("/api/management/topics/")) {
+                || path.equals("/api/management/topics") || path.startsWith("/api/management/topics/")
+                || path.equals("/api/management/dashboard/summary")) {
             problemDetail.setDetail(status == HttpStatus.UNAUTHORIZED ? "Authentication is required" : "Access is denied");
             problemDetail.setInstance(URI.create(path));
             problemDetail.setProperty("code", status == HttpStatus.UNAUTHORIZED ? "AUTHENTICATION_REQUIRED" : "ACCESS_DENIED");

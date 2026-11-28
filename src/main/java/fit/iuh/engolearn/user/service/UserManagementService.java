@@ -2,8 +2,9 @@ package fit.iuh.engolearn.user.service;
 
 import fit.iuh.engolearn.user.dto.request.ManagementRequests.*;
 import fit.iuh.engolearn.user.dto.response.ManagementResponses.*;
+import fit.iuh.engolearn.user.contract.UserManagementSummaryProvider;
 
-public interface UserManagementService {
+public interface UserManagementService extends UserManagementSummaryProvider {
     ListResponse list(ListRequest request);
     DetailResponse detail(String id);
     DetailResponse create(CreateRequest request);

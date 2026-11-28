@@ -29,6 +29,11 @@ import static fit.iuh.engolearn.user.exception.UserManagementFailure.Reason.*;
 @PreAuthorize("hasRole('ADMIN')")
 public class UserManagementServiceImpl implements UserManagementService {
     private final UserManagementRepository users;
+
+    @Override
+    public long managementAccountCount() {
+        return users.countManagementAccounts();
+    }
     private final UserRegistrationService registration;
     private final PasswordEncoder encoder;
     private final CurrentUserProvider caller;

@@ -7,8 +7,9 @@ import fit.iuh.engolearn.grammar.dto.request.GrammarLessonRequest;
 import fit.iuh.engolearn.grammar.dto.response.GrammarManagementTopicResponse;
 import fit.iuh.engolearn.grammar.dto.request.GrammarTopicRequest;
 import fit.iuh.engolearn.grammar.dto.response.GrammarTopicPageResponse;
+import fit.iuh.engolearn.grammar.contract.GrammarManagementSummaryProvider;
 
-public interface GrammarAdminService {
+public interface GrammarAdminService extends GrammarManagementSummaryProvider {
     GrammarTopicPageResponse list(String search, String level, String status, int page, int size);
 
     GrammarManagementTopicResponse getTopic(String topicId);

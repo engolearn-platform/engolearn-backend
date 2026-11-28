@@ -2,6 +2,7 @@ package fit.iuh.engolearn.grammar.service.impl;
 
 import fit.iuh.engolearn.grammar.dto.response.GrammarCheckResponse;
 import fit.iuh.engolearn.grammar.dto.response.GrammarChecklistResponse;
+import fit.iuh.engolearn.grammar.contract.dto.GrammarManagementSummaryDto;
 import fit.iuh.engolearn.grammar.dto.request.CreateGrammarLessonRequest;
 import fit.iuh.engolearn.grammar.dto.response.GrammarManagementLessonResponse;
 import fit.iuh.engolearn.grammar.dto.request.GrammarLessonRequest;
@@ -53,6 +54,13 @@ public class GrammarAdminServiceImpl implements GrammarAdminService {
     private final GrammarAdminRepository repository;
     private final GrammarChecklistValidator validator;
     private final CurrentUserProvider currentUser;
+
+    @Override
+    public GrammarManagementSummaryDto managementSummary() {
+        var counts = repository.counts();
+        return new GrammarManagementSummaryDto(counts.published() + counts.inProgress() + counts.draft() + counts.archived(),
+                counts.published(), counts.draft(), counts.inProgress(), counts.archived());
+    }
 
     @Override
     public GrammarTopicPageResponse list(String search, String level, String status, int page, int size) {
