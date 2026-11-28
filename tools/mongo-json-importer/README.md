@@ -271,3 +271,7 @@ The tool preflights the entire canonical curriculum before the first content wri
 Actions are atomic per existing API transaction, not one transaction across all Topics. If another editor changes data or a request fails, the tool stops; previous completed publications remain. Review and rerun dry-run to continue, never restore an older seed over progress. Already matching state yields0 actions. Equal publication status does not mean identical historical revision numbers/timestamps between machines.
 
 For the exact files and empty-namespace import prerequisites, see [Grammar](samples/grammar/README.md) and [Placement](samples/placement/README.md). Pulling code or starting the app never silently runs setup.
+
+## Micro-skill catalog
+
+`samples/micro-skills.json` contains the ten shared bilingual definitions with fixed string IDs. Import before new Learning Path recommendation/authoring flows; use `-File` for a targeted import and `-DryRun` first. Prefer `skip` to preserve edits. Do not reset reference protection on seed entries. [Schema, commands and handoff](../../docs/technical/microskill/README.md).

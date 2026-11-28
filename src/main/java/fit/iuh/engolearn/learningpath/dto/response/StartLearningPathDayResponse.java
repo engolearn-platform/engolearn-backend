@@ -1,5 +1,6 @@
 package fit.iuh.engolearn.learningpath.dto.response;
 
+import fit.iuh.engolearn.microskill.contract.dto.MicroSkillDto;
 import java.util.Date;
 import java.util.List;
 
@@ -10,8 +11,11 @@ public record StartLearningPathDayResponse(
         String status,
         Date startedAt,
         Date autoCloseAt,
-        List<Question> questions
+        List<Question> questions,
+        List<MicroSkillDto> microSkillCatalog
 ) {
+    public StartLearningPathDayResponse { microSkillCatalog = List.copyOf(microSkillCatalog); }
+
     public record Question(
             int order,
             String questionId,

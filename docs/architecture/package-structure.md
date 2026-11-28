@@ -8,7 +8,7 @@ The structure is required for new code and code being refactored. Existing code 
 
 ```text
 fit.iuh.engolearn
-├── <feature>                 current features: grammar, topic, dictionary, user, learningpath, subscription, quota, payment, placement, assessment, speaking, media
+├── <feature>                 current features: microskill, grammar, topic, dictionary, user, learningpath, subscription, quota, payment, placement, assessment, speaking, media
 │   ├── contract              public capability interfaces
 │   │   ├── dto               public input/result DTOs
 │   │   ├── event             published facts
@@ -100,3 +100,5 @@ Suffixes and data representation are defined in [implementation conventions](imp
 - per-controller `@RestControllerAdvice` handlers live in the controller package or its exact `exceptionhandler` child and return `ProblemDetail` (RFC 7807);
 
 These checks do not prove every documented rule. They do not enforce DTO payload types/suffixes, contract subpackage roles, business interfaces/`impl`, Lombok injection, Mongo isolation, model/VO representation/mappings, scheduler placement, or the full dependency policy. Review those against the relevant document; do not describe a rule as automatically enforced unless a test actually checks it. The exact approved feature-dependency table has its own enforcement caveat in [cross-feature communication](cross-feature-communication.md#approved-feature-dependencies).
+
+The approved feature roots additionally include `microskill`, which follows the same layer rules and owns the [shared micro-skill catalog](../technical/microskill/README.md).

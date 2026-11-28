@@ -57,7 +57,8 @@ A new dependency needs an explicit reason and approval. Keep this table in sync 
 | Feature | May depend on, through contract |
 |---|---|
 | `assessment` | `subscription.contract` (effective entitlements), `quota.contract` (atomic consumption) |
-| `learningpath` | `assessment.contract.AssessmentResults` for owner-scoped READY results and batch source validation; no direct Assessment collection access; `user.contract.UserLevelLookup` for current practice level (user-approved learning-path level fix); `media.contract.MediaManagement` for protected passage audio upload, authorized preview/readiness, creation-time media validation and owner-authorized learner snapshot audio delivery/renewal (owner-approved admin and learner Media flows) |
+| `learningpath` | `assessment.contract.AssessmentResults` for owner-scoped READY results and batch source validation; no direct Assessment collection access; `user.contract.UserLevelLookup` for current practice level (user-approved learning-path level fix); `media.contract.MediaManagement` for protected passage audio upload, authorized preview/readiness, creation-time media validation and owner-authorized learner snapshot audio delivery/renewal (owner-approved admin and learner Media flows); `microskill.contract.MicroSkillLookup` for catalog definitions, bilingual labels and atomic reference retention (owner-approved catalog integration) |
+| `microskill` | None; owns shared definitions and exposes `microskill.contract.MicroSkillLookup` |
 | `dictionary` | None |
 | `topic` | `dictionary`, `user.contract`, `media.contract.MediaManagement` for Topic-owned protected content media |
 | `user` | `subscription.contract.SubscriptionAccountInitialization` for new-account enrollment in the registration Mongo transaction |
@@ -80,3 +81,7 @@ Normal durable routes use local producer state/Outbox and consumer receipt/effec
 When a feature is extracted, its provider may expose a private/internal HTTP adapter and the caller may implement the same capability interface with a REST client. Keep service logic dependent on the interface so the transport can change without rewriting business logic. Do not build internal controllers, REST clients, or shared contract libraries before that extraction is approved.
 
 Placement/Profile integration: User owns conditional level persistence; Placement owns result validation and the joint Mongo transaction. No direct Placement access to User collections, no Topic behavior change. See [integration handoff](../technical/placement/placement-profile-level-integration.md).
+
+## Micro-skill catalog integration
+
+Owner-approved dependency: `learningpath` → `microskill.contract.MicroSkillLookup` for definition lookup, bilingual response metadata and atomic reference retention. `microskill` has no feature dependencies. Assessment integration remains with its owner; no Assessment dependency is added by this change. [Contract](../technical/microskill/README.md).

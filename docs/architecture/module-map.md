@@ -5,6 +5,7 @@
 | `user` | User accounts, authentication and profile capabilities | Public `user.contract`; [auth reference](../runbooks/user-auth.md) |
 | `dictionary` | Vocabulary and senses | Public lookup contract used by Topic |
 | `topic` | Topic authoring, learner progress and quiz/practice | Uses Dictionary and User contracts; [attempts/quiz](../technical/topic/quiz-api-handoff.md), [completion](../technical/topic/completion-api-handoff.md), [retry/reset](../technical/topic/retry-api-handoff.md) |
+| `microskill` | Shared micro-skill definitions, Vietnamese labels and catalog lifecycle | Public `microskill.contract`; [catalog and Learning Path integration](../technical/microskill/README.md) |
 | `learningpath` | Learning-path selection, day practice and lifecycle | [List API](../technical/learningpath/learning-path-list-api.md), [day practice](../technical/learningpath/learning-path-day-practice-api.md), [lifecycle job](../technical/learningpath/learning-path-lifecycle-job.md); reads Assessment results only through `assessment.contract.AssessmentResults` |
 | `subscription` | Plan/policy versions, immutable period benefits, Trial, purchase eligibility/history and product refund eligibility; entitlement source of truth | Imports Payment commands/results; publishes entitlement/policy facts; [technical entry](../technical/subscription/README.md) |
 | `payment` | Checkout, financial/payment/refund state, provider verification and reconciliation | Owns command/result contracts; no Subscription import; [boundary reference](../technical/subscription/module-contract.md#payment-owned-contracts) |
@@ -21,3 +22,5 @@ Speaking remains a future Quota caller. Assessment F01/F02 implements transactio
 The table summarizes responsibility, not a new dependency approval. The authoritative [dependency table](cross-feature-communication.md#approved-feature-dependencies) and [package policy](package-structure.md) govern changes. Do not read another module's collections or use its internal models/repositories. Detailed Payment and Quota documentation remains scoped to their integration with this Subscription pilot; no whole-module migration is implied.
 
 Assessment: [rules and API](../technical/assessment.md). Placement baseline and exact refund-to-analysis delivery remain integration boundaries.
+
+Micro-skill catalog: `microskill` owns bilingual definitions in `micro_skills`; Learning Path uses `microskill.contract`. [Contract](../technical/microskill/README.md). Assessment integration is owned separately and is not implemented in this delivery.

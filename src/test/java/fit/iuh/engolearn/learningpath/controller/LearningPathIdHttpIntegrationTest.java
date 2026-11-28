@@ -30,6 +30,9 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @EnabledIfDockerAvailable
 class LearningPathIdHttpIntegrationTest extends AbstractMongoIntegrationTest {
+    @org.junit.jupiter.api.BeforeEach
+    void seedMicroSkills() { fit.iuh.engolearn.microskill.MicroSkillFixtures.seed(mongoTemplate); }
+
 
     @Autowired
     private JwtTokenService tokens;

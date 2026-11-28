@@ -165,3 +165,7 @@ actions during creation and navigates to `/learning-paths/:pathId?week=1` on suc
   practice/lifecycle/passage regressions also passed. `git diff --check` passed.
 - Frontend integration was not changed or verified here. Its create payload must
   be updated as described above before testing the full confirmation dialog flow.
+
+## Micro-skill catalog compatibility
+
+Recommendation uses the [shared catalog](../microskill/README.md#learning-path-integration). Existing Assessment mapping and canonical request fields remain unchanged. Recommendation, list/search and detail responses add `microSkillCatalog`; new path baseline entries also store `micro_skill_id`. Existing paths need no rewrite.

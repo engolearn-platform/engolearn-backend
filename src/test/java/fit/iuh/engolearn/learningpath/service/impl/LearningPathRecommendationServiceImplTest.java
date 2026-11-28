@@ -29,11 +29,39 @@ class LearningPathRecommendationServiceImplTest {
     private final LearningPathRepository paths = mock(LearningPathRepository.class);
     private final QuestionPoolRepository pool = mock(QuestionPoolRepository.class);
     private final UserLevelLookup levels = mock(UserLevelLookup.class);
-    private final LearningPathRecommendationServiceImpl service = new LearningPathRecommendationServiceImpl(results, paths, pool, levels);
+    private final LearningPathRecommendationServiceImpl service = new LearningPathRecommendationServiceImpl(fit.iuh.engolearn.microskill.MicroSkillFixtures.lookup(), results, paths, pool, levels);
 
     @BeforeEach
     void profileLevel() {
         when(levels.findLevel("learner")).thenReturn(Optional.of(CefrLevel.B1));
+    }
+
+    @Test
+    void catalogSuppliesBilingualMetadataWithoutChangingAssessmentMapping() {
+        when(results.findCompleted("learner", "native-old")).thenReturn(Optional.of(result(20)));
+        when(pool.countActive("Reading for Gist", "B1")).thenReturn(30L);
+        var response = service.recommend("learner", "native-old");
+        assertThat(response.microSkills().getFirst().name()).isEqualTo("Reading for Gist");
+        assertThat(response.microSkillCatalog()).anySatisfy(value -> {
+            assertThat(value.canonicalName()).isEqualTo("Reading for Gist");
+            assertThat(value.displayNameVi()).isEqualTo(fit.iuh.engolearn.microskill.MicroSkillFixtures.lookup()
+                    .findById("MS-R-GIST").orElseThrow().displayNameVi());
+        });
+    }
+
+    @Test
+    void missingCatalogIsAConflictAndInactiveDefinitionsAreNotRecommended() {
+        when(results.findCompleted("learner", "native-old")).thenReturn(Optional.of(result(20)));
+        var catalog = mock(fit.iuh.engolearn.microskill.contract.MicroSkillLookup.class);
+        var target = new LearningPathRecommendationServiceImpl(catalog, results, paths, pool, levels);
+        when(catalog.list()).thenReturn(List.of());
+        assertThatThrownBy(() -> target.recommend("learner", "native-old"))
+                .isInstanceOfSatisfying(ResponseStatusException.class, error -> assertThat(error.getStatusCode().value()).isEqualTo(409));
+        var original = fit.iuh.engolearn.microskill.MicroSkillFixtures.lookup().findById("MS-R-GIST").orElseThrow();
+        when(catalog.list()).thenReturn(List.of(new fit.iuh.engolearn.microskill.contract.dto.MicroSkillDto(
+                original.id(),original.code(),original.canonicalName(),original.displayNameVi(),original.descriptionVi(),original.skill(),false,original.displayOrder())));
+        assertThat(target.recommend("learner", "native-old").state()).isEqualTo(State.NO_ELIGIBLE_SKILLS);
+        verifyNoInteractions(pool);
     }
 
     @Test

@@ -49,7 +49,7 @@ class LearningPathDayPracticeServiceTest {
     private final LearningPathRepository paths = mock(LearningPathRepository.class);
     private final LearningPathPracticeRepository practice = mock(LearningPathPracticeRepository.class);
     private final LearningPathQuestionRepository questions = mock(LearningPathQuestionRepository.class);
-    private final LearningPathDayPracticeService service = new LearningPathDayPracticeService(
+    private final LearningPathDayPracticeService service = new LearningPathDayPracticeService(fit.iuh.engolearn.microskill.MicroSkillFixtures.lookup(),
             paths, practice, questions, new LearningPathAudioServiceImpl(mock(MediaManagement.class)),
             Clock.fixed(NOW, ZoneOffset.UTC), mock(CurrentUserProvider.class));
     private final ObjectId pathId = new ObjectId();

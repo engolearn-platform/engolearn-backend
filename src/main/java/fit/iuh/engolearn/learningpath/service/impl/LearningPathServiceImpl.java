@@ -1,6 +1,7 @@
 
 package fit.iuh.engolearn.learningpath.service.impl;
 
+import fit.iuh.engolearn.microskill.contract.MicroSkillLookup;
 import fit.iuh.engolearn.learningpath.service.LearningPathService;
 import fit.iuh.engolearn.assessment.contract.AssessmentResults;
 
@@ -51,6 +52,7 @@ import org.springframework.web.server.ResponseStatusException;
 @Service
 @RequiredArgsConstructor
 public class LearningPathServiceImpl implements LearningPathService {
+    private final MicroSkillLookup microSkills;
 
     private static final List<String> SEARCHABLE_STATUSES = List.of(
             "NOT_STARTED", "IN_PROGRESS", "COMPLETED"
@@ -70,7 +72,7 @@ public class LearningPathServiceImpl implements LearningPathService {
                 .findByUserIdAndStatusInOrderByCreatedAtDesc(userId, statusesFor(status));
         List<LearningPathListItemResponse> items = toListItems(paths, userId);
 
-        return new LearningPathListResponse(items, countsFor(userId));
+        return new LearningPathListResponse(items, countsFor(userId), this.microSkills.list());
     }
 
     public LearningPathListResponse search(String userId, String keyword) {
@@ -102,7 +104,7 @@ public class LearningPathServiceImpl implements LearningPathService {
                 .toList();
         List<LearningPathListItemResponse> items = toListItems(paths, userId);
 
-        return new LearningPathListResponse(items, countsFor(userId));
+        return new LearningPathListResponse(items, countsFor(userId), this.microSkills.list());
     }
 
     private LearningPathListResponse.SectionCounts countsFor(String userId) {
@@ -256,8 +258,8 @@ public class LearningPathServiceImpl implements LearningPathService {
                 microSkills,
                 toProgressInfo(path.getProgress()),
                 weeks,
-                summary
-        );
+                summary,
+                this.microSkills.list());
     }
 
     private LearningPathDetailResponse.WeekInfo toWeekInfo(

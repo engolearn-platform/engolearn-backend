@@ -81,7 +81,7 @@ class LearningPathDayPracticeIntegrationTest {
                 when(paths.findByIdAndUserId(pathId, userId)).thenAnswer(invocation ->
                         Optional.ofNullable(template.findOne(Query.query(Criteria.where("_id").is(pathId)
                                 .and("user_id").is(userId)), LearningPath.class)));
-                LearningPathDayPracticeService service = new LearningPathDayPracticeService(
+                LearningPathDayPracticeService service = new LearningPathDayPracticeService(fit.iuh.engolearn.microskill.MicroSkillFixtures.lookup(),
                         paths, new LearningPathPracticeRepository(template),
                         new LearningPathQuestionRepository(template), audio(), Clock.fixed(STARTED_AT, ZoneOffset.UTC),
                         mock(CurrentUserProvider.class));
@@ -126,7 +126,7 @@ class LearningPathDayPracticeIntegrationTest {
                 LearningPathPracticeRepository practice = new LearningPathPracticeRepository(template);
                 LearningPathQuestionRepository questions = new LearningPathQuestionRepository(template);
                 Clock clock = Clock.fixed(STARTED_AT, ZoneOffset.UTC);
-                LearningPathDayPracticeService dayService = new LearningPathDayPracticeService(
+                LearningPathDayPracticeService dayService = new LearningPathDayPracticeService(fit.iuh.engolearn.microskill.MicroSkillFixtures.lookup(),
                         paths, practice, questions, audio(), clock, mock(CurrentUserProvider.class));
                 LearningPathAnswerDraftService draftService = new LearningPathAnswerDraftService(
                         paths, practice, questions, clock);
@@ -172,7 +172,7 @@ class LearningPathDayPracticeIntegrationTest {
                 LearningPathPracticeRepository practice = new LearningPathPracticeRepository(template);
                 LearningPathQuestionRepository questions = new LearningPathQuestionRepository(template);
                 Clock clock = Clock.fixed(STARTED_AT, ZoneOffset.UTC);
-                new LearningPathDayPracticeService(paths, practice, questions, audio(), clock,
+                new LearningPathDayPracticeService(fit.iuh.engolearn.microskill.MicroSkillFixtures.lookup(), paths, practice, questions, audio(), clock,
                         mock(CurrentUserProvider.class))
                         .start(pathId.toHexString(), 1, 1, userId);
                 LearningPathAnswerDraftService drafts = new LearningPathAnswerDraftService(paths, practice, questions, clock);
@@ -186,7 +186,7 @@ class LearningPathDayPracticeIntegrationTest {
                 assertThat(submission.wrong()).isEqualTo(1);
                 assertThat(submission.completionRate()).isEqualTo(20.0);
                 assertThat(submission.practiceScore()).isEqualTo(50.0);
-                var review = new LearningPathDayResultService(paths, questions, audio())
+                var review = new LearningPathDayResultService(fit.iuh.engolearn.microskill.MicroSkillFixtures.lookup(), paths, questions, audio())
                         .getResult(pathId.toHexString(), 1, 1, userId);
                 assertThat(review.questions()).hasSize(10);
                 assertThat(review.status()).isEqualTo("SUBMITTED");
@@ -255,7 +255,7 @@ class LearningPathDayPracticeIntegrationTest {
                 LearningPathPracticeRepository practice = new LearningPathPracticeRepository(template);
                 LearningPathQuestionRepository questions = new LearningPathQuestionRepository(template);
                 Clock clock = Clock.fixed(STARTED_AT, ZoneOffset.UTC);
-                new LearningPathDayPracticeService(paths, practice, questions, audio(), clock,
+                new LearningPathDayPracticeService(fit.iuh.engolearn.microskill.MicroSkillFixtures.lookup(), paths, practice, questions, audio(), clock,
                         mock(CurrentUserProvider.class))
                         .start(pathId.toHexString(), 1, 1, userId);
                 LearningPathAnswerDraftService drafts = new LearningPathAnswerDraftService(paths, practice, questions, clock);

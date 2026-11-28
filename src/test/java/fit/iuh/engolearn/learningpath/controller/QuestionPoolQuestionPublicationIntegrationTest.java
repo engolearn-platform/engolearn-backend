@@ -52,6 +52,9 @@ import static org.mockito.Mockito.*;
 
 @EnabledIfDockerAvailable
 class QuestionPoolQuestionPublicationIntegrationTest extends AbstractMongoIntegrationTest {
+    @org.junit.jupiter.api.BeforeEach
+    void seedMicroSkills() { fit.iuh.engolearn.microskill.MicroSkillFixtures.seed(mongoTemplate); }
+
     private static final String BASE = "/api/management/learning-paths/questions";
     private static final List<QuestionReviewCheck> READING_CHECKS = Arrays.stream(QuestionReviewCheck.values())
             .filter(value -> value != QuestionReviewCheck.AUDIO_MATCHES_TRANSCRIPT && value != QuestionReviewCheck.AUDIO_QUALITY_REVIEWED).toList();

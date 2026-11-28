@@ -1,5 +1,6 @@
 package fit.iuh.engolearn.learningpath.service.impl;
 
+import fit.iuh.engolearn.microskill.contract.MicroSkillLookup;
 import fit.iuh.engolearn.learningpath.service.LearningPathCreationService;
 import fit.iuh.engolearn.learningpath.service.LearningPathAudioService;
 import fit.iuh.engolearn.assessment.contract.AssessmentResults;
@@ -48,6 +49,7 @@ import org.springframework.web.server.ResponseStatusException;
 @Service
 @lombok.RequiredArgsConstructor
 public class LearningPathCreationServiceImpl implements LearningPathCreationService {
+    private final MicroSkillLookup microSkills;
 
     private static final ZoneOffset LEARNING_ZONE = ZoneOffset.ofHours(7);
 
@@ -182,6 +184,9 @@ public class LearningPathCreationServiceImpl implements LearningPathCreationServ
             baseline.setSkillCode(result.code());
             LearningPathMicroSkillSnapshot snapshot = new LearningPathMicroSkillSnapshot();
             snapshot.setMicroSkill(skill);
+            snapshot.setMicroSkillId(microSkills.retainActive(skill)
+                    .filter(value -> value.skill().equals(result.skill()))
+                    .orElseThrow(() -> new RecommendationChangedException(recommendations.recommend(test.userId(), test.attemptId()))).id());
             snapshot.setSkill(result.skill());
             snapshot.setBaseline(baseline);
             baselineSkills.add(snapshot);
