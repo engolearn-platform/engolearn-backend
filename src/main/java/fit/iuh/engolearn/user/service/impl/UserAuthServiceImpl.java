@@ -16,7 +16,7 @@ import org.springframework.stereotype.Service;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
-import java.util.Locale;
+import static fit.iuh.engolearn.user.service.impl.AccountCredentials.*;
 import java.util.UUID;
 
 @Service
@@ -47,7 +47,7 @@ public class UserAuthServiceImpl implements fit.iuh.engolearn.user.service.UserA
         String canonical = canonicalEmail(email);
         validatePassword(password);
         User account = User.builder().email(canonical).passwordHash(encoder.encode(password)).role(UserRole.USER).locked(false).build();
-        try { return registrations.register(account); }
+        try { return RegistrationTransactionRetry.run(() -> registrations.register(account)); }
         catch (DuplicateKeyException exception) { throw new AuthFailure("Email already exists", "EMAIL_ALREADY_EXISTS", 409); }
     }
 
@@ -57,12 +57,14 @@ public class UserAuthServiceImpl implements fit.iuh.engolearn.user.service.UserA
             throw new AuthFailure("Invalid credentials", "INVALID_CREDENTIALS", 401);
         User account = repository.findByEmail(canonical).orElseThrow(() -> new AuthFailure("Invalid credentials", "INVALID_CREDENTIALS", 401));
         if (!encoder.matches(password, account.getPasswordHash())) throw new AuthFailure("Invalid credentials", "INVALID_CREDENTIALS", 401);
+        if (account.getDeletedAt() != null) throw new AuthFailure("Invalid credentials", "INVALID_CREDENTIALS", 401);
         if (account.isLocked()) throw new AuthFailure("Account is locked", "ACCOUNT_LOCKED", 403);
         return account;
     }
 
     public User loginById(String accountId) {
         User account = repository.findById(accountId).orElseThrow(() -> new AuthFailure("Refresh token is invalid", "REFRESH_TOKEN_INVALID", 401));
+        if (account.getDeletedAt() != null) throw new AuthFailure("Invalid credentials", "INVALID_CREDENTIALS", 401);
         if (account.isLocked()) throw new AuthFailure("Account is locked", "ACCOUNT_LOCKED", 403);
         return account;
     }
@@ -81,11 +83,13 @@ public class UserAuthServiceImpl implements fit.iuh.engolearn.user.service.UserA
         if (!claims.accountId().equals(session.getAccountId()) || session.isRevoked() || session.getExpiresAt() == null || !session.getExpiresAt().isAfter(now))
             throw invalidRefresh();
         User account = loginById(claims.accountId());
+        if (session.getAccountSessionEpoch() != account.getSessionEpoch()) throw invalidRefresh();
         long remainingSeconds = session.getExpiresAt().getEpochSecond() - now.getEpochSecond();
         if (remainingSeconds <= 0) throw invalidRefresh();
         String next = tokens.create(account.getId(), claims.sessionId(), "refresh", remainingSeconds);
         if (!sessions.rotateIfCurrent(claims.sessionId(), claims.accountId(), tokens.hash(oldToken), tokens.hash(next), now))
             throw invalidRefresh();
+        requireCurrentEpoch(account);
         response.addHeader("Set-Cookie", cookie("ACCESS_TOKEN", tokens.create(account.getId(), claims.sessionId(), "access", accessTokenSeconds), "/api", accessTokenSeconds).toString());
         response.addHeader("Set-Cookie", cookie("REFRESH_TOKEN", next, "/api/v1/auth", remainingSeconds).toString());
     }
@@ -108,10 +112,16 @@ public class UserAuthServiceImpl implements fit.iuh.engolearn.user.service.UserA
         String sid = UUID.randomUUID().toString();
         String refresh = tokens.create(account.getId(), sid, "refresh", SESSION_LIFETIME_SECONDS);
         sessions.save(RefreshSession.builder().sessionId(sid).accountId(account.getId()).tokenHash(tokens.hash(refresh))
-                .expiresAt(Instant.now().plusSeconds(SESSION_LIFETIME_SECONDS)).revoked(false).generation(0).build());
+                .expiresAt(Instant.now().plusSeconds(SESSION_LIFETIME_SECONDS)).revoked(false).generation(0)
+                .accountSessionEpoch(account.getSessionEpoch()).build());
+        requireCurrentEpoch(account);
         response.setHeader("Cache-Control", "no-store");
         response.addHeader("Set-Cookie", cookie("ACCESS_TOKEN", tokens.create(account.getId(), sid, "access", accessTokenSeconds), "/api", accessTokenSeconds).toString());
         response.addHeader("Set-Cookie", cookie("REFRESH_TOKEN", refresh, "/api/v1/auth", SESSION_LIFETIME_SECONDS).toString());
+    }
+
+    private void requireCurrentEpoch(User snapshot) {
+        if (loginById(snapshot.getId()).getSessionEpoch() != snapshot.getSessionEpoch()) throw invalidRefresh();
     }
 
     private ResponseCookie cookie(String name, String value, String path, long age) {
@@ -122,14 +132,4 @@ public class UserAuthServiceImpl implements fit.iuh.engolearn.user.service.UserA
         response.addHeader("Set-Cookie", cookie("REFRESH_TOKEN", "", "/api/v1/auth", 0).toString());
     }
     private static AuthFailure invalidRefresh() { return new AuthFailure("Refresh token is invalid", "REFRESH_TOKEN_INVALID", 401); }
-    private static void validatePassword(String password) {
-        int bytes = password == null ? 0 : password.getBytes(StandardCharsets.UTF_8).length;
-        if (password == null || password.length() < 8 || bytes > 72)
-            throw new AuthFailure("Password must contain at least 8 characters and fit the supported password limit", "VALIDATION_ERROR", 400);
-    }
-    private String canonicalEmail(String email) {
-        if (email == null || email.trim().length() > 254 || !email.trim().matches("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$"))
-            throw new AuthFailure("A valid email is required", "VALIDATION_ERROR", 400);
-        return email.trim().toLowerCase(Locale.ROOT);
-    }
 }

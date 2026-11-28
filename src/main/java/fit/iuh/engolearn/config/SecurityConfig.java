@@ -60,6 +60,7 @@ public class SecurityConfig {
                         .authenticationEntryPoint(authenticationEntryPoint)
                         .accessDeniedHandler(accessDeniedHandler))
                 .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/api/v1/admin/users", "/api/v1/admin/users/**").hasRole("ADMIN")
                         .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
                         .requestMatchers("/actuator/**").denyAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/auth/me").authenticated()
@@ -147,7 +148,8 @@ public class SecurityConfig {
         ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(status,
                 exception.getMessage() == null ? status.getReasonPhrase() : exception.getMessage());
         problemDetail.setType(URI.create("about:blank"));
-        if (path.equals("/api/micro-skills") || path.startsWith("/api/micro-skills/")
+        if (path.equals("/api/v1/admin/users") || path.startsWith("/api/v1/admin/users/")
+                || path.equals("/api/micro-skills") || path.startsWith("/api/micro-skills/")
                 || path.equals("/api/management/micro-skills") || path.startsWith("/api/management/micro-skills/")
                 || path.startsWith("/api/v1/assessment/")
                 || path.startsWith("/api/v1/subscription/") || path.startsWith("/api/v1/quota/")
