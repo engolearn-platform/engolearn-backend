@@ -40,6 +40,9 @@ import static org.mockito.Mockito.*;
 
 @EnabledIfDockerAvailable
 class QuestionPoolQuestionLifecycleIntegrationTest extends AbstractMongoIntegrationTest {
+    @org.junit.jupiter.api.BeforeEach
+    void seedMicroSkills() { fit.iuh.engolearn.microskill.MicroSkillFixtures.seed(mongoTemplate); }
+
     private static final String BASE = "/api/management/learning-paths/questions";
     private static final String MICRO = "Reading for Gist";
     private static final Set<QuestionReviewCheck> CHECKS = EnumSet.complementOf(EnumSet.of(

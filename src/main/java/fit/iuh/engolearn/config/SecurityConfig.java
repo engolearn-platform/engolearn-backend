@@ -81,6 +81,8 @@ public class SecurityConfig {
                                 "/api/management/topics/*/items/*/speaking-profile").hasRole("CONTENT_MANAGER")
                         .requestMatchers(HttpMethod.POST, "/api/management/topics/*/speaking-profile/publish",
                                 "/api/management/topics/*/items/*/speaking-profile/publish").hasRole("CONTENT_MANAGER")
+                        .requestMatchers("/api/management/micro-skills", "/api/management/micro-skills/**").hasRole("CONTENT_MANAGER")
+                        .requestMatchers("/api/micro-skills", "/api/micro-skills/**").hasRole("USER")
                         .requestMatchers("/api/learning-paths", "/api/learning-paths/**").authenticated()
                         .requestMatchers("/api/management/learning-paths", "/api/management/learning-paths/**").hasRole("CONTENT_MANAGER")
                         .requestMatchers(HttpMethod.POST, "/api/management/topics").hasRole("CONTENT_MANAGER")
@@ -101,8 +103,6 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/topics", "/api/v1/topics/**", "/api/v1/topic-items", "/api/v1/topic-items/**",
                                 "/api/v1/topic-attempts", "/api/v1/topic-attempts/**", "/api/v1/topic-retry-sessions", "/api/v1/topic-retry-sessions/**",
                                 "/api/v1/topic-learning", "/api/v1/topic-learning/**").hasAnyRole("USER", "CONTENT_MANAGER", "ADMIN")
-                        .requestMatchers("/api/v1/assessment/admin/micro-skills",
-                                "/api/v1/assessment/admin/micro-skills/**").hasRole("ADMIN")
                         .requestMatchers("/api/v1/assessment/admin/**").hasAnyRole("CONTENT_MANAGER", "ADMIN")
                         .requestMatchers("/api/v1/assessment", "/api/v1/assessment/**").authenticated()
                         .requestMatchers("/api/v1/placement", "/api/v1/placement/**").permitAll()
@@ -148,7 +148,9 @@ public class SecurityConfig {
         ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(status,
                 exception.getMessage() == null ? status.getReasonPhrase() : exception.getMessage());
         problemDetail.setType(URI.create("about:blank"));
-        if (path.startsWith("/api/v1/assessment/")
+        if (path.equals("/api/micro-skills") || path.startsWith("/api/micro-skills/")
+                || path.equals("/api/management/micro-skills") || path.startsWith("/api/management/micro-skills/")
+                || path.startsWith("/api/v1/assessment/")
                 || path.startsWith("/api/v1/subscription/") || path.startsWith("/api/v1/quota/")
                 || path.startsWith("/api/v1/auth/") || path.startsWith("/api/v1/profile/") || path.startsWith("/api/v1/speaking/")
                 || path.startsWith("/api/v1/grammar/") || path.startsWith("/api/v1/placement/")

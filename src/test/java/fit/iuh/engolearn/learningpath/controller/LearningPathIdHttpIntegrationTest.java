@@ -32,6 +32,9 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @EnabledIfDockerAvailable
 class LearningPathIdHttpIntegrationTest extends AbstractMongoIntegrationTest {
+    @org.junit.jupiter.api.BeforeEach
+    void seedMicroSkills() { fit.iuh.engolearn.microskill.MicroSkillFixtures.seed(mongoTemplate); }
+
 
     @Autowired
     private JwtTokenService tokens;
@@ -515,6 +518,56 @@ class LearningPathIdHttpIntegrationTest extends AbstractMongoIntegrationTest {
         }
         assertThat(mongoTemplate.getCollection("learning_paths").find().into(new ArrayList<>())).containsExactlyElementsOf(pathDocuments);
         assertThat(mongoTemplate.getCollection("assessment_attempts").find().into(new ArrayList<>())).containsExactlyElementsOf(sourcesBefore);
+    }
+
+    @Test
+    void searchMatchesCurrentVietnameseLabelsIncludingInactiveSkillsWithoutLeakingOrDuplicatingPaths() {
+        String owner = "vietnamese-search-owner";
+        String foreignOwner = "vietnamese-search-foreign";
+        seedAccount(owner);
+        seedAccount(foreignOwner);
+        Document older = searchablePath(owner, "COMPLETED", "2026-11-01T00:00:00Z",
+                "Listening for Gist", "Reading for Gist");
+        Document newer = searchablePath(owner, "IN_PROGRESS", "2026-11-02T00:00:00Z", "Listening for Gist");
+        Document legacy = searchablePath(owner, "NOT_STARTED", "2026-11-03T00:00:00Z", "Legacy skill");
+        mongoTemplate.getCollection("learning_paths").insertMany(List.of(older, newer, legacy,
+                searchablePath(owner, "CANCELLED", "2026-11-04T00:00:00Z", "Listening for Gist"),
+                searchablePath(foreignOwner, "IN_PROGRESS", "2026-11-05T00:00:00Z", "Listening for Gist")));
+        mongoTemplate.getCollection("micro_skills").updateOne(new Document("_id", "MS-L-GIST"),
+                new Document("$set", new Document("status", "INACTIVE")));
+        String base = "http://localhost:" + port + "/api/learning-paths/search?keyword=";
+        JsonMapper mapper = JsonMapper.builder().build();
+        for (String keyword : List.of("Nghe ý chính", "  NGHE Ý CHÍNH  ", "ý chính", "Listening for Gist")) {
+            JsonNode data = mapper.readTree(authenticatedGet(base
+                    + keyword, owner)).path("data");
+            List<String> ids = new ArrayList<>();
+            data.path("items").forEach(item -> ids.add(item.path("id").asString()));
+            assertThat(ids).as(keyword).containsExactly(newer.getObjectId("_id").toHexString(), older.getObjectId("_id").toHexString());
+            assertThat(data.path("counts").path("active").asInt()).isEqualTo(2);
+            assertThat(data.path("counts").path("completed").asInt()).isEqualTo(1);
+            assertThat(data.path("counts").path("cancelled").asInt()).isEqualTo(1);
+        }
+        mongoTemplate.getCollection("micro_skills").updateOne(new Document("_id", "MS-L-GIST"),
+                new Document("$set", new Document("display_name_vi", "Nhãn nghe mới")));
+        for (String keyword : List.of("Nghe ý chính", ".*")) {
+            assertThat(mapper.readTree(authenticatedGet(base
+                    + keyword, owner))
+                    .path("data").path("items").size()).isZero();
+        }
+        assertThat(mapper.readTree(authenticatedGet(base
+                + "Nhãn nghe mới", owner))
+                .path("data").path("items").size()).isEqualTo(2);
+        assertThat(mapper.readTree(authenticatedGet(base + "Legacy", owner)).path("data").path("items").size()).isEqualTo(1);
+        assertThat(mapper.readTree(authenticatedGet(base + "01/11/2026", owner)).path("data").path("items").size()).isEqualTo(1);
+        assertThat(mongoTemplate.getCollection("learning_paths").find(new Document("_id", older.getObjectId("_id"))).first())
+                .isEqualTo(older);
+    }
+
+    private Document searchablePath(String owner, String status, String createdAt, String... skills) {
+        return new Document("_id", new ObjectId()).append("user_id", owner).append("status", status)
+                .append("created_date", createdAt.substring(0, 10)).append("created_at", Date.from(Instant.parse(createdAt)))
+                .append("micro_skills", java.util.Arrays.stream(skills)
+                        .map(skill -> new Document("micro_skill", skill)).toList());
     }
 
     private Document assessmentProjection(String attemptId, String userId, String status) {

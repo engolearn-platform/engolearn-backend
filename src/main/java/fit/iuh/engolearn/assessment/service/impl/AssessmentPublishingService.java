@@ -1,6 +1,6 @@
 package fit.iuh.engolearn.assessment.service.impl;
 
-import fit.iuh.engolearn.assessment.contract.MicroSkillCatalog;
+import fit.iuh.engolearn.assessment.service.AssessmentMicroSkillCatalog;
 import fit.iuh.engolearn.assessment.dto.response.AssessmentDraftResponse;
 import fit.iuh.engolearn.assessment.dto.response.AssessmentMediaResponse;
 import fit.iuh.engolearn.assessment.dto.response.ManagedAssessmentPaperResponse;
@@ -11,8 +11,8 @@ import fit.iuh.engolearn.assessment.model.AssessmentDraft;
 import fit.iuh.engolearn.assessment.model.AssessmentPaper;
 import fit.iuh.engolearn.assessment.model.AssessmentTimeline;
 import fit.iuh.engolearn.assessment.model.enums.AssessmentUnitKind;
+import fit.iuh.engolearn.assessment.model.vo.AssessmentSkillVo;
 import fit.iuh.engolearn.assessment.repository.AssessmentDraftRepository;
-import fit.iuh.engolearn.assessment.repository.AssessmentRepository;
 import fit.iuh.engolearn.assessment.service.AssessmentMedia;
 import fit.iuh.engolearn.assessment.service.AssessmentPublishing;
 import fit.iuh.engolearn.assessment.service.AssessmentPaperSelection;
@@ -28,12 +28,11 @@ import org.springframework.stereotype.Service;
 @PreAuthorize("hasRole('CONTENT_MANAGER')")
 public class AssessmentPublishingService implements AssessmentPublishing {
     private final AssessmentDraftRepository drafts;
-    private final AssessmentRepository assessments;
     private final AssessmentPaperSelection selection;
     private final AssessmentTransactions transactions;
     private final AssessmentMedia audio;
     private final CurrentUserProvider users;
-    private final MicroSkillCatalog microSkills;
+    private final AssessmentMicroSkillCatalog microSkills;
 
     public AssessmentDraftResponse preview(String series, String revision) {
         var draft = requireDraft(series, revision);
@@ -76,15 +75,16 @@ public class AssessmentPublishingService implements AssessmentPublishing {
             throw ex;
         }
 
-        String seriesGate = "paper:" + series;
-        assessments.ensureGate(seriesGate);
-        // The shared write gate orders catalog retirement and publication before either commits.
-        return transactions.execute(MicroSkillService.PUBLICATION_GATE, () -> {
+        return transactions.execute("paper:" + series, () -> {
             var replay = drafts.publishedFromRevision(series, revision);
             if (replay != null) return response(replay);
-            assessments.lock(seriesGate);
             var draft = requireReviewed(series, revision);
-            validateSkills(draft);
+            // Retaining in the publication transaction orders this write against catalog deactivation.
+            paper.setSkills(draft.getSkills().stream().map(skill -> {
+                var definition = microSkills.retainActive(skill.getCode());
+                return new AssessmentSkillVo(
+                        skill.getCode(), definition.label(), skill.getExample(), skill.getSection());
+            }).toList());
             var latest = drafts.latestPaper(series);
             if (latest != null && latest.getVersion() >= draft.getVersion()) throw stale();
             if (!drafts.delete(draft)) throw stale();
@@ -155,9 +155,10 @@ public class AssessmentPublishingService implements AssessmentPublishing {
 
     private void validateSkills(AssessmentDraft draft) {
         if (draft.getSkills() != null) {
+            var activeCodes = microSkills.list().stream().filter(AssessmentMicroSkillCatalog.Entry::active)
+                    .map(AssessmentMicroSkillCatalog.Entry::code).collect(java.util.stream.Collectors.toSet());
             for (var skill : draft.getSkills()) {
-                if (skill != null && microSkills.find(skill.getCode())
-                        .filter(entry -> !entry.availableForAssessment()).isPresent()) {
+                if (skill != null && !activeCodes.contains(skill.getCode())) {
                     throw new AssessmentException(422, "MICRO_SKILL_UNAVAILABLE",
                             "Kỹ năng " + skill.getCode() + " đã ngừng dùng hoặc chưa có mapping.");
                 }

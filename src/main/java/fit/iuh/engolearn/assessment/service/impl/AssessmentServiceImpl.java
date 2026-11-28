@@ -42,6 +42,7 @@ public class AssessmentServiceImpl implements AssessmentService {
     private final QuotaConsumption consumption;
     private final AssessmentAccess access;
     private final AssessmentMedia media;
+    private final AssessmentMicroSkillCatalog microSkills;
     private final UserLevelPromotion userLevels;
     private final UserAssessmentProgress userAssessmentProgress;
     private final Clock clock;
@@ -281,7 +282,9 @@ public class AssessmentServiceImpl implements AssessmentService {
                 if(grant.isPresent()) {a.getAnalysisGrants().add(grant.get());full=true;}
             }
             store.save(a);
-            return AssessmentMapper.result(a,profile(user),full,development());
+            var labels = microSkills.list().stream().collect(java.util.stream.Collectors.toMap(
+                    AssessmentMicroSkillCatalog.Entry::code, AssessmentMicroSkillCatalog.Entry::label));
+            return AssessmentMapper.result(a, profile(user), full, development(), labels);
         });
     }
     public AssessmentReviewResponse review(String user,String id) {

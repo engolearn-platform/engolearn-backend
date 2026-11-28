@@ -159,3 +159,7 @@ legacy URLs and malformed/missing/duplicate snapshots. The provider double does
 not establish real Cloudinary playback, seeking, URL expiry/recovery or frontend
 integration; these remain manual/follow-up checks. No live business DB, source
 JSON or local media files were migrated or uploaded.
+
+## Micro-skill display metadata
+
+Start/resume and result responses add `microSkillCatalog` for bilingual labels. Snapshot canonical values, questions and scoring are unchanged; see the [catalog contract](../microskill/README.md#learning-path-integration).

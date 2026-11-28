@@ -75,10 +75,7 @@ class AssessmentDraftIntegrationTest {
         for (String name : mongoTemplate.getCollectionNames()) {
             mongoTemplate.getCollection(name).deleteMany(new Document());
         }
-        var skills = Document.parse(Files.readString(Path.of(
-                "tools/mongo-json-importer/samples/micro-skills-pfc-compat.importer.json")));
-        mongoTemplate.getCollection("micro_skills").insertMany(skills.get("collections", Document.class)
-                .getList("micro_skills", Document.class));
+        fit.iuh.engolearn.microskill.MicroSkillFixtures.seed(mongoTemplate);
         storage.reset();
     }
 
@@ -256,7 +253,7 @@ class AssessmentDraftIntegrationTest {
         assertThat(papers.countDocuments(new Document("series", series))).isEqualTo(2);
     }
     private static final String IMPORTS = "/api/v1/assessment/admin/draft-imports";
-    private static final String SKILLS = "/api/v1/assessment/admin/micro-skills";
+    private static final String SKILLS = "/api/management/micro-skills";
 
     private record Part(String name, String filename, String contentType, byte[] bytes) {
         static Part text(String name, String type, String text) {
@@ -290,13 +287,16 @@ class AssessmentDraftIntegrationTest {
         String learner = login("USER");
         assertThat(call("GET", SKILLS, null, null).statusCode()).isEqualTo(401);
         assertThat(call("GET", SKILLS, null, learner).statusCode()).isEqualTo(403);
-        assertThat(call("GET", SKILLS, null, content).statusCode()).isEqualTo(403);
-        assertThat(json.readTree(call("GET", SKILLS, null, admin).body()).path("data").size()).isEqualTo(5);
-        var newSkill = "{\"code\":\"R99\",\"label\":\"Chờ mapping\",\"section\":\"READING\"}";
-        assertThat(call("POST", SKILLS, newSkill, content).statusCode()).isEqualTo(403);
+        assertThat(call("GET", SKILLS, null, content).statusCode()).isEqualTo(200);
+        assertThat(json.readTree(call("GET", SKILLS, null, admin).body()).at("/data/items").size()).isEqualTo(10);
+        var newSkill = """
+                {"code":"R99","canonicalName":"New reading skill","displayNameVi":"Chờ mapping",
+                 "descriptionVi":"Kỹ năng mới","skill":"READING","status":"INACTIVE","displayOrder":20}
+                """;
+        assertThat(call("POST", SKILLS, newSkill, learner).statusCode()).isEqualTo(403);
         var created = call("POST", SKILLS, newSkill, admin);
         assertThat(created.statusCode()).as(created.body()).isEqualTo(201);
-        assertThat(json.readTree(created.body()).at("/data/active").asBoolean()).isFalse();
+        assertThat(json.readTree(created.body()).at("/data/status").asString()).isEqualTo("INACTIVE");
         assertThat(call("POST", SKILLS, newSkill, admin).statusCode()).isEqualTo(409);
 
         var sample = Document.parse(Files.readString(Path.of("tools/mongo-json-importer/samples/assessment-demo.json")));
@@ -304,14 +304,22 @@ class AssessmentDraftIntegrationTest {
         var papers = mongoTemplate.getCollection("assessment_papers");
         papers.insertOne(paper);
         var before = papers.find().first();
-        var renamed = call("PATCH", SKILLS + "/R02", "{\"label\":\"Đọc ý chính mới\"}", admin);
+        var renamed = updateGist(admin, "Đọc ý chính mới", "ACTIVE");
         assertThat(renamed.statusCode()).as(renamed.body()).isEqualTo(200);
-        assertThat(json.readTree(renamed.body()).at("/data/legacyName").asString()).isEqualTo("Reading for Gist");
+        assertThat(json.readTree(renamed.body()).at("/data/canonicalName").asString()).isEqualTo("Reading for Gist");
         var options = json.readTree(call("GET", DRAFTS + "/skill-catalog", null, content).body()).path("data");
         assertThat(options.toString()).contains("Đọc ý chính mới").doesNotContain("R99");
-        assertThat(call("POST", SKILLS + "/R02/retire", "{}", admin).statusCode()).isEqualTo(200);
+        assertThat(updateGist(admin, "Đọc ý chính mới", "INACTIVE").statusCode()).isEqualTo(200);
         assertThat(call("GET", DRAFTS + "/skill-catalog", null, content).body()).doesNotContain("R02");
         assertThat(papers.find().first()).isEqualTo(before);
+    }
+
+    private HttpResponse<String> updateGist(String cookie, String label, String status) throws Exception {
+        String route = SKILLS + "/MS-R-GIST";
+        var current = json.readTree(call("GET", route, null, cookie).body()).path("data");
+        return call("PUT", route, json.writeValueAsString(Map.of(
+                "revision", current.path("revision").asInt(), "displayOrder", current.path("displayOrder").asInt(),
+                "descriptionVi", current.path("descriptionVi").asString(), "displayNameVi", label, "status", status)), cookie);
     }
 
     @Test
@@ -524,7 +532,7 @@ class AssessmentDraftIntegrationTest {
             var stillOld = new java.util.concurrent.atomic.AtomicInteger();
             storage.onNextRange(() -> {
                 try {
-                    retired.set(call("POST", SKILLS + "/R02/retire", "{}", admin).statusCode());
+                    retired.set(updateGist(admin, "Đọc ý chính mới", "INACTIVE").statusCode());
                     stillOld.set(papers.find(new Document("published",true)).first().getInteger("version"));
                 } catch (Exception e) { throw new RuntimeException(e); }
             });
@@ -532,10 +540,10 @@ class AssessmentDraftIntegrationTest {
             assertThat(retired.get()).isEqualTo(200);
             assertThat(stillOld.get()).isEqualTo(1);
             var live = papers.find(new Document("published",true)).first();
-            System.out.printf("AUDIT retire-during-range retire=%d liveAtRetire=%d publish=%d liveAfterPublish=%d includesR02=%s activeR02=%s draftCount=%d%n",
+            System.out.printf("AUDIT retire-during-range retire=%d liveAtRetire=%d publish=%d liveAfterPublish=%d includesR02=%s gistStatus=%s draftCount=%d%n",
                 retired.get(), stillOld.get(), result.statusCode(), live.getInteger("version"),
                 live.getList("skills",Document.class).stream().anyMatch(s -> "R02".equals(s.getString("code"))),
-                mongoTemplate.getCollection("micro_skills").find(new Document("_id","R02")).first().getBoolean("active"),
+                mongoTemplate.getCollection("micro_skills").find(new Document("_id", "MS-R-GIST")).first().getString("status"),
                 mongoTemplate.getCollection("assessment_paper_drafts").countDocuments());
             assertThat(result.statusCode()).isEqualTo(422);
             assertThat(json.readTree(result.body()).path("code").asString()).isEqualTo("MICRO_SKILL_UNAVAILABLE");
@@ -585,7 +593,7 @@ class AssessmentDraftIntegrationTest {
         assertThat(published.statusCode()).as(published.body()).isEqualTo(200);
         assertThat(json.readTree(published.body()).at("/data/version").asInt()).isEqualTo(2);
         var liveAfterPublish = papers.find(new Document("published", true)).first();
-        assertThat(call("POST", SKILLS + "/R02/retire", "{}", admin).statusCode()).isEqualTo(200);
+        assertThat(updateGist(admin, "Đọc ý chính mới", "INACTIVE").statusCode()).isEqualTo(200);
         assertThat(papers.find(new Document("published", true)).first()).isEqualTo(liveAfterPublish);
         var repeated = call("POST", path + "/publish", body, admin);
         assertThat(repeated.statusCode()).as(repeated.body()).isEqualTo(200);

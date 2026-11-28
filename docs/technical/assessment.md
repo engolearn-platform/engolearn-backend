@@ -300,24 +300,32 @@ Admin draft creation may supply expectedSourceId. If supplied, the latest paper 
 
 ### Studio micro-skill and workbook import
 
-The Studio options endpoint reads `micro_skills`. Its stable document ID is the PFC
-code. `label` is the current shared display name, `section` is READING or LISTENING,
-`legacy_name` is the established Learning Path pool key, and `active` controls selection
-in Studio. The confirmed compatibility mapping covers R01/R02/R04/L01/L03. Install
-the missing five records using the scoped catalog import on the test database.
-Use the rollout instructions in the [Mongo importer guide](../../tools/mongo-json-importer/README.md).
+Studio uses the [shared micro-skill catalog](microskill/README.md) through
+`MicroSkillLookup`. Seed that catalog before authoring. The five workbook mappings retain
+their PFC codes and join the catalog by immutable canonical name and section.
 
-ADMIN can list, create, rename and retire via `/api/v1/assessment/admin/micro-skills`.
-New codes without a confirmed mapping are stored pending. Rename and retirement
-leave existing paper/attempt snapshots and legacy pool keys intact. New preview and
-publication reject a retired mapped code. Publication rechecks the catalog under the
-same Mongo write gate as retirement, after Media preflight and before replacing the live
-version. Publication takes the catalog gate before the series gate. Retirement takes
-only the catalog gate. Learning Path recommendations retain their
-legacy `name` field as the creation key and read the new optional `displayName`
-from the shared contract. Broader Learning Path catalog and question-bank migration
-remain with the Learning Path owner. Reconcile the collection contract before
-adding production mappings beyond the five confirmed entries.
+| PFC code | Shared seed ID |
+| --- | --- |
+| R01 | MS-R-SPECIFIC |
+| R02 | MS-R-GIST |
+| R04 | MS-R-INFERENCE |
+| L01 | MS-L-GIST |
+| L03 | MS-L-SPECIFIC |
+
+The Studio skill list only includes active mapped entries. Draft save and import, and
+publication retain the selected definitions in their Mongo transaction. If a mapped skill
+is deactivated during Media preflight, publication retains the existing draft and live paper.
+The shared management API uses revision-checked updates. The Studio management card is
+shown to ADMIN. The shared API retains its CONTENT_MANAGER permission.
+
+Assessment result and review responses display the current Vietnamese catalog label for
+mapped skills, including inactive entries. Older unmapped results use their stored label.
+Scoring, workbook codes, paper/attempt snapshots and Learning Path pool keys are unchanged.
+Learning Path uses the same catalog for eligibility and Vietnamese labels.
+
+For an older local PFC test database with legacy R/L documents inside `micro_skills`,
+follow the [catalog transition](../../tools/mongo-json-importer/README.md#seed-the-shared-micro-skill-catalog)
+before starting this backend.
 
 ADMIN and CONTENT_MANAGER use `/api/v1/assessment/admin/draft-imports`.
 Download the template envelope at GET `/template`. POST `/inspect-audio` validates a

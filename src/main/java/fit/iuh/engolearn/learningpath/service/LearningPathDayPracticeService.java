@@ -1,5 +1,6 @@
 package fit.iuh.engolearn.learningpath.service;
 
+import fit.iuh.engolearn.microskill.contract.MicroSkillLookup;
 import fit.iuh.engolearn.learningpath.model.enums.LearningPathDayStatus;
 import fit.iuh.engolearn.learningpath.model.enums.LearningPathStatus;
 import fit.iuh.engolearn.learningpath.model.enums.LearningPathWeekStatus;
@@ -32,7 +33,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
 @Service
+@lombok.RequiredArgsConstructor
 public class LearningPathDayPracticeService {
+    private final MicroSkillLookup microSkills;
 
     private static final ZoneId ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
     private static final int MAX_START_ATTEMPTS = 3;
@@ -44,18 +47,6 @@ public class LearningPathDayPracticeService {
     private final Clock clock;
     private final CurrentUserProvider currentUser;
 
-    public LearningPathDayPracticeService(LearningPathRepository paths,
-                                          LearningPathPracticeRepository practice,
-                                          LearningPathQuestionRepository questions,
-                                          LearningPathAudioService audio,
-                                          Clock clock, CurrentUserProvider currentUser) {
-        this.paths = paths;
-        this.practice = practice;
-        this.questions = questions;
-        this.audio = audio;
-        this.clock = clock;
-        this.currentUser = currentUser;
-    }
 
     public StartLearningPathDayResponse start(String pathId, int weekNo, int dayNo, String userId) {
         ObjectId pathObjectId = new ObjectId(pathId);
@@ -187,7 +178,7 @@ public class LearningPathDayPracticeService {
                                                   Date startedAt, Date autoCloseAt,
                                                   List<StartLearningPathDayResponse.Question> questions) {
         return new StartLearningPathDayResponse(pathId, weekNo, dayNo,
-                "IN_PROGRESS", startedAt, autoCloseAt, questions);
+                "IN_PROGRESS", startedAt, autoCloseAt, questions, this.microSkills.list());
     }
 
     private StartLearningPathDayResponse.Question question(LearningPathDayItem item,

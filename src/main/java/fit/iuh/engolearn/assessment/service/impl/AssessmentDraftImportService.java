@@ -1,6 +1,6 @@
 package fit.iuh.engolearn.assessment.service.impl;
 
-import fit.iuh.engolearn.assessment.contract.MicroSkillCatalog;
+import fit.iuh.engolearn.assessment.service.AssessmentMicroSkillCatalog;
 import fit.iuh.engolearn.assessment.dto.request.AssessmentImportAudio;
 import fit.iuh.engolearn.assessment.dto.response.AssessmentDraftResponse;
 import fit.iuh.engolearn.assessment.dto.response.AssessmentImportPreview;
@@ -10,6 +10,7 @@ import fit.iuh.engolearn.assessment.model.AssessmentAudioAsset;
 import fit.iuh.engolearn.assessment.model.AssessmentDraft;
 import fit.iuh.engolearn.assessment.model.AssessmentDraftImport;
 import fit.iuh.engolearn.assessment.model.AssessmentPaper;
+import fit.iuh.engolearn.assessment.model.vo.AssessmentSkillVo;
 import fit.iuh.engolearn.assessment.repository.AssessmentDraftRepository;
 import fit.iuh.engolearn.assessment.service.AssessmentCloudAudio;
 import fit.iuh.engolearn.assessment.service.AssessmentPaperSelection;
@@ -40,7 +41,7 @@ import static fit.iuh.engolearn.assessment.utils.AssessmentWorkbook.invalid;
 @PreAuthorize("hasRole('CONTENT_MANAGER')")
 public class AssessmentDraftImportService {
     private final AssessmentDraftRepository drafts;
-    private final MicroSkillCatalog skills;
+    private final AssessmentMicroSkillCatalog skills;
     private final AssessmentPaperSelection selection;
     private final AssessmentCloudAudio audio;
     private final AssessmentTransactions transactions;
@@ -96,6 +97,10 @@ public class AssessmentDraftImportService {
             draft.setVersion(latest == null ? 1 : latest.getVersion() + 1);
             draft.setDemonstration(latest != null && latest.isDemonstration());
             draft.setRevision(UUID.randomUUID().toString());
+            draft.setSkills(draft.getSkills().stream().map(skill -> {
+                var definitionEntry = skills.retainActive(skill.getCode());
+                return new AssessmentSkillVo(skill.getCode(), definitionEntry.label(), skill.getExample(), skill.getSection());
+            }).toList());
             drafts.insert(draft);
             var sound = definition.soundCheckFile() == null ? null
                     : definition.manifest().get(definition.soundCheckFile().toLowerCase(Locale.ROOT)).sha256();

@@ -29,13 +29,40 @@ class LearningPathRecommendationServiceImplTest {
     private final LearningPathRepository paths = mock(LearningPathRepository.class);
     private final QuestionPoolRepository pool = mock(QuestionPoolRepository.class);
     private final UserLevelLookup levels = mock(UserLevelLookup.class);
-    private final fit.iuh.engolearn.assessment.contract.MicroSkillCatalog catalog =
-            mock(fit.iuh.engolearn.assessment.contract.MicroSkillCatalog.class);
-    private final LearningPathRecommendationServiceImpl service = new LearningPathRecommendationServiceImpl(results, paths, pool, levels, catalog);
+    private final LearningPathRecommendationServiceImpl service = new LearningPathRecommendationServiceImpl(fit.iuh.engolearn.microskill.MicroSkillFixtures.lookup(), results, paths, pool, levels);
 
     @BeforeEach
     void profileLevel() {
         when(levels.findLevel("learner")).thenReturn(Optional.of(CefrLevel.B1));
+    }
+
+    @Test
+    void catalogSuppliesBilingualMetadataWithoutChangingAssessmentMapping() {
+        when(results.findCompleted("learner", "native-old")).thenReturn(Optional.of(result(20)));
+        when(pool.countActive("Reading for Gist", "B1")).thenReturn(30L);
+        var response = service.recommend("learner", "native-old");
+        assertThat(response.microSkills().getFirst().name()).isEqualTo("Reading for Gist");
+        assertThat(response.microSkills().getFirst().displayName()).isEqualTo("Đọc tìm ý chính");
+        assertThat(response.microSkillCatalog()).anySatisfy(value -> {
+            assertThat(value.canonicalName()).isEqualTo("Reading for Gist");
+            assertThat(value.displayNameVi()).isEqualTo(fit.iuh.engolearn.microskill.MicroSkillFixtures.lookup()
+                    .findById("MS-R-GIST").orElseThrow().displayNameVi());
+        });
+    }
+
+    @Test
+    void missingCatalogIsAConflictAndInactiveDefinitionsAreNotRecommended() {
+        when(results.findCompleted("learner", "native-old")).thenReturn(Optional.of(result(20)));
+        var catalog = mock(fit.iuh.engolearn.microskill.contract.MicroSkillLookup.class);
+        var target = new LearningPathRecommendationServiceImpl(catalog, results, paths, pool, levels);
+        when(catalog.list()).thenReturn(List.of());
+        assertThatThrownBy(() -> target.recommend("learner", "native-old"))
+                .isInstanceOfSatisfying(ResponseStatusException.class, error -> assertThat(error.getStatusCode().value()).isEqualTo(409));
+        var original = fit.iuh.engolearn.microskill.MicroSkillFixtures.lookup().findById("MS-R-GIST").orElseThrow();
+        when(catalog.list()).thenReturn(List.of(new fit.iuh.engolearn.microskill.contract.dto.MicroSkillDto(
+                original.id(),original.code(),original.canonicalName(),original.displayNameVi(),original.descriptionVi(),original.skill(),false,original.displayOrder())));
+        assertThat(target.recommend("learner", "native-old").state()).isEqualTo(State.NO_ELIGIBLE_SKILLS);
+        verifyNoInteractions(pool);
     }
 
     @Test
@@ -52,24 +79,24 @@ class LearningPathRecommendationServiceImplTest {
     }
 
     @Test
-    void displaysTheSharedCatalogLabelWhileKeepingTheLegacyQuestionPoolKey() {
-        when(results.findCompleted("learner", "native-old")).thenReturn(Optional.of(result(20)));
-        when(pool.countActive("Reading for Gist", "B1")).thenReturn(30L);
-        when(catalog.find("R02")).thenReturn(Optional.of(
-                new fit.iuh.engolearn.assessment.contract.MicroSkillCatalog.Entry(
-                        "R02", "Đọc ý chính mới", "READING", true, "Reading for Gist")));
-        var recommendation = service.recommendForAssessment("learner", "native-old");
-        var skill = recommendation.microSkills().getFirst();
-        assertThat(skill.name()).isEqualTo("Reading for Gist");
-        assertThat(skill.displayName()).isEqualTo("Đọc ý chính mới");
-        verify(pool).countActive("Reading for Gist", "B1");
-    }
-
-    @Test
     void fiftyPercentIsNotWeakAndDoesNotRequirePoolQuestions() {
         when(results.findCompleted("learner", "native-old")).thenReturn(Optional.of(result(50)));
         assertThat(service.recommend("learner", "native-old").state()).isEqualTo(State.NO_WEAK_SKILLS);
         verifyNoInteractions(pool);
+    }
+
+    @Test
+    void excludesOccupiedSkillsAndSkillsWithOnlyTwentyNineQuestions() {
+        when(results.findCompleted("learner", "native-old")).thenReturn(Optional.of(result(20)));
+        when(pool.countActive("Reading for Gist", "B1")).thenReturn(29L);
+        assertThat(service.recommend("learner", "native-old").state()).isEqualTo(State.NO_ELIGIBLE_SKILLS);
+        var active = new LearningPath();
+        var skill = new LearningPathMicroSkillSnapshot();
+        skill.setMicroSkill("Reading for Gist");
+        active.setMicroSkills(List.of(skill));
+        when(paths.findByUserIdAndActiveTrue("learner")).thenReturn(List.of(active));
+        when(pool.countActive("Reading for Gist", "B1")).thenReturn(30L);
+        assertThat(service.recommend("learner", "native-old").state()).isEqualTo(State.NO_ELIGIBLE_SKILLS);
     }
 
     @Test
@@ -107,7 +134,7 @@ class LearningPathRecommendationServiceImplTest {
         var recommendation = service.recommend("learner", "native-old");
         assertThat(recommendation.state()).isEqualTo(State.NO_ELIGIBLE_SKILLS);
         assertThat(recommendation.message()).contains("đã có trong lộ trình đang học",
-                "chưa đủ câu hỏi luyện tập ở trình độ B1");
+                "Chưa đủ câu hỏi luyện tập ở trình độ B1");
         verify(pool, never()).countActive("Reading for Gist", "B1");
     }
 

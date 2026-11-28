@@ -1,6 +1,6 @@
 package fit.iuh.engolearn.assessment.utils;
 
-import fit.iuh.engolearn.assessment.contract.MicroSkillCatalog;
+import fit.iuh.engolearn.assessment.service.AssessmentMicroSkillCatalog;
 import fit.iuh.engolearn.assessment.dto.request.AssessmentImportAudio;
 import fit.iuh.engolearn.assessment.dto.request.DraftContentRequest;
 import fit.iuh.engolearn.assessment.model.AssessmentTimeline;
@@ -24,7 +24,7 @@ public record AssessmentImportDefinition(String series, String name, DraftConten
     public static boolean validFileName(String name) { return name != null && name.matches(FILE); }
 
     public static AssessmentImportDefinition read(byte[] workbook, List<AssessmentImportAudio> files,
-                                                 List<MicroSkillCatalog.Entry> catalog) {
+                                                 List<AssessmentMicroSkillCatalog.Entry> catalog) {
         var sheets = AssessmentWorkbook.read(workbook, List.of("De", "Phan", "Cau"));
         var metadata = data(sheets, "De", List.of("MaDe", "TenDe", "AmThuWav"), 1).getFirst();
         String metaAt = at("De", metadata);
@@ -36,8 +36,8 @@ public record AssessmentImportDefinition(String series, String name, DraftConten
         var units = data(sheets, "Phan", List.of("Phan", "Loai", "DoanDoc", "TepWav"), 26);
         var rows = data(sheets, "Cau", List.of("Cau", "Phan", "Muc", "MaKyNang", "NoiDung",
                 "A", "B", "C", "D", "DapAn", "GiaiThich", "Transcript"), 50);
-        var definitions = new HashMap<String, MicroSkillCatalog.Entry>();
-        catalog.stream().filter(MicroSkillCatalog.Entry::availableForAssessment)
+        var definitions = new HashMap<String, AssessmentMicroSkillCatalog.Entry>();
+        catalog.stream().filter(AssessmentMicroSkillCatalog.Entry::active)
                 .forEach(entry -> definitions.put(entry.code(), entry));
         Map<String, DraftContentRequest.Skill> skills = new LinkedHashMap<>();
         List<DraftContentRequest.Unit> content = new ArrayList<>();

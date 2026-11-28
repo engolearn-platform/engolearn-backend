@@ -35,7 +35,7 @@ class LearningPathDayResultServiceTest {
     private final String userId = "pfc-demo-learner-v2";
     private final LearningPathRepository paths = mock(LearningPathRepository.class);
     private final LearningPathQuestionRepository questions = mock(LearningPathQuestionRepository.class);
-    private final LearningPathDayResultService service = new LearningPathDayResultService(paths, questions,
+    private final LearningPathDayResultService service = new LearningPathDayResultService(fit.iuh.engolearn.microskill.MicroSkillFixtures.lookup(), paths, questions,
             new LearningPathAudioServiceImpl(mock(MediaManagement.class)));
 
     @Test

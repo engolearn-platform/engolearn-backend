@@ -63,7 +63,12 @@ public final class AssessmentMapper {
                 scored?a.getPaper().getVersion():null,scored?a.getCorrectCount()*2:null,scored?a.getLevel():null);
     }
     public static AssessmentResultResponse result(AssessmentAttempt a,UserAssessmentProgressDto p,boolean full,boolean dev) {
-        List<AssessmentSkillResponse> skills=a.getSkillResults().stream().limit(full?5:2).map(s->new AssessmentSkillResponse(s.getCode(),s.getName(),s.getExample(),
+        return result(a, p, full, dev, Map.of());
+    }
+    public static AssessmentResultResponse result(AssessmentAttempt a, UserAssessmentProgressDto p,
+                                                  boolean full, boolean dev, Map<String, String> labels) {
+        List<AssessmentSkillResponse> skills=a.getSkillResults().stream().limit(full?5:2).map(s->new AssessmentSkillResponse(
+                s.getCode(),s.getCode() == null ? s.getName() : labels.getOrDefault(s.getCode(), s.getName()),s.getExample(),
                 s.getSection().name(),s.getCorrect(),s.getTotal(),s.getPercentage(),s.getBand().name())).toList();
         return new AssessmentResultResponse(a.getId(),a.getStatus().name(),a.getSubmittedAt(),a.getPaper().getSeries(),a.getPaper().getVersion(),a.getCorrectCount(),
                 a.getCorrectCount()==null?null:a.getCorrectCount()*2,a.getReadingCorrect(),a.getListeningCorrect(),a.getLevel(),

@@ -1,5 +1,6 @@
 package fit.iuh.engolearn.learningpath.dto.response;
 
+import fit.iuh.engolearn.microskill.contract.dto.MicroSkillDto;
 import fit.iuh.engolearn.learningpath.model.enums.QuestionPoolContentStatus;
 import fit.iuh.engolearn.learningpath.model.enums.QuestionPoolSkill;
 import fit.iuh.engolearn.shared.enums.CefrLevel;
@@ -11,8 +12,11 @@ public record QuestionPoolQuestionDetailResponse(
         String passageId, String prompt, List<QuestionPoolQuestionOptionResponse> options,
         String correctOptionId, String explanation, QuestionPoolContentStatus status, Integer revision,
         String createdBy, String updatedBy, Instant createdAt, Instant updatedAt,
-        QuestionPoolPassageDetailResponse passage, QuestionPoolQuestionPublicationReviewResponse publicationReview) {
+        QuestionPoolPassageDetailResponse passage, QuestionPoolQuestionPublicationReviewResponse publicationReview,
+        List<MicroSkillDto> microSkillCatalog
+) {
     public QuestionPoolQuestionDetailResponse {
+        microSkillCatalog = List.copyOf(microSkillCatalog);
         options = options == null ? null : java.util.Collections.unmodifiableList(new java.util.ArrayList<>(options));
     }
 }

@@ -169,14 +169,24 @@ would duplicate the paper ID during multi-file preflight. No `attempts` or `micr
 projection is included. Snapshot/path IDs remain ObjectIds; owner IDs are strings. The 210
 orphaned local question snapshots are not part of the shared dataset.
 
-### Seed the confirmed PFC skill mappings
+### Seed the shared micro-skill catalog
 
-In a disposable project database, use the existing importer with
-`MONGO_IMPORT_CONFLICT_POLICY=skip` and `MONGO_IMPORT_OBJECT_ID_FIELDS=none`.
-Preflight and apply `samples/micro-skills-pfc-compat.importer.json`. It seeds five
-string IDs in `micro_skills` and preserves any existing rename or retirement.
-Review the final catalog with the Learning Path owner before enabling additional
-mappings in a shared environment.
+Use `samples/micro-skills.json` with `MONGO_IMPORT_CONFLICT_POLICY=skip`. Run the
+importer's dry run for that file, then import it before authoring PFC content or
+creating a Learning Path. Fresh databases only need this import.
+
+If a local PFC test database already contains legacy documents keyed by R01/R02/R04/L01/L03
+or pending R/L codes, the shared catalog's unique indexes require moving the legacy
+documents before starting the backend. Stop the old backend, use a mongosh connection
+to that exact test database on its replica set, and set `PFC_CATALOG_DATABASE` to its
+name. Run `mongosh --file tools/assessment/archive-legacy-micro-skills.mongosh.js`
+with your usual connection arguments and `PFC_CATALOG_MODE=plan` first. Set the mode
+to `apply` for the same command after checking the reported IDs. The Mongo transaction
+copies those entries to `pfc_legacy_micro_skills` and removes them from the live
+catalog together. Reruns act only on remaining legacy rows. Existing shared rows,
+papers, drafts, attempts and audio references are preserved. Review any archived label,
+status or pending code before manually applying it to the shared catalog by agreement
+with the Learning Path owner.
 
 ### Import and initialize
 
@@ -280,3 +290,7 @@ The tool preflights the entire canonical curriculum before the first content wri
 Actions are atomic per existing API transaction, not one transaction across all Topics. If another editor changes data or a request fails, the tool stops; previous completed publications remain. Review and rerun dry-run to continue, never restore an older seed over progress. Already matching state yields0 actions. Equal publication status does not mean identical historical revision numbers/timestamps between machines.
 
 For the exact files and empty-namespace import prerequisites, see [Grammar](samples/grammar/README.md) and [Placement](samples/placement/README.md). Pulling code or starting the app never silently runs setup.
+
+## Micro-skill catalog
+
+`samples/micro-skills.json` contains the ten shared bilingual definitions with fixed string IDs. Import before new Learning Path recommendation/authoring flows; use `-File` for a targeted import and `-DryRun` first. Prefer `skip` to preserve edits. Do not reset reference protection on seed entries. [Schema, commands and handoff](../../docs/technical/microskill/README.md).

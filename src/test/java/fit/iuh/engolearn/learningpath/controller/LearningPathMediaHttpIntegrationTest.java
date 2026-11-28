@@ -52,6 +52,9 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 @EnabledIfDockerAvailable
 @Import(LearningPathMediaHttpIntegrationTest.StorageConfig.class)
 class LearningPathMediaHttpIntegrationTest extends AbstractMongoIntegrationTest {
+    @org.junit.jupiter.api.BeforeEach
+    void seedMicroSkills() { fit.iuh.engolearn.microskill.MicroSkillFixtures.seed(mongoTemplate); }
+
     private static final String OWNER = "media-learner";
     private static final String MEDIA_ID = "b986d5cc-331b-465e-8da0-79140c89c08e";
     private static final String PASSAGE_ID = "media-passage";

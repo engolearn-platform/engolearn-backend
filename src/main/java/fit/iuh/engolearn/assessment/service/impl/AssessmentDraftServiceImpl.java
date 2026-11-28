@@ -1,7 +1,9 @@
 package fit.iuh.engolearn.assessment.service.impl;
 
-import fit.iuh.engolearn.assessment.contract.MicroSkillCatalog;
+import fit.iuh.engolearn.assessment.contract.AssessmentSkillCatalog;
+import fit.iuh.engolearn.assessment.service.AssessmentMicroSkillCatalog;
 import fit.iuh.engolearn.assessment.model.enums.AssessmentSection;
+import fit.iuh.engolearn.assessment.model.vo.AssessmentSkillVo;
 import fit.iuh.engolearn.assessment.dto.request.*;
 import fit.iuh.engolearn.assessment.dto.response.*;
 import fit.iuh.engolearn.assessment.exception.AssessmentException;
@@ -23,7 +25,7 @@ import lombok.RequiredArgsConstructor;
 @PreAuthorize("hasRole('CONTENT_MANAGER')")
 public class AssessmentDraftServiceImpl implements AssessmentDraftService {
     private final AssessmentDraftRepository drafts;
-    private final MicroSkillCatalog microSkills;
+    private final AssessmentMicroSkillCatalog microSkills;
     private final AssessmentCloudAudio audio;
     private final AssessmentTransactions transactions;
 
@@ -33,7 +35,7 @@ public class AssessmentDraftServiceImpl implements AssessmentDraftService {
         return draft;
     }
     public List<AssessmentSkillOptionResponse> skillCatalog() {
-        return microSkills.list().stream().filter(MicroSkillCatalog.Entry::availableForAssessment)
+        return microSkills.list().stream().filter(AssessmentMicroSkillCatalog.Entry::active)
                 .map(skill -> new AssessmentSkillOptionResponse(skill.code(), skill.label(), skill.section())).toList();
     }
 
@@ -97,13 +99,13 @@ public class AssessmentDraftServiceImpl implements AssessmentDraftService {
             }
         }
         var definitions = microSkills.list().stream().collect(java.util.stream.Collectors.toMap(
-                MicroSkillCatalog.Entry::code, definition -> definition));
+                AssessmentMicroSkillCatalog.Entry::code, definition -> definition));
         var skills = input.skills().stream().map(skill -> {
             if (skill.code() == null || skill.code().isBlank()) return skill;
             var entry = definitions.get(skill.code());
             // Manual drafts can be incomplete. Publication still validates the full matrix.
-            if (entry == null) return skill;
-            if (!entry.availableForAssessment()) {
+            if (entry == null && AssessmentSkillCatalog.find(skill.code()).isEmpty()) return skill;
+            if (entry == null || !entry.active()) {
                 throw new AssessmentException(422, "MICRO_SKILL_UNAVAILABLE",
                         "Kỹ năng " + skill.code() + " chưa có mapping hoạt động hoặc đã ngừng sử dụng.");
             }
@@ -113,8 +115,15 @@ public class AssessmentDraftServiceImpl implements AssessmentDraftService {
         var content = new DraftContentRequest(input.revision(), input.name(), skills, input.units());
         AssessmentDraftMapper.applyContent(draft, content, source, uploaded);
         draft.setRevision(UUID.randomUUID().toString());
-        if (!drafts.replace(input.revision(), draft)) throw stale();
-        return AssessmentDraftMapper.response(draft);
+        return transactions.execute("paper:" + series, () -> {
+            draft.setSkills(draft.getSkills().stream().map(skill -> {
+                if (AssessmentSkillCatalog.find(skill.getCode()).isEmpty()) return skill;
+                var definition = microSkills.retainActive(skill.getCode());
+                return new AssessmentSkillVo(skill.getCode(), definition.label(), skill.getExample(), skill.getSection());
+            }).toList());
+            if (!drafts.replace(input.revision(), draft)) throw stale();
+            return AssessmentDraftMapper.response(draft);
+        });
     }
 
     private AssessmentException stale() {

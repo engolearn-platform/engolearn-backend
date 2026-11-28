@@ -1,8 +1,8 @@
 package fit.iuh.engolearn.learningpath.service.impl;
 
+import fit.iuh.engolearn.microskill.contract.MicroSkillLookup;
 import fit.iuh.engolearn.learningpath.service.LearningPathRecommendationService;
 import fit.iuh.engolearn.assessment.contract.AssessmentResults;
-import fit.iuh.engolearn.assessment.contract.MicroSkillCatalog;
 import fit.iuh.engolearn.user.contract.UserLevelLookup;
 import fit.iuh.engolearn.learningpath.mapper.LearningPathAssessmentMapper;
 
@@ -25,12 +25,12 @@ import org.springframework.web.server.ResponseStatusException;
 @Service
 @lombok.RequiredArgsConstructor
 public class LearningPathRecommendationServiceImpl implements LearningPathRecommendationService {
+    private final MicroSkillLookup microSkills;
 
     private final AssessmentResults assessmentResults;
     private final LearningPathRepository paths;
     private final QuestionPoolRepository questionPool;
     private final UserLevelLookup userLevels;
-    private final MicroSkillCatalog microSkills;
 
     public LearningPathRecommendationResponse recommendForAssessment(String userId, String assessmentAttemptId) {
         return recommend(userId, assessmentAttemptId);
@@ -87,29 +87,29 @@ public class LearningPathRecommendationServiceImpl implements LearningPathRecomm
                         .forEach(occupied::add);
             }
         }
-        var skillsOutsideActivePaths = weak.stream()
-                .filter(result -> !occupied.contains(result.microSkill()))
-                .toList();
-        if (skillsOutsideActivePaths.isEmpty()) {
-            return response(State.NO_ELIGIBLE_SKILLS,
-                    "Các kỹ năng cần luyện đã có trong lộ trình đang học.",
-                    null, level, List.of());
+        var catalog = this.microSkills.list().stream().collect(java.util.stream.Collectors.toMap(
+                fit.iuh.engolearn.microskill.contract.dto.MicroSkillDto::canonicalName, value -> value));
+        for (var result : weak) {
+            var definition = catalog.get(result.microSkill());
+            if (definition == null) throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Micro-skill catalog is incomplete; import the catalog dataset");
+            if (!definition.skill().equals(result.skill())) throw new ResponseStatusException(HttpStatus.CONFLICT, "Micro-skill catalog classification mismatch");
         }
-
-        List<MicroSkill> eligible = skillsOutsideActivePaths.stream()
+        var active = weak.stream().filter(result -> catalog.get(result.microSkill()).active()).toList();
+        var outsideActivePaths = active.stream().filter(result -> !occupied.contains(result.microSkill())).toList();
+        List<MicroSkill> eligible = outsideActivePaths.stream()
                 .filter(result -> questionPool.countActive(result.microSkill(), level) >= 30)
                 .map(result -> new MicroSkill(result.microSkill(), result.skill(), result.correct(),
-                        result.total(), result.percent(), result.band(),
-                        microSkills.find(result.code())
-                                .filter(entry -> result.microSkill().equals(entry.legacyName()))
-                                .map(MicroSkillCatalog.Entry::label).orElse(null)))
+                        result.total(), result.percent(), result.band(), catalog.get(result.microSkill()).displayNameVi()))
                 .toList();
         if (eligible.isEmpty()) {
-            String message = skillsOutsideActivePaths.size() == weak.size()
-                    ? "Chưa đủ câu hỏi luyện tập ở trình độ " + level + " cho các kỹ năng cần luyện."
-                    : "Một số kỹ năng cần luyện đã có trong lộ trình đang học. "
-                            + "Các kỹ năng còn lại chưa đủ câu hỏi luyện tập ở trình độ " + level + ".";
-            return response(State.NO_ELIGIBLE_SKILLS, message, null, level, eligible);
+            var reasons = new java.util.ArrayList<String>();
+            if (active.size() < weak.size()) reasons.add("Một số kỹ năng cần luyện đã ngừng sử dụng.");
+            if (outsideActivePaths.size() < active.size()) reasons.add("Có kỹ năng đã có trong lộ trình đang học.");
+            if (!outsideActivePaths.isEmpty()) {
+                reasons.add("Chưa đủ câu hỏi luyện tập ở trình độ " + level + " cho các kỹ năng còn lại.");
+            }
+            return response(State.NO_ELIGIBLE_SKILLS, String.join(" ", reasons), null, level, eligible);
         }
         return response(State.AVAILABLE, null, null, level, eligible);
     }
@@ -118,6 +118,6 @@ public class LearningPathRecommendationServiceImpl implements LearningPathRecomm
                                                         String existingPathId, String level,
                                                         List<MicroSkill> skills) {
         return new LearningPathRecommendationResponse(state, message, existingPathId,
-                level, 3, skills.size(), 10, skills);
+                level, 3, skills.size(), 10, skills, this.microSkills.list());
     }
 }

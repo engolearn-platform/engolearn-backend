@@ -4,7 +4,6 @@ import fit.iuh.engolearn.assessment.controller.AssessmentDraftController;
 import fit.iuh.engolearn.assessment.controller.AssessmentAudioAdminController;
 import fit.iuh.engolearn.assessment.controller.AssessmentPublishingController;
 import fit.iuh.engolearn.assessment.controller.AssessmentDraftImportController;
-import fit.iuh.engolearn.assessment.controller.MicroSkillAdminController;
 
 import fit.iuh.engolearn.assessment.exception.AssessmentException;
 import fit.iuh.engolearn.quota.contract.exception.QuotaUnavailableException;
@@ -25,7 +24,7 @@ import org.springframework.web.multipart.support.MissingServletRequestPartExcept
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 @RestControllerAdvice(assignableTypes={AssessmentController.class, AssessmentDraftController.class, AssessmentAudioAdminController.class, AssessmentPublishingController.class,
-        AssessmentDraftImportController.class, MicroSkillAdminController.class})
+        AssessmentDraftImportController.class})
 public class AssessmentExceptionHandler {
     @ExceptionHandler({AssessmentException.class,UnauthenticatedException.class,QuotaUnavailableException.class,SubscriptionUnavailableException.class,
             MethodArgumentNotValidException.class,HandlerMethodValidationException.class,HttpMessageNotReadableException.class,
