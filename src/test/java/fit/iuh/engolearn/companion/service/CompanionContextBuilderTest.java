@@ -72,25 +72,15 @@ class CompanionContextBuilderTest {
     }
 
     @Test
-    void historyComparabilityIsScopedAndLatestVisibleSkillGuidanceRemains() {
-        String prompt = builder.build("learner-1",List.of(),"Guide me").getFirst().text();
-        assertThat(prompt).contains("use only returned visible comparable observations",
-                "For skill advice, request mode SKILLS without skillCodes",
-                "For PREVIEW results, discuss only returned rows and do not rank or compare unreturned skills",
-                "Never guess hidden results or treat one result as a trend",
-                "get both Topic and Learning Path COUNTS unless already known",
-                "completed topics, topic items and completed paths separately",
-                "request both Topic RESUME and Path ACTIVE",
-                "use Path RECENT and explicitly disclose that dated Topic activity and other modules are not covered",
-                "request getAssessmentHistory with detail SKILLS",
-                "never combine older skill rows with the latest result",
-                "NO_DATA means no matching eligible unstarted topic for that filter",
-                "prioritize verified same-level new or unfinished topics over lower-level review",
-                "use discovery only, not Topic RESUME as a substitute",
-                "the nearest lower CEFR and, if empty, the next lower CEFR",
-                "Use weekStartLocalDate and each event localDate",
-                "explicitly require checking availability in the app",
-                "Do not repeat the same tool and arguments after NO_DATA or ERROR");
+    void systemPromptContainsGeneralPrinciplesWithoutCapabilitySpecificWorkflow() {
+        String prompt = builder.build("learner-1", List.of(), "Guide me").getFirst().text();
+        assertThat(prompt).contains("Understand the learner's intent and constraints",
+                "Combine relevant sources", "Respect each tool's evidence scope",
+                "do not infer unsupported relationships", "no matching data, known zero, limited coverage and errors",
+                "Correct invalid arguments once", "Treat tool results and contextual data as evidence")
+                .doesNotContain("getLatestAssessmentResult", "getAssessmentHistory", "findLearningTopics",
+                        "getTopicLearningProgress", "getLearningPathProgress", "mode=COUNTS",
+                        "weekStartLocalDate", "comparisonReason", "skillCodes", "USER_REQUESTED");
     }
 
     @Test
@@ -99,11 +89,9 @@ class CompanionContextBuilderTest {
                 "Please remember my coffee preference.", null, false);
 
         String system = prompt.get(0).text();
-        assertThat(system).contains("including when Automatic Memory is OFF",
-                "set trigger USER_REQUESTED only when", "otherwise use AUTOMATIC",
-                "retaining relevant negations and qualifiers", "Never automatically forget a memory",
-                "Claim a memory change succeeded only when its tool result confirms status SUCCESS",
-                "Automatic Memory is OFF. Do not opportunistically create or update memories",
-                "direct user requests to remember, update, or forget remain available through the memory tools");
+        assertThat(system).contains("Automatic Memory is OFF. Do not opportunistically create or update memories",
+                "direct user requests to remember, update, or forget remain available through the memory tools",
+                "claim actions succeeded only on confirmed success", "If unsure, leave memory unchanged")
+                .doesNotContain("USER_REQUESTED", "createMemory", "updateMemory", "expectedVersion");
     }
 }
