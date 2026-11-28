@@ -44,7 +44,10 @@ class LearningPathIdHttpIntegrationTest extends AbstractMongoIntegrationTest {
         String owner = "pfc-demo-learner-v2";
         String attemptId = "native-submitted-assessment";
         seedAccount(owner);
-        mongoTemplate.insert(UserProfile.builder().id(owner).cefrLevel(CefrLevel.A1).build());
+        mongoTemplate.getCollection("user_profiles").updateOne(new Document("_id", owner),
+                new Document("$set", new Document("cefr_level", "A1").append("assessment_progress",
+                        new Document("initial_level", "A1").append("current_level", "A1")
+                                .append("highest_level", "A1").append("development_data", false))));
         seedEligibleProjection(owner, attemptId);
         Document input = Document.parse(java.nio.file.Files.readString(java.nio.file.Path.of(
                 "tools/mongo-json-importer/samples/assessment-demo.json")));
@@ -70,8 +73,6 @@ class LearningPathIdHttpIntegrationTest extends AbstractMongoIntegrationTest {
                         .append("unit_started_at", Date.from(Instant.now())).append("started_at", Date.from(Instant.now()))
                         .append("next_due_at", Date.from(Instant.now().plusSeconds(1800))))
                         .append("$unset", new Document("skill_results", "").append("submitted_at", "").append("level", "")));
-        mongoTemplate.getCollection("assessment_profiles").insertOne(new Document("user_id", owner)
-                .append("initial_level", "A2").append("current_level", "A2").append("highest_level", "A2"));
         String base = "http://localhost:" + port;
         String recommendationUrl = base + "/api/learning-paths/recommendation/by-assessment?assessmentAttemptId=" + attemptId;
         assertThatThrownBy(() -> authenticatedGet(recommendationUrl, owner)).isInstanceOf(HttpClientErrorException.NotFound.class);
@@ -84,6 +85,8 @@ class LearningPathIdHttpIntegrationTest extends AbstractMongoIntegrationTest {
                 .extracting(UserProfile::getCefrLevel).isEqualTo(CefrLevel.A2);
         JsonNode recommendation = mapper.readTree(authenticatedGet(recommendationUrl, owner)).path("data");
         assertThat(recommendation.path("state").asString()).isEqualTo("AVAILABLE");
+        assertThat(recommendation.at("/microSkills/0/name").asString()).isEqualTo("Reading for Gist");
+        assertThat(recommendation.at("/microSkills/0/displayName").asString()).isEqualTo("Đọc tìm ý chính");
         String body = "{\"assessmentAttemptId\":\"" + attemptId + "\",\"level\":\"A2\",\"microSkills\":[\"Reading for Gist\"]}";
         JsonNode created = mapper.readTree(authenticatedRequest(base + "/api/learning-paths/by-assessment", HttpMethod.POST, body, owner)).path("data");
         assertThat(created.path("created").asBoolean()).isTrue();
