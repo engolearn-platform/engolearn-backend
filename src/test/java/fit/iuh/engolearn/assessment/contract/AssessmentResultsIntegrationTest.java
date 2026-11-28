@@ -50,6 +50,7 @@ class AssessmentResultsIntegrationTest extends AbstractMongoIntegrationTest {
 
     private Document attempt(String id, String owner, String status, boolean demo, String submittedAt) {
         return new Document("_id", ObjectId.isValid(id) ? new ObjectId(id) : id).append("user_id", owner)
+                .append("request_id", id)
                 .append("status", status).append("level", "B1").append("submitted_at", Date.from(Instant.parse(submittedAt)))
                 .append("paper", new Document("paper_id", "native-paper").append("demonstration", demo))
                 .append("analysis_grants", List.of()).append("skill_results", List.of("R01", "R02", "R04", "L01", "L03").stream()

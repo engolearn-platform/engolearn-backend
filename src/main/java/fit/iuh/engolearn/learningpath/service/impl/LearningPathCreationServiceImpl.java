@@ -1,6 +1,8 @@
 package fit.iuh.engolearn.learningpath.service.impl;
 
+import fit.iuh.engolearn.microskill.contract.MicroSkillLookup;
 import fit.iuh.engolearn.learningpath.service.LearningPathCreationService;
+import fit.iuh.engolearn.learningpath.service.LearningPathAudioService;
 import fit.iuh.engolearn.assessment.contract.AssessmentResults;
 import fit.iuh.engolearn.learningpath.mapper.LearningPathAssessmentMapper;
 import fit.iuh.engolearn.learningpath.service.LearningPathRecommendationService;
@@ -47,6 +49,7 @@ import org.springframework.web.server.ResponseStatusException;
 @Service
 @lombok.RequiredArgsConstructor
 public class LearningPathCreationServiceImpl implements LearningPathCreationService {
+    private final MicroSkillLookup microSkills;
 
     private static final ZoneOffset LEARNING_ZONE = ZoneOffset.ofHours(7);
 
@@ -54,6 +57,7 @@ public class LearningPathCreationServiceImpl implements LearningPathCreationServ
     private final AssessmentResults assessmentResults;
     private final LearningPathRepository paths;
     private final QuestionPoolRepository questionPool;
+    private final LearningPathAudioService audio;
     private final LearningPlanGenerator planGenerator = new LearningPlanGenerator();
 
     public CreateLearningPathResponse createForAssessment(CreateLearningPathByAssessmentRequest request,
@@ -127,6 +131,8 @@ public class LearningPathCreationServiceImpl implements LearningPathCreationServ
                 .filter(id -> id != null)
                 .collect(Collectors.toSet());
         Map<String, Document> passages = questionPool.findPassages(passageIds);
+        // Resolve before any snapshot/path write, without persisting delivery URLs.
+        passages.values().forEach(audio::resolve);
         Date createdAt = Date.from(Instant.now());
         LocalDate createdDate = createdAt.toInstant().atOffset(LEARNING_ZONE).toLocalDate();
         LearningPath path = buildPath(test, current, results, selected, createdAt, createdDate);
@@ -178,6 +184,9 @@ public class LearningPathCreationServiceImpl implements LearningPathCreationServ
             baseline.setSkillCode(result.code());
             LearningPathMicroSkillSnapshot snapshot = new LearningPathMicroSkillSnapshot();
             snapshot.setMicroSkill(skill);
+            snapshot.setMicroSkillId(microSkills.retainActive(skill)
+                    .filter(value -> value.skill().equals(result.skill()))
+                    .orElseThrow(() -> new RecommendationChangedException(recommendations.recommend(test.userId(), test.attemptId()))).id());
             snapshot.setSkill(result.skill());
             snapshot.setBaseline(baseline);
             baselineSkills.add(snapshot);

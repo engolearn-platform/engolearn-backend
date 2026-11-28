@@ -20,6 +20,10 @@ public class QuestionPoolRepository {
 
     private final MongoTemplate mongoTemplate;
 
+    public long countAll() {
+        return mongoTemplate.count(new Query(), "question_pool");
+    }
+
     public QuestionPoolRepository(MongoTemplate mongoTemplate) {
         this.mongoTemplate = mongoTemplate;
     }
@@ -116,9 +120,13 @@ public class QuestionPoolRepository {
                 || !question.getString("level").equals(passage.getString("level")))) {
             throw new IllegalStateException("Question Pool passage is unavailable or mismatched");
         }
+        Object mediaId = passage == null ? null : passage.get("audio_media_id");
+        if (mediaId != null && (!(mediaId instanceof String value) || value.isBlank())) {
+            throw new IllegalStateException("Passage audio media reference is invalid");
+        }
         if ("LISTENING".equals(question.getString("skill"))) {
-            Document audio = passage.get("audio", Document.class);
-            if (audio == null || audio.getString("url") == null
+            Document audio = mediaId == null ? passage.get("audio", Document.class) : null;
+            if ((mediaId == null && (audio == null || audio.getString("url") == null))
                     || passage.getString("transcript") == null) {
                 throw new IllegalStateException("Listening passage is missing audio or transcript");
             }
@@ -126,7 +134,8 @@ public class QuestionPoolRepository {
         Document passageSnapshot = passage == null ? null : new Document("passage_id", passageId)
                 .append("title", passage.getString("title"))
                 .append("text", passage.getString("text"))
-                .append("audio", passage.get("audio"))
+                .append("audio_media_id", mediaId)
+                .append("audio", mediaId == null ? passage.get("audio") : null)
                 .append("transcript", passage.getString("transcript"))
                 .append("revision", passage.get("revision"));
         return new Document("path_id", pathId)

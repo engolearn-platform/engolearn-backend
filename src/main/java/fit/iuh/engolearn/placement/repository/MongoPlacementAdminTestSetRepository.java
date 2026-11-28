@@ -27,6 +27,11 @@ public class MongoPlacementAdminTestSetRepository implements PlacementAdminTestS
     private final MongoTemplate mongo;
 
     @Override
+    public long countAll() {
+        return mongo.count(new Query(), PlacementTestSet.class);
+    }
+
+    @Override
     public Page list(String search, PlacementTestSetStatus status, int page, int size) {
         Query query = new Query();
         if (status != null) query.addCriteria(Criteria.where("status").is(status));

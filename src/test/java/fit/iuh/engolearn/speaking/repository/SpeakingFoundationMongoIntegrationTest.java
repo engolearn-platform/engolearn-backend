@@ -97,6 +97,7 @@ class SpeakingFoundationMongoIntegrationTest extends AbstractMongoIntegrationTes
 
     @Autowired private SpeakingSessions sessions;
     @Autowired private SpeakingRuntime runtime;
+    @Autowired private fit.iuh.engolearn.user.contract.AccountSessionAccess accountSessions;
     @Autowired private SpeakingSessionRepository repository;
     @Autowired private SpeakingOwnerSlotRepository ownerSlots;
     @Autowired private SpeakingTurnRepository turns;
@@ -878,7 +879,7 @@ class SpeakingFoundationMongoIntegrationTest extends AbstractMongoIntegrationTes
         runtime.admit(firstLease, UUID.randomUUID());
 
         var restarted = new fit.iuh.engolearn.speaking.service.impl.SpeakingSessionServiceImpl(
-                repository, ownerSlots, turns, archive, access, quota, media, users, settings, providerProperties, clock);
+                repository, ownerSlots, turns, archive, access, quota, media, users, accountSessions, settings, providerProperties, clock);
         restarted.recover();
         assertCode(() -> restarted.state(firstLease), "CONTROLLER_CHANGED");
         var newLease = restarted.consumeTicket(session, restarted.ticket(session, 1).ticket());
@@ -914,7 +915,7 @@ class SpeakingFoundationMongoIntegrationTest extends AbstractMongoIntegrationTes
     }
 
     private static void authorize(String id, UserRole role) {
-        var user = new AuthenticatedUserPrincipal(id, id + "@example.test", role);
+        var user = new AuthenticatedUserPrincipal(id, id + "@example.test", role, "auth-" + id, 0);
         SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken(user, null, user.getAuthorities()));
     }
 

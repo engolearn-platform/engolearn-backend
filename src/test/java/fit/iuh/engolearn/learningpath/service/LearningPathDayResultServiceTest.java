@@ -11,6 +11,8 @@ import fit.iuh.engolearn.learningpath.model.vo.LearningPathProgress;
 import fit.iuh.engolearn.learningpath.model.vo.LearningPathWeek;
 import fit.iuh.engolearn.learningpath.repository.LearningPathQuestionRepository;
 import fit.iuh.engolearn.learningpath.repository.LearningPathRepository;
+import fit.iuh.engolearn.learningpath.service.impl.LearningPathAudioServiceImpl;
+import fit.iuh.engolearn.media.contract.MediaManagement;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.IntStream;
@@ -33,7 +35,8 @@ class LearningPathDayResultServiceTest {
     private final String userId = "pfc-demo-learner-v2";
     private final LearningPathRepository paths = mock(LearningPathRepository.class);
     private final LearningPathQuestionRepository questions = mock(LearningPathQuestionRepository.class);
-    private final LearningPathDayResultService service = new LearningPathDayResultService(paths, questions);
+    private final LearningPathDayResultService service = new LearningPathDayResultService(fit.iuh.engolearn.microskill.MicroSkillFixtures.lookup(), paths, questions,
+            new LearningPathAudioServiceImpl(mock(MediaManagement.class)));
 
     @Test
     void closedDayWithoutAnswersIncludesAllExplanationsAndNoScore() {

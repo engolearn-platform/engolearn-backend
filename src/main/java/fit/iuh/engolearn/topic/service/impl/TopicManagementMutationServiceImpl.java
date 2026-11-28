@@ -83,7 +83,12 @@ public class TopicManagementMutationServiceImpl implements TopicManagementMutati
 
     private String validatedCover(Topic topic, Object value) {
         String cover = (String) validatedValue("coverUrl", value);
-        if (cover != null && cover.startsWith("topic-media:")
+        boolean managed = cover != null && cover.startsWith("topic-media:");
+        if (topic != null && topic.getLatestPublishedVersion() != null
+                && !java.util.Objects.equals(cover, topic.getCoverUrl()) && !managed) {
+            throw invalid("coverUrl", "A replacement cover must be a managed image owned by this Topic.");
+        }
+        if (managed
                 && !topicMedia.isReference(topic, cover, fit.iuh.engolearn.topic.model.enums.TopicMediaKind.IMAGE)) {
             throw invalid("coverUrl", "Image media reference must belong to this Topic and be an image asset.");
         }

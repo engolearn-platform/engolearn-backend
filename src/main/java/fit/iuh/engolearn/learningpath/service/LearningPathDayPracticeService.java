@@ -1,8 +1,13 @@
 package fit.iuh.engolearn.learningpath.service;
 
+import fit.iuh.engolearn.microskill.contract.MicroSkillLookup;
 import fit.iuh.engolearn.learningpath.model.enums.LearningPathDayStatus;
+import fit.iuh.engolearn.learningpath.model.enums.LearningPathStatus;
 
 import fit.iuh.engolearn.learningpath.dto.response.StartLearningPathDayResponse;
+import fit.iuh.engolearn.learningpath.dto.response.LearningPathAudioResponse;
+import org.springframework.security.access.prepost.PreAuthorize;
+import fit.iuh.engolearn.shared.security.CurrentUserProvider;
 import fit.iuh.engolearn.learningpath.model.LearningPath;
 import fit.iuh.engolearn.learningpath.model.vo.LearningPathDay;
 import fit.iuh.engolearn.learningpath.model.vo.LearningPathDayAvailability;
@@ -28,7 +33,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
 @Service
+@lombok.RequiredArgsConstructor
 public class LearningPathDayPracticeService {
+    private final MicroSkillLookup microSkills;
 
     private static final ZoneId ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
     private static final int MAX_START_ATTEMPTS = 3;
@@ -36,17 +43,10 @@ public class LearningPathDayPracticeService {
     private final LearningPathRepository paths;
     private final LearningPathPracticeRepository practice;
     private final LearningPathQuestionRepository questions;
+    private final LearningPathAudioService audio;
     private final Clock clock;
+    private final CurrentUserProvider currentUser;
 
-    public LearningPathDayPracticeService(LearningPathRepository paths,
-                                          LearningPathPracticeRepository practice,
-                                          LearningPathQuestionRepository questions,
-                                          Clock clock) {
-        this.paths = paths;
-        this.practice = practice;
-        this.questions = questions;
-        this.clock = clock;
-    }
 
     public StartLearningPathDayResponse start(String pathId, int weekNo, int dayNo, String userId) {
         ObjectId pathObjectId = new ObjectId(pathId);
@@ -106,6 +106,42 @@ public class LearningPathDayPracticeService {
                 "Ngày luyện tập vừa thay đổi, vui lòng thử lại");
     }
 
+    @PreAuthorize("isAuthenticated()")
+    public LearningPathAudioResponse getAudio(String pathId, int weekNo, int dayNo, String questionId) {
+        String userId = currentUser.requireCurrentUserId();
+        ObjectId id = new ObjectId(pathId);
+        LearningPath path = paths.findByIdAndUserId(id, userId).orElseThrow(() ->
+                new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy Learning Path"));
+        if (path.getStatus() == LearningPathStatus.CANCELLED) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Learning Path đã bị hủy và không thể mở");
+        }
+        LearningPathWeek week = path.getWeeks().stream().filter(value -> value.getWeekNo() == weekNo).findFirst()
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy tuần luyện tập"));
+        LearningPathDay day = week.getDays().stream().filter(value -> value.getDayNo() == dayNo).findFirst()
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy ngày luyện tập"));
+        if (day.getStatus() == LearningPathDayStatus.IN_PROGRESS) {
+            ensureAvailable(path, week, day, clock.instant());
+        } else if (day.getStatus() != LearningPathDayStatus.COMPLETED && day.getStatus() != LearningPathDayStatus.SUBMITTED
+                && day.getStatus() != LearningPathDayStatus.CLOSED) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Ngày luyện tập chưa bắt đầu");
+        }
+        if (day.getItems() == null || day.getItems().stream().anyMatch(item -> item == null || item.getQuestionId() == null)) {
+            throw new IllegalStateException("Learning Path day questions are invalid");
+        }
+        var matching = day.getItems().stream().filter(item -> questionId.equals(item.getQuestionId())).toList();
+        if (matching.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy câu hỏi trong ngày luyện tập");
+        if (matching.size() != 1) throw new IllegalStateException("Duplicate Learning Path day question");
+        var saved = questions.findSnapshots(id, userId, List.of(questionId));
+        if (saved.size() != 1 || !questionId.equals(saved.getFirst().getString("question_id"))
+                || matching.getFirst().getMicroSkill() == null
+                || !matching.getFirst().getMicroSkill().equals(saved.getFirst().getString("micro_skill"))) {
+            throw new IllegalStateException("Learning Path question snapshot is incomplete or inconsistent");
+        }
+        var delivery = audio.resolve(saved.getFirst().get("passage", Document.class));
+        if (delivery == null) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Câu hỏi không có audio");
+        return delivery;
+    }
+
     private void ensureAvailable(LearningPath path, LearningPathWeek week,
                                  LearningPathDay day, Instant now) {
         if (!LearningPathDayAvailability.available(path, week, day, now)) {
@@ -133,7 +169,7 @@ public class LearningPathDayPracticeService {
                                                   Date startedAt, Date autoCloseAt,
                                                   List<StartLearningPathDayResponse.Question> questions) {
         return new StartLearningPathDayResponse(pathId, weekNo, dayNo,
-                "IN_PROGRESS", startedAt, autoCloseAt, questions);
+                "IN_PROGRESS", startedAt, autoCloseAt, questions, this.microSkills.list());
     }
 
     private StartLearningPathDayResponse.Question question(LearningPathDayItem item,
@@ -145,12 +181,8 @@ public class LearningPathDayPracticeService {
         Document passage = snapshot.get("passage", Document.class);
         StartLearningPathDayResponse.Passage passageInfo = null;
         if (passage != null) {
-            Document audio = passage.get("audio", Document.class);
-            StartLearningPathDayResponse.Audio audioInfo = audio == null ? null
-                    : new StartLearningPathDayResponse.Audio(audio.getString("url"),
-                    audio.getInteger("duration_sec"), audio.getString("format"));
             passageInfo = new StartLearningPathDayResponse.Passage(
-                    passage.getString("title"), passage.getString("text"), audioInfo);
+                    passage.getString("title"), passage.getString("text"), audio.resolve(passage));
         }
         List<Document> savedOptions = snapshot.getList("options", Document.class);
         if (savedOptions == null || savedOptions.size() != 4) {

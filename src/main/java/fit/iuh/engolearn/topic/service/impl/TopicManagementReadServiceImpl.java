@@ -2,6 +2,7 @@ package fit.iuh.engolearn.topic.service.impl;
 
 import fit.iuh.engolearn.shared.enums.CefrLevel;
 import fit.iuh.engolearn.topic.dto.request.TopicManagementListQuery;
+import fit.iuh.engolearn.topic.contract.dto.TopicManagementSummaryDto;
 import fit.iuh.engolearn.topic.dto.response.TopicManagementItemDetail;
 import fit.iuh.engolearn.topic.dto.response.TopicManagementItemSummary;
 import fit.iuh.engolearn.topic.dto.response.TopicManagementListResponse;
@@ -63,11 +64,17 @@ public class TopicManagementReadServiceImpl implements TopicManagementReadServic
         var rows = result.getContent().stream().map(topic -> new TopicManagementListResponse.Item(
                 topic.getId(), topic.getTitleEn(), topic.getTitleVi(), topic.getCefrLevel(), topic.getCategory(),
                 publicationLabel(topic), stats.getOrDefault(topic.getId(), ItemStats.EMPTY).count(), topic.getUpdatedAt())).toList();
+        var counts = managementSummary();
+        return new TopicManagementListResponse(rows, query.page(), query.size(), result.getTotalElements(), result.getTotalPages(),
+                new TopicManagementListResponse.Counters(counts.total(), counts.published(), counts.draft(), counts.unpublished()));
+    }
+
+    @Override
+    public TopicManagementSummaryDto managementSummary() {
         long published = queries.countByPublication("published");
         long draft = queries.countByPublication("draft");
         long unpublished = queries.countByPublication("unpublished");
-        return new TopicManagementListResponse(rows, query.page(), query.size(), result.getTotalElements(), result.getTotalPages(),
-                new TopicManagementListResponse.Counters(published + draft + unpublished, published, draft, unpublished));
+        return new TopicManagementSummaryDto(published + draft + unpublished, published, draft, unpublished);
     }
 
     @Override

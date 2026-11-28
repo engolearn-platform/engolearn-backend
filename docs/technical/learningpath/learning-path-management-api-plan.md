@@ -529,13 +529,11 @@ MP3/WAV content type and a future expiry if provided. Problems yield
 `AUDIO_DELIVERY_URL_INVALID`, `AUDIO_CONTENT_TYPE_INVALID` or `AUDIO_DELIVERY_EXPIRED`.
 The resolved URL is neither returned by readiness nor persisted; use detail for preview.
 
-All Media-backed Listening currently also returns
-`LEARNER_AUDIO_DELIVERY_UNSUPPORTED`: the current learner snapshot path copies legacy
-`audio.url` and cannot deliver `audio_media_id`. This is an explicit capability blocker,
-not a claim that a valid uploaded asset is missing. Complete Media-aware snapshot/practice
-delivery before removing this blocker and enabling publication of these drafts. When a
-Media-backed passage also has legacy audio, it remains blocked rather than silently
-using the older recording.
+Media-backed Listening can be published after these automated checks and the required
+professional review. The temporary `LEARNER_AUDIO_DELIVERY_UNSUPPORTED` blocker was
+removed after verification of Media-aware snapshots, real provider playback, seeking
+and learner expiry recovery. A present Media reference never falls back to legacy
+audio. See the [live verification record](learning-path-media-verification.md).
 
 Legacy audio requires a nonblank valid HTTP(S) URL without user-info or a root-relative
 path (not a protocol-relative `//host` URL). Missing/invalid values yield `AUDIO_MISSING`
@@ -621,8 +619,10 @@ receipt because the server does not test playback. A human confirmation is an ed
 attestation, not proof from an automated playback or quality assessment.
 
 Publication never uploads audio or changes Cloudinary delivery policy. Media-backed
-Listening remains blocked until Media-aware learner snapshot/practice delivery is
-implemented; it never silently falls back to an older recording. Legacy local audio is
+Listening remains blocked until the complete learner Media flow is verified, including
+frontend expiry recovery and playback. Backend snapshot/delivery/renewal is described
+in the [learner audio contract](learning-path-day-practice-api.md#snapshot-audio-and-delivery-renewal);
+it never silently falls back to an older recording. Legacy local audio is
 not migrated to Cloudinary by this API.
 
 ### Success and recorded review

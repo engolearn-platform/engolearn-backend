@@ -10,7 +10,7 @@ import fit.iuh.engolearn.learningpath.repository.QuestionPoolQuestionReadinessSo
 import fit.iuh.engolearn.learningpath.repository.QuestionPoolQuestionRepository;
 import fit.iuh.engolearn.learningpath.service.QuestionPoolPassageReadinessService;
 import fit.iuh.engolearn.learningpath.service.QuestionPoolQuestionReadinessService;
-import fit.iuh.engolearn.learningpath.utils.QuestionPoolMicroSkills;
+import fit.iuh.engolearn.microskill.contract.MicroSkillLookup;
 import fit.iuh.engolearn.shared.enums.CefrLevel;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -26,6 +26,7 @@ import org.springframework.stereotype.Service;
 @Service
 @RequiredArgsConstructor
 public class QuestionPoolQuestionReadinessServiceImpl implements QuestionPoolQuestionReadinessService {
+    private final MicroSkillLookup microSkills;
     private final QuestionPoolQuestionRepository questions;
     private final QuestionPoolPassageRepository passages;
     private final QuestionPoolPassageReadinessService passageReadiness;
@@ -41,7 +42,7 @@ public class QuestionPoolQuestionReadinessServiceImpl implements QuestionPoolQue
         if (source.revision() == null || source.revision() < 1) blockers.add(issue("INVALID_REVISION", "revision", "Câu hỏi cần revision hợp lệ."));
         else if (source.revision() == Integer.MAX_VALUE) blockers.add(issue("REVISION_EXHAUSTED", "revision", "Revision đã đạt giới hạn."));
         if (!"READING".equals(source.skill()) && !"LISTENING".equals(source.skill())) blockers.add(issue("INVALID_SKILL", "skill", "Kỹ năng phải là READING hoặc LISTENING."));
-        if (!QuestionPoolMicroSkills.belongsTo(source.microSkill(), source.skill())) blockers.add(issue("INVALID_MICRO_SKILL", "microSkill", "Micro-skill canonical phải thuộc đúng kỹ năng lớn."));
+        if (!microSkills.findByCanonicalName(source.microSkill()).filter(value -> value.active() && value.skill().equals(source.skill())).isPresent()) blockers.add(issue("INVALID_MICRO_SKILL", "microSkill", "Micro-skill canonical phải thuộc đúng kỹ năng lớn."));
         if (Arrays.stream(CefrLevel.values()).noneMatch(level -> level.name().equals(source.level()))) blockers.add(issue("INVALID_LEVEL", "level", "Trình độ phải thuộc CEFR A1–C2."));
         validateText(source.prompt(), 50000, "prompt", "PROMPT_REQUIRED", blockers);
         validateText(source.explanation(), 50000, "explanation", "EXPLANATION_REQUIRED", blockers);

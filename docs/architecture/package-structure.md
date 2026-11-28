@@ -8,7 +8,7 @@ The structure is required for new code and code being refactored. Existing code 
 
 ```text
 fit.iuh.engolearn
-├── <feature>                 current features: grammar, topic, dictionary, user, learningpath, subscription, quota, payment, placement, assessment, speaking, media
+├── <feature>                 current features: microskill, grammar, topic, dictionary, user, learningpath, subscription, quota, payment, placement, assessment, speaking, media, managementdashboard
 │   ├── contract              public capability interfaces
 │   │   ├── dto               public input/result DTOs
 │   │   ├── event             published facts
@@ -104,3 +104,5 @@ Suffixes and data representation are defined in [implementation conventions](imp
 A provider protocol that requires a raw streaming response may use a separate Spring MVC `@Controller` whose endpoint method is `@ResponseBody` and returns `SseEmitter` with `text/event-stream`. Keep this adapter isolated from ordinary `@RestController` endpoints, use a bounded executor and explicit cancellation/timeout handling, and document its wire contract. This narrow transport exception does not change the `ApiResponse<T>` rule for `@RestController` methods or the `ProblemDetail` error contract before the stream is committed.
 
 These checks do not prove every documented rule. They do not enforce DTO payload types/suffixes, contract subpackage roles, business interfaces/`impl`, Lombok injection, Mongo isolation, model/VO representation/mappings, scheduler placement, or the full dependency policy. Review those against the relevant document; do not describe a rule as automatically enforced unless a test actually checks it. The exact approved feature-dependency table has its own enforcement caveat in [cross-feature communication](cross-feature-communication.md#approved-feature-dependencies).
+
+The approved feature roots additionally include `microskill`, which follows the same layer rules and owns the [shared micro-skill catalog](../technical/microskill/README.md).

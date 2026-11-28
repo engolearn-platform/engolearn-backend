@@ -64,6 +64,8 @@ public class SecurityConfig {
                         .authenticationEntryPoint(authenticationEntryPoint)
                         .accessDeniedHandler(accessDeniedHandler))
                 .authorizeHttpRequests(auth -> auth
+                        .requestMatchers(HttpMethod.GET, "/api/management/dashboard/summary").hasRole("CONTENT_MANAGER")
+                        .requestMatchers("/api/v1/admin/users", "/api/v1/admin/users/**").hasRole("ADMIN")
                         .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
                         .requestMatchers("/actuator/**").denyAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/auth/me").authenticated()
@@ -86,6 +88,8 @@ public class SecurityConfig {
                                 "/api/management/topics/*/items/*/speaking-profile").hasRole("CONTENT_MANAGER")
                         .requestMatchers(HttpMethod.POST, "/api/management/topics/*/speaking-profile/publish",
                                 "/api/management/topics/*/items/*/speaking-profile/publish").hasRole("CONTENT_MANAGER")
+                        .requestMatchers("/api/management/micro-skills", "/api/management/micro-skills/**").hasRole("CONTENT_MANAGER")
+                        .requestMatchers("/api/micro-skills", "/api/micro-skills/**").hasRole("USER")
                         .requestMatchers("/api/learning-paths", "/api/learning-paths/**").authenticated()
                         .requestMatchers("/api/management/learning-paths", "/api/management/learning-paths/**").hasRole("CONTENT_MANAGER")
                         .requestMatchers(HttpMethod.POST, "/api/management/topics").hasRole("CONTENT_MANAGER")
@@ -155,14 +159,18 @@ public class SecurityConfig {
         ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(status,
                 exception.getMessage() == null ? status.getReasonPhrase() : exception.getMessage());
         problemDetail.setType(URI.create("about:blank"));
-        if (path.startsWith("/api/v1/assessment/")
+        if (path.equals("/api/v1/admin/users") || path.startsWith("/api/v1/admin/users/")
+                || path.equals("/api/micro-skills") || path.startsWith("/api/micro-skills/")
+                || path.equals("/api/management/micro-skills") || path.startsWith("/api/management/micro-skills/")
+                || path.startsWith("/api/v1/assessment/")
                 || path.startsWith("/api/v1/subscription/") || path.startsWith("/api/v1/quota/")
                 || path.startsWith("/api/v1/auth/") || path.startsWith("/api/v1/profile/") || path.startsWith("/api/v1/speaking/")
                 || path.startsWith("/api/v1/grammar/") || path.startsWith("/api/v1/placement/")
                 || path.equals("/api/v1/companion") || path.startsWith("/api/v1/companion/")
                 || path.equals("/api/learning-paths") || path.startsWith("/api/learning-paths/")
                 || path.equals("/api/management/learning-paths") || path.startsWith("/api/management/learning-paths/")
-                || path.equals("/api/management/topics") || path.startsWith("/api/management/topics/")) {
+                || path.equals("/api/management/topics") || path.startsWith("/api/management/topics/")
+                || path.equals("/api/management/dashboard/summary")) {
             problemDetail.setDetail(status == HttpStatus.UNAUTHORIZED ? "Authentication is required" : "Access is denied");
             problemDetail.setInstance(URI.create(path));
             problemDetail.setProperty("code", status == HttpStatus.UNAUTHORIZED ? "AUTHENTICATION_REQUIRED" : "ACCESS_DENIED");

@@ -7,8 +7,14 @@ The active [legacy OpenAPI file](subscription-quota/quota-api.openapi.yaml) is r
 Topic contracts cover [management reads](topic/management-read-api.md), [authoring](topic/management-authoring-api.md), [attempts/quiz](topic/quiz-api-handoff.md), [completion/results](topic/completion-api-handoff.md) and [retry/reset](topic/retry-api-handoff.md). Earlier implementation logs and sample-data plans are available in Git history under `docs/topic/`.
 
 Learning Path documentation covers [list/recommendation/creation](learningpath/learning-path-list-api.md), [day practice](learningpath/learning-path-day-practice-api.md) and the [lifecycle job](learningpath/learning-path-lifecycle-job.md).
+Backend learner [snapshot audio delivery and renewal](learningpath/learning-path-day-practice-api.md#snapshot-audio-and-delivery-renewal)
+supports Media IDs as well as legacy URLs. Frontend expiry recovery and real
+provider playback were [verified](learningpath/learning-path-media-verification.md);
+the temporary publication blocker is removed. [Thirty ACTIVE B1 passages were migrated](learningpath/learning-path-media-migration-2026-11-27.md)
+to Cloudinary. The [300 legacy Listening snapshots](learningpath/learning-path-legacy-audio-migration-2026-11-27.md)
+also use their four original recordings through Media; cancelled-path access remains restricted.
 
-Learning Path management: [passage API contract and implementation sequence](learningpath/learning-path-management-api-plan.md). Implemented: create DRAFT with Listening audio, list/filter with global status counters and per-passage question-reference counts, detail/audio preview, edit DRAFT, delete an unreferenced DRAFT, read-only publication readiness, revision-guarded publication with recorded human review and retirement of ACTIVE passages with no ACTIVE question references. [Question management](learningpath/learning-path-question-management-api.md) implements list/filter/pagination, detail with passage preview, create/edit/delete DRAFT, copy, readiness and revision-bound publication with recorded review and transactional passage coordination. Question retire/replace are implemented with explicit coverage acknowledgement and atomic replacement; learner Media delivery and frontend integration remain pending.
+Learning Path management: [passage API contract and implementation sequence](learningpath/learning-path-management-api-plan.md). Implemented: create DRAFT with Listening audio, list/filter with global status counters and per-passage question-reference counts, detail/audio preview, edit DRAFT, delete an unreferenced DRAFT, read-only publication readiness, revision-guarded publication with recorded human review and retirement of ACTIVE passages with no ACTIVE question references. [Question management](learningpath/learning-path-question-management-api.md) implements list/filter/pagination, detail with passage preview, create/edit/delete DRAFT, copy, readiness and revision-bound publication with recorded review and transactional passage coordination. Question retire/replace are implemented with explicit coverage acknowledgement and atomic replacement. Learner Media delivery and frontend playback/renewal are implemented; see the verification record above.
 
 The [old folder router](subscription-quota/README.md) preserves compatibility. Architectural decisions remain in ADRs; earlier implementation documents and verification records are available in Git history under `docs/technical/subscription-quota/`. Other modules remain under the existing paths linked from the [documentation index](../README.md).
 
@@ -23,3 +29,9 @@ Placement Test: [module entry](placement/README.md), [runtime](placement/placeme
 Grammar Learning: [module entry](grammar/README.md), [V2 storage and rules](grammar/grammar-v2-runtime.md), [import/migration](grammar/grammar-v2-importer.md) and [curriculum](grammar/grammar-cefr-roadmap.md). Historical implementation reports are retained in Git history instead of current module contracts.
 
 Phase 1 internal read contracts: [Topic](topic/companion-reads.md), [Learning Path](learningpath/learning-path-list-api.md#ai-companion-read-only-provider-s2-mvp), [Assessment history](assessment.md#ai-companion-assessment-history) and [Companion runtime](ai-companion/runtime-flows.md#phase-1-business-reads).
+
+Micro-skill catalog: [schema, API, Learning Path compatibility and import](microskill/README.md).
+
+Management Dashboard: [read-only summary API](managementdashboard/README.md).
+
+[F05 administrator user management API and migration](security/f05-user-management.md).

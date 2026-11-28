@@ -9,3 +9,6 @@ The [shared Speaking V2 contract](../../../../docs/system-design/speaking-v2-con
 | [Module contract](module-contract.md) | Dependencies and runtime settings |
 | [REST and WebSocket contract](api-contract.md) | Shared wire contract and security |
 | [Data model](data-model.md) | Collections, indexes, updates and retention |
+
+
+Socket admission and inbound frames revalidate the originating account session. See [account lifecycle and F05 compatibility](../security/f05-user-management.md).

@@ -53,8 +53,16 @@ requiring a current profile. Assessment level remains source metadata.
 `COMPLETED` and `CANCELLED`. Counts for all three sections are returned in the same envelope.
 
 `GET /api/learning-paths/search?keyword=<keyword>` searches the owner's active and completed
-paths by exact `DD/MM/YYYY` creation date or partial case-insensitive micro-skill name.
-Cancelled paths are excluded. Results are distinct and ordered by creation time descending.
+paths by exact `DD/MM/YYYY` creation date, partial case-insensitive canonical micro-skill
+name, or partial case-insensitive Vietnamese `displayNameVi` from the current catalog.
+Vietnamese matches resolve to canonical names through `microskill.contract.MicroSkillLookup`,
+including inactive definitions so historical paths remain searchable. Matching is literal
+and preserves Vietnamese accents (accent-free transliteration is not supported). Leading
+and trailing keyword whitespace is ignored. Updated catalog labels take effect on the next
+search; no path migration or stored-label copy is needed. Canonical search continues to
+work for legacy paths whose definitions are absent from the catalog.
+Cancelled and foreign-owner paths are excluded. Results from all matches are deduplicated
+and ordered by creation time descending; section counts remain unfiltered.
 
 Items retain `sourceAssessmentAttemptId: string|null`. The source is stored directly in
 `learning_paths.source.assessment_attempt_id`. One owner-scoped batch call to
@@ -137,6 +145,11 @@ standalone local MongoDB can still create a path from an existing completed resu
 or concurrent losing writes may leave orphaned snapshots; they are never used by the winning
 path. Automatic orphan cleanup is not implemented.
 
+Selected passage Media references are resolved before these writes. New managed
+audio snapshots retain the stable `audio_media_id`, never a delivery URL; see the
+[snapshot audio contract](learning-path-day-practice-api.md#snapshot-audio-and-delivery-renewal).
+Legacy snapshots and source recordings are not migrated by creation.
+
 The path freezes its source `assessment_attempt_id`, `paper_id`, completion time and baseline
 scores. Baselines identify each measured skill with `skill_code`, together with the source
 Assessment ID; there is no separate `micro_skill_results.result_id` reference. Practice and
@@ -183,3 +196,7 @@ Versioned opaque cursors bind owner, mode and exact trusted time scope, and anch
 ### Scoped verification (2026-11-27)
 
 Independent orchestrator recheck finished 18:06:06 +07, BUILD SUCCESS: LearningPathCompanionReadsIntegrationTest (3) and LearningPathDayPracticeServiceTest (6), 9/9, zero failures/errors/skips. Synthetic isolated Mongo tests cover owner filtering, tie ordering, same-scope paging and changed owner/time rejection, expired-at-equality and terminal exclusion, UNKNOWN action readiness, exact counts/known zero, inclusive start/exclusive end, closure/null vs zero and cancelled records, unchanged stored paths after reads, cap failures at 101 paths and 501 nested days (observed 55ms and 18ms respectively, not latency guarantees). Existing practice regression passed. Explain/index selection, realistic histories, complete regression/ArchitectureTest, integrated S4/S6 and real model evaluation are not verified here. This is S2 provider closeout only, not release approval.
+
+## Micro-skill catalog compatibility
+
+Recommendation uses the [shared catalog](../microskill/README.md#learning-path-integration). Existing Assessment mapping and canonical request fields remain unchanged. Recommendation, list/search and detail responses add `microSkillCatalog`; new path baseline entries also store `micro_skill_id`. Existing paths need no rewrite.

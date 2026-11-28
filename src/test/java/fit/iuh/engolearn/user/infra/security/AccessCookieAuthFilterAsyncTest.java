@@ -26,12 +26,15 @@ class AccessCookieAuthFilterAsyncTest {
     @Test void verifiedCookieAuthenticationSurvivesSameRequestAsyncRedispatch() throws Exception {
         String accountId = "account-1";
         String sessionId = "session-1";
+        long sessionEpoch = 7L;
         JwtTokenService tokens = new JwtTokenService("async-test-secret-at-least-32-bytes", "test-issuer");
         UserRepository users = org.mockito.Mockito.mock(UserRepository.class);
         RefreshSessionRepository sessions = org.mockito.Mockito.mock(RefreshSessionRepository.class);
         when(sessions.findBySessionId(sessionId)).thenReturn(Optional.of(RefreshSession.builder()
-                .sessionId(sessionId).accountId(accountId).expiresAt(Instant.now().plusSeconds(300)).revoked(false).build()));
-        when(users.findById(accountId)).thenReturn(Optional.of(new User(accountId, "learner@example.test", "unused", UserRole.USER, false)));
+                .sessionId(sessionId).accountId(accountId).expiresAt(Instant.now().plusSeconds(300)).revoked(false).accountSessionEpoch(sessionEpoch).build()));
+        User learner = new User(accountId, "learner@example.test", "unused", UserRole.USER, false);
+        learner.setSessionEpoch(sessionEpoch);
+        when(users.findById(accountId)).thenReturn(Optional.of(learner));
         AccessCookieAuthFilter filter = new AccessCookieAuthFilter(tokens, users, sessions,
                 new RequestAttributeSecurityContextRepository());
         MockHttpServletRequest request = new MockHttpServletRequest("POST", "/api/v1/companion/conversations/1/turns");
@@ -43,7 +46,10 @@ class AccessCookieAuthFilterAsyncTest {
         request.setDispatcherType(DispatcherType.ASYNC);
         SecurityContextRepository repository = new RequestAttributeSecurityContextRepository();
         var restored = repository.loadDeferredContext(request).get();
-        assertEquals(accountId, ((AuthenticatedUserPrincipal) restored.getAuthentication().getPrincipal()).getId());
+        var principal = (AuthenticatedUserPrincipal) restored.getAuthentication().getPrincipal();
+        assertEquals(accountId, principal.getId());
+        assertEquals(sessionId, principal.getSessionId());
+        assertEquals(sessionEpoch, principal.getAccountSessionEpoch());
         assertEquals(true, restored.getAuthentication().getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_USER")));
     }
 }

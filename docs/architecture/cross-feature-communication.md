@@ -57,7 +57,8 @@ A new dependency needs an explicit reason and approval. Keep this table in sync 
 | Feature | May depend on, through contract |
 |---|---|
 | `assessment` | `subscription.contract` (effective entitlements), `quota.contract` (atomic consumption) |
-| `learningpath` | `assessment.contract.AssessmentResults` for owner-scoped READY results and batch source validation; no direct Assessment collection access; `user.contract.UserLevelLookup` for current practice level (user-approved learning-path level fix); `media.contract.MediaManagement` for protected passage audio upload and authorized preview/readiness resolution (owner-approved admin passage flows) |
+| `learningpath` | `assessment.contract.AssessmentResults` for owner-scoped READY results and batch source validation; no direct Assessment collection access; `user.contract.UserLevelLookup` for current practice level (user-approved learning-path level fix); `media.contract.MediaManagement` for protected passage audio upload, authorized preview/readiness, creation-time media validation and owner-authorized learner snapshot audio delivery/renewal (owner-approved admin and learner Media flows); `microskill.contract.MicroSkillLookup` for catalog definitions, bilingual labels and atomic reference retention (owner-approved catalog integration) |
+| `microskill` | None; owns shared definitions and exposes `microskill.contract.MicroSkillLookup` |
 | `dictionary` | None |
 | `topic` | `dictionary`, `user.contract`, `media.contract.MediaManagement` for Topic-owned protected content media |
 | `user` | `subscription.contract.SubscriptionAccountInitialization` for new-account enrollment in the registration Mongo transaction |
@@ -68,7 +69,8 @@ A new dependency needs an explicit reason and approval. Keep this table in sync 
 | `grammar` | `user.contract.UserLevelLookup` for read-only profile-based roadmap and access; Grammar persists its own permanent unlocks only (owner-approved 2026-11-23). See [integration design](../technical/grammar/grammar-placement-level-integration.md). |
 | `companion` | `user.contract.UserLevelLookup` for the learner's current CEFR context; `assessment.contract.AssessmentCompanionResults` for bounded owner-scoped Assessment context; `quota.contract.QuotaAvailability` for pre-inference availability and `quota.contract.QuotaUsageRecording` for completed-turn usage (approved for AI Companion M2); `topic.contract.TopicContextLookup` for bounded read-only Screen Awareness (approved for M4); Phase 1 approved read-only learning context via `topic.contract.TopicCompanionReads` and `learningpath.contract.LearningPathCompanionReads`, and dated grant-aware history through the existing `assessment.contract.AssessmentCompanionResults`. No cross-feature repository or collection reads. |
 | `placement` | `media.contract.MediaManagement` for Placement-owned audio upload and response delivery (user-approved 2026-11-23); `user.contract.UserLevelPromotion` for atomic monotonic profile promotion on owned completion/Guest claim and explicit learning activation (user-approved 2026-11-08) |
-| `speaking` | `topic.contract.TopicSpeakingAccess` for new-session admission, `topic.contract.TopicSpeakingHistory` for current learning status and published metadata, `quota.contract.QuotaAvailability`, `quota.contract.QuotaUsageRecording` for measured Speaking usage, `media.contract.MediaManagement` for protected audio |
+| `managementdashboard` | Read-only `topic`, `grammar`, `learningpath`, `user`, `subscription` and `placement` summary providers; administration providers are invoked only for authenticated `ROLE_ADMIN` callers |
+| `speaking` | `user.contract.AccountSessionAccess` for live ticket and inbound socket session checks, `topic.contract.TopicSpeakingAccess` for new-session admission, `topic.contract.TopicSpeakingHistory` for current learning status and published metadata, `quota.contract.QuotaAvailability`, `quota.contract.QuotaUsageRecording` for measured Speaking usage, `media.contract.MediaManagement` for protected audio |
 
 Payment owns commands in `payment.contract.dto` and facts in `payment.contract.event`; Subscription owns the receiving result consumer. Payment must never import Subscription types. Quota consumes Subscription-owned entitlement/policy facts and can resolve effective entitlements through its public capability.
 
@@ -81,3 +83,7 @@ Normal durable routes use local producer state/Outbox and consumer receipt/effec
 When a feature is extracted, its provider may expose a private/internal HTTP adapter and the caller may implement the same capability interface with a REST client. Keep service logic dependent on the interface so the transport can change without rewriting business logic. Do not build internal controllers, REST clients, or shared contract libraries before that extraction is approved.
 
 Placement/Profile integration: User owns conditional level persistence; Placement owns result validation and the joint Mongo transaction. No direct Placement access to User collections, no Topic behavior change. See [integration handoff](../technical/placement/placement-profile-level-integration.md).
+
+## Micro-skill catalog integration
+
+Owner-approved dependency: `learningpath` → `microskill.contract.MicroSkillLookup` for definition lookup, bilingual response metadata and atomic reference retention. `microskill` has no feature dependencies. Assessment integration remains with its owner; no Assessment dependency is added by this change. [Contract](../technical/microskill/README.md).

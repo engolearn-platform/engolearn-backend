@@ -49,6 +49,10 @@ public class SubscriptionPeriod extends BaseDocument {
     @Singular
     private List<PlanBillingOptionVo> prices;
 
+    public boolean effectiveAt(Instant at) {
+        return state == PeriodState.ACTIVE && !at.isBefore(periodStartAt) && at.isBefore(periodEndAt);
+    }
+
     public List<PlanBillingOptionVo> getPrices() { return prices == null ? null : List.copyOf(prices); }
     public void setPrices(List<PlanBillingOptionVo> prices) { this.prices = prices == null ? null : List.copyOf(prices); }
 }

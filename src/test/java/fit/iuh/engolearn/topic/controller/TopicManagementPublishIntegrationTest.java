@@ -53,6 +53,7 @@ import static fit.iuh.engolearn.topic.support.TopicTestAuthentication.authentica
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -570,6 +571,68 @@ class TopicManagementPublishIntegrationTest extends AbstractMongoIntegrationTest
                 .usingRecursiveComparison().ignoringFields("createdAt", "updatedAt").isEqualTo(draftBefore);
         assertThat(itemVersions.findById(changed.getId()).orElseThrow().getStatus()).isEqualTo(ContentStatus.DRAFT);
     }
+    @Test
+    void majorResourceReorderKeepsLegacyMediaButRejectsANewExternalUrl() throws Exception {
+        Topic topic = newTopic();
+        List<TopicItemVersion> initial = new ArrayList<>();
+        for (int i = 1; i <= 5; i++) initial.add(seedCompleteItem(topic, i));
+        mvc.perform(post(BASE + "/{id}/publish", topic.getId()).with(role(UserRole.CONTENT_MANAGER))
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"revision\":0}"))
+                .andExpect(status().isOk());
+
+        Topic published = topics.findById(topic.getId()).orElseThrow();
+        published.setCoverUrl("https://example.test/legacy-cover.png");
+        topics.save(published);
+        TopicItemVersion unchanged = itemVersions.findById(initial.get(1).getId()).orElseThrow();
+        unchanged.getVocabularies().getFirst().getSnapshot().setAudioUsUrl("https://example.test/unchanged.mp3");
+        itemVersions.save(unchanged);
+        TopicItemVersion base = itemVersions.findById(initial.getFirst().getId()).orElseThrow();
+        base.getVocabularies().getFirst().getSnapshot().setAudioEnUrl("https://example.test/legacy.mp3");
+        base.getVocabularies().getFirst().getSamples().getFirst().setAudioUrl(null);
+        itemVersions.save(base);
+
+        TopicItemVersion draft = majorDraft(base);
+        var reordered = new ArrayList<>(draft.getVocabularies());
+        java.util.Collections.swap(reordered, 0, 1);
+        for (int i = 0; i < reordered.size(); i++) reordered.get(i).setOrderIndex(i + 1);
+        draft.setVocabularies(reordered);
+        itemVersions.save(draft);
+        mvc.perform(get(BASE + "/{id}/readiness", topic.getId()).with(role(UserRole.CONTENT_MANAGER)))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.data.ready").value(true));
+
+        reordered.get(1).getSnapshot().setAudioEnUrl("https://example.test/new-unmanaged.mp3");
+        itemVersions.save(draft);
+        mvc.perform(get(BASE + "/{id}/readiness", topic.getId()).with(role(UserRole.CONTENT_MANAGER)))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.data.ready").value(false))
+                .andExpect(jsonPath("$.data.violations.length()").value(1))
+                .andExpect(jsonPath("$.data.violations[0].path")
+                        .value("items[" + draft.getTopicItemId() + "].vocabularies[1].snapshot.audioEnUrl"));
+        mvc.perform(post(BASE + "/{id}/publish", topic.getId()).with(role(UserRole.CONTENT_MANAGER))
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"revision\":1}"))
+                .andExpect(status().isUnprocessableContent());
+        assertThat(topicVersions.count()).isEqualTo(1);
+        assertThat(topics.findById(topic.getId()).orElseThrow().getRevision()).isEqualTo(1L);
+
+        reordered.get(1).getSnapshot().setAudioEnUrl("https://example.test/legacy.mp3");
+        itemVersions.save(draft);
+        mvc.perform(post(BASE + "/{id}/publish", topic.getId()).with(role(UserRole.CONTENT_MANAGER))
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"revision\":1}"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.data.version").value(2))
+                .andExpect(jsonPath("$.data.changes.length()").value(1))
+                .andExpect(jsonPath("$.data.changes[0].itemVersionId").value(draft.getId()));
+
+        Topic releaseTopic = topics.findById(topic.getId()).orElseThrow();
+        mvc.perform(patch(BASE + "/{id}", topic.getId()).with(role(UserRole.CONTENT_MANAGER))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"revision\":2,\"coverUrl\":\"https://example.test/new-unmanaged.png\"}"))
+                .andExpect(status().isBadRequest());
+        assertThat(releaseTopic.getCoverUrl()).isEqualTo("https://example.test/legacy-cover.png");
+        assertThat(topicVersions.findById(releaseTopic.getLatestPublishedVersion()).orElseThrow().getItemVersionIds())
+                .containsExactly(draft.getId(), unchanged.getId(), initial.get(2).getId(), initial.get(3).getId(), initial.get(4).getId());
+        assertThat(itemVersions.findById(base.getId()).orElseThrow().getVocabularies().getFirst().getSnapshot().getWord())
+                .isEqualTo("word0");
+    }
+
     private TopicItemVersion majorDraft(TopicItemVersion base) {
         TopicItemVersion draft = objectMapper.convertValue(base, TopicItemVersion.class);
         draft.setId(null);

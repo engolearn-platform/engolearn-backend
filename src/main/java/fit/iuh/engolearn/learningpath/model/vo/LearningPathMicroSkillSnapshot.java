@@ -8,6 +8,9 @@ import org.springframework.data.mongodb.core.mapping.Field;
 @Setter
 public class LearningPathMicroSkillSnapshot implements EmbeddedDocument {
 
+    @Field("micro_skill_id")
+    private String microSkillId;
+
     @Field("micro_skill")
     private String microSkill;
 

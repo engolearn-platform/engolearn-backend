@@ -5,6 +5,7 @@
 | `user` | User accounts, authentication and profile capabilities | Public `user.contract`; [auth reference](../runbooks/user-auth.md) |
 | `dictionary` | Vocabulary and senses | Public lookup contract used by Topic |
 | `topic` | Topic authoring, learner progress and quiz/practice | Uses Dictionary and User contracts; [attempts/quiz](../technical/topic/quiz-api-handoff.md), [completion](../technical/topic/completion-api-handoff.md), [retry/reset](../technical/topic/retry-api-handoff.md) |
+| `microskill` | Shared micro-skill definitions, Vietnamese labels and catalog lifecycle | Public `microskill.contract`; [catalog and Learning Path integration](../technical/microskill/README.md) |
 | `learningpath` | Learning-path selection, day practice and lifecycle | [List API](../technical/learningpath/learning-path-list-api.md), [day practice](../technical/learningpath/learning-path-day-practice-api.md), [lifecycle job](../technical/learningpath/learning-path-lifecycle-job.md); reads Assessment results only through `assessment.contract.AssessmentResults` |
 | `subscription` | Plan/policy versions, immutable period benefits, Trial, purchase eligibility/history and product refund eligibility; entitlement source of truth | Imports Payment commands/results; publishes entitlement/policy facts; [technical entry](../technical/subscription/README.md) |
 | `payment` | Checkout, financial/payment/refund state, provider verification and reconciliation | Owns command/result contracts; no Subscription import; [boundary reference](../technical/subscription/module-contract.md#payment-owned-contracts) |
@@ -14,6 +15,7 @@
 | `companion` | Protected learner conversations, ordered history and request-scoped Gemini SSE turns | Uses `user.contract.UserLevelLookup`, bounded `assessment.contract.AssessmentCompanionResults`, read-only `topic.contract.TopicContextLookup` and `topic.contract.TopicCompanionReads`, `learningpath.contract.LearningPathCompanionReads`, and Quota availability/usage contracts; [backend contract and runtime](../technical/ai-companion/README.md) |
 | `placement` | Guest/User entry assessment, attempts, claim, results and review | Uses shared cookie identity; [module entry](../technical/placement/README.md) |
 | `media` | Media asset metadata, public contract and storage-provider integration | Features own upload APIs, business policy, authorization and media references; [integration guide](../technical/media/integration-guide.md) |
+| `managementdashboard` | Read-only role-shaped summary orchestration across public owner contracts | [Management Dashboard Summary API](../technical/managementdashboard/README.md) |
 | `shared` | Base document types, web/security primitives and domain-neutral durable messaging | No feature business policy |
 | `config` | Application wiring and infrastructure configuration | Follow [package policy](package-structure.md) |
 
@@ -22,3 +24,5 @@ Speaking remains a future Quota caller. Assessment F01/F02 implements transactio
 The table summarizes responsibility, not a new dependency approval. The authoritative [dependency table](cross-feature-communication.md#approved-feature-dependencies) and [package policy](package-structure.md) govern changes. Do not read another module's collections or use its internal models/repositories. Detailed Payment and Quota documentation remains scoped to their integration with this Subscription pilot; no whole-module migration is implied.
 
 Assessment: [rules and API](../technical/assessment.md). Placement baseline and exact refund-to-analysis delivery remain integration boundaries.
+
+Micro-skill catalog: `microskill` owns bilingual definitions in `micro_skills`; Learning Path uses `microskill.contract`. [Contract](../technical/microskill/README.md). Assessment integration is owned separately and is not implemented in this delivery.

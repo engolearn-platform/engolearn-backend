@@ -150,31 +150,31 @@
               "speaker": "Linh",
               "text_en": "Hi! I'm Linh. What's your name?",
               "text_vi": "Chào bạn! Mình là Linh. Bạn tên gì?",
-              "audio_url": null
+              "audio_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com"
             },
             {
               "speaker": "Learner",
               "text_en": "Hello, my name is Mai.",
               "text_vi": "Chào Linh, mình tên là Mai.",
-              "audio_url": null
+              "audio_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com"
             },
             {
               "speaker": "Linh",
               "text_en": "What can I call you?",
               "text_vi": "Mình có thể gọi bạn là gì?",
-              "audio_url": null
+              "audio_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com"
             },
             {
               "speaker": "Learner",
               "text_en": "You can call me Mai. Nice to meet you.",
               "text_vi": "Bạn cứ gọi mình là Mai. Rất vui được gặp bạn.",
-              "audio_url": null
+              "audio_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com"
             },
             {
               "speaker": "Linh",
               "text_en": "Nice to meet you too.",
               "text_vi": "Mình cũng rất vui được gặp bạn.",
-              "audio_url": null
+              "audio_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com"
             }
           ],
           "duration_sec": 90,
@@ -190,15 +190,15 @@
               "phonetic": "/həˈloʊ/",
               "describe_vi": "xin chào",
               "sense": "a greeting",
-              "audio_url": "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en-US&q=hello",
-              "audio_en_url": "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en-GB&q=hello",
-              "audio_us_url": "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en-US&q=hello"
+              "audio_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com",
+              "audio_en_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com",
+              "audio_us_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com"
             },
             "samples": [
               {
                 "text_en": "Hello, I'm Mai.",
                 "text_vi": "Xin chào, mình là Mai.",
-                "audio_url": null,
+                "audio_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com",
                 "is_manual": true
               }
             ],
@@ -237,15 +237,15 @@
               "phonetic": "/neɪm/",
               "describe_vi": "tên",
               "sense": "the word people use to call a person",
-              "audio_url": "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en-US&q=name",
-              "audio_en_url": "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en-GB&q=name",
-              "audio_us_url": "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en-US&q=name"
+              "audio_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com",
+              "audio_en_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com",
+              "audio_us_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com"
             },
             "samples": [
               {
                 "text_en": "My name is Mai.",
                 "text_vi": "Mình tên là Mai.",
-                "audio_url": null,
+                "audio_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com",
                 "is_manual": true
               }
             ],
@@ -269,15 +269,15 @@
               "phonetic": "/kɔːl/",
               "describe_vi": "gọi",
               "sense": "to use a name for someone",
-              "audio_url": "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en-US&q=call",
-              "audio_en_url": "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en-GB&q=call",
-              "audio_us_url": "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en-US&q=call"
+              "audio_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com",
+              "audio_en_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com",
+              "audio_us_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com"
             },
             "samples": [
               {
                 "text_en": "You can call me Mai.",
                 "text_vi": "Bạn có thể gọi mình là Mai.",
-                "audio_url": null,
+                "audio_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com",
                 "is_manual": true
               }
             ],
@@ -301,15 +301,15 @@
               "phonetic": "/naɪs tə miːt juː/",
               "describe_vi": "rất vui được gặp bạn",
               "sense": "a polite phrase when meeting someone",
-              "audio_url": "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en-US&q=nice%20to%20meet%20you",
-              "audio_en_url": "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en-GB&q=nice%20to%20meet%20you",
-              "audio_us_url": "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en-US&q=nice%20to%20meet%20you"
+              "audio_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com",
+              "audio_en_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com",
+              "audio_us_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com"
             },
             "samples": [
               {
                 "text_en": "Nice to meet you, Linh.",
                 "text_vi": "Rất vui được gặp bạn, Linh.",
-                "audio_url": null,
+                "audio_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com",
                 "is_manual": true
               }
             ],
@@ -338,7 +338,7 @@
                     "text_en": "Hello, my name is Mai.",
                     "text_vi": "Xin chào, mình tên là Mai.",
                     "usage_note": "Thay Mai bằng tên của bạn.",
-                    "audio_url": null,
+                    "audio_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com",
                     "linked_vocab_ids": [
                       "si-a1-name-vocab-1",
                       "si-a1-name-vocab-2"
@@ -349,7 +349,7 @@
                     "text_en": "My name is [name].",
                     "text_vi": "Mình tên là [tên].",
                     "usage_note": "Thay [name] bằng tên bạn muốn giới thiệu.",
-                    "audio_url": null,
+                    "audio_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com",
                     "linked_vocab_ids": [
                       "si-a1-name-vocab-2"
                     ]
@@ -366,7 +366,7 @@
                     "text_en": "You can call me [name].",
                     "text_vi": "Bạn có thể gọi mình là [tên].",
                     "usage_note": "Dùng tên hoặc tên gọi ngắn bạn thích.",
-                    "audio_url": null,
+                    "audio_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com",
                     "linked_vocab_ids": [
                       "si-a1-name-vocab-3"
                     ]
@@ -376,7 +376,7 @@
                     "text_en": "Nice to meet you too.",
                     "text_vi": "Mình cũng rất vui được gặp bạn.",
                     "usage_note": "Nói “too” khi đáp lại lời chào làm quen.",
-                    "audio_url": null,
+                    "audio_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com",
                     "linked_vocab_ids": [
                       "si-a1-name-vocab-4"
                     ]
@@ -402,7 +402,7 @@
                 "sentence": {
                   "text_en": "Hello, my name is Mai.",
                   "meaning_vi": "Xin chào, mình tên là Mai.",
-                  "audio_url": null
+                  "audio_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com"
                 },
                 "options": [
                   {
@@ -436,7 +436,7 @@
                 "sentence": {
                   "text_en": "My name is Mai.",
                   "meaning_vi": "Mình tên là Mai.",
-                  "audio_url": null
+                  "audio_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com"
                 },
                 "options": [
                   {
@@ -470,7 +470,7 @@
                 "sentence": {
                   "text_en": "You can call me Mai.",
                   "meaning_vi": "Bạn có thể gọi mình là Mai.",
-                  "audio_url": null
+                  "audio_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com"
                 },
                 "options": [
                   {
@@ -513,7 +513,7 @@
                 "sentence": {
                   "text_en": "Hello, my name is Mai.",
                   "meaning_vi": "Xin chào, mình tên là Mai.",
-                  "audio_url": null
+                  "audio_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com"
                 },
                 "options": [
                   {
@@ -547,7 +547,7 @@
                 "sentence": {
                   "text_en": "You can call me Mai.",
                   "meaning_vi": "Bạn có thể gọi mình là Mai.",
-                  "audio_url": null
+                  "audio_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com"
                 },
                 "options": [
                   {
@@ -581,7 +581,7 @@
                 "sentence": {
                   "text_en": "Nice to meet you too.",
                   "meaning_vi": "Mình cũng rất vui được gặp bạn.",
-                  "audio_url": null
+                  "audio_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com"
                 },
                 "options": [
                   {
@@ -643,31 +643,31 @@
               "speaker": "Minh",
               "text_en": "Where are you from?",
               "text_vi": "Bạn đến từ đâu?",
-              "audio_url": null
+              "audio_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com"
             },
             {
               "speaker": "Learner",
               "text_en": "I'm from Da Nang. It is my hometown.",
               "text_vi": "Mình đến từ Đà Nẵng. Đó là quê mình.",
-              "audio_url": null
+              "audio_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com"
             },
             {
               "speaker": "Minh",
               "text_en": "Do you live in Da Nang now?",
               "text_vi": "Bây giờ bạn sống ở Đà Nẵng à?",
-              "audio_url": null
+              "audio_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com"
             },
             {
               "speaker": "Learner",
               "text_en": "No, I live in Ho Chi Minh City now.",
               "text_vi": "Không, bây giờ mình sống ở Thành phố Hồ Chí Minh.",
-              "audio_url": null
+              "audio_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com"
             },
             {
               "speaker": "Minh",
               "text_en": "I see. Thank you for telling me.",
               "text_vi": "Mình hiểu rồi. Cảm ơn bạn đã kể.",
-              "audio_url": null
+              "audio_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com"
             }
           ],
           "duration_sec": 90,
@@ -683,15 +683,15 @@
               "phonetic": "/frʌm/",
               "describe_vi": "đến từ",
               "sense": "used to say where someone comes from",
-              "audio_url": "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en-US&q=from",
-              "audio_en_url": "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en-GB&q=from",
-              "audio_us_url": "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en-US&q=from"
+              "audio_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com",
+              "audio_en_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com",
+              "audio_us_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com"
             },
             "samples": [
               {
                 "text_en": "I'm from Da Nang.",
                 "text_vi": "Mình đến từ Đà Nẵng.",
-                "audio_url": null,
+                "audio_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com",
                 "is_manual": true
               }
             ],
@@ -730,15 +730,15 @@
               "phonetic": "/ˈsɪti/",
               "describe_vi": "thành phố",
               "sense": "a large place where many people live",
-              "audio_url": "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en-US&q=city",
-              "audio_en_url": "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en-GB&q=city",
-              "audio_us_url": "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en-US&q=city"
+              "audio_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com",
+              "audio_en_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com",
+              "audio_us_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com"
             },
             "samples": [
               {
                 "text_en": "Da Nang is a city in Vietnam.",
                 "text_vi": "Đà Nẵng là một thành phố ở Việt Nam.",
-                "audio_url": null,
+                "audio_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com",
                 "is_manual": true
               }
             ],
@@ -762,15 +762,15 @@
               "phonetic": "/lɪv/",
               "describe_vi": "sống",
               "sense": "to have your home in a place",
-              "audio_url": "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en-US&q=live",
-              "audio_en_url": "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en-GB&q=live",
-              "audio_us_url": "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en-US&q=live"
+              "audio_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com",
+              "audio_en_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com",
+              "audio_us_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com"
             },
             "samples": [
               {
                 "text_en": "I live in Hanoi now.",
                 "text_vi": "Bây giờ mình sống ở Hà Nội.",
-                "audio_url": null,
+                "audio_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com",
                 "is_manual": true
               }
             ],
@@ -794,15 +794,15 @@
               "phonetic": "/ˈhoʊmtaʊn/",
               "describe_vi": "quê nhà",
               "sense": "the town or city you come from",
-              "audio_url": "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en-US&q=hometown",
-              "audio_en_url": "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en-GB&q=hometown",
-              "audio_us_url": "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en-US&q=hometown"
+              "audio_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com",
+              "audio_en_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com",
+              "audio_us_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com"
             },
             "samples": [
               {
                 "text_en": "Da Nang is my hometown.",
                 "text_vi": "Đà Nẵng là quê mình.",
-                "audio_url": null,
+                "audio_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com",
                 "is_manual": true
               }
             ],
@@ -831,7 +831,7 @@
                     "text_en": "I'm from [city or country].",
                     "text_vi": "Mình đến từ [thành phố hoặc quốc gia].",
                     "usage_note": "Thay phần trong ngoặc bằng nơi bạn đến từ đó.",
-                    "audio_url": null,
+                    "audio_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com",
                     "linked_vocab_ids": [
                       "si-a1-place-vocab-1",
                       "si-a1-place-vocab-2"
@@ -842,7 +842,7 @@
                     "text_en": "Da Nang is my hometown.",
                     "text_vi": "Đà Nẵng là quê mình.",
                     "usage_note": "Dùng “hometown” để nói quê quán.",
-                    "audio_url": null,
+                    "audio_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com",
                     "linked_vocab_ids": [
                       "si-a1-place-vocab-4"
                     ]
@@ -859,7 +859,7 @@
                     "text_en": "I live in [city] now.",
                     "text_vi": "Bây giờ mình sống ở [thành phố].",
                     "usage_note": "Nói nơi bạn đang ở; có thể trùng quê quán.",
-                    "audio_url": null,
+                    "audio_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com",
                     "linked_vocab_ids": [
                       "si-a1-place-vocab-2",
                       "si-a1-place-vocab-3"
@@ -870,7 +870,7 @@
                     "text_en": "I live in Da Nang too.",
                     "text_vi": "Mình cũng sống ở Đà Nẵng.",
                     "usage_note": "Dùng “too” nếu nơi đang sống cũng là quê bạn.",
-                    "audio_url": null,
+                    "audio_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com",
                     "linked_vocab_ids": [
                       "si-a1-place-vocab-3"
                     ]
@@ -896,7 +896,7 @@
                 "sentence": {
                   "text_en": "I'm from Da Nang.",
                   "meaning_vi": "Mình đến từ Đà Nẵng.",
-                  "audio_url": null
+                  "audio_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com"
                 },
                 "options": [
                   {
@@ -930,7 +930,7 @@
                 "sentence": {
                   "text_en": "Da Nang is a city.",
                   "meaning_vi": "Đà Nẵng là một thành phố.",
-                  "audio_url": null
+                  "audio_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com"
                 },
                 "options": [
                   {
@@ -964,7 +964,7 @@
                 "sentence": {
                   "text_en": "I live in Hanoi now.",
                   "meaning_vi": "Bây giờ mình sống ở Hà Nội.",
-                  "audio_url": null
+                  "audio_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com"
                 },
                 "options": [
                   {
@@ -1007,7 +1007,7 @@
                 "sentence": {
                   "text_en": "I'm from Da Nang.",
                   "meaning_vi": "Mình đến từ Đà Nẵng.",
-                  "audio_url": null
+                  "audio_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com"
                 },
                 "options": [
                   {
@@ -1041,7 +1041,7 @@
                 "sentence": {
                   "text_en": "No, I live in Hanoi now.",
                   "meaning_vi": "Không, bây giờ mình sống ở Hà Nội.",
-                  "audio_url": null
+                  "audio_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com"
                 },
                 "options": [
                   {
@@ -1075,7 +1075,7 @@
                 "sentence": {
                   "text_en": "Yes, Da Nang is my hometown.",
                   "meaning_vi": "Đúng, Đà Nẵng là quê mình.",
-                  "audio_url": null
+                  "audio_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com"
                 },
                 "options": [
                   {
@@ -1137,31 +1137,31 @@
               "speaker": "An",
               "text_en": "Do you study or work?",
               "text_vi": "Bạn đi học hay đi làm?",
-              "audio_url": null
+              "audio_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com"
             },
             {
               "speaker": "Learner",
               "text_en": "I'm a student. I study English.",
               "text_vi": "Mình là học sinh. Mình học tiếng Anh.",
-              "audio_url": null
+              "audio_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com"
             },
             {
               "speaker": "An",
               "text_en": "Do you have a job too?",
               "text_vi": "Bạn cũng có công việc à?",
-              "audio_url": null
+              "audio_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com"
             },
             {
               "speaker": "Learner",
               "text_en": "Yes, I work at a café on weekends.",
               "text_vi": "Có, mình làm ở quán cà phê vào cuối tuần.",
-              "audio_url": null
+              "audio_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com"
             },
             {
               "speaker": "An",
               "text_en": "That sounds interesting.",
               "text_vi": "Nghe thú vị đấy.",
-              "audio_url": null
+              "audio_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com"
             }
           ],
           "duration_sec": 90,
@@ -1177,15 +1177,15 @@
               "phonetic": "/ˈstuːdənt/",
               "describe_vi": "học sinh, sinh viên",
               "sense": "a person who studies at a school or college",
-              "audio_url": "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en-US&q=student",
-              "audio_en_url": "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en-GB&q=student",
-              "audio_us_url": "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en-US&q=student"
+              "audio_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com",
+              "audio_en_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com",
+              "audio_us_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com"
             },
             "samples": [
               {
                 "text_en": "I'm a student.",
                 "text_vi": "Mình là học sinh.",
-                "audio_url": null,
+                "audio_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com",
                 "is_manual": true
               }
             ],
@@ -1224,15 +1224,15 @@
               "phonetic": "/ˈstʌdi/",
               "describe_vi": "học",
               "sense": "to learn about a subject",
-              "audio_url": "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en-US&q=study",
-              "audio_en_url": "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en-GB&q=study",
-              "audio_us_url": "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en-US&q=study"
+              "audio_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com",
+              "audio_en_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com",
+              "audio_us_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com"
             },
             "samples": [
               {
                 "text_en": "I study English.",
                 "text_vi": "Mình học tiếng Anh.",
-                "audio_url": null,
+                "audio_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com",
                 "is_manual": true
               }
             ],
@@ -1256,15 +1256,15 @@
               "phonetic": "/wɜːrk/",
               "describe_vi": "làm việc",
               "sense": "to do a job",
-              "audio_url": "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en-US&q=work",
-              "audio_en_url": "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en-GB&q=work",
-              "audio_us_url": "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en-US&q=work"
+              "audio_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com",
+              "audio_en_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com",
+              "audio_us_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com"
             },
             "samples": [
               {
                 "text_en": "I work at a café.",
                 "text_vi": "Mình làm việc ở quán cà phê.",
-                "audio_url": null,
+                "audio_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com",
                 "is_manual": true
               }
             ],
@@ -1288,15 +1288,15 @@
               "phonetic": "/dʒɑːb/",
               "describe_vi": "công việc",
               "sense": "paid work that someone does",
-              "audio_url": "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en-US&q=job",
-              "audio_en_url": "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en-GB&q=job",
-              "audio_us_url": "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en-US&q=job"
+              "audio_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com",
+              "audio_en_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com",
+              "audio_us_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com"
             },
             "samples": [
               {
                 "text_en": "I have a part-time job.",
                 "text_vi": "Mình có công việc bán thời gian.",
-                "audio_url": null,
+                "audio_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com",
                 "is_manual": true
               }
             ],
@@ -1325,7 +1325,7 @@
                     "text_en": "I'm a student.",
                     "text_vi": "Mình là học sinh, sinh viên.",
                     "usage_note": "Dùng câu này nếu bạn đang đi học.",
-                    "audio_url": null,
+                    "audio_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com",
                     "linked_vocab_ids": [
                       "si-a1-activity-vocab-1"
                     ]
@@ -1335,7 +1335,7 @@
                     "text_en": "I study [subject].",
                     "text_vi": "Mình học [môn học].",
                     "usage_note": "Thay [subject] bằng môn bạn học.",
-                    "audio_url": null,
+                    "audio_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com",
                     "linked_vocab_ids": [
                       "si-a1-activity-vocab-2"
                     ]
@@ -1352,7 +1352,7 @@
                     "text_en": "I work at [place].",
                     "text_vi": "Mình làm ở [nơi làm việc].",
                     "usage_note": "Thay [place] bằng nơi bạn làm việc.",
-                    "audio_url": null,
+                    "audio_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com",
                     "linked_vocab_ids": [
                       "si-a1-activity-vocab-3"
                     ]
@@ -1362,7 +1362,7 @@
                     "text_en": "I have a part-time job.",
                     "text_vi": "Mình có một công việc bán thời gian.",
                     "usage_note": "Dùng câu này nếu bạn có việc làm bán thời gian.",
-                    "audio_url": null,
+                    "audio_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com",
                     "linked_vocab_ids": [
                       "si-a1-activity-vocab-4"
                     ]
@@ -1388,7 +1388,7 @@
                 "sentence": {
                   "text_en": "I am a student.",
                   "meaning_vi": "Mình là học sinh.",
-                  "audio_url": null
+                  "audio_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com"
                 },
                 "options": [
                   {
@@ -1422,7 +1422,7 @@
                 "sentence": {
                   "text_en": "I study English.",
                   "meaning_vi": "Mình học tiếng Anh.",
-                  "audio_url": null
+                  "audio_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com"
                 },
                 "options": [
                   {
@@ -1456,7 +1456,7 @@
                 "sentence": {
                   "text_en": "I work at a café.",
                   "meaning_vi": "Mình làm việc ở quán cà phê.",
-                  "audio_url": null
+                  "audio_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com"
                 },
                 "options": [
                   {
@@ -1499,7 +1499,7 @@
                 "sentence": {
                   "text_en": "Yes, I'm a student.",
                   "meaning_vi": "Đúng, mình là học sinh.",
-                  "audio_url": null
+                  "audio_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com"
                 },
                 "options": [
                   {
@@ -1533,7 +1533,7 @@
                 "sentence": {
                   "text_en": "I study English.",
                   "meaning_vi": "Mình học tiếng Anh.",
-                  "audio_url": null
+                  "audio_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com"
                 },
                 "options": [
                   {
@@ -1567,7 +1567,7 @@
                 "sentence": {
                   "text_en": "I work at a café.",
                   "meaning_vi": "Mình làm việc ở quán cà phê.",
-                  "audio_url": null
+                  "audio_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com"
                 },
                 "options": [
                   {
@@ -1629,31 +1629,31 @@
               "speaker": "Hoa",
               "text_en": "What do you like to do in your free time?",
               "text_vi": "Lúc rảnh bạn thích làm gì?",
-              "audio_url": null
+              "audio_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com"
             },
             {
               "speaker": "Learner",
               "text_en": "I like music. I also read books.",
               "text_vi": "Mình thích âm nhạc. Mình cũng đọc sách.",
-              "audio_url": null
+              "audio_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com"
             },
             {
               "speaker": "Hoa",
               "text_en": "Do you read on weekends?",
               "text_vi": "Bạn có đọc sách vào cuối tuần không?",
-              "audio_url": null
+              "audio_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com"
             },
             {
               "speaker": "Learner",
               "text_en": "Yes, I read on weekends. What about you?",
               "text_vi": "Có, mình đọc sách vào cuối tuần. Còn bạn?",
-              "audio_url": null
+              "audio_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com"
             },
             {
               "speaker": "Hoa",
               "text_en": "I like music too.",
               "text_vi": "Mình cũng thích âm nhạc.",
-              "audio_url": null
+              "audio_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com"
             }
           ],
           "duration_sec": 90,
@@ -1669,15 +1669,15 @@
               "phonetic": "/laɪk/",
               "describe_vi": "thích",
               "sense": "to enjoy something",
-              "audio_url": "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en-US&q=like",
-              "audio_en_url": "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en-GB&q=like",
-              "audio_us_url": "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en-US&q=like"
+              "audio_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com",
+              "audio_en_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com",
+              "audio_us_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com"
             },
             "samples": [
               {
                 "text_en": "I like music.",
                 "text_vi": "Mình thích âm nhạc.",
-                "audio_url": null,
+                "audio_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com",
                 "is_manual": true
               }
             ],
@@ -1716,15 +1716,15 @@
               "phonetic": "/ˈmjuːzɪk/",
               "describe_vi": "âm nhạc",
               "sense": "sounds made for people to listen to",
-              "audio_url": "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en-US&q=music",
-              "audio_en_url": "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en-GB&q=music",
-              "audio_us_url": "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en-US&q=music"
+              "audio_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com",
+              "audio_en_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com",
+              "audio_us_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com"
             },
             "samples": [
               {
                 "text_en": "I listen to music at home.",
                 "text_vi": "Mình nghe nhạc ở nhà.",
-                "audio_url": null,
+                "audio_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com",
                 "is_manual": true
               }
             ],
@@ -1748,15 +1748,15 @@
               "phonetic": "/riːd/",
               "describe_vi": "đọc",
               "sense": "to look at and understand written words",
-              "audio_url": "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en-US&q=read",
-              "audio_en_url": "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en-GB&q=read",
-              "audio_us_url": "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en-US&q=read"
+              "audio_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com",
+              "audio_en_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com",
+              "audio_us_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com"
             },
             "samples": [
               {
                 "text_en": "I read books on weekends.",
                 "text_vi": "Mình đọc sách vào cuối tuần.",
-                "audio_url": null,
+                "audio_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com",
                 "is_manual": true
               }
             ],
@@ -1780,15 +1780,15 @@
               "phonetic": "/friː taɪm/",
               "describe_vi": "thời gian rảnh",
               "sense": "time when you are not working or studying",
-              "audio_url": "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en-US&q=free%20time",
-              "audio_en_url": "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en-GB&q=free%20time",
-              "audio_us_url": "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en-US&q=free%20time"
+              "audio_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com",
+              "audio_en_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com",
+              "audio_us_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com"
             },
             "samples": [
               {
                 "text_en": "I read in my free time.",
                 "text_vi": "Mình đọc sách lúc rảnh.",
-                "audio_url": null,
+                "audio_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com",
                 "is_manual": true
               }
             ],
@@ -1817,7 +1817,7 @@
                     "text_en": "I like [hobby].",
                     "text_vi": "Mình thích [sở thích].",
                     "usage_note": "Dùng danh từ như “music” hoặc “football”.",
-                    "audio_url": null,
+                    "audio_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com",
                     "linked_vocab_ids": [
                       "si-a1-hobby-vocab-1",
                       "si-a1-hobby-vocab-2"
@@ -1828,7 +1828,7 @@
                     "text_en": "I like to read books.",
                     "text_vi": "Mình thích đọc sách.",
                     "usage_note": "Dùng “like to” trước động từ.",
-                    "audio_url": null,
+                    "audio_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com",
                     "linked_vocab_ids": [
                       "si-a1-hobby-vocab-1",
                       "si-a1-hobby-vocab-3"
@@ -1846,7 +1846,7 @@
                     "text_en": "I read in my free time.",
                     "text_vi": "Mình đọc sách lúc rảnh.",
                     "usage_note": "“In my free time” chỉ thời gian rảnh.",
-                    "audio_url": null,
+                    "audio_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com",
                     "linked_vocab_ids": [
                       "si-a1-hobby-vocab-3",
                       "si-a1-hobby-vocab-4"
@@ -1857,7 +1857,7 @@
                     "text_en": "I [activity] on weekends.",
                     "text_vi": "Mình [hoạt động] vào cuối tuần.",
                     "usage_note": "Thay [activity] bằng động từ phù hợp, ví dụ “read”.",
-                    "audio_url": null,
+                    "audio_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com",
                     "linked_vocab_ids": [
                       "si-a1-hobby-vocab-3"
                     ]
@@ -1883,7 +1883,7 @@
                 "sentence": {
                   "text_en": "I like music.",
                   "meaning_vi": "Mình thích âm nhạc.",
-                  "audio_url": null
+                  "audio_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com"
                 },
                 "options": [
                   {
@@ -1917,7 +1917,7 @@
                 "sentence": {
                   "text_en": "I like music.",
                   "meaning_vi": "Mình thích âm nhạc.",
-                  "audio_url": null
+                  "audio_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com"
                 },
                 "options": [
                   {
@@ -1951,7 +1951,7 @@
                 "sentence": {
                   "text_en": "I read books on weekends.",
                   "meaning_vi": "Mình đọc sách vào cuối tuần.",
-                  "audio_url": null
+                  "audio_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com"
                 },
                 "options": [
                   {
@@ -1994,7 +1994,7 @@
                 "sentence": {
                   "text_en": "I like music.",
                   "meaning_vi": "Mình thích âm nhạc.",
-                  "audio_url": null
+                  "audio_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com"
                 },
                 "options": [
                   {
@@ -2028,7 +2028,7 @@
                 "sentence": {
                   "text_en": "I read books in my free time.",
                   "meaning_vi": "Mình đọc sách lúc rảnh.",
-                  "audio_url": null
+                  "audio_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com"
                 },
                 "options": [
                   {
@@ -2062,7 +2062,7 @@
                 "sentence": {
                   "text_en": "Yes, I read on weekends.",
                   "meaning_vi": "Có, mình đọc sách vào cuối tuần.",
-                  "audio_url": null
+                  "audio_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com"
                 },
                 "options": [
                   {
@@ -2124,37 +2124,37 @@
               "speaker": "Hoa",
               "text_en": "Hi! Can you introduce yourself?",
               "text_vi": "Chào bạn! Bạn có thể tự giới thiệu không?",
-              "audio_url": null
+              "audio_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com"
             },
             {
               "speaker": "Learner",
               "text_en": "Hello, I'm Mai, and I'm from Da Nang.",
               "text_vi": "Xin chào, mình là Mai và mình đến từ Đà Nẵng.",
-              "audio_url": null
+              "audio_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com"
             },
             {
               "speaker": "Hoa",
               "text_en": "What do you do?",
               "text_vi": "Bạn đang học hay làm gì?",
-              "audio_url": null
+              "audio_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com"
             },
             {
               "speaker": "Learner",
               "text_en": "I'm a student. I also like music.",
               "text_vi": "Mình là học sinh. Mình cũng thích âm nhạc.",
-              "audio_url": null
+              "audio_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com"
             },
             {
               "speaker": "Hoa",
               "text_en": "Nice to meet you, Mai.",
               "text_vi": "Rất vui được gặp bạn, Mai.",
-              "audio_url": null
+              "audio_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com"
             },
             {
               "speaker": "Learner",
               "text_en": "Nice to meet you too. Thank you.",
               "text_vi": "Mình cũng rất vui được gặp bạn. Cảm ơn bạn.",
-              "audio_url": null
+              "audio_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com"
             }
           ],
           "duration_sec": 90,
@@ -2170,15 +2170,15 @@
               "phonetic": "/ˌɪntrəˈduːs maɪˈself/",
               "describe_vi": "tự giới thiệu",
               "sense": "to tell people who you are",
-              "audio_url": "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en-US&q=introduce%20myself",
-              "audio_en_url": "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en-GB&q=introduce%20myself",
-              "audio_us_url": "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en-US&q=introduce%20myself"
+              "audio_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com",
+              "audio_en_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com",
+              "audio_us_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com"
             },
             "samples": [
               {
                 "text_en": "Let me introduce myself.",
                 "text_vi": "Để mình tự giới thiệu.",
-                "audio_url": null,
+                "audio_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com",
                 "is_manual": true
               }
             ],
@@ -2217,15 +2217,15 @@
               "phonetic": "/ænd/",
               "describe_vi": "và",
               "sense": "used to join two words or ideas",
-              "audio_url": "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en-US&q=and",
-              "audio_en_url": "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en-GB&q=and",
-              "audio_us_url": "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en-US&q=and"
+              "audio_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com",
+              "audio_en_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com",
+              "audio_us_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com"
             },
             "samples": [
               {
                 "text_en": "I'm Mai, and I'm from Da Nang.",
                 "text_vi": "Mình là Mai và mình đến từ Đà Nẵng.",
-                "audio_url": null,
+                "audio_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com",
                 "is_manual": true
               }
             ],
@@ -2249,15 +2249,15 @@
               "phonetic": "/ˈɔːlsoʊ/",
               "describe_vi": "cũng",
               "sense": "used to add another fact",
-              "audio_url": "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en-US&q=also",
-              "audio_en_url": "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en-GB&q=also",
-              "audio_us_url": "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en-US&q=also"
+              "audio_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com",
+              "audio_en_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com",
+              "audio_us_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com"
             },
             "samples": [
               {
                 "text_en": "I also like music.",
                 "text_vi": "Mình cũng thích âm nhạc.",
-                "audio_url": null,
+                "audio_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com",
                 "is_manual": true
               }
             ],
@@ -2281,15 +2281,15 @@
               "phonetic": "/θæŋk juː/",
               "describe_vi": "cảm ơn",
               "sense": "a polite way to show thanks",
-              "audio_url": "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en-US&q=thank%20you",
-              "audio_en_url": "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en-GB&q=thank%20you",
-              "audio_us_url": "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en-US&q=thank%20you"
+              "audio_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com",
+              "audio_en_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com",
+              "audio_us_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com"
             },
             "samples": [
               {
                 "text_en": "Thank you for listening.",
                 "text_vi": "Cảm ơn vì đã lắng nghe.",
-                "audio_url": null,
+                "audio_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com",
                 "is_manual": true
               }
             ],
@@ -2318,7 +2318,7 @@
                     "text_en": "Let me introduce myself.",
                     "text_vi": "Để mình tự giới thiệu.",
                     "usage_note": "Dùng khi bắt đầu nói trước nhóm.",
-                    "audio_url": null,
+                    "audio_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com",
                     "linked_vocab_ids": [
                       "si-a1-full-intro-vocab-1"
                     ]
@@ -2328,7 +2328,7 @@
                     "text_en": "I'm [name], and I'm from [place].",
                     "text_vi": "Mình là [tên] và mình đến từ [nơi].",
                     "usage_note": "Điền tên và nơi bạn đến từ đó.",
-                    "audio_url": null,
+                    "audio_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com",
                     "linked_vocab_ids": [
                       "si-a1-full-intro-vocab-2"
                     ]
@@ -2345,7 +2345,7 @@
                     "text_en": "I'm a [student or job]. I also like [hobby].",
                     "text_vi": "Mình là [học sinh hoặc nghề]. Mình cũng thích [sở thích].",
                     "usage_note": "Chọn thông tin đúng với bạn; có thể thay câu đầu bằng hoạt động hiện tại.",
-                    "audio_url": null,
+                    "audio_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com",
                     "linked_vocab_ids": [
                       "si-a1-full-intro-vocab-3"
                     ]
@@ -2355,7 +2355,7 @@
                     "text_en": "Thank you for listening.",
                     "text_vi": "Cảm ơn vì đã lắng nghe.",
                     "usage_note": "Dùng khi kết thúc phần giới thiệu trước nhóm.",
-                    "audio_url": null,
+                    "audio_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com",
                     "linked_vocab_ids": [
                       "si-a1-full-intro-vocab-4"
                     ]
@@ -2381,7 +2381,7 @@
                 "sentence": {
                   "text_en": "Let me introduce myself.",
                   "meaning_vi": "Để mình tự giới thiệu.",
-                  "audio_url": null
+                  "audio_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com"
                 },
                 "options": [
                   {
@@ -2415,7 +2415,7 @@
                 "sentence": {
                   "text_en": "I'm Mai, and I'm from Da Nang.",
                   "meaning_vi": "Mình là Mai và mình đến từ Đà Nẵng.",
-                  "audio_url": null
+                  "audio_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com"
                 },
                 "options": [
                   {
@@ -2449,7 +2449,7 @@
                 "sentence": {
                   "text_en": "I also like music.",
                   "meaning_vi": "Mình cũng thích âm nhạc.",
-                  "audio_url": null
+                  "audio_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com"
                 },
                 "options": [
                   {
@@ -2492,7 +2492,7 @@
                 "sentence": {
                   "text_en": "Hello, I'm Mai, and I'm from Da Nang.",
                   "meaning_vi": "Xin chào, mình là Mai và mình đến từ Đà Nẵng.",
-                  "audio_url": null
+                  "audio_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com"
                 },
                 "options": [
                   {
@@ -2526,7 +2526,7 @@
                 "sentence": {
                   "text_en": "I'm a student. I also like music.",
                   "meaning_vi": "Mình là học sinh. Mình cũng thích âm nhạc.",
-                  "audio_url": null
+                  "audio_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com"
                 },
                 "options": [
                   {
@@ -2560,7 +2560,7 @@
                 "sentence": {
                   "text_en": "Thank you for listening.",
                   "meaning_vi": "Cảm ơn vì đã lắng nghe.",
-                  "audio_url": null
+                  "audio_url": "https://resource2.heygen.ai/text_to_speech/6aa27fef21b244f2adccadaab8e8d630/330290724a1b470fb63153f34d4c0183/id=716b12d45f5f456f956923ce2589ec65.wav?utm_source=chatgpt.com"
                 },
                 "options": [
                   {

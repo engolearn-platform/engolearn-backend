@@ -6,13 +6,16 @@ import fit.iuh.engolearn.speaking.model.SpeakingSession;
 import fit.iuh.engolearn.speaking.model.enums.*;
 import fit.iuh.engolearn.speaking.model.vo.*;
 import fit.iuh.engolearn.speaking.utils.SpeakingConversation.Result;
+import fit.iuh.engolearn.user.contract.dto.AccountSessionProofDto;
 import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 
 public interface SpeakingRuntime {
-    record Lease(String sessionId, String ownerId, long epoch, String leaseId) {}
+    record Lease(String sessionId, String ownerId, long epoch, String leaseId,
+                 AccountSessionProofDto proof) {}
+    boolean authorized(Lease lease);
     record TurnWork(String sessionId, String turnId, String token) {}
 
     Lease consumeTicket(String sessionId, String ticket);

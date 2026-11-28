@@ -1,5 +1,6 @@
 package fit.iuh.engolearn.learningpath.service;
 
+import fit.iuh.engolearn.microskill.contract.MicroSkillLookup;
 import fit.iuh.engolearn.learningpath.dto.response.LearningPathDayResultResponse;
 import fit.iuh.engolearn.learningpath.model.enums.LearningPathDayStatus;
 import fit.iuh.engolearn.learningpath.model.enums.LearningPathStatus;
@@ -21,14 +22,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
 @Service
+@lombok.RequiredArgsConstructor
 public class LearningPathDayResultService {
+    private final MicroSkillLookup microSkills;
     private final LearningPathRepository paths;
     private final LearningPathQuestionRepository questions;
+    private final LearningPathAudioService audio;
 
-    public LearningPathDayResultService(LearningPathRepository paths, LearningPathQuestionRepository questions) {
-        this.paths = paths;
-        this.questions = questions;
-    }
 
     public LearningPathDayResultResponse getResult(String pathId, int weekNo, int dayNo, String userId) {
         ObjectId pathObjectId = new ObjectId(pathId);
@@ -79,7 +79,7 @@ public class LearningPathDayResultService {
         return new LearningPathDayResultResponse(pathId, weekNo, dayNo,
                 LearningPathDayStatus.effective(day.getStatus(), day.getCloseReason()).name(), day.getClosedAt(),
                 day.getProgress().getAssigned(), day.getProgress().getAnswered(), day.getProgress().getCorrect(),
-                day.getResult().getWrong(), day.getResult().getCompletionRate(), day.getResult().getPracticeScore(), review);
+                day.getResult().getWrong(), day.getResult().getCompletionRate(), day.getResult().getPracticeScore(), review, this.microSkills.list());
     }
 
     private LearningPathDayResultResponse.Question toQuestion(LearningPathDayItem item, Document snapshot) {
@@ -95,11 +95,8 @@ public class LearningPathDayResultService {
         Document passage = snapshot.get("passage", Document.class);
         LearningPathDayResultResponse.Passage passageInfo = null;
         if (passage != null) {
-            Document audio = passage.get("audio", Document.class);
-            var audioInfo = audio == null ? null : new LearningPathDayResultResponse.Audio(
-                    audio.getString("url"), audio.getInteger("duration_sec"), audio.getString("format"));
             passageInfo = new LearningPathDayResultResponse.Passage(
-                    passage.getString("title"), passage.getString("text"), audioInfo, passage.getString("transcript"));
+                    passage.getString("title"), passage.getString("text"), audio.resolve(passage), passage.getString("transcript"));
         }
         LearningPathAnswer answer = item.getAnswer();
         if (answer != null && (answer.getSelectedOptionId() == null || answer.getCorrect() == null)) {

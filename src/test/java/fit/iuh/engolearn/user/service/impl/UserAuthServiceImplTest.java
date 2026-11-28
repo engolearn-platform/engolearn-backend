@@ -1,5 +1,6 @@
 package fit.iuh.engolearn.user.service.impl;
 
+import com.mongodb.MongoException;
 import fit.iuh.engolearn.user.model.User;
 import fit.iuh.engolearn.user.repository.UserRepository;
 import fit.iuh.engolearn.user.repository.RefreshSessionRepository;
@@ -37,6 +38,17 @@ class UserAuthServiceImplTest {
         assertThat(account.getEmail()).isEqualTo("student@example.com");
         assertThat(account.getPasswordHash()).isEqualTo("encoded");
         assertThat(account.getRole().name()).isEqualTo("USER");
+    }
+
+    @Test
+    void registrationDoesNotRepeatAWritingTransactionWithUncertainCommitOutcome() {
+        var uncertain = new MongoException(112, "test fixture");
+        uncertain.addLabel(MongoException.TRANSIENT_TRANSACTION_ERROR_LABEL);
+        uncertain.addLabel(MongoException.UNKNOWN_TRANSACTION_COMMIT_RESULT_LABEL);
+        when(registrations.register(any())).thenThrow(uncertain);
+
+        assertThatThrownBy(() -> service.register("student@example.com", "a safe password")).isSameAs(uncertain);
+        verify(registrations).register(any());
     }
 
     @Test
@@ -148,6 +160,36 @@ class UserAuthServiceImplTest {
         assertThatThrownBy(() -> auth.refresh("old", mock(HttpServletResponse.class)))
                 .isInstanceOfSatisfying(AuthFailure.class, failure -> assertThat(failure.getStatus()).isEqualTo(403));
         verify(sessionRepository, never()).rotateIfCurrent(any(), any(), any(), any(), any());
+    }
+
+    @Test
+    void loginRacingWithDisableAndEnableCannotEmitCookies() {
+        User checked = new User("id", "student@example.com", "encoded", null, false);
+        User enabled = new User("id", checked.getEmail(), "encoded", null, false);
+        enabled.setSessionEpoch(1);
+        when(repository.findByEmail(checked.getEmail())).thenReturn(Optional.of(checked));
+        when(encoder.matches("valid-password", "encoded")).thenReturn(true);
+        when(repository.findById("id")).thenReturn(Optional.of(enabled));
+        var response = mock(HttpServletResponse.class);
+        assertThatThrownBy(() -> service.loginAndIssue(checked.getEmail(), "valid-password", response))
+                .isInstanceOf(AuthFailure.class);
+        verify(response, never()).addHeader(eq("Set-Cookie"), any());
+        verify(sessions).save(argThat(session -> session.getAccountSessionEpoch() == 0));
+    }
+
+    @Test
+    void refreshRacingWithDisableAndEnableCannotEmitCookies() {
+        User checked = new User("id", "student@example.com", "encoded", null, false);
+        User enabled = new User("id", checked.getEmail(), "encoded", null, false);
+        enabled.setSessionEpoch(1);
+        when(tokens.verify("old", "refresh")).thenReturn(new JwtTokenService.Claims("id", "sid", "refresh"));
+        when(sessions.findBySessionId("sid")).thenReturn(Optional.of(RefreshSession.builder()
+                .sessionId("sid").accountId("id").expiresAt(java.time.Instant.now().plusSeconds(100)).build()));
+        when(repository.findById("id")).thenReturn(Optional.of(checked)).thenReturn(Optional.of(enabled));
+        when(sessions.rotateIfCurrent(any(), any(), any(), any(), any())).thenReturn(true);
+        var response = mock(HttpServletResponse.class);
+        assertThatThrownBy(() -> service.refresh("old", response)).isInstanceOf(AuthFailure.class);
+        verify(response, never()).addHeader(eq("Set-Cookie"), any());
     }
 
     @Test

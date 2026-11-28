@@ -45,6 +45,9 @@ import static org.mockito.Mockito.*;
 
 @EnabledIfDockerAvailable
 class QuestionPoolQuestionManagementIntegrationTest extends AbstractMongoIntegrationTest {
+    @org.junit.jupiter.api.BeforeEach
+    void seedMicroSkills() { fit.iuh.engolearn.microskill.MicroSkillFixtures.seed(mongoTemplate); }
+
     private static final String BASE = "/api/management/learning-paths/questions";
     private static final String MICRO_SKILL = "Reading for Gist";
     private static final String CREATE = """
