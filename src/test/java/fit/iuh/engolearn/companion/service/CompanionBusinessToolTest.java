@@ -53,6 +53,12 @@ class CompanionBusinessToolTest {
         nullArgs.put("level",null);
         assertEquals("INVALID_ARGUMENTS",status(call("findLearningTopics",nullArgs)));
         assertEquals("INVALID_ARGUMENTS",status(call("getLearningPathProgress",Map.of("mode","RECENT","asOf",NOW.toString()))));
+        String invalidCounts = call("getLearningPathProgress",Map.of("mode","COUNTS","limit",1));
+        assertEquals("INVALID_ARGUMENTS",status(invalidCounts));
+        assertTrue(invalidCounts.contains("For COUNTS send mode alone"));
+        assertEquals("INVALID_ARGUMENTS",status(call("getLearningPathProgress",Map.of("mode","COUNTS","cursor","foreign"))));
+        assertTrue(registry.definitions(true).stream().filter(d -> d.name().equals("getLearningPathProgress"))
+                .findFirst().orElseThrow().description().contains("send only mode=COUNTS"));
         assertEquals("INVALID_ARGUMENTS",status(call("getAssessmentHistory",Map.of("limit",1))));
         verifyNoInteractions(topics,paths,assessments);
     }

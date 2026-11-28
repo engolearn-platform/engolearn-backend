@@ -24,9 +24,9 @@ public class CompanionLearningPathToolHandler implements CompanionToolHandler {
 
     @Override public List<CompanionToolDefinition> definitions() {
         return List.of(new CompanionToolDefinition("getLearningPathProgress",
-                "ACTIVE: current path candidates may be UNKNOWN and need app recheck. COUNTS: completed paths only. RECENT: recorded starts and closures this week (Vietnam time), not comprehensive history or successful completion. Cursors are valid only in this turn; restart on later turns.",
+                "ACTIVE: current path candidates may be UNKNOWN and need app recheck. COUNTS: completed paths only; send only mode=COUNTS, no limit or cursor. RECENT: recorded starts and closures this week (Vietnam time), not comprehensive history or successful completion. For ACTIVE/RECENT omit optional fields on the first call; use a cursor only when returned in this turn.",
                 """
-                {"type":"object","properties":{"mode":{"type":"string","enum":["ACTIVE","COUNTS","RECENT"]},"limit":{"type":"integer","minimum":1,"maximum":5},"cursor":{"type":"string","maxLength":512}},"required":["mode"],"additionalProperties":false}
+                {"type":"object","properties":{"mode":{"type":"string","enum":["ACTIVE","COUNTS","RECENT"]},"limit":{"type":"integer","minimum":1,"maximum":5,"description":"Optional for ACTIVE or RECENT only; omit for COUNTS."},"cursor":{"type":"string","maxLength":512,"description":"Only a nextCursor returned for the same mode in this turn; otherwise omit. Never for COUNTS."}},"required":["mode"],"additionalProperties":false}
                 """));
     }
 
@@ -112,7 +112,8 @@ public class CompanionLearningPathToolHandler implements CompanionToolHandler {
                     page.asOf(),limit,extra);
             return output;
         } catch (InvalidArguments invalid) {
-            return response.invalid();
+            return response.json(Map.of("status", "INVALID_ARGUMENTS", "message",
+                    "Use mode ACTIVE, COUNTS or RECENT. For COUNTS send mode alone. For ACTIVE/RECENT omit optional fields unless needed; use only a returned same-mode nextCursor."));
         } catch (LearningPathCompanionReadException failure) {
             return switch (failure.getReason()) {
                 case INVALID_QUERY -> response.invalid();

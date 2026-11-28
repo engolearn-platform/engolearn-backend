@@ -29,7 +29,7 @@ public class CompanionTopicToolHandler implements CompanionToolHandler {
                         {"type":"object","properties":{"keyword":{"type":"string","minLength":1,"maxLength":80},"level":{"type":"string","enum":["A1","A2","B1","B2","C1","C2"]},"limit":{"type":"integer","minimum":1,"maximum":5},"cursor":{"type":"string","maxLength":512}},"additionalProperties":false}
                         """),
                 new CompanionToolDefinition("getTopicLearningProgress",
-                        "RESUME returns current visible progress and verified active or next eligible items, not exact position. COUNTS returns separate completed topics and completed items. No dated topic history.",
+                        "RESUME returns current visible progress and verified active or next eligible items, not exact position. COUNTS returns separate completed topics and completed items; send only mode=COUNTS without limit or cursor. No dated topic history.",
                         """
                         {"type":"object","properties":{"mode":{"type":"string","enum":["RESUME","COUNTS"]},"limit":{"type":"integer","minimum":1,"maximum":5},"cursor":{"type":"string","maxLength":512}},"required":["mode"],"additionalProperties":false}
                         """));
