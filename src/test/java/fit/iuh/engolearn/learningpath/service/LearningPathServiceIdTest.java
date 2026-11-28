@@ -27,7 +27,7 @@ class LearningPathServiceIdTest {
     @Test
     void detailAndSearchPreserveIdAndSortDistinctResultsByCreationTime() {
         LearningPathRepository repository = mock(LearningPathRepository.class);
-        LearningPathService service = new LearningPathServiceImpl(repository, mock(AssessmentResults.class));
+        LearningPathService service = new LearningPathServiceImpl(fit.iuh.engolearn.microskill.MicroSkillFixtures.lookup(), repository, mock(AssessmentResults.class));
         String userId = new ObjectId().toHexString();
         ObjectId olderId = new ObjectId();
         LearningPath older = path(olderId, "2026-10-27T03:00:00Z");
@@ -51,7 +51,7 @@ class LearningPathServiceIdTest {
     void listResolvesDistinctSourceIdsInOneOwnerScopedBatchAndKeepsTheStoredSource() {
         LearningPathRepository repository = mock(LearningPathRepository.class);
         AssessmentResults periodicTests = mock(AssessmentResults.class);
-        LearningPathService service = new LearningPathServiceImpl(repository, periodicTests);
+        LearningPathService service = new LearningPathServiceImpl(fit.iuh.engolearn.microskill.MicroSkillFixtures.lookup(), repository, periodicTests);
         String userId = new ObjectId().toHexString();
         String attemptId = "native-assessment-id";
         LearningPath first = path(new ObjectId(), "2026-11-01T03:00:00Z");

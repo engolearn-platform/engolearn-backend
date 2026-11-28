@@ -78,9 +78,9 @@ class LearningPathCreationStandaloneIntegrationTest {
                 var periodicTests = new AssessmentContractsServiceImpl(new MongoAssessmentRepository(template),
                         mock(AssessmentTransactions.class), new org.springframework.mock.env.MockEnvironment());
                 QuestionPoolRepository questionPool = new QuestionPoolRepository(template);
-                LearningPathRecommendationService recommendations = new LearningPathRecommendationServiceImpl(
+                LearningPathRecommendationService recommendations = new LearningPathRecommendationServiceImpl(fit.iuh.engolearn.microskill.MicroSkillFixtures.lookup(),
                         periodicTests, paths, questionPool, user -> Optional.of(CefrLevel.B1));
-                LearningPathCreationService creation = new LearningPathCreationServiceImpl(
+                LearningPathCreationService creation = new LearningPathCreationServiceImpl(fit.iuh.engolearn.microskill.MicroSkillFixtures.lookup(),
                         recommendations, periodicTests, paths, questionPool,
                         new LearningPathAudioServiceImpl(mock(MediaManagement.class)));
                 CreateLearningPathRequest request = new CreateLearningPathRequest(

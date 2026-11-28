@@ -17,7 +17,7 @@ import fit.iuh.engolearn.shared.enums.CefrLevel;
 import fit.iuh.engolearn.learningpath.exception.QuestionPublicationRejectedException;
 import fit.iuh.engolearn.learningpath.model.vo.QuestionPublicationReviewVo;
 import fit.iuh.engolearn.learningpath.service.QuestionPoolQuestionReadinessService;
-import fit.iuh.engolearn.learningpath.utils.QuestionPoolMicroSkills;
+import fit.iuh.engolearn.microskill.contract.MicroSkillLookup;
 import fit.iuh.engolearn.learningpath.utils.QuestionPoolTransactionTemplate;
 import fit.iuh.engolearn.learningpath.dto.response.*;
 import fit.iuh.engolearn.learningpath.exception.QuestionPoolPassageNotFoundException;
@@ -50,6 +50,7 @@ import org.springframework.transaction.TransactionException;
 @Service
 @RequiredArgsConstructor
 public class QuestionPoolQuestionManagementServiceImpl implements QuestionPoolQuestionManagementService {
+    private final MicroSkillLookup microSkills;
     private final QuestionPoolQuestionRepository questions;
     private final QuestionPoolPassageManagementService passages;
     private final QuestionPoolPassageRepository passageRepository;
@@ -143,6 +144,9 @@ public class QuestionPoolQuestionManagementServiceImpl implements QuestionPoolQu
 
     private PublishQuestionPoolQuestionResponse publishPrepared(PreparedPublication prepared, String actor, Instant now) {
         var source = prepared.source();
+        if (microSkills.retainActive(source.microSkill()).filter(value -> value.skill().equals(source.skill())).isEmpty()) {
+            throw new QuestionMutationConflictException("Micro-skill is no longer active; reload before publishing");
+        }
         var evaluation = prepared.evaluation();
         if (!blank(evaluation.passageId()) && !passageRepository.fenceQuestionPublication(evaluation.passageId(), evaluation.passageRevision(), source.skill(), source.level(), actor, now)) {
             throw new QuestionMutationConflictException("Passage changed while publishing; reload before retrying");
@@ -312,7 +316,8 @@ public class QuestionPoolQuestionManagementServiceImpl implements QuestionPoolQu
 
     private void validateContent(QuestionPoolQuestion question) {
         if (question.getSkill() == null || question.getLevel() == null || question.getMicroSkill() == null
-                || !QuestionPoolMicroSkills.belongsTo(question.getMicroSkill(), question.getSkill().name())) {
+                || !microSkills.retainActive(question.getMicroSkill())
+                        .filter(value -> value.skill().equals(question.getSkill().name())).isPresent()) {
             throw new InvalidQuestionException("Use a supported canonical micro-skill belonging to the selected skill");
         }
         if (blank(question.getPrompt()) || question.getPrompt().length() > 50000
@@ -397,7 +402,7 @@ public class QuestionPoolQuestionManagementServiceImpl implements QuestionPoolQu
                 question.getQuestionId(), question.getSkill(), question.getMicroSkill(), question.getLevel(),
                 question.getPassageId(), question.getPrompt(), question.getStatus(), question.getRevision(),
                 question.getCreatedAt(), question.getUpdatedAt())).toList();
-        return new QuestionPoolQuestionListResponse(items, request.page(), request.size(), page.getTotalElements(), page.getTotalPages());
+        return new QuestionPoolQuestionListResponse(items, request.page(), request.size(), page.getTotalElements(), page.getTotalPages(), this.microSkills.list());
     }
 
     @Override
@@ -420,6 +425,6 @@ public class QuestionPoolQuestionManagementServiceImpl implements QuestionPoolQu
         return new QuestionPoolQuestionDetailResponse(question.getQuestionId(), question.getSkill(), question.getMicroSkill(),
                 question.getLevel(), question.getPassageId(), question.getPrompt(), options, question.getCorrectOptionId(),
                 question.getExplanation(), question.getStatus(), question.getRevision(), question.getCreatedBy(), question.getUpdatedBy(),
-                question.getCreatedAt(), question.getUpdatedAt(), passage, publicationReview);
+                question.getCreatedAt(), question.getUpdatedAt(), passage, publicationReview, this.microSkills.list());
     }
 }

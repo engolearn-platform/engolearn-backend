@@ -53,8 +53,16 @@ requiring a current profile. Assessment level remains source metadata.
 `COMPLETED` and `CANCELLED`. Counts for all three sections are returned in the same envelope.
 
 `GET /api/learning-paths/search?keyword=<keyword>` searches the owner's active and completed
-paths by exact `DD/MM/YYYY` creation date or partial case-insensitive micro-skill name.
-Cancelled paths are excluded. Results are distinct and ordered by creation time descending.
+paths by exact `DD/MM/YYYY` creation date, partial case-insensitive canonical micro-skill
+name, or partial case-insensitive Vietnamese `displayNameVi` from the current catalog.
+Vietnamese matches resolve to canonical names through `microskill.contract.MicroSkillLookup`,
+including inactive definitions so historical paths remain searchable. Matching is literal
+and preserves Vietnamese accents (accent-free transliteration is not supported). Leading
+and trailing keyword whitespace is ignored. Updated catalog labels take effect on the next
+search; no path migration or stored-label copy is needed. Canonical search continues to
+work for legacy paths whose definitions are absent from the catalog.
+Cancelled and foreign-owner paths are excluded. Results from all matches are deduplicated
+and ordered by creation time descending; section counts remain unfiltered.
 
 Items retain `sourceAssessmentAttemptId: string|null`. The source is stored directly in
 `learning_paths.source.assessment_attempt_id`. One owner-scoped batch call to
@@ -165,3 +173,7 @@ actions during creation and navigates to `/learning-paths/:pathId?week=1` on suc
   practice/lifecycle/passage regressions also passed. `git diff --check` passed.
 - Frontend integration was not changed or verified here. Its create payload must
   be updated as described above before testing the full confirmation dialog flow.
+
+## Micro-skill catalog compatibility
+
+Recommendation uses the [shared catalog](../microskill/README.md#learning-path-integration). Existing Assessment mapping and canonical request fields remain unchanged. Recommendation, list/search and detail responses add `microSkillCatalog`; new path baseline entries also store `micro_skill_id`. Existing paths need no rewrite.

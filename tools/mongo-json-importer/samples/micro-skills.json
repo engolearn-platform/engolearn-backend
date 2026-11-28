@@ -1,0 +1,210 @@
+{
+  "metadata": {
+    "name": "micro-skill-catalog",
+    "version": 1
+  },
+  "collections": {
+    "micro_skills": [
+      {
+        "_id": "MS-L-GIST",
+        "code": "MS-L-GIST",
+        "canonical_name": "Listening for Gist",
+        "display_name_vi": "Nghe ý chính",
+        "description_vi": "Hiểu chủ đề và thông điệp chính của đoạn nghe, không cần hiểu từng từ.",
+        "skill": "LISTENING",
+        "status": "ACTIVE",
+        "display_order": 1,
+        "revision": 1,
+        "referenced": true,
+        "created_by": "catalog-seed",
+        "updated_by": "catalog-seed",
+        "created_at": {
+          "$date": "2026-11-27T00:00:00Z"
+        },
+        "updated_at": {
+          "$date": "2026-11-27T00:00:00Z"
+        }
+      },
+      {
+        "_id": "MS-L-SPECIFIC",
+        "code": "MS-L-SPECIFIC",
+        "canonical_name": "Listening for Specific Information",
+        "display_name_vi": "Nghe tìm thông tin cụ thể",
+        "description_vi": "Tìm đúng thông tin được yêu cầu như thời gian, địa điểm, tên hoặc số lượng.",
+        "skill": "LISTENING",
+        "status": "ACTIVE",
+        "display_order": 2,
+        "revision": 1,
+        "referenced": true,
+        "created_by": "catalog-seed",
+        "updated_by": "catalog-seed",
+        "created_at": {
+          "$date": "2026-11-27T00:00:00Z"
+        },
+        "updated_at": {
+          "$date": "2026-11-27T00:00:00Z"
+        }
+      },
+      {
+        "_id": "MS-L-DETAIL",
+        "code": "MS-L-DETAIL",
+        "canonical_name": "Listening for Detail & Relationship",
+        "display_name_vi": "Nghe hiểu chi tiết và mối liên hệ",
+        "description_vi": "Hiểu chi tiết và quan hệ nguyên nhân, kết quả, trình tự hoặc so sánh trong đoạn nghe.",
+        "skill": "LISTENING",
+        "status": "ACTIVE",
+        "display_order": 3,
+        "revision": 1,
+        "referenced": true,
+        "created_by": "catalog-seed",
+        "updated_by": "catalog-seed",
+        "created_at": {
+          "$date": "2026-11-27T00:00:00Z"
+        },
+        "updated_at": {
+          "$date": "2026-11-27T00:00:00Z"
+        }
+      },
+      {
+        "_id": "MS-L-INFERENCE",
+        "code": "MS-L-INFERENCE",
+        "canonical_name": "Listening for Inference",
+        "display_name_vi": "Nghe hiểu ý ngầm",
+        "description_vi": "Dựa vào lời nói và ngữ cảnh để suy ra điều không được nói trực tiếp.",
+        "skill": "LISTENING",
+        "status": "ACTIVE",
+        "display_order": 4,
+        "revision": 1,
+        "referenced": true,
+        "created_by": "catalog-seed",
+        "updated_by": "catalog-seed",
+        "created_at": {
+          "$date": "2026-11-27T00:00:00Z"
+        },
+        "updated_at": {
+          "$date": "2026-11-27T00:00:00Z"
+        }
+      },
+      {
+        "_id": "MS-L-ATTITUDE",
+        "code": "MS-L-ATTITUDE",
+        "canonical_name": "Listening for Attitude / Purpose",
+        "display_name_vi": "Nghe nhận biết thái độ và mục đích",
+        "description_vi": "Nhận biết cảm xúc, thái độ và mục đích người nói qua từ ngữ, giọng điệu, ngữ cảnh.",
+        "skill": "LISTENING",
+        "status": "ACTIVE",
+        "display_order": 5,
+        "revision": 1,
+        "referenced": true,
+        "created_by": "catalog-seed",
+        "updated_by": "catalog-seed",
+        "created_at": {
+          "$date": "2026-11-27T00:00:00Z"
+        },
+        "updated_at": {
+          "$date": "2026-11-27T00:00:00Z"
+        }
+      },
+      {
+        "_id": "MS-R-GIST",
+        "code": "MS-R-GIST",
+        "canonical_name": "Reading for Gist",
+        "display_name_vi": "Đọc tìm ý chính",
+        "description_vi": "Xác định chủ đề và thông điệp chính của đoạn hoặc toàn bài đọc.",
+        "skill": "READING",
+        "status": "ACTIVE",
+        "display_order": 6,
+        "revision": 1,
+        "referenced": true,
+        "created_by": "catalog-seed",
+        "updated_by": "catalog-seed",
+        "created_at": {
+          "$date": "2026-11-27T00:00:00Z"
+        },
+        "updated_at": {
+          "$date": "2026-11-27T00:00:00Z"
+        }
+      },
+      {
+        "_id": "MS-R-SPECIFIC",
+        "code": "MS-R-SPECIFIC",
+        "canonical_name": "Reading for Specific Information",
+        "display_name_vi": "Đọc tìm thông tin cụ thể",
+        "description_vi": "Tìm đúng thông tin cần thiết như hạn đăng ký, địa điểm hoặc giá trong văn bản.",
+        "skill": "READING",
+        "status": "ACTIVE",
+        "display_order": 7,
+        "revision": 1,
+        "referenced": true,
+        "created_by": "catalog-seed",
+        "updated_by": "catalog-seed",
+        "created_at": {
+          "$date": "2026-11-27T00:00:00Z"
+        },
+        "updated_at": {
+          "$date": "2026-11-27T00:00:00Z"
+        }
+      },
+      {
+        "_id": "MS-R-DETAIL",
+        "code": "MS-R-DETAIL",
+        "canonical_name": "Reading for Detail & Relationship",
+        "display_name_vi": "Đọc hiểu chi tiết và mối liên hệ",
+        "description_vi": "Hiểu chi tiết và quan hệ giữa các ý, như nguyên nhân, kết quả, đối lập hoặc trình tự.",
+        "skill": "READING",
+        "status": "ACTIVE",
+        "display_order": 8,
+        "revision": 1,
+        "referenced": true,
+        "created_by": "catalog-seed",
+        "updated_by": "catalog-seed",
+        "created_at": {
+          "$date": "2026-11-27T00:00:00Z"
+        },
+        "updated_at": {
+          "$date": "2026-11-27T00:00:00Z"
+        }
+      },
+      {
+        "_id": "MS-R-VOCABULARY",
+        "code": "MS-R-VOCABULARY",
+        "canonical_name": "Vocabulary in Context",
+        "display_name_vi": "Hiểu từ vựng trong ngữ cảnh",
+        "description_vi": "Xác định nghĩa phù hợp của từ/cụm từ dựa vào câu và đoạn xung quanh.",
+        "skill": "READING",
+        "status": "ACTIVE",
+        "display_order": 9,
+        "revision": 1,
+        "referenced": true,
+        "created_by": "catalog-seed",
+        "updated_by": "catalog-seed",
+        "created_at": {
+          "$date": "2026-11-27T00:00:00Z"
+        },
+        "updated_at": {
+          "$date": "2026-11-27T00:00:00Z"
+        }
+      },
+      {
+        "_id": "MS-R-INFERENCE",
+        "code": "MS-R-INFERENCE",
+        "canonical_name": "Inference & Author's View",
+        "display_name_vi": "Đọc hiểu ý ngầm và quan điểm tác giả",
+        "description_vi": "Suy ra thông tin không viết trực tiếp và nhận biết quan điểm, thái độ tác giả qua diễn đạt, lập luận.",
+        "skill": "READING",
+        "status": "ACTIVE",
+        "display_order": 10,
+        "revision": 1,
+        "referenced": true,
+        "created_by": "catalog-seed",
+        "updated_by": "catalog-seed",
+        "created_at": {
+          "$date": "2026-11-27T00:00:00Z"
+        },
+        "updated_at": {
+          "$date": "2026-11-27T00:00:00Z"
+        }
+      }
+    ]
+  }
+}

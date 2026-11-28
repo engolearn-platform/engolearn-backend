@@ -525,3 +525,7 @@ Verification on 2026-11-27:
   business data was written. Rollback/write-race checks use only the disposable test DB.
 - Verification is scoped to Learning Path per the existing owner instruction; the
   repository-wide suite and manual frontend/live Cloudinary checks were not run.
+
+## Shared micro-skill catalog
+
+Authoring and publication validate active definitions through `microskill.contract`; list/detail responses add `microSkillCatalog`. Canonical request fields remain compatible. [Catalog and deletion protection](../microskill/README.md).
