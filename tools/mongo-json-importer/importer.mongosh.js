@@ -52,9 +52,16 @@
     var groups = new Map();
     var seen = new Map();
     var total = 0;
+    var sharedDuplicates = 0;
     files.forEach(function (filePath) {
+      var fileSeen = new Set();
       var parsed;
-      try { parsed = EJSON.parse(fs.readFileSync(filePath, "utf8")); }
+      var original;
+      try {
+        var source = fs.readFileSync(filePath, "utf8");
+        parsed = EJSON.parse(source);
+        original = JSON.parse(source);
+      }
       catch (error) { fail("Cannot parse '" + filePath + "': " + error.message); }
       if (!isObject(parsed) || !isObject(parsed.collections)) {
         fail("'" + filePath + "' must contain a top-level collections object.");
@@ -73,15 +80,27 @@
             fail("Missing _id at " + filePath + " -> " + name + "[" + index + "].");
           }
           var key = name + "::" + idKey(document._id);
-          if (seen.has(key)) fail("Duplicate _id in input for collection '" + name + "': " + idKey(document._id));
-          seen.set(key, filePath);
+          if (fileSeen.has(key)) fail("Duplicate _id within file '" + filePath + "' for collection '" + name + "': " + idKey(document._id));
+          fileSeen.add(key);
+          var inputDocument = JSON.stringify(original.collections[name][index]);
+          if (seen.has(key)) {
+            var previous = seen.get(key);
+            // Compare original Extended JSON as well as normalized identity so different type declarations cannot be silently merged.
+            if (previous.inputDocument !== inputDocument || idKey(previous.document) !== idKey(document)) {
+              fail("Conflicting duplicate _id for collection '" + name + "': " + idKey(document._id)
+                + " in '" + previous.file + "' and '" + filePath + "'.");
+            }
+            sharedDuplicates++;
+            return;
+          }
+          seen.set(key, { file: filePath, document: document, inputDocument: inputDocument });
           groups.get(name).push({ file: filePath, document: document });
           total++;
         });
       });
     });
     if (total === 0) fail("Input files contain no documents.");
-    return { groups: groups, total: total };
+    return { groups: groups, total: total, sharedDuplicates: sharedDuplicates };
   }
 
   function findExisting(collection, entries, batchSize) {
@@ -137,6 +156,7 @@
       totals: {
         collections: plans.length,
         documents: loaded.total,
+        identicalCrossFileDuplicates: loaded.sharedDuplicates,
         alreadyExisting: conflictsTotal,
         newDocuments: loaded.total - conflictsTotal,
         wouldSkip: policy === "skip" ? conflictsTotal : 0,

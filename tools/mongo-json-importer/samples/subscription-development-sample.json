@@ -43,8 +43,8 @@
             {
               "code": "AI_COMPANION",
               "title": "AI Companion",
-              "description": "Trò chuyện với AI Companion với hạn mức 15.000 token mỗi ngày.",
-              "display_value": "15.000 token/ngày",
+              "description": "Trò chuyện với AI Companion với hạn mức 10.000.000 token mỗi ngày.",
+              "display_value": "10.000.000 token/ngày",
               "sort_order": 2
             }
           ],
@@ -88,8 +88,8 @@
             {
               "code": "AI_COMPANION",
               "title": "AI Companion",
-              "description": "Trò chuyện với AI Companion với hạn mức 50.000 token mỗi ngày.",
-              "display_value": "50.000 token/ngày",
+              "description": "Trò chuyện với AI Companion với hạn mức 50.000.000 token mỗi ngày.",
+              "display_value": "50.000.000 token/ngày",
               "sort_order": 2
             }
           ],
@@ -146,7 +146,7 @@
             {
               "quota_type": "AI_COMPANION_TOKEN_USAGE",
               "display_name": "Token AI Companion",
-              "limit": 15000,
+              "limit": 10000000,
               "unit": "TOKEN",
               "period": "DAILY",
               "display_order": 2
@@ -175,8 +175,8 @@
             {
               "code": "AI_COMPANION",
               "title": "AI Companion",
-              "description": "Trò chuyện với AI Companion với hạn mức 15.000 token mỗi ngày.",
-              "display_value": "15.000 token/ngày",
+              "description": "Trò chuyện với AI Companion với hạn mức 10.000.000 token mỗi ngày.",
+              "display_value": "10.000.000 token/ngày",
               "sort_order": 2
             }
           ]
@@ -219,7 +219,7 @@
             {
               "quota_type": "AI_COMPANION_TOKEN_USAGE",
               "display_name": "Token AI Companion",
-              "limit": 50000,
+              "limit": 50000000,
               "unit": "TOKEN",
               "period": "DAILY",
               "display_order": 2
@@ -248,8 +248,8 @@
             {
               "code": "AI_COMPANION",
               "title": "AI Companion",
-              "description": "Trò chuyện với AI Companion với hạn mức 50.000 token mỗi ngày.",
-              "display_value": "50.000 token/ngày",
+              "description": "Trò chuyện với AI Companion với hạn mức 50.000.000 token mỗi ngày.",
+              "display_value": "50.000.000 token/ngày",
               "sort_order": 2
             }
           ]
@@ -292,7 +292,7 @@
             {
               "quota_type": "AI_COMPANION_TOKEN_USAGE",
               "display_name": "Token AI Companion",
-              "limit": 50000,
+              "limit": 50000000,
               "unit": "TOKEN",
               "period": "DAILY",
               "display_order": 2
@@ -321,8 +321,8 @@
             {
               "code": "AI_COMPANION",
               "title": "AI Companion",
-              "description": "Trò chuyện với AI Companion với hạn mức 50.000 token mỗi ngày.",
-              "display_value": "50.000 token/ngày",
+              "description": "Trò chuyện với AI Companion với hạn mức 50.000.000 token mỗi ngày.",
+              "display_value": "50.000.000 token/ngày",
               "sort_order": 2
             }
           ]
