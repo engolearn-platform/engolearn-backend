@@ -17,6 +17,7 @@ import org.springframework.stereotype.Component;
 import java.io.InputStream;
 import java.net.URI;
 import java.time.Instant;
+import java.util.HashMap;
 import java.util.Map;
 
 @Component
@@ -40,14 +41,16 @@ public class CloudinaryMediaStorageProvider implements MediaStorageProvider {
         try {
             // cloudinary-http5 2.5.0 upload(Object, Map) does not accept InputStream.
             // uploadLarge accepts streams and sends bounded chunks without buffering the entire file.
-            // Explicit filename also avoids the SDK mutating our immutable options map.
-            Map<?, ?> result = client.cloudinary().uploader().uploadLarge(content, Map.of(
+            Map<String, Object> options = new HashMap<>(Map.of(
                     "resource_type", descriptor.resourceType().cloudinaryValue(),
                     "type", deliveryType.cloudinaryValue(),
                     "public_id", publicId,
                     "overwrite", false,
-                    "format", descriptor.format(),
                     "filename", "media." + descriptor.format()));
+            if (!isProtectedWav(deliveryType, descriptor.format())) {
+                options.put("format", descriptor.format());
+            }
+            Map<?, ?> result = client.cloudinary().uploader().uploadLarge(content, options);
             Object versionValue = result.get("version");
             Long version = versionValue instanceof Number number ? number.longValue() : null;
             Object returnedPublicId = result.get("public_id");
@@ -95,7 +98,8 @@ public class CloudinaryMediaStorageProvider implements MediaStorageProvider {
     public URI privateDownloadUrl(MediaStorageMetadataVo storage, Instant expiresAt) {
         requireConfigured();
         try {
-            String url = client.cloudinary().privateDownload(storage.getPublicId(), storage.getFormat(), Map.of(
+            String format = isProtectedWav(storage.getDeliveryType(), storage.getFormat()) ? null : storage.getFormat();
+            String url = client.cloudinary().privateDownload(storage.getPublicId(), format, Map.of(
                     "resource_type", storage.getResourceType().cloudinaryValue(),
                     "type", storage.getDeliveryType().cloudinaryValue(),
                     "expires_at", expiresAt.getEpochSecond()));
@@ -128,6 +132,11 @@ public class CloudinaryMediaStorageProvider implements MediaStorageProvider {
         } catch (Exception cleanupFailure) {
             log.warn("Cloudinary partial-upload cleanup failed for publicId={}", publicId, cleanupFailure);
         }
+    }
+
+    // The optional format parameter asks Cloudinary to convert the file.
+    private boolean isProtectedWav(MediaDeliveryType type, String format) {
+        return type == MediaDeliveryType.AUTHENTICATED && "wav".equalsIgnoreCase(format);
     }
 
     private MediaDeliveryType deliveryType(MediaAccessPolicy accessPolicy) {

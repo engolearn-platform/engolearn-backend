@@ -125,7 +125,7 @@ class AssessmentMediaTest {
         verifyNoInteractions(assetRepo, cloud);
         when(assetRepo.reserve(eq(digest), any(), any(), any())).thenReturn(true);
         when(assetRepo.complete(any(), any())).thenReturn(true);
-        when(cloud.upload(any())).thenReturn(new MediaUploadResultDto("media-id", "audio/wav", Files.size(path),
+        when(cloud.uploadVerifiedWav(any(), eq(digest))).thenReturn(new MediaUploadResultDto("media-id", "audio/wav", Files.size(path),
                 MediaAccessPolicy.PROTECTED));
         try (var input = Files.newInputStream(path)) {
             assertThat(provider.upload(input, digest, false)).isEqualTo(digest);
@@ -135,7 +135,8 @@ class AssessmentMediaTest {
             assertThat(provider.upload(input, digest, false)).isEqualTo(digest);
         }
         var command = ArgumentCaptor.forClass(UploadMediaCommandDto.class);
-        verify(cloud).upload(command.capture());
+        verify(cloud).uploadVerifiedWav(command.capture(), eq(digest));
+        verify(cloud).verifyWavDelivery(eq("media-id"), eq(digest), anyLong());
         assertThat(command.getValue().accessPolicy()).isEqualTo(MediaAccessPolicy.PROTECTED);
         assertThat(command.getValue().sizeBytes()).isEqualTo(Files.size(path));
     }

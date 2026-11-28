@@ -47,10 +47,16 @@ Media constructs a secure HTTPS delivery URL from persisted provider metadata. T
 Media uploads with Cloudinary `type=authenticated` and resolves with the SDK's `privateDownload` / `private_download_url` mechanism, passing:
 
 - persisted Cloudinary `public_id`;
-- file `format`;
+- file `format` for protected formats other than WAV;
 - `resource_type`;
 - `type=authenticated`;
 - `expires_at` as a Unix timestamp in seconds.
+
+Protected WAV upload and private download omit the optional conversion `format`.
+The upload filename still has a WAV extension. Validate the delivered size and SHA-256
+when the owning feature requires byte equivalence. Existing objects that differ from
+their source need separate recovery. Keep the existing media ID for exact-byte
+recovery so draft, published and historical references continue to resolve.
 
 The exact expiry sent to Cloudinary is returned in `MediaDeliveryDto.expiresAt`. The default is 60 seconds and the implementation rejects configured values outside 1–60 seconds.
 

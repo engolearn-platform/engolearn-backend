@@ -13,6 +13,8 @@ import org.mockito.ArgumentCaptor;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
+import java.net.URI;
+import java.time.Instant;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -87,9 +89,37 @@ class CloudinaryMediaStorageProviderTest {
         assertThat(options.getValue()).containsEntry("resource_type", "video")
                 .containsEntry("type", "authenticated")
                 .containsEntry("filename", "media.mp3")
+                .containsEntry("format", "mp3")
                 .containsEntry("overwrite", false);
         assertThat(result.getDeliveryType()).isEqualTo(MediaDeliveryType.AUTHENTICATED);
         assertThat(result.getResourceType()).isEqualTo(MediaResourceType.VIDEO);
         assertThat(result.getVersion()).isEqualTo(456L);
+    }
+    @Test
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    void protectedWavUploadAndDownloadRequestOriginalBytes() throws Exception {
+        var stream = new ByteArrayInputStream(new byte[0]);
+        String id = "engolearn/media/test-wav";
+        when(uploader.uploadLarge(same(stream), anyMap())).thenReturn(Map.of("public_id", id, "format", "wav"));
+
+        var asset = provider.upload(id, new MediaFileDescriptor("audio/wav", "wav", MediaResourceType.VIDEO),
+                MediaAccessPolicy.PROTECTED, stream);
+
+        ArgumentCaptor<Map> options = ArgumentCaptor.forClass(Map.class);
+        verify(uploader).uploadLarge(same(stream), options.capture());
+        assertThat(options.getValue()).doesNotContainKey("format").containsEntry("resource_type", "video")
+                .containsEntry("type", "authenticated").containsEntry("filename", "media.wav")
+                .containsEntry("overwrite", false);
+        assertThat(asset.getFormat()).isEqualTo("wav");
+
+        var expires = Instant.parse("2026-11-28T04:00:00Z");
+        var delivery = Map.<String, Object>of("resource_type", "video", "type", "authenticated",
+                "expires_at", expires.getEpochSecond());
+        when(cloudinary.privateDownload(id, null, delivery)).thenReturn("https://example.test/original");
+        assertThat(provider.privateDownloadUrl(asset, expires)).isEqualTo(URI.create("https://example.test/original"));
+
+        asset.setFormat("mp3");
+        when(cloudinary.privateDownload(id, "mp3", delivery)).thenReturn("https://example.test/mp3");
+        assertThat(provider.privateDownloadUrl(asset, expires)).isEqualTo(URI.create("https://example.test/mp3"));
     }
 }

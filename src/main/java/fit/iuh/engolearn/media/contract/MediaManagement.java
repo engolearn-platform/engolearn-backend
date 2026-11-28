@@ -18,6 +18,13 @@ public interface MediaManagement {
 
     MediaUploadResultDto upload(UploadMediaCommandDto command);
 
+    /**
+     * Uploads a WAV and verifies the delivered source bytes before registering its media ID.
+     * The caller supplies the SHA-256 of the validated source and authorizes the upload.
+     * Call outside a database transaction.
+     */
+    MediaUploadResultDto uploadVerifiedWav(UploadMediaCommandDto command, String sha256);
+
     MediaDeliveryDto resolve(String mediaId);
 
     /**

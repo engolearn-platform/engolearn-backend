@@ -357,9 +357,10 @@ class AssessmentMongoIntegrationTest {
             var firstReview=mvc.perform(get(reviewPath).cookie(userCookie)).andExpect(status().isOk()).andReturn().getResponse();
             var firstUri=URI.create(mapper.readTree(firstReview.getContentAsString()).at("/data/url").asString());
             assertThat(http.send(HttpRequest.newBuilder(firstUri).build(),HttpResponse.BodyHandlers.discarding()).statusCode()).isEqualTo(404);
-            storage.setAvailable(url,true);
+            var restoredUri = storage.recoverUnderSameMediaId(mongo, url, wav);
             var retry=mvc.perform(get(reviewPath).cookie(userCookie)).andExpect(status().isOk()).andReturn().getResponse();
             var retryUri=URI.create(mapper.readTree(retry.getContentAsString()).at("/data/url").asString());
+            assertThat(retryUri).isEqualTo(restoredUri);
             var recovered=http.send(HttpRequest.newBuilder(retryUri).build(),HttpResponse.BodyHandlers.ofByteArray());
             assertThat(recovered.statusCode()).isEqualTo(200);
             assertThat(recovered.body()).containsExactly(wav);

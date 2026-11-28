@@ -315,6 +315,43 @@ class AssessmentDraftIntegrationTest {
     }
 
     @Test
+    void alteredWavIsNotRegisteredAndAnExistingDigestIsCheckedOnRetry() throws Exception {
+        String admin = login("ADMIN");
+        byte[] wav = Files.readAllBytes(Path.of("tools/mongo-json-importer/samples/assessment-media/sound-check.wav"));
+        String digest = HexFormat.of().formatHex(java.security.MessageDigest.getInstance("SHA-256").digest(wav));
+        String route = "/api/v1/assessment/admin/media";
+        var file = new Part("file", "source.wav", "audio/wav", wav);
+        var registered = mongoTemplate.getCollection("assessment_audio_assets");
+        var media = mongoTemplate.getCollection("media_assets");
+
+        storage.addBytesOnUpload(34);
+        var altered = multipart(route, admin, file);
+        assertThat(altered.statusCode()).as(altered.body()).isEqualTo(503);
+        assertThat(registered.countDocuments()).isZero();
+        assertThat(media.countDocuments()).isZero();
+        assertThat(storage.stored()).isZero();
+
+        storage.addBytesOnUpload(0);
+        assertThat(multipart(route, admin, file).statusCode()).isEqualTo(200);
+        var association = registered.find(new Document("_id", digest)).first();
+        assertThat(association).isNotNull();
+        String mediaId = association.getString("media_id");
+        URI url = storage.urlFor("engolearn/media/" + mediaId);
+        storage.replaceObject(url, Arrays.copyOf(wav, wav.length + 34));
+
+        var stale = multipart(route, admin, file);
+        assertThat(stale.statusCode()).as(stale.body()).isEqualTo(503);
+        assertThat(registered.find(new Document("_id", digest)).first()).isEqualTo(association);
+        assertThat(media.countDocuments()).isEqualTo(1);
+        assertThat(storage.stored()).isEqualTo(1);
+
+        storage.replaceObject(url, wav);
+        assertThat(multipart(route, admin, file).statusCode()).isEqualTo(200);
+        assertThat(registered.find(new Document("_id", digest)).first()).isEqualTo(association);
+        assertThat(media.countDocuments()).isEqualTo(1);
+    }
+
+    @Test
     void workbookPreviewAndMediaRetryCreateExactlyOneReviewedRevision() throws Exception {
         workbook(PublicationCase.RECOVERY);
     }
@@ -476,7 +513,10 @@ class AssessmentDraftIntegrationTest {
             assertThat(mongoTemplate.getCollection("assessment_paper_drafts").find().first()).isEqualTo(unchangedDraft);
             assertThat(papers.countDocuments()).isEqualTo(1);
             assertThat(live).isEqualTo(paper);
-            storage.replaceObject(uri, original);
+            var recovered = storage.recoverUnderSameMediaId(mongoTemplate, uri, original);
+            assertThat(http.send(HttpRequest.newBuilder(recovered).build(), HttpResponse.BodyHandlers.ofByteArray()).body())
+                    .containsExactly(original);
+            assertThat(mongoTemplate.getCollection("assessment_paper_drafts").find().first()).isEqualTo(unchangedDraft);
         }
         if (publicationCase == PublicationCase.RETIRE) {
             assertThat(unchangedDraft.getList("skills",Document.class)).anyMatch(s -> "R02".equals(s.getString("code")));

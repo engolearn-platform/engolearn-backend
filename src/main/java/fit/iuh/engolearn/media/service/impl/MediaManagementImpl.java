@@ -57,10 +57,25 @@ public class MediaManagementImpl implements MediaManagement {
 
     @Override
     public MediaUploadResultDto upload(UploadMediaCommandDto command) {
+        return upload(command, null);
+    }
+
+    @Override
+    public MediaUploadResultDto uploadVerifiedWav(UploadMediaCommandDto command, String sha256) {
+        if (sha256 == null || !sha256.matches("[0-9a-fA-F]{64}")) {
+            throw new MediaUploadRejectedException("A valid source SHA-256 is required");
+        }
+        return upload(command, sha256);
+    }
+
+    private MediaUploadResultDto upload(UploadMediaCommandDto command, String sourceDigest) {
         validateCommand(command);
         MediaContentInspector.InspectedMedia inspected = MediaContentInspector.inspect(
                 command.content(), command.contentType(), command.sizeBytes(),
                 maxUploadSizeBytes, maxImageUploadSizeBytes);
+        if (sourceDigest != null && !"audio/wav".equals(inspected.descriptor().contentType())) {
+            throw new MediaUploadRejectedException("Verified WAV upload requires WAV content");
+        }
         String createdBy = currentUserProvider.getCurrentUser().map(user -> user.id()).orElse(null);
 
         String mediaId = UUID.randomUUID().toString();
@@ -84,6 +99,15 @@ public class MediaManagementImpl implements MediaManagement {
                 .storage(storageMetadata)
                 .createdBy(createdBy)
                 .build();
+
+        if (sourceDigest != null) {
+            try {
+                verifyWavDelivery(asset, sourceDigest, maxUploadSizeBytes);
+            } catch (MediaStorageUnavailableException invalidDelivery) {
+                compensate(storageMetadata, mediaId);
+                throw invalidDelivery;
+            }
+        }
 
         try {
             repository.save(asset);
@@ -122,7 +146,10 @@ public class MediaManagementImpl implements MediaManagement {
 
     @Override
     public void verifyWavDelivery(String mediaId, String sha256, long maximumBytes) {
-        MediaAsset asset = requireAsset(mediaId);
+        verifyWavDelivery(requireAsset(mediaId), sha256, maximumBytes);
+    }
+
+    private void verifyWavDelivery(MediaAsset asset, String sha256, long maximumBytes) {
         if (!"audio/wav".equals(asset.getContentType()) || asset.getSizeBytes() <= 0
                 || asset.getSizeBytes() > Math.min(maxUploadSizeBytes, maximumBytes)) {
             throw new MediaStorageUnavailableException("Registered WAV has an invalid type or size");

@@ -13,7 +13,9 @@ import java.io.InputStream;
 import java.net.InetSocketAddress;
 import java.net.URI;
 import java.time.Instant;
+import java.util.Arrays;
 import java.util.Map;
+import org.bson.Document;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -21,6 +23,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Primary;
+import org.springframework.data.mongodb.core.MongoTemplate;
 
 @TestConfiguration
 public class AssessmentStorageTestSupport {
@@ -34,11 +37,28 @@ public class AssessmentStorageTestSupport {
         private final Set<String> unavailablePaths = ConcurrentHashMap.newKeySet();
         private final AtomicInteger attempts = new AtomicInteger();
         private volatile int failOnceAt = -1;
+        private volatile int extraUploadBytes;
 
         private final AtomicReference<Runnable> beforeNextRange = new AtomicReference<>();
         void onNextRange(Runnable hook) { beforeNextRange.set(hook); }
         byte[] replaceObject(URI url, byte[] bytes) {
             return files.put(url.getPath().substring(1), bytes);
+        }
+
+        URI recoverUnderSameMediaId(MongoTemplate mongo, URI oldUrl, byte[] source) {
+            String retiredObject = oldUrl.getPath().substring(1);
+            var assets = mongo.getCollection("media_assets");
+            var asset = assets.find(new Document("storage.public_id", retiredObject)).first();
+            if (asset == null) throw new IllegalStateException("Expected registered media");
+            var oldStorage = asset.get("storage", Document.class);
+            String restoredObject = retiredObject + "-restored";
+            files.put(restoredObject, source.clone());
+            var replacement = new Document(oldStorage).append("public_id", restoredObject).append("asset_id", restoredObject);
+            var match = new Document("_id", asset.get("_id")).append("storage", oldStorage);
+            if (assets.updateOne(match, new Document("$set", new Document("storage", replacement))).getMatchedCount() != 1) {
+                throw new IllegalStateException("Storage changed concurrently");
+            }
+            return urlFor(restoredObject);
         }
 
         LocalStorage() throws IOException {
@@ -72,6 +92,7 @@ public class AssessmentStorageTestSupport {
             unavailablePaths.clear();
             attempts.set(0);
             failOnceAt = -1;
+            extraUploadBytes = 0;
             beforeNextRange.set(null);
         }
 
@@ -81,6 +102,7 @@ public class AssessmentStorageTestSupport {
         }
         int stored() { return files.size(); }
         void failOnceAt(int attempt) { failOnceAt = attempt; }
+        void addBytesOnUpload(int count) { extraUploadBytes = count; }
 
         public MediaStorageMetadataVo upload(String publicId, MediaFileDescriptor descriptor,
                                              MediaAccessPolicy policy, InputStream contents) {
@@ -88,7 +110,8 @@ public class AssessmentStorageTestSupport {
                 throw new MediaStorageUnavailableException("Isolated provider failure");
             }
             try {
-                files.put(publicId, contents.readAllBytes());
+                byte[] source = contents.readAllBytes();
+                files.put(publicId, Arrays.copyOf(source, source.length + extraUploadBytes));
             } catch (IOException error) {
                 throw new MediaStorageUnavailableException("Cannot read fixture", error);
             }
@@ -103,7 +126,11 @@ public class AssessmentStorageTestSupport {
         public void close() { server.stop(0); }
 
         private URI uri(MediaStorageMetadataVo storage) {
-            return URI.create("http://127.0.0.1:" + server.getAddress().getPort() + "/" + storage.getPublicId());
+            return urlFor(storage.getPublicId());
+        }
+
+        URI urlFor(String publicId) {
+            return URI.create("http://127.0.0.1:" + server.getAddress().getPort() + "/" + publicId);
         }
     }
 }

@@ -12,6 +12,11 @@ This is the primary document for developers integrating Topic, Quiz or another f
 6. When returning content to a client, authorize access to that content first, then call `resolve(mediaId)` and include the resulting URL in your feature response.
 7. The caller opens and closes the upload stream. Media consumes it synchronously and does not close or retain it.
 
+For uploads that require the original WAV bytes, call `uploadVerifiedWav(command, sha256)`.
+Media downloads and verifies the WAV before inserting the media record. If verification fails,
+Media attempts to remove the newly uploaded object. Assessment also verifies an existing
+digest's delivery before reporting a successful retry.
+
 For actions that require an available WAV before committing state, authorize the owning
 content first and call `verifyWavDelivery(mediaId, sha256, maximumBytes)` outside the
 database transaction. Supply the digest of the source WAV validated before upload.

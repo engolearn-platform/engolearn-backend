@@ -79,10 +79,13 @@ public class AssessmentCloudAudioService implements AssessmentCloudAudio {
         if (expectedDigest != null && !expectedDigest.equalsIgnoreCase(digest)) {
             throw invalid("SHA-256 của tệp WAV không khớp với dữ liệu nguồn.");
         }
-        double duration = AssessmentWav.duration(bytes, soundCheck ? 50 : 120);
+        int maxSeconds = soundCheck ? 50 : 120;
+        double duration = AssessmentWav.duration(bytes, maxSeconds);
         var asset = find(digest);
         if (asset == null) {
-            asset = uploadNew(bytes, digest, duration);
+            asset = uploadNew(bytes, digest, duration, maxSeconds);
+        } else {
+            verifyWav(asset, maxSeconds);
         }
         if (soundCheck) {
             repository.replaceSoundCheck(new AssessmentAudioAsset(SOUND_CHECK, asset.getMediaId(), asset.getDurationSeconds()));
@@ -90,18 +93,21 @@ public class AssessmentCloudAudioService implements AssessmentCloudAudio {
         return digest;
     }
 
-    private AssessmentAudioAsset uploadNew(byte[] bytes, String digest, double duration) {
+    private AssessmentAudioAsset uploadNew(byte[] bytes, String digest, double duration, int maxSeconds) {
         String token = UUID.randomUUID().toString();
         var now = clock.instant();
         if (!repository.reserve(digest, token, now, now.plus(Duration.ofMinutes(15)))) {
             var existing = find(digest);
-            if (existing != null) return existing;
+            if (existing != null) {
+                verifyWav(existing, maxSeconds);
+                return existing;
+            }
             throw new AssessmentException(409, "AUDIO_UPLOAD_PENDING", "WAV này đang tải lên. Hãy thử lại.");
         }
         final String mediaId;
         try (var content = new ByteArrayInputStream(bytes)) {
-            mediaId = media.upload(new UploadMediaCommandDto("ASSESSMENT_AUDIO", MediaAccessPolicy.PROTECTED,
-                    "assessment.wav", "audio/wav", bytes.length, content)).mediaId();
+            mediaId = media.uploadVerifiedWav(new UploadMediaCommandDto("ASSESSMENT_AUDIO", MediaAccessPolicy.PROTECTED,
+                    "assessment.wav", "audio/wav", bytes.length, content), digest).mediaId();
         } catch (MediaUploadRejectedException | IOException ex) {
             repository.release(digest, token);
             throw invalid("Media từ chối tệp WAV.");
