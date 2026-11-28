@@ -2,6 +2,7 @@
 package fit.iuh.engolearn.learningpath.service.impl;
 
 import fit.iuh.engolearn.microskill.contract.MicroSkillLookup;
+import fit.iuh.engolearn.microskill.contract.dto.MicroSkillDto;
 import fit.iuh.engolearn.learningpath.service.LearningPathService;
 import fit.iuh.engolearn.assessment.contract.AssessmentResults;
 
@@ -77,6 +78,14 @@ public class LearningPathServiceImpl implements LearningPathService {
 
     public LearningPathListResponse search(String userId, String keyword) {
         String normalizedKeyword = keyword.trim();
+        List<MicroSkillDto> catalog = microSkills.list();
+        String labelKeyword = normalizedKeyword.toLowerCase(Locale.ROOT);
+        List<String> matchingCanonicalNames = catalog.stream()
+                .filter(skill -> skill.displayNameVi() != null
+                        && skill.displayNameVi().toLowerCase(Locale.ROOT).contains(labelKeyword))
+                .map(MicroSkillDto::canonicalName)
+                .distinct()
+                .toList();
 
         List<LearningPath> matches = new ArrayList<>(repository
                 .findByUserIdAndStatusInAndMicroSkillsMicroSkillContainingIgnoreCaseOrderByCreatedAtDesc(
@@ -84,6 +93,11 @@ public class LearningPathServiceImpl implements LearningPathService {
                         SEARCHABLE_STATUSES,
                         normalizedKeyword
                 ));
+
+        if (!matchingCanonicalNames.isEmpty()) {
+            matches.addAll(repository.findByUserIdAndStatusInAndMicroSkillsMicroSkillInOrderByCreatedAtDesc(
+                    userId, SEARCHABLE_STATUSES, matchingCanonicalNames));
+        }
 
         parseSearchDate(normalizedKeyword).ifPresent(createdDate -> matches.addAll(
                 repository.findByUserIdAndStatusInAndCreatedDateOrderByCreatedAtDesc(
@@ -104,7 +118,7 @@ public class LearningPathServiceImpl implements LearningPathService {
                 .toList();
         List<LearningPathListItemResponse> items = toListItems(paths, userId);
 
-        return new LearningPathListResponse(items, countsFor(userId), this.microSkills.list());
+        return new LearningPathListResponse(items, countsFor(userId), catalog);
     }
 
     private LearningPathListResponse.SectionCounts countsFor(String userId) {
