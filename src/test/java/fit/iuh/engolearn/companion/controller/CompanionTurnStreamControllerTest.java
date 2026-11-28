@@ -51,6 +51,47 @@ class CompanionTurnStreamControllerTest {
     }
 
     @Test
+    void firstTurnEmitsCanonicalAdmissionBeforeModelEventsAndCompletion() throws Exception {
+        UUID turnId = UUID.randomUUID();
+        Instant now = Instant.parse("2026-11-25T00:00:00Z");
+        var prepared = new CompanionTurnService.PreparedTurn("first-conversation", "learner-1", turnId.toString(), "Hello", 1, 1, new Object());
+        var admission = new fit.iuh.engolearn.companion.dto.response.FirstTurnStatusResponse(turnId,
+                fit.iuh.engolearn.companion.dto.response.FirstTurnStatusResponse.State.ACTIVE,
+                new fit.iuh.engolearn.companion.dto.response.ConversationResponse("first-conversation", "Hello", now, now, 1, 100, 80),
+                new MessageResponse("canonical-user", 1, "USER", "Hello", now), null, false);
+        when(turns.prepareFirstTurn(any(CompanionTurnRequest.class))).thenReturn(new CompanionTurnService.FirstPreparedTurn(prepared, admission));
+        doAnswer(invocation -> {
+            CompanionTurnService.TurnObserver observer = invocation.getArgument(1);
+            observer.onDelta("Answer");
+            return new CompanionTurnResult(turnId.toString(), new MessageResponse("canonical-assistant", 2, "ASSISTANT", "Answer", now), 2, 100, false);
+        }).when(turns).streamPreparedTurn(eq(prepared), any(CompanionTurnService.TurnObserver.class));
+        MvcResult started = mvc.perform(post("/api/v1/companion/first-turns")
+                .contentType(MediaType.APPLICATION_JSON).accept(MediaType.TEXT_EVENT_STREAM)
+                .content("{\"turnId\":\"" + turnId + "\",\"content\":\"Hello\",\"retry\":false}"))
+                .andExpect(request().asyncStarted()).andReturn();
+        mvc.perform(asyncDispatch(started)).andExpect(status().isOk()).andExpect(result -> {
+            String body = result.getResponse().getContentAsString();
+            assertThat(occurrences(body, "event:admitted")).isEqualTo(1);
+            assertThat(body).contains("canonical-user", "first-conversation", "event:delta", "event:completed");
+            assertThat(body.indexOf("event:admitted")).isLessThan(body.indexOf("event:delta"));
+        });
+    }
+
+    @Test
+    void firstTurnExecutorRejectionAfterPreparationIsUnknownAdmissionNotRollback() throws Exception {
+        UUID turnId = UUID.randomUUID();
+        var prepared = new CompanionTurnService.PreparedTurn("first-conversation", "learner-1", turnId.toString(), "Hello", 1, 1, new Object());
+        when(turns.prepareFirstTurn(any(CompanionTurnRequest.class))).thenReturn(new CompanionTurnService.FirstPreparedTurn(prepared, null));
+        streamExecutor.shutdownNow();
+        mvc.perform(post("/api/v1/companion/first-turns").contentType(MediaType.APPLICATION_JSON)
+                .accept(MediaType.TEXT_EVENT_STREAM)
+                .content("{\"turnId\":\"" + turnId + "\",\"content\":\"Hello\",\"retry\":false}"))
+                .andExpect(status().isServiceUnavailable()).andExpect(content().string(org.hamcrest.Matchers.containsString("STREAM_CAPACITY_EXCEEDED")));
+        org.mockito.Mockito.verify(turns).cancelPreparedTurn(prepared);
+        org.mockito.Mockito.verify(turns, org.mockito.Mockito.never()).streamPreparedTurn(any(), any());
+    }
+
+    @Test
     void streamsDeltasAndOneCompletedEvent() throws Exception {
         UUID turnId = UUID.randomUUID();
         var prepared = new CompanionTurnService.PreparedTurn("conversation-1", "learner-1", turnId.toString(),
@@ -81,8 +122,11 @@ class CompanionTurnStreamControllerTest {
                 .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("event:error"))))
                 .andExpect(result -> {
                     String body = result.getResponse().getContentAsString();
-                    assertThat(occurrences(body, "event:status")).isEqualTo(1);
-                    assertThat(body.indexOf("event:status")).isLessThan(body.indexOf("event:delta"));
+                    assertThat(occurrences(body, "event:status")).isEqualTo(2);
+                    assertThat(occurrences(body, "data:{\"code\":\"PROCESSING\"}")).isEqualTo(1);
+                    assertThat(occurrences(body, "data:{\"code\":\"ASSESSMENT_LOOKUP\"}")).isEqualTo(1);
+                    assertThat(body.indexOf("PROCESSING")).isLessThan(body.indexOf("ASSESSMENT_LOOKUP"));
+                    assertThat(body.indexOf("ASSESSMENT_LOOKUP")).isLessThan(body.indexOf("event:delta"));
                     assertThat(occurrences(body, "event:completed")).isEqualTo(1);
                 });
     }

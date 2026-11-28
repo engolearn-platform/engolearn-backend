@@ -1,6 +1,7 @@
 package fit.iuh.engolearn.companion.repository;
 
 import fit.iuh.engolearn.companion.model.CompanionConversation;
+import fit.iuh.engolearn.companion.model.CompanionFirstTurnReceipt;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -19,6 +20,20 @@ public class MongoCompanionConversationRepository implements CompanionConversati
     private final MongoTemplate mongo;
 
     @Override public CompanionConversation insert(CompanionConversation conversation) { return mongo.insert(conversation); }
+
+    @Override public Optional<CompanionFirstTurnReceipt> findFirstTurnReceipt(String learnerId, String turnId) {
+        return Optional.ofNullable(mongo.findOne(Query.query(Criteria.where("_id").is(firstTurnKey(learnerId, turnId))
+                .and("learner_id").is(learnerId).and("turn_id").is(turnId)), CompanionFirstTurnReceipt.class));
+    }
+
+    @Override public CompanionFirstTurnReceipt insertFirstTurnReceipt(CompanionFirstTurnReceipt receipt) {
+        receipt.setId(firstTurnKey(receipt.getLearnerId(), receipt.getTurnId()));
+        return mongo.insert(receipt);
+    }
+
+    private static String firstTurnKey(String learnerId, String turnId) {
+        return "first:" + learnerId + ":" + turnId;
+    }
 
     @Override public Optional<CompanionConversation> findOwned(String id, String learnerId) {
         return Optional.ofNullable(mongo.findOne(Query.query(Criteria.where("_id").is(id).and("learner_id").is(learnerId)), CompanionConversation.class));

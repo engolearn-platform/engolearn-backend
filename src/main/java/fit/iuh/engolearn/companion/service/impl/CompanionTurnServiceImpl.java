@@ -4,6 +4,12 @@ import fit.iuh.engolearn.companion.dto.request.CompanionTurnRequest;
 import fit.iuh.engolearn.companion.dto.request.ScreenContextReferenceRequest;
 import fit.iuh.engolearn.companion.model.vo.ScreenContextReferenceVo;
 import fit.iuh.engolearn.companion.dto.response.MessageResponse;
+import fit.iuh.engolearn.companion.dto.response.ConversationResponse;
+import fit.iuh.engolearn.companion.dto.response.FirstTurnStatusResponse;
+import fit.iuh.engolearn.companion.model.CompanionFirstTurnReceipt;
+import java.util.Objects;
+import java.util.UUID;
+import org.springframework.security.access.prepost.PreAuthorize;
 import fit.iuh.engolearn.companion.exception.CompanionException;
 import fit.iuh.engolearn.companion.model.CompanionConversation;
 import fit.iuh.engolearn.companion.model.CompanionMessage;
@@ -76,6 +82,156 @@ public class CompanionTurnServiceImpl implements CompanionTurnService {
     @Qualifier("companionToolExecutor")
     private final ExecutorService companionToolExecutor;
     private final ConcurrentHashMap<String, Object> activeLearners = new ConcurrentHashMap<>();
+
+    @Override
+    @PreAuthorize("hasRole('USER')")
+    public FirstPreparedTurn prepareFirstTurn(CompanionTurnRequest request) {
+        if (request == null || request.turnId() == null || request.content() == null || request.content().isBlank() || request.retry()) {
+            throw new CompanionException(400, "INVALID_TURN", "A first turn requires an ID and non-empty content, without retry", false);
+        }
+        if (request.screenContext() != null) screenContexts.validate(request.screenContext());
+        String learner = users.requireCurrentUserId();
+        String turnId = request.turnId().toString();
+        rejectFirstReplay(learner, request);
+        Object guardToken = new Object();
+        if (activeLearners.putIfAbsent(learner, guardToken) != null) {
+            rejectFirstReplay(learner, request);
+            throw new CompanionException(409, "FIRST_TURN_BUSY", "Another companion turn is active; check the first request status", true);
+        }
+        try {
+            return transactions.required(() -> {
+                rejectFirstReplay(learner, request);
+                if (properties.getMaxMessages() < 2) {
+                    throw new CompanionException(409, "MESSAGE_LIMIT_REACHED", "Conversation message limit reached", false);
+                }
+                requireQuotaAvailable(learner);
+                MemorySettingsSnapshot settings = memories.settingsSnapshot(learner);
+                Instant now = Instant.now();
+                Duration leaseDuration = properties.getTurnTimeout().plusSeconds(30);
+                Duration minimumLease = properties.getInferenceTimeout().multipliedBy(2).plusSeconds(30);
+                if (leaseDuration.compareTo(minimumLease) < 0) leaseDuration = minimumLease;
+                CompanionConversation conversation = conversations.insert(CompanionConversation.builder()
+                        .learnerId(learner).title(firstTitle(request.content())).messageCount(1).nextSequence(2)
+                        .activeTurnGeneration(1).activeTurnId(turnId).activeTurnLeaseUntil(now.plus(leaseDuration))
+                        .pendingTurnId(turnId).pendingUserSequence(1L).createdAt(now).updatedAt(now).build());
+                CompanionMessage user = messages.insert(CompanionMessage.builder().conversationId(conversation.getId())
+                        .turnId(turnId).sequence(1).role(CompanionMessage.Role.USER).content(request.content())
+                        .screenContext(toStoredReference(request.screenContext()))
+                        .memoryAutomaticEnabledSnapshot(settings.automaticMemoryEnabled())
+                        .memoryForgetRevisionSnapshot(settings.forgetRevision()).createdAt(now).build());
+                conversations.insertFirstTurnReceipt(CompanionFirstTurnReceipt.builder().learnerId(learner).turnId(turnId)
+                        .state(CompanionFirstTurnReceipt.State.ADMITTED).conversationId(conversation.getId())
+                        .createdAt(now).updatedAt(now).build());
+                PreparedTurn prepared = new PreparedTurn(conversation.getId(), learner, turnId, request.content(),
+                        1, 1, guardToken, settings.automaticMemoryEnabled(), settings.forgetRevision(), request.screenContext());
+                return new FirstPreparedTurn(prepared, new FirstTurnStatusResponse(request.turnId(),
+                        FirstTurnStatusResponse.State.ACTIVE, firstConversationResponse(conversation),
+                        firstMessageResponse(user), null, false));
+            });
+        } catch (CompanionException known) {
+            activeLearners.remove(learner, guardToken);
+            throw known;
+        } catch (RuntimeException failure) {
+            activeLearners.remove(learner, guardToken);
+            // A unique-receipt conflict or ambiguous commit cannot authorize a second model invocation.
+            rejectFirstReplay(learner, request);
+            throw firstUnknown();
+        }
+    }
+
+    @Override
+    @PreAuthorize("hasRole('USER')")
+    public FirstTurnStatusResponse getFirstTurn(UUID turnId) {
+        String learner = users.requireCurrentUserId();
+        return transactions.required(() -> firstStatus(learner, turnId));
+    }
+
+    @Override
+    @PreAuthorize("hasRole('USER')")
+    public FirstTurnStatusResponse cancelFirstTurn(UUID turnId) {
+        String learner = users.requireCurrentUserId();
+        try {
+            return transactions.required(() -> {
+                if (conversations.findFirstTurnReceipt(learner, turnId.toString()).isEmpty()) {
+                    Instant now = Instant.now();
+                    conversations.insertFirstTurnReceipt(CompanionFirstTurnReceipt.builder().learnerId(learner)
+                            .turnId(turnId.toString()).state(CompanionFirstTurnReceipt.State.CANCELLED)
+                            .createdAt(now).updatedAt(now).build());
+                }
+                return firstStatus(learner, turnId);
+            });
+        } catch (RuntimeException failure) {
+            // If admission won the unique-key race, report its canonical state; never erase it.
+            try {
+                return transactions.required(() -> firstStatus(learner, turnId));
+            } catch (RuntimeException unresolved) {
+                throw firstUnknown();
+            }
+        }
+    }
+
+    private void rejectFirstReplay(String learner, CompanionTurnRequest request) {
+        var receipt = conversations.findFirstTurnReceipt(learner, request.turnId().toString());
+        if (receipt.isEmpty()) return;
+        var value = receipt.get();
+        if (value.getState() == CompanionFirstTurnReceipt.State.CANCELLED) {
+            throw new CompanionException(409, "FIRST_TURN_CANCELLED", "The first request was cancelled before admission", false);
+        }
+        if (conversations.findOwned(value.getConversationId(), learner).isEmpty()) {
+            throw new CompanionException(409, "FIRST_TURN_REMOVED", "The admitted conversation was removed", false);
+        }
+        CompanionMessage user = messages.findByTurnAndRole(value.getConversationId(), value.getTurnId(), CompanionMessage.Role.USER)
+                .orElseThrow(CompanionTurnServiceImpl::firstUnknown);
+        if (!Objects.equals(user.getContent(), request.content())
+                || !Objects.equals(fromStoredReference(user.getScreenContext()), request.screenContext())) {
+            throw new CompanionException(409, "FIRST_TURN_PAYLOAD_CONFLICT", "The first request ID was used with different content or context", false);
+        }
+        throw new CompanionException(409, "FIRST_TURN_ALREADY_ADMITTED", "The first request was already admitted; check its status", false);
+    }
+
+    private FirstTurnStatusResponse firstStatus(String learner, UUID turnId) {
+        CompanionFirstTurnReceipt receipt = conversations.findFirstTurnReceipt(learner, turnId.toString())
+                .orElseThrow(() -> new CompanionException(404, "FIRST_TURN_NOT_FOUND", "The first request is not recorded", false));
+        if (receipt.getState() == CompanionFirstTurnReceipt.State.CANCELLED) {
+            return new FirstTurnStatusResponse(turnId, FirstTurnStatusResponse.State.CANCELLED, null, null, null, false);
+        }
+        var found = conversations.findOwned(receipt.getConversationId(), learner);
+        if (found.isEmpty()) {
+            return new FirstTurnStatusResponse(turnId, FirstTurnStatusResponse.State.DELETED, null, null, null, false);
+        }
+        CompanionConversation conversation = found.get();
+        CompanionMessage user = messages.findByTurnAndRole(conversation.getId(), turnId.toString(), CompanionMessage.Role.USER)
+                .orElseThrow(CompanionTurnServiceImpl::firstUnknown);
+        CompanionMessage assistant = messages.findByTurnAndRole(conversation.getId(), turnId.toString(), CompanionMessage.Role.ASSISTANT).orElse(null);
+        boolean active = turnId.toString().equals(conversation.getActiveTurnId())
+                && conversation.getActiveTurnLeaseUntil() != null && conversation.getActiveTurnLeaseUntil().isAfter(Instant.now());
+        boolean retryEligible = assistant == null && !active && turnId.toString().equals(conversation.getPendingTurnId())
+                && conversation.getMessageCount() < properties.getMaxMessages();
+        var state = assistant != null ? FirstTurnStatusResponse.State.COMPLETED
+                : active ? FirstTurnStatusResponse.State.ACTIVE : FirstTurnStatusResponse.State.INCOMPLETE;
+        return new FirstTurnStatusResponse(turnId, state, firstConversationResponse(conversation), firstMessageResponse(user),
+                assistant == null ? null : firstMessageResponse(assistant), retryEligible);
+    }
+
+    private ConversationResponse firstConversationResponse(CompanionConversation value) {
+        int threshold = (int) Math.ceil(properties.getMaxMessages() * properties.getWarningPercent() / 100.0);
+        return new ConversationResponse(value.getId(), value.getTitle(), value.getCreatedAt(), value.getUpdatedAt(),
+                value.getMessageCount(), properties.getMaxMessages(), threshold);
+    }
+
+    private static MessageResponse firstMessageResponse(CompanionMessage value) {
+        return new MessageResponse(value.getId(), value.getSequence(), value.getRole().name(), value.getContent(), value.getCreatedAt());
+    }
+
+    private static String firstTitle(String content) {
+        String trimmed = content.strip();
+        int count = Math.min(65, trimmed.codePointCount(0, trimmed.length()));
+        return trimmed.substring(0, trimmed.offsetByCodePoints(0, count));
+    }
+
+    private static CompanionException firstUnknown() {
+        return new CompanionException(503, "FIRST_TURN_ADMISSION_UNKNOWN", "The first request status could not be confirmed; check again", true);
+    }
 
     @Override public PreparedTurn prepareTurn(String conversationId, CompanionTurnRequest request) {
         if (request == null || request.turnId() == null || request.content() == null || request.content().isBlank()) {

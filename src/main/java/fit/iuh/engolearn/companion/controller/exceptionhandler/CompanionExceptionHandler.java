@@ -2,6 +2,7 @@ package fit.iuh.engolearn.companion.controller.exceptionhandler;
 
 import fit.iuh.engolearn.companion.controller.CompanionConversationController;
 import fit.iuh.engolearn.companion.controller.CompanionTurnStreamController;
+import fit.iuh.engolearn.companion.controller.CompanionFirstTurnController;
 import fit.iuh.engolearn.companion.exception.CompanionException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -18,7 +19,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
-@RestControllerAdvice(assignableTypes = {CompanionConversationController.class, CompanionTurnStreamController.class})
+@RestControllerAdvice(assignableTypes = {CompanionConversationController.class, CompanionTurnStreamController.class, CompanionFirstTurnController.class})
 public class CompanionExceptionHandler {
     @ExceptionHandler({CompanionException.class, MethodArgumentNotValidException.class,
             HandlerMethodValidationException.class, HttpMessageNotReadableException.class,
