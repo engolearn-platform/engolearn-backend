@@ -60,13 +60,7 @@ public class SubscriptionServiceImpl implements SubscriptionService, EffectiveEn
     }
 
     private SubscriptionPeriod active(List<SubscriptionPeriod> periods, Instant at) {
-        List<SubscriptionPeriod> active = periods.stream()
-                                                 .filter(p -> "ACTIVE".equals(p.getState().name()) &&
-                                                              !at.isBefore(p.getPeriodStartAt()) &&
-                                                              at.isBefore(p.getPeriodEndAt()))
-                                                 .toList();
-        if (active.size() > 1) throw new SubscriptionUnavailableException();
-        return active.isEmpty() ? null : active.getFirst();
+        return EffectivePeriodPolicy.active(periods, at);
     }
 
     public PolicyVersion policy(String scope, Instant at) {

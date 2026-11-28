@@ -28,4 +28,6 @@ Grammar Learning: [module entry](grammar/README.md), [V2 storage and rules](gram
 
 Micro-skill catalog: [schema, API, Learning Path compatibility and import](microskill/README.md).
 
+Management Dashboard: [read-only summary API](managementdashboard/README.md).
+
 [F05 administrator user management API and migration](security/f05-user-management.md).

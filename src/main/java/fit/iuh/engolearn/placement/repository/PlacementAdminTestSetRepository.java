@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Optional;
 
 public interface PlacementAdminTestSetRepository {
+    long countAll();
     Page list(String search, PlacementTestSetStatus status, int page, int size);
     Optional<PlacementTestSet> findById(String id);
     PlacementTestSet insert(PlacementTestSet set);

@@ -3,6 +3,7 @@ package fit.iuh.engolearn.subscription.repository;
 import fit.iuh.engolearn.subscription.model.*;
 import java.time.Instant;
 import java.util.List;
+import org.bson.Document;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.MongoTemplate;
@@ -18,6 +19,22 @@ public class MongoSubscriptionRepository implements SubscriptionRepository {
     public SubscriptionAccount findAccount(String userId) { return mongo.findById(userId, SubscriptionAccount.class); }
     public List<SubscriptionPeriod> findPeriodsNewestFirst(String userId) {
         return mongo.find(Query.query(Criteria.where("user_id").is(userId)).with(Sort.by(Sort.Direction.DESC,"period_start_at")), SubscriptionPeriod.class);
+    }
+    @Override
+    public long countActivePaidPremiumUsersAt(Instant at) {
+        var match = new Document("state", "ACTIVE").append("period_start_at", new Document("$lte", java.util.Date.from(at)))
+                .append("period_end_at", new Document("$gt", java.util.Date.from(at)));
+        var pipeline = List.of(new Document("$match", match), new Document("$facet", new Document("overlaps", List.of(
+                        new Document("$group", new Document("_id", "$user_id").append("count", new Document("$sum", 1))),
+                        new Document("$match", new Document("count", new Document("$gt", 1))), new Document("$limit", 1)))
+                .append("paid", List.of(new Document("$match", new Document("kind", new Document("$in", List.of("MONTHLY", "ANNUAL")))),
+                        new Document("$group", new Document("_id", "$user_id")), new Document("$count", "count")))));
+        Document result = mongo.getCollection("subscription_periods").aggregate(pipeline).first();
+        if (result == null) return 0;
+        if (!result.getList("overlaps", Document.class).isEmpty())
+            throw new fit.iuh.engolearn.subscription.contract.exception.SubscriptionUnavailableException();
+        var paid = result.getList("paid", Document.class);
+        return paid.isEmpty() ? 0 : ((Number) paid.getFirst().get("count")).longValue();
     }
     public PolicyState findPolicyState(String scope) { return mongo.findById(scope, PolicyState.class); }
     public PolicyVersion findPolicyVersion(String id) { return mongo.findById(id, PolicyVersion.class); }

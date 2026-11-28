@@ -10,6 +10,7 @@ import java.util.Map;
 import java.util.Optional;
 
 public interface PlacementQuestionRepository {
+    long countAll();
     Optional<PlacementQuestion> findById(String id);
     List<PlacementQuestion> findAllById(Collection<String> ids);
     List<PlacementQuestion> findActiveBySkillAndLevel(PlacementSkill skill, PlacementLevel level);

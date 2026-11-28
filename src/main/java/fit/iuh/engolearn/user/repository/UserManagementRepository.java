@@ -19,6 +19,10 @@ import org.springframework.stereotype.Repository;
 public class UserManagementRepository {
     private final MongoTemplate mongo;
 
+    public long countManagementAccounts() {
+        return mongo.count(Query.query(Criteria.where("deleted_at").is(null)), User.class);
+    }
+
     private List<Document> projected(Document filter) {
         var pipeline = new ArrayList<Document>();
         filter.put("deleted_at", null);
