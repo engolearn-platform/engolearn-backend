@@ -552,8 +552,8 @@ class SpeakingRealtimeMongoIntegrationTest extends AbstractMongoIntegrationTest 
         assertThat(settled.getCharge().seconds()).isGreaterThan(1);
         assertThat(quotaCalls).singleElement().satisfies(command -> assertThat(command.amount()).isGreaterThan(1));
         assertThat(sessions.findById(id).orElseThrow().getEndReason()).isEqualTo(SpeakingEndReason.DAILY_QUOTA_REACHED);
-        socket.command("START_TURN", null, Map.of("clientTurnId", UUID.randomUUID()));
         socket.next("SESSION_ENDED");
+        socket.closed.get(8, TimeUnit.SECONDS);
         assertThat(turns.findBySessionIdOrderByValueSequenceAsc(id)).hasSize(1);
     }
 
