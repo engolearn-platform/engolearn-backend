@@ -1,5 +1,6 @@
 package fit.iuh.engolearn.learningpath.service.impl;
 
+import fit.iuh.engolearn.microskill.contract.MicroSkillLookup;
 import fit.iuh.engolearn.learningpath.service.LearningPathRecommendationService;
 import fit.iuh.engolearn.assessment.contract.AssessmentResults;
 import fit.iuh.engolearn.user.contract.UserLevelLookup;
@@ -24,6 +25,7 @@ import org.springframework.web.server.ResponseStatusException;
 @Service
 @lombok.RequiredArgsConstructor
 public class LearningPathRecommendationServiceImpl implements LearningPathRecommendationService {
+    private final MicroSkillLookup microSkills;
 
     private final AssessmentResults assessmentResults;
     private final LearningPathRepository paths;
@@ -85,7 +87,16 @@ public class LearningPathRecommendationServiceImpl implements LearningPathRecomm
                         .forEach(occupied::add);
             }
         }
+        var catalog = this.microSkills.list().stream().collect(java.util.stream.Collectors.toMap(
+                fit.iuh.engolearn.microskill.contract.dto.MicroSkillDto::canonicalName, value -> value));
+        for (var result : weak) {
+            var definition = catalog.get(result.microSkill());
+            if (definition == null) throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Micro-skill catalog is incomplete; import the catalog dataset");
+            if (!definition.skill().equals(result.skill())) throw new ResponseStatusException(HttpStatus.CONFLICT, "Micro-skill catalog classification mismatch");
+        }
         List<MicroSkill> eligible = weak.stream()
+                .filter(result -> catalog.get(result.microSkill()).active())
                 .filter(result -> !occupied.contains(result.microSkill()))
                 .filter(result -> questionPool.countActive(result.microSkill(), level) >= 30)
                 .map(result -> new MicroSkill(result.microSkill(), result.skill(), result.correct(),
@@ -103,6 +114,6 @@ public class LearningPathRecommendationServiceImpl implements LearningPathRecomm
                                                         String existingPathId, String level,
                                                         List<MicroSkill> skills) {
         return new LearningPathRecommendationResponse(state, message, existingPathId,
-                level, 3, skills.size(), 10, skills);
+                level, 3, skills.size(), 10, skills, this.microSkills.list());
     }
 }

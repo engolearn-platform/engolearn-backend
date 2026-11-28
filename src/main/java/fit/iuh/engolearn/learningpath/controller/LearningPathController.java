@@ -12,6 +12,8 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 
 import fit.iuh.engolearn.shared.web.ApiResponse;
+import fit.iuh.engolearn.learningpath.dto.response.LearningPathAudioResponse;
+import jakarta.servlet.http.HttpServletResponse;
 import fit.iuh.engolearn.shared.security.impl.AuthenticatedUserPrincipal;
 import fit.iuh.engolearn.learningpath.dto.response.LearningPathDetailResponse;
 import fit.iuh.engolearn.learningpath.dto.response.LearningPathListResponse;
@@ -138,9 +140,22 @@ public class LearningPathController {
             @PathVariable String pathId,
             @Min(1) @Max(3) @PathVariable int weekNo,
             @Min(1) @Max(5) @PathVariable int dayNo,
-            @AuthenticationPrincipal AuthenticatedUserPrincipal principal
+            @AuthenticationPrincipal AuthenticatedUserPrincipal principal,
+            HttpServletResponse response
     ) {
+        response.setHeader("Cache-Control", "no-store");
         return ApiResponse.ok(dayPracticeService.start(pathId, weekNo, dayNo, principal.getId()));
+    }
+
+    @GetMapping("/{pathId}/weeks/{weekNo}/days/{dayNo}/questions/{questionId}/audio")
+    public ApiResponse<LearningPathAudioResponse> getAudio(
+            @Pattern(regexp = OBJECT_ID_PATTERN, message = "pathId không hợp lệ") @PathVariable String pathId,
+            @Min(1) @Max(3) @PathVariable int weekNo,
+            @Min(1) @Max(5) @PathVariable int dayNo,
+            @NotBlank @Size(max = 100) @PathVariable String questionId,
+            HttpServletResponse response) {
+        response.setHeader("Cache-Control", "no-store");
+        return ApiResponse.ok(dayPracticeService.getAudio(pathId, weekNo, dayNo, questionId));
     }
 
     @PutMapping("/{pathId}/weeks/{weekNo}/days/{dayNo}/questions/{questionId}/draft")
@@ -172,8 +187,10 @@ public class LearningPathController {
             @Pattern(regexp = OBJECT_ID_PATTERN, message = "pathId không hợp lệ") @PathVariable String pathId,
             @Min(1) @Max(3) @PathVariable int weekNo,
             @Min(1) @Max(5) @PathVariable int dayNo,
-            @AuthenticationPrincipal AuthenticatedUserPrincipal principal
+            @AuthenticationPrincipal AuthenticatedUserPrincipal principal,
+            HttpServletResponse response
     ) {
+        response.setHeader("Cache-Control", "no-store");
         return ApiResponse.ok(dayResultService.getResult(pathId, weekNo, dayNo, principal.getId()));
     }
 }

@@ -82,6 +82,8 @@ public class SecurityConfig {
                                 "/api/management/topics/*/items/*/speaking-profile").hasRole("CONTENT_MANAGER")
                         .requestMatchers(HttpMethod.POST, "/api/management/topics/*/speaking-profile/publish",
                                 "/api/management/topics/*/items/*/speaking-profile/publish").hasRole("CONTENT_MANAGER")
+                        .requestMatchers("/api/management/micro-skills", "/api/management/micro-skills/**").hasRole("CONTENT_MANAGER")
+                        .requestMatchers("/api/micro-skills", "/api/micro-skills/**").hasRole("USER")
                         .requestMatchers("/api/learning-paths", "/api/learning-paths/**").authenticated()
                         .requestMatchers("/api/management/learning-paths", "/api/management/learning-paths/**").hasRole("CONTENT_MANAGER")
                         .requestMatchers(HttpMethod.POST, "/api/management/topics").hasRole("CONTENT_MANAGER")
@@ -147,6 +149,8 @@ public class SecurityConfig {
                 exception.getMessage() == null ? status.getReasonPhrase() : exception.getMessage());
         problemDetail.setType(URI.create("about:blank"));
         if (path.equals("/api/v1/admin/users") || path.startsWith("/api/v1/admin/users/")
+                || path.equals("/api/micro-skills") || path.startsWith("/api/micro-skills/")
+                || path.equals("/api/management/micro-skills") || path.startsWith("/api/management/micro-skills/")
                 || path.startsWith("/api/v1/assessment/")
                 || path.startsWith("/api/v1/subscription/") || path.startsWith("/api/v1/quota/")
                 || path.startsWith("/api/v1/auth/") || path.startsWith("/api/v1/profile/") || path.startsWith("/api/v1/speaking/")

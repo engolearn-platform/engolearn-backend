@@ -27,6 +27,12 @@ public interface LearningPathRepository extends MongoRepository<LearningPath, St
             String createdDate
     );
 
+    List<LearningPath> findByUserIdAndStatusInAndMicroSkillsMicroSkillInOrderByCreatedAtDesc(
+            String userId,
+            List<String> statuses,
+            List<String> microSkills
+    );
+
     long countByUserIdAndStatusIn(String userId, List<String> statuses);
 
     long countByUserIdAndStatus(String userId, String status);

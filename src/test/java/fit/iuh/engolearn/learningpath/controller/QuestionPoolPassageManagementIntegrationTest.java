@@ -1028,7 +1028,7 @@ class QuestionPoolPassageManagementIntegrationTest extends AbstractMongoIntegrat
     }
 
     @Test
-    void readinessResolvesManagedAudioButBlocksUnsupportedLearnerDeliveryWithoutPersistingUrl() {
+    void readinessAcceptsManagedAudioWithoutPersistingDeliveryUrl() {
         String id = createListeningForDetail();
         var before = mongoTemplate.getCollection("question_pool_passages").find().first();
         var mediaBefore = mongoTemplate.getCollection("media_assets").find().first();
@@ -1036,8 +1036,9 @@ class QuestionPoolPassageManagementIntegrationTest extends AbstractMongoIntegrat
         clearInvocations(storage);
         var first = readinessData(id);
         var second = readinessData(id);
-        assertThat(issueCodes(first, "blockers")).containsExactly("LEARNER_AUDIO_DELIVERY_UNSUPPORTED");
-        assertThat(first.path("structurallyValid").asBoolean()).isFalse();
+        assertThat(issueCodes(first, "blockers")).isEmpty();
+        assertThat(first.path("structurallyValid").asBoolean()).isTrue();
+        assertThat(first.path("requiredReviewChecks").size()).isEqualTo(4);
         assertThat(first.path("revision")).isEqualTo(second.path("revision"));
         assertThat(first.toString()).doesNotContain("private=value", "https://media", "audioMediaId");
         verify(storage, times(2)).privateDownloadUrl(any(), any());
@@ -1054,7 +1055,7 @@ class QuestionPoolPassageManagementIntegrationTest extends AbstractMongoIntegrat
         setAudio("missing-media", new Document("audio_media_id", "missing-media-id")
                 .append("audio", new Document("url", "/legacy.mp3")));
         assertThat(issueCodes(readinessData("missing-media"), "blockers"))
-                .containsExactly("LEARNER_AUDIO_DELIVERY_UNSUPPORTED", "AUDIO_MEDIA_NOT_FOUND");
+                .containsExactly("AUDIO_MEDIA_NOT_FOUND");
         verifyNoInteractions(storage);
     }
 
@@ -1332,18 +1333,21 @@ class QuestionPoolPassageManagementIntegrationTest extends AbstractMongoIntegrat
     }
 
     @Test
-    void publicationKeepsMediaBackedListeningBlockedWithoutUploadOrLegacyFallback() {
+    void publicationAcceptsReviewedManagedListeningWithoutUploadingOrPersistingDeliveryUrl() {
         String id = createListeningForDetail();
         when(storage.privateDownloadUrl(any(), any())).thenReturn(java.net.URI.create("https://media.example.test/listening.mp3"));
         clearInvocations(storage);
         var response = publish(id, LISTENING_PUBLICATION, UserRole.ADMIN);
-        assertError(response, 422, "PASSAGE_NOT_READY");
-        assertThat(issueCodes(json.readTree(response.getBody()).path("readiness"), "blockers"))
-                .contains("LEARNER_AUDIO_DELIVERY_UNSUPPORTED");
-        assertThat(mongoTemplate.getCollection("question_pool_passages").find().first().getString("status")).isEqualTo("DRAFT");
+        assertThat(response.getStatusCode().value()).as(response.getBody()).isEqualTo(200);
+        var saved = mongoTemplate.getCollection("question_pool_passages").find().first();
+        assertThat(saved.getString("status")).isEqualTo("ACTIVE");
+        assertThat(saved.getInteger("revision")).isEqualTo(2);
+        assertThat(saved.getString("audio_media_id")).isNotBlank();
+        assertThat(saved.toJson()).doesNotContain("https://media.example.test/listening.mp3");
+        assertThat(saved.get("publication_review", Document.class).getInteger("source_revision")).isEqualTo(1);
         verify(storage, never()).upload(anyString(), any(), any(), any());
         verify(storage, never()).destroy(any());
-        verify(passages, never()).publishDraft(anyString(), anyInt(), any());
+        verify(passages).publishDraft(eq(id), eq(1), any());
     }
 
     @ParameterizedTest
