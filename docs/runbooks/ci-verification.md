@@ -38,6 +38,9 @@ provision/inject its own isolated database. Suites based on AbstractMongoIntegra
 the placeholder URI with their disposable replica-set container through DynamicPropertySource.
 Tests with explicit connection properties keep those properties; setting prod is not a
 replacement for missing test infrastructure. CI never needs a developer's local database.
+The mandatory application context smoke test now reuses the disposable Testcontainers server
+with its own database, because startup includes mandatory Quota indexes. It still loads the
+full default context and does not skip if Docker is absent.
 
 ## Profile and coverage limitations
 

@@ -56,6 +56,39 @@ class SubscriptionProductServiceImplTest {
     }
 
     @Test
+    void savesAiCompanionDraftWithCanonicalDailyTokenQuota() {
+        SubscriptionProductRepository products = mock(SubscriptionProductRepository.class);
+        SubscriptionRepository subscriptions = mock(SubscriptionRepository.class);
+        SubscriptionTransactions transactions = mock(SubscriptionTransactions.class);
+        when(transactions.execute(any())).thenAnswer(invocation -> ((Supplier<?>) invocation.getArgument(0)).get());
+        when(subscriptions.findPolicyVersions()).thenReturn(List.of());
+
+        AtomicReference<SubscriptionProduct> product = new AtomicReference<>(SubscriptionProduct.builder()
+                .id(CODE).planCode(CODE).visibility(ProductVisibility.VISIBLE).saleStatus(ProductSaleStatus.ON_SALE)
+                .archived(false).draftRevision(0).purchaseFence(0).build());
+        when(products.findProduct(CODE)).thenAnswer(invocation -> product.get());
+        when(products.findVersions(CODE)).thenReturn(List.of());
+        when(products.saveDraft(eq(CODE), eq(0L), any())).thenAnswer(invocation -> {
+            SubscriptionProduct current = product.get();
+            current.setDraftContent(invocation.getArgument(2));
+            current.setDraftRevision(1);
+            return true;
+        });
+        SubscriptionProductServiceImpl service = new SubscriptionProductServiceImpl(products, subscriptions,
+                transactions, Clock.fixed(Instant.parse("2026-11-24T01:00:00Z"), ZoneOffset.UTC), new ObjectMapper());
+
+        service.saveDraft(CODE, new SaveSubscriptionProductDraftRequest(0L, aiCompanionRequestContent()));
+
+        var savedRule = product.get().getDraftContent().getQuotaRules().getFirst();
+        assertThat(product.get().getDraftContent().getBenefits()).extracting("code").containsExactly("AI_COMPANION");
+        assertThat(savedRule.getQuotaType()).isEqualTo("AI_COMPANION_TOKEN_USAGE");
+        assertThat(savedRule.getUnit()).isEqualTo("TOKEN");
+        assertThat(savedRule.getPeriod().name()).isEqualTo("DAILY");
+        assertThat(SubscriptionProductRegistry.service("AI_COMPANION").quotaType())
+                .isEqualTo("AI_COMPANION_TOKEN_USAGE");
+    }
+
+    @Test
     void publishedDraftCannotBePublishedAgainAndReceiptReplayKeepsAcceptedVersion() {
         SubscriptionProductRepository products = mock(SubscriptionProductRepository.class);
         SubscriptionRepository subscriptions = mock(SubscriptionRepository.class);
@@ -176,5 +209,13 @@ class SubscriptionProductServiceImplTest {
         return new SubscriptionProductContentRequest(name, "", 1,
                 List.of(new PlanBenefitRequest("ASSESSMENT_FULL_ANALYSIS", "Xem phân tích đầy đủ", "", "Có", 0)),
                 List.of(new PlanBillingOptionRequest("MONTHLY", 10000L, "VND")), List.<QuotaRuleRequest>of());
+    }
+
+    private SubscriptionProductContentRequest aiCompanionRequestContent() {
+        return new SubscriptionProductContentRequest("AI Companion plan", "", 1,
+                List.of(new PlanBenefitRequest("AI_COMPANION", "Trò chuyện với AI mỗi ngày", "", "Có", 0)),
+                List.of(new PlanBillingOptionRequest("MONTHLY", 10000L, "VND")),
+                List.of(new QuotaRuleRequest("AI_COMPANION_TOKEN_USAGE", "AI Companion tokens",
+                        "TOKEN", "DAILY", 1L, 0)));
     }
 }

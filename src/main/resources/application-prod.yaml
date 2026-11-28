@@ -6,6 +6,10 @@ spring:
     database: ${APP_DB}
 
 engolearn:
+  ai-companion:
+    memory:
+      qdrant-url: ${QDRANT_CLUSTER_ENDPOINT:}
+      qdrant-api-key: ${QDRANT_KEY:}
   mongodb:
     server-selection-timeout-ms: 15000
   cors:

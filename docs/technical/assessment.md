@@ -79,6 +79,14 @@ The calls never settle or grade an active attempt, consume quota, or write grant
 They are independent of full-analysis display grants, as the earlier `latest` contract was.
 The frontend result/review APIs still apply their existing Subscription display policy.
 
+AI Companion uses the separate `AssessmentCompanionResults.latestForCompanion(userId)`
+capability. It returns the latest owner-scoped READY result and official scaled score,
+with `PREVIEW` visibility limited to the first two of five skill rows and `FULL` visibility
+limited to all five under the same stored/current grant rule as the result screen. A current
+grant is evaluated without persisting it; result reads never settle an attempt or write grants.
+The DTO excludes question content and all skill rows hidden by the display policy. The
+Learning Path `AssessmentResults` contract remains unchanged.
+
 Learning Path owns eligibility, pool-name mapping, frozen baselines and path creation.
 Assessment does not write Learning Path state or populate the legacy `attempts` /
 `micro_skill_results` collections. See the [Learning Path contract](learningpath/learning-path-list-api.md).
@@ -222,3 +230,25 @@ account and four historical attempts. For the shared Learning Path dataset, Subs
 account initialization and current demo limits, follow the
 [importer guide](../../tools/mongo-json-importer/README.md#shared-assessment--learning-path-demo).
 Learning Path Listening audio placeholders do not affect the 13 supplied Assessment WAV files.
+
+### AI Companion assessment history
+
+`AssessmentCompanionResults.historyForCompanion(learnerId, query)` returns a bounded
+page of READY dated owner results (limit 2–5), ordered by submitted time descending
+then ID descending. Only dev without prod can include demonstration attempts.
+It uses the same PREVIEW/FULL mapping as latest, rechecking stored revocations
+and current entitlement for each returned attempt, without persisting a grant.
+The versioned continuation is owner, profile and page-limit bound; an anchor
+must still be an eligible result for that owner. Continuation does not guarantee
+a database snapshot across requests.
+
+History rows carry the visible summary and a pinned paper fingerprint (ID,
+version, rules version, demonstration flag) for internal comparison. The
+Companion adapter omits fingerprint IDs from model-facing evidence and omits
+skills in SUMMARY mode; see [runtime](ai-companion/runtime-flows.md#phase-1-business-reads). Only compare distinct dated non-demo
+attempts with the same pinned paper/version/rules and matching visible skill
+code/section and positive equal denominator; exclude unavailable or mismatched
+metrics. Such differences are descriptive observations, not validated progress
+or global trends. No hidden skills, grants, raw attempts, or question content
+are exposed through this contract. Invalid cursors/queries and unavailable
+history are typed failures, never empty-success substitutes.

@@ -10,6 +10,7 @@ import org.springframework.dao.DataAccessResourceFailureException;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.web.context.RequestAttributeSecurityContextRepository;
 
 import java.util.Optional;
 
@@ -25,7 +26,8 @@ class AccessCookieAuthFilterTest {
         JwtTokenService tokens = mock(JwtTokenService.class);
         RefreshSessionRepository sessions = mock(RefreshSessionRepository.class);
         UserRepository users = mock(UserRepository.class);
-        AccessCookieAuthFilter filter = new AccessCookieAuthFilter(tokens, users, sessions);
+        AccessCookieAuthFilter filter = new AccessCookieAuthFilter(tokens, users, sessions,
+                new RequestAttributeSecurityContextRepository());
         when(tokens.verify("access", "access")).thenReturn(new JwtTokenService.Claims("account", "session", "access"));
         when(sessions.findBySessionId("session")).thenThrow(new DataAccessResourceFailureException("database unavailable"));
         MockHttpServletRequest request = new MockHttpServletRequest();

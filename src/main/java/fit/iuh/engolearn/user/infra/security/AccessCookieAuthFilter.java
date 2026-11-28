@@ -15,6 +15,8 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.web.context.SecurityContextRepository;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -28,6 +30,7 @@ public class AccessCookieAuthFilter extends OncePerRequestFilter {
     private final JwtTokenService tokens;
     private final UserRepository users;
     private final RefreshSessionRepository sessions;
+    private final SecurityContextRepository securityContextRepository;
 
     @Override protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain) throws ServletException, IOException {
         if (SecurityContextHolder.getContext().getAuthentication() == null && request.getCookies() != null) {
@@ -44,7 +47,10 @@ public class AccessCookieAuthFilter extends OncePerRequestFilter {
                             && user.active() && session.getAccountSessionEpoch() == user.getSessionEpoch()) {
                         UserRole role = user.getRole() == null ? UserRole.USER : user.getRole();
                         var principal = new AuthenticatedUserPrincipal(user.getId(), user.getEmail(), role, session.getSessionId(), user.getSessionEpoch());
-                        SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken(principal, null, principal.getAuthorities()));
+                        SecurityContext context = SecurityContextHolder.createEmptyContext();
+                        context.setAuthentication(new UsernamePasswordAuthenticationToken(principal, null, principal.getAuthorities()));
+                        SecurityContextHolder.setContext(context);
+                        securityContextRepository.saveContext(context, request, response);
                     }
                 } catch (DataAccessException unavailable) {
                     response.sendError(HttpServletResponse.SC_SERVICE_UNAVAILABLE, "Authentication service unavailable");

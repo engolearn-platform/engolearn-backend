@@ -53,6 +53,37 @@ public class MongoAssessmentRepository implements AssessmentRepository {
         query.fields().include("status","submitted_at","paper.series","paper.version","correct_count","level");
         return mongo.find(query,AssessmentAttempt.class);
     }
+    private Criteria companionHistoryCriteria(String user, boolean includeDemonstration) {
+        var criteria = where("user_id").is(user).and("status").is("READY").and("submitted_at").ne(null);
+        if (!includeDemonstration) criteria = criteria.and("paper.demonstration").ne(true);
+        return criteria;
+    }
+
+    public boolean companionHistoryAnchorExists(String user, boolean includeDemonstration,
+            Instant submittedAt, String attemptId) {
+        var query = Query.query(new Criteria().andOperator(companionHistoryCriteria(user, includeDemonstration),
+                where("submitted_at").is(submittedAt), where("_id").is(attemptId)));
+        return mongo.exists(query, AssessmentAttempt.class);
+    }
+
+    public List<AssessmentAttempt> companionHistory(String user, boolean includeDemonstration,
+            Instant beforeAt, String beforeId, int limit) {
+        var criteria = companionHistoryCriteria(user, includeDemonstration);
+        if (beforeAt != null) {
+            var sameDate = new Criteria().andOperator(where("submitted_at").is(beforeAt), where("_id").lt(beforeId));
+            // Mongo range comparisons bracket BSON types; legacy ObjectIds sort above string IDs.
+            var continuation = org.bson.types.ObjectId.isValid(beforeId)
+                    ? new Criteria().orOperator(where("submitted_at").lt(beforeAt), sameDate,
+                            new Criteria().andOperator(where("submitted_at").is(beforeAt), where("_id").type(2)))
+                    : new Criteria().orOperator(where("submitted_at").lt(beforeAt), sameDate);
+            criteria = new Criteria().andOperator(criteria, continuation);
+        }
+        var query = Query.query(criteria).with(Sort.by(Sort.Direction.DESC, "submitted_at", "_id")).limit(limit);
+        query.fields().include("_id", "submitted_at", "level", "correct_count", "skill_results",
+                "analysis_grants", "paper.paper_id", "paper.version", "paper.rules_version", "paper.demonstration");
+        return mongo.find(query, AssessmentAttempt.class);
+    }
+
     public List<AssessmentAttempt> valid(String user) {
         return mongo.find(Query.query(where("user_id").is(user).and("status").is("READY")).with(Sort.by(Sort.Direction.DESC,"submitted_at","_id")),AssessmentAttempt.class);
     }

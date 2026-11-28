@@ -39,8 +39,13 @@ public abstract class AbstractMongoIntegrationTest {
     // registered because application.yaml's value wins over the URI's database path.
     @DynamicPropertySource
     static void mongodbProperties(DynamicPropertyRegistry registry) {
-        registry.add("spring.mongodb.uri", () -> MONGO.getReplicaSetUrl(TEST_DB_NAME));
-        registry.add("spring.mongodb.database", () -> TEST_DB_NAME);
+        registerIsolatedMongo(registry, TEST_DB_NAME);
+    }
+
+    // Context smoke tests can use the same disposable server with a separate database.
+    public static void registerIsolatedMongo(DynamicPropertyRegistry registry, String database) {
+        registry.add("spring.mongodb.uri", () -> MONGO.getReplicaSetUrl(database));
+        registry.add("spring.mongodb.database", () -> database);
         registry.add("engolearn.mongodb.transactions.enabled", () -> "true");
     }
 

@@ -9,17 +9,17 @@ Run commands from the repository root:
     Copy-Item .env.example .env
     Copy-Item .\tools\mongo-json-importer\.env.example .\tools\mongo-json-importer\.env
 
-    # Check every JSON file in samples/; writes nothing
+    # Check default JSON files recursively under samples/; writes nothing
     .\tools\mongo-json-importer\import.ps1 -DryRun
 
-    # Import every JSON file in samples/
+    # Import default JSON files recursively under samples/
     .\tools\mongo-json-importer\import.ps1
 
     # Check or import one specific JSON file
     .\tools\mongo-json-importer\import.ps1 -File .\tools\mongo-json-importer\samples\example.json -DryRun
     .\tools\mongo-json-importer\import.ps1 -File .\tools\mongo-json-importer\samples\example.json
 
-When -File is omitted, all *.json files directly inside tools/mongo-json-importer/samples/ are loaded in filename order. Every input file is parsed and preflighted before the first write.
+When -File is omitted, JSON files under tools/mongo-json-importer/samples/ are discovered recursively in sorted full-path order. A directory containing an empty or text .importer-explicit-only marker (and its descendants) is excluded from automatic discovery; -File still works there. Grammar and Placement module bundles retain their explicit-file-only workflow because they contain alternative versions or require module-owned setup. Every selected input file is parsed and preflighted before the first write.
 
 ## Input format
 
@@ -40,7 +40,7 @@ Each file contains a top-level collections object. Each property name is a Mongo
 - MongoDB Extended JSON supports ObjectId, Date, Decimal128, and binary values.
 - By default, 24-character hexadecimal strings in fields named _id, ending in _id, or ending in _ids are converted to BSON ObjectId. Arrays in matching *_ids fields are converted element by element. Other strings are unchanged.
 - Set MONGO_IMPORT_OBJECT_ID_FIELDS in the tool-local .env to a comma-separated list of exact field names or wildcard patterns. Use "none" to disable conversion. This lets datasets with string-based identifiers opt out or define their own conventions.
-- The importer validates the JSON envelope, document shape, and duplicate input IDs. It does not validate domain schemas or cross-collection references.
+- The importer validates the JSON envelope and document shape. Duplicate IDs within a single file are rejected. Across selected files, identical Extended JSON documents (including field order and explicit type declarations) are imported once and counted as identicalCrossFileDuplicates; differing documents with the same collection and ID fail preflight regardless of the conflict policy. It does not validate domain schemas or cross-collection references.
 
 ### Datasets with string user IDs
 
@@ -152,6 +152,14 @@ development database with the default `skip` policy:
 Inspect the dry-run report and target database before confirming the import. This sample is
 not a production catalog or evidence of production data. Admin catalog changes continue to
 use the Subscription Admin API and preserve its validation and audit behavior.
+
+For a fresh disposable development database, this sample includes AI Companion quota rules for Free (10,000,000), Trial (50,000,000), and Premium (50,000,000) tokens per day for local AI evaluation only. As a temporary development fixture, all three Trial quota rules and benefit texts match Premium (7,200 speaking seconds/day, 5 assessment attempts/month, 50,000,000 AI tokens/day). The independent Trial policy remains in the current implementation pending domain redesign; this is not a production pricing decision. See ../../docs/technical/subscription/trial-product-handoff.md. Import the catalog before registering learners; Quota derives its snapshots from Subscription at runtime. Do not seed or overwrite Quota snapshots, counters, projections, or ledgers separately. Verify a new account through GET /api/v1/quota/me/usage and confirm AI_COMPANION_TOKEN_USAGE is available with used=0. Reimport with skip is safe only for identical catalog versions; if an existing database has older policy versions, publish a new version instead of editing an immutable snapshot.
+
+For AI Companion quotas in an existing database, use the existing Admin Free/Trial/Premium publication flow. Managed Premium changes must use the existing product draft and publish flow; use the legacy policy path only where applicable. Preserve the other quota rules. If versions are already imported, `skip` leaves them intact. Do not use replace to update an existing catalog or learner database.
+
+## Rich learner demo
+
+The self-contained file samples/rich-learner/rich-learner.json includes the shared catalog and one synthetic learner's Assessment, Learning Path and Topic history. It is included in recursive default discovery. Exact shared catalog copies are counted once; the original samples are not modified. This file works with MONGO_IMPORT_OBJECT_ID_FIELDS=_id and MONGO_IMPORT_CONFLICT_POLICY=skip; all required ObjectId references use explicit Extended JSON. Run the normal importer or select this file explicitly with -File. Review the preflight against a local development database. Historical dates are fixed; skip preserves existing learner progress. Existing catalog IDs in the target are not overwritten.
 
 ## Shared Assessment / Learning Path demo
 

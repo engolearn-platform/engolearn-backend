@@ -77,7 +77,18 @@ if ([string]::IsNullOrWhiteSpace($mongoUri)) {
 $resolvedFiles = @()
 if ([string]::IsNullOrWhiteSpace($File)) {
     if (-not (Test-Path -LiteralPath $samplesDirectory -PathType Container)) { throw "Samples directory not found: $samplesDirectory" }
-    $resolvedFiles = @(Get-ChildItem -LiteralPath $samplesDirectory -Filter '*.json' -File | Sort-Object Name | ForEach-Object { $_.FullName })
+    # Nested modules may contain alternative or migration-only datasets that require explicit -File.
+    $explicitOnlyPrefixes = @(Get-ChildItem -LiteralPath $samplesDirectory -Filter '.importer-explicit-only' -File -Recurse -Force | ForEach-Object {
+        $_.Directory.FullName.TrimEnd([IO.Path]::DirectorySeparatorChar, [IO.Path]::AltDirectorySeparatorChar) + [IO.Path]::DirectorySeparatorChar
+    })
+    $resolvedFiles = @(Get-ChildItem -LiteralPath $samplesDirectory -Filter '*.json' -File -Recurse | Where-Object {
+        $candidatePath = $_.FullName
+        $excluded = $false
+        foreach ($prefix in $explicitOnlyPrefixes) {
+            if ($candidatePath.StartsWith($prefix, [StringComparison]::OrdinalIgnoreCase)) { $excluded = $true; break }
+        }
+        -not $excluded
+    } | Sort-Object FullName | ForEach-Object { $_.FullName })
     if ($resolvedFiles.Count -eq 0) { throw "No *.json files found in '$samplesDirectory'." }
 } else {
     if ([IO.Path]::IsPathRooted($File)) { $candidate = [IO.Path]::GetFullPath($File) }

@@ -9,6 +9,9 @@ final class SubscriptionProductRegistry {
                     "Thời lượng luyện nói với AI được cấp theo chu kỳ.", "SPEAKING_DURATION", "SECOND", "DAILY"),
             new SubscriptionProductServiceResponse("PROFICIENCY_CHECK_ATTEMPT", "Đánh giá trình độ tiếng Anh",
                     "Lượt đánh giá trình độ được cấp theo chu kỳ.", "PROFICIENCY_CHECK_ATTEMPT", "ATTEMPT", "MONTHLY"),
+            new SubscriptionProductServiceResponse("AI_COMPANION", "Trò chuyện với AI mỗi ngày",
+                    "Lượt sử dụng AI Companion được tính theo token trong ngày.",
+                    "AI_COMPANION_TOKEN_USAGE", "TOKEN", "DAILY"),
             new SubscriptionProductServiceResponse("ASSESSMENT_FULL_ANALYSIS", "Xem phân tích đầy đủ",
                     "Xem đầy đủ phân tích của kết quả đánh giá.", null, null, null));
 

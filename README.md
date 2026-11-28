@@ -19,8 +19,28 @@ cp .env.example .env
 ### 2. Start the infrastructure (Docker Compose)
 
 ```bash
-docker-compose up -d
+docker compose up -d
 ```
+
+Compose starts MongoDB (replica set), mongo-express and Qdrant (AI Companion).
+Host-run Spring Boot uses http://localhost:6333 for Qdrant by default; a backend
+container attached to engolearn-network uses http://qdrant:6333 via
+engolearn.ai-companion.memory.qdrant-url. Qdrant ports are loopback-only on the host.
+The prod profile requires `QDRANT_CLUSTER_ENDPOINT` (HTTPS REST endpoint) and
+`QDRANT_KEY` (database API key). Use a key with collection/point read-write access.
+The dev profile uses local Qdrant without a key. Keep credentials out of version control.
+The memory store creates missing keyword payload indexes for `learner_id` and
+`retrieval_mode`, required for filtered queries in Qdrant Cloud strict mode.
+An opt-in live smoke test uses an isolated MongoDB Testcontainer, loopback port
+18082 and a unique temporary cloud collection (deleted after the test):
+```powershell
+.\mvnw.cmd "-Dtest=QdrantCloudSmokeTest" "-Dengolearn.qdrant.cloud.smoke=true" test
+```
+The existing engolearn-companion-qdrant named volume is reused. If migrating an old
+standalone container with that name, stop and remove the container without -v
+before starting Compose; do not delete its volume.
+docker compose down retains all named data; down -v deletes the MongoDB and
+Qdrant volumes together. Do not use it for routine shutdown.
 
 ### 3. Run the backend service
 
