@@ -27,3 +27,7 @@ Placement Test: [module entry](placement/README.md), [runtime](placement/placeme
 Grammar Learning: [module entry](grammar/README.md), [V2 storage and rules](grammar/grammar-v2-runtime.md), [import/migration](grammar/grammar-v2-importer.md) and [curriculum](grammar/grammar-cefr-roadmap.md). Historical implementation reports are retained in Git history instead of current module contracts.
 
 Micro-skill catalog: [schema, API, Learning Path compatibility and import](microskill/README.md).
+
+Management Dashboard: [read-only summary API](managementdashboard/README.md).
+
+[F05 administrator user management API and migration](security/f05-user-management.md).

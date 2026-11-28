@@ -6,13 +6,14 @@ import fit.iuh.engolearn.topic.dto.response.TopicManagementListResponse;
 import fit.iuh.engolearn.topic.dto.response.TopicManagementResponse;
 import fit.iuh.engolearn.topic.dto.request.TopicManagementListQuery;
 import fit.iuh.engolearn.topic.model.TopicItemVersion;
+import fit.iuh.engolearn.topic.contract.TopicManagementSummaryProvider;
 import jakarta.validation.Valid;
 import org.springframework.validation.annotation.Validated;
 
 import java.util.List;
 
 @Validated
-public interface TopicManagementReadService {
+public interface TopicManagementReadService extends TopicManagementSummaryProvider {
     TopicManagementListResponse list(@Valid TopicManagementListQuery query);
 
     TopicManagementResponse topic(String topicId);

@@ -41,9 +41,9 @@ public class AccessCookieAuthFilter extends OncePerRequestFilter {
                     User user = users.findById(claims.accountId()).orElse(null);
                     if (session != null && user != null && !session.isRevoked() && session.getExpiresAt() != null
                             && session.getExpiresAt().isAfter(Instant.now()) && claims.accountId().equals(session.getAccountId())
-                            && !user.isLocked()) {
+                            && user.active() && session.getAccountSessionEpoch() == user.getSessionEpoch()) {
                         UserRole role = user.getRole() == null ? UserRole.USER : user.getRole();
-                        var principal = new AuthenticatedUserPrincipal(user.getId(), user.getEmail(), role);
+                        var principal = new AuthenticatedUserPrincipal(user.getId(), user.getEmail(), role, session.getSessionId(), user.getSessionEpoch());
                         SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken(principal, null, principal.getAuthorities()));
                     }
                 } catch (DataAccessException unavailable) {
