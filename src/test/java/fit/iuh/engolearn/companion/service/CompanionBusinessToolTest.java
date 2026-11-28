@@ -40,6 +40,19 @@ class CompanionBusinessToolTest {
     }
     private String status(String value) { return json.readTree(value).get("status").asText(); }
 
+    @Test void capabilitySpecificGuidanceLivesInToolDeclarations() {
+        var descriptions = registry.definitions(true).stream().collect(
+                java.util.stream.Collectors.toMap(CompanionToolDefinition::name, CompanionToolDefinition::description));
+        assertTrue(descriptions.get("findLearningTopics").contains("learner has NOT started"));
+        assertTrue(descriptions.get("findLearningTopics").contains("literal substring"));
+        assertTrue(descriptions.get("findLearningTopics").contains("Excludes in-progress and completed topics"));
+        assertTrue(descriptions.get("getTopicLearningProgress").contains("including items in unfinished topics"));
+        assertTrue(descriptions.get("getLearningPathProgress").contains("Availability UNKNOWN means an unverified candidate"));
+        assertTrue(descriptions.get("getLearningPathProgress").contains("Topic and other module activity is not covered"));
+        assertTrue(descriptions.get("getAssessmentHistory").contains("DEMONSTRATION_RESULTS_ONLY"));
+        assertTrue(descriptions.get("getAssessmentHistory").contains("UNKNOWN does not establish different papers"));
+    }
+
     @Test void strictArgumentsDoNotReachProvidersAndUnsupportedTopicModeNotAdvertised() {
         assertEquals(4,registry.definitions(true).size());
         assertEquals("UNKNOWN_TOOL",registry.safeName("secret-owner"));

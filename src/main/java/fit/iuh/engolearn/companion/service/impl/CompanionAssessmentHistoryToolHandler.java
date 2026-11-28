@@ -24,7 +24,7 @@ public class CompanionAssessmentHistoryToolHandler implements CompanionToolHandl
 
     @Override public List<CompanionToolDefinition> definitions() {
         return List.of(new CompanionToolDefinition("getAssessmentHistory",
-                "Get dated account-visible assessment history, newest first. Only isLatest=true identifies the latest result. Keep skill values within their own dated row. SKILLS includes visible skill rows and like-for-like observations only when same pinned non-demo paper and visible equal denominator. UNKNOWN comparison is not evidence of different papers or improvement. Never rank hidden skills.",
+                "Read-only paginated history of eligible, account-visible assessment results, newest first (default two, maximum five). Each row belongs to its own attempt, submission date, official score, level, demonstration flag and scope; isLatest identifies the latest visible result on the initial page. SUMMARY is the default; SKILLS adds visible skill values and observations of comparable pairs. Observations require the same pinned non-demo paper, paper/rules versions, skill and positive equal denominator; differences are descriptive, not proof of improvement. comparisonReason is page-scoped: SKILLS_NOT_REQUESTED, COMPARABLE_VISIBLE_SKILLS, DEMONSTRATION_RESULTS_ONLY (demo results cannot establish progress), or NO_COMPARABLE_VISIBLE_SKILLS (no eligible comparable pair). UNKNOWN does not establish different papers. PREVIEW excludes hidden skills.",
                 """
                 {"type":"object","properties":{"limit":{"type":"integer","minimum":2,"maximum":5},"cursor":{"type":"string","maxLength":512},"detail":{"type":"string","enum":["SUMMARY","SKILLS"]}},"additionalProperties":false}
                 """));
